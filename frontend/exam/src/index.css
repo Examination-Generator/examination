@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Remove browser default headers and footers when printing */
+@page {
+    margin: 0;
+}
+
+@media print {
+    /* Remove browser-generated headers and footers */
+    body {
+        margin: 0;
+        padding: 0;
+    }
+    
+    /* Hide any default browser print elements */
+    header, footer {
+        display: none !important;
+    }
+}
