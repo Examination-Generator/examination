@@ -9,9 +9,9 @@ function App() {
   const [currentView, setCurrentView] = useState('login'); // 'login', 'signup', 'editor', or 'user'
   const [userRole, setUserRole] = useState('user'); // 'editor' or 'user'
 
-  const handleLoginSuccess = () => {
-    // For now, defaulting to user role. Can be changed based on actual user role from backend
-    if (userRole === 'editor') {
+  const handleLoginSuccess = (role) => {
+    setUserRole(role);
+    if (role === 'editor') {
       setCurrentView('editor');
     } else {
       setCurrentView('user');

@@ -1,10 +1,14 @@
+import { useState } from 'react';
+
 export default function Login({ onSwitchToSignup, onLoginSuccess }){
+    const [isEditor, setIsEditor] = useState(false);
     
     const handleSubmit = (e) => {
         e.preventDefault();
         // TODO: Add actual login validation
-        console.log('Login submitted');
-        onLoginSuccess();
+        const role = isEditor ? 'editor' : 'user';
+        console.log('Login submitted with role:', role);
+        onLoginSuccess(role);
     };
 
     return(
@@ -24,6 +28,22 @@ export default function Login({ onSwitchToSignup, onLoginSuccess }){
                     </div>
                     
                     <form onSubmit={handleSubmit}>
+                        <div className="mb-4">
+                            <label className="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={isEditor}
+                                    onChange={(e) => setIsEditor(e.target.checked)}
+                                    className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700 font-medium">
+                                    Login as Editor (Question Entry)
+                                </span>
+                            </label>
+                            <p className="text-xs text-gray-500 mt-1 ml-6">
+                                {isEditor ? 'You will access the Question Entry Dashboard' : 'You will access the Exam Generation Dashboard'}
+                            </p>
+                        </div>
                         <div className="mb-4">
                             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="phone-mobile">
                                 Phone Number
@@ -98,6 +118,22 @@ export default function Login({ onSwitchToSignup, onLoginSuccess }){
                         </div>
                         
                         <form onSubmit={handleSubmit}>
+                            <div className="mb-4">
+                                <label className="flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={isEditor}
+                                        onChange={(e) => setIsEditor(e.target.checked)}
+                                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700 font-medium">
+                                        Login as Editor (Question Entry)
+                                    </span>
+                                </label>
+                                <p className="text-xs text-gray-500 mt-1 ml-6">
+                                    {isEditor ? 'You will access the Question Entry Dashboard' : 'You will access the Exam Generation Dashboard'}
+                                </p>
+                            </div>
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="phone-desktop">
                                     Phone Number
