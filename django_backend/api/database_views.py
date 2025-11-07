@@ -216,3 +216,50 @@ def create_superuser(request):
             f'Failed to create admin user: {str(e)}',
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_default_users(request):
+    """
+    Create default admin and editor users
+    POST /api/database/create-defaults
+    """
+    try:
+        # Run the management command
+        output = StringIO()
+        call_command('create_default_users', stdout=output)
+        command_output = output.getvalue()
+        
+        # Count users created
+        admin_exists = User.objects.filter(phone_number='0000000001').exists()
+        editor_exists = User.objects.filter(phone_number='0000000002').exists()
+        
+        return success_response(
+            'Default users created successfully',
+            {
+                'admin_created': admin_exists,
+                'editor_created': editor_exists,
+                'credentials': {
+                    'admin': {
+                        'phone': '0000000001',
+                        'password': '0000',
+                        'role': 'admin'
+                    },
+                    'editor': {
+                        'phone': '0000000002',
+                        'password': '0000',
+                        'role': 'editor'
+                    }
+                },
+                'output': command_output
+            },
+            status=status.HTTP_201_CREATED
+        )
+        
+    except Exception as e:
+        logger.error(f"[DATABASE] Failed to create default users: {e}")
+        return error_response(
+            f'Failed to create default users: {str(e)}',
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

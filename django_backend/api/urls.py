@@ -11,6 +11,7 @@ urlpatterns = [
     path('database/initialize', database_views.initialize_database, name='database-initialize'),
     path('database/health', database_views.database_health, name='database-health'),
     path('database/create-admin', database_views.create_superuser, name='create-admin'),
+    path('database/create-defaults', database_views.create_default_users, name='create-defaults'),
     
     # ==================== AUTHENTICATION ROUTES ====================
     # Auth endpoints without 'auth/' prefix to match frontend expectations
