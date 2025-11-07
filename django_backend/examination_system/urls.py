@@ -18,9 +18,37 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+
+# Simple home view
+def home_view(request):
+    """API home endpoint showing available routes"""
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Examination System API is running on Vercel! 🚀',
+        'version': 'v1',
+        'endpoints': {
+            'api': '/api/',
+            'admin': '/admin/',
+            'docs_swagger': '/swagger/',
+            'docs_redoc': '/redoc/',
+            'authentication': {
+                'send_otp': '/api/send-otp',
+                'verify_otp': '/api/verify-otp',
+                'register': '/api/register',
+                'login': '/api/login',
+                'forgot_password': '/api/forgot-password',
+                'reset_password': '/api/reset-password',
+            },
+            'subjects': '/api/subjects',
+            'questions': '/api/questions',
+        },
+        'database': 'Vercel Postgres',
+        'deployment': 'Vercel Serverless',
+    })
 
 # API Documentation
 schema_view = get_schema_view(
@@ -37,6 +65,7 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    path('', home_view, name='home'),  # Home endpoint
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
     
