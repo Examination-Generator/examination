@@ -27,26 +27,36 @@ class VercelDatabaseSetup:
         }
     
     def _make_request(self, method, endpoint, data=None):
-        """Make authenticated request to Vercel API"""
+        """Make authenticated request to Vercel API.
+
+        Returns parsed JSON on 2xx responses.
+        On non-2xx responses returns a tuple: (status_code, text).
+        Returns None on network errors.
+        """
         url = f"{self.base_url}{endpoint}"
+        params = {}
         if self.team_id:
-            url += f"?teamId={self.team_id}"
-        
+            params['teamId'] = self.team_id
+
         try:
-            if method == "GET":
-                response = requests.get(url, headers=self.headers)
-            elif method == "POST":
-                response = requests.post(url, headers=self.headers, json=data)
-            elif method == "PATCH":
-                response = requests.patch(url, headers=self.headers, json=data)
-            
-            response.raise_for_status()
-            return response.json()
+            response = requests.request(method, url, headers=self.headers, json=data, params=params, timeout=30)
         except requests.exceptions.RequestException as e:
-            print(f"❌ API request failed: {e}")
-            if hasattr(e.response, 'text'):
-                print(f"Response: {e.response.text}")
+            print(f"❌ API request failed (network): {e}")
             return None
+
+        if 200 <= response.status_code < 300:
+            try:
+                return response.json()
+            except ValueError:
+                return response.text
+
+        # Non-successful
+        print(f"❌ API request returned status {response.status_code} for {url}")
+        try:
+            print(f"Response: {response.status_code} {response.text}")
+        except Exception:
+            pass
+        return (response.status_code, response.text)
     
     def find_project(self, project_name=None):
         """Find the backend project"""
@@ -81,11 +91,20 @@ class VercelDatabaseSetup:
         """Check for existing Postgres databases"""
         print("\n🔍 Checking for existing databases...")
         
-        stores = self._make_request("GET", "/v1/storage/stores")
-        if not stores:
+        # Try multiple API versions
+        endpoints = ["/v1/storage/stores", "/v2/storage/stores", "/v1/integrations/stores"]
+        stores_data = None
+        
+        for endpoint in endpoints:
+            stores_data = self._make_request("GET", endpoint)
+            if stores_data and 'stores' in stores_data:
+                break
+        
+        if not stores_data:
+            print("ℹ️  Could not fetch database list (API might require team access)")
             return []
         
-        postgres_dbs = [s for s in stores.get('stores', []) if s.get('type') == 'postgres']
+        postgres_dbs = [s for s in stores_data.get('stores', []) if s.get('type') == 'postgres']
         
         if postgres_dbs:
             print(f"✅ Found {len(postgres_dbs)} existing Postgres database(s):")
@@ -97,23 +116,55 @@ class VercelDatabaseSetup:
         return postgres_dbs
     
     def create_database(self, name="examination-db", region="us-east-1"):
-        """Create a new Vercel Postgres database"""
+        """Create a new Vercel Postgres database using available API endpoints.
+
+        Tries multiple endpoints. If all fail, returns None and caller should offer
+        an interactive fallback to paste a POSTGRES_URL.
+        """
         print(f"\n🗄️  Creating Postgres database: {name}...")
-        
-        data = {
-            "name": name,
-            "type": "postgres",
-            "region": region
-        }
-        
-        result = self._make_request("POST", "/v1/storage/stores", data)
-        if result:
-            print(f"✅ Database created successfully!")
-            print(f"  Name: {result.get('name')}")
-            print(f"  ID: {result.get('id')}")
-            print(f"  Region: {result.get('region')}")
-            return result
-        
+        print("ℹ️  Note: Vercel Postgres creation may require specific token scopes or integrations.")
+        print("ℹ️  Attempting to create via API...")
+
+        # Try different API endpoints that may exist across accounts
+        endpoints = [
+            ("/v1/storage/stores", {"name": name, "type": "postgres", "region": region}),
+            ("/v2/storage/stores", {"name": name, "type": "postgres", "region": region}),
+            ("/v8/integrations/configuration/stores", {"name": name, "type": "postgres", "region": region}),
+        ]
+
+        for endpoint, data in endpoints:
+            print(f"Trying endpoint: {endpoint}")
+            result = self._make_request("POST", endpoint, data)
+
+            if result is None:
+                # network error; try next
+                continue
+
+            if isinstance(result, tuple):
+                status_code, text = result
+                if status_code == 404:
+                    print(f"Endpoint {endpoint} returned 404 - not available for this account/token.")
+                    continue
+                else:
+                    print(f"Endpoint {endpoint} returned {status_code}: {text}")
+                    # stop trying on other errors
+                    return None
+
+            # If result is dict, assume success
+            if isinstance(result, dict) and result.get('id'):
+                print(f"✅ Database created successfully via {endpoint}!")
+                print(f"  Name: {result.get('name')}")
+                print(f"  ID: {result.get('id')}")
+                print(f"  Region: {result.get('region')}")
+                return result
+
+        # If we reach here, automatic creation failed
+        print("\n⚠️  API creation failed for all attempted endpoints.")
+        print("This likely means the Vercel token lacks Storage/Integrations scope or your account uses a different API surface.")
+        print("You can either grant the token additional permissions or create the Postgres database via the Vercel Dashboard:")
+        print("  - https://vercel.com/dashboard/stores")
+        print("After creating the database in the dashboard, re-run this script to link it to the project, or paste the resulting POSTGRES_URL when prompted.")
+
         return None
     
     def link_database_to_project(self, store_id, project_id):
@@ -144,12 +195,14 @@ class VercelDatabaseSetup:
                 "type": "encrypted",
                 "target": ["production", "preview", "development"]
             }
-            
             result = self._make_request("POST", f"/v10/projects/{project_id}/env", data)
-            if result:
-                print(f"  ✅ {key} set successfully")
+            if result is None:
+                print(f"  ❌ Network error when setting {key}")
+            elif isinstance(result, tuple):
+                status_code, text = result
+                print(f"  ❌ Failed to set {key}: {status_code} - {text}")
             else:
-                print(f"  ❌ Failed to set {key}")
+                print(f"  ✅ {key} set successfully")
     
     def trigger_deployment(self, project_id):
         """Trigger a new deployment to apply changes"""
@@ -212,14 +265,29 @@ class VercelDatabaseSetup:
             database = self.create_database()
         
         if not database:
-            print("\n❌ Database setup failed")
-            return False
+            print("\n⚠️  Database setup failed (automatic creation).")
+            print("You can provide an existing POSTGRES_URL to continue (from Vercel Dashboard or another provider).")
+            provided = input("Paste POSTGRES_URL now (or press Enter to abort): ").strip()
+            if not provided:
+                print("Aborting setup.")
+                return False
+
+            # Set POSTGRES_URL directly on project
+            print("Setting POSTGRES_URL on project...")
+            self.set_environment_variables(project_id, {"POSTGRES_URL": provided})
+            print("✅ POSTGRES_URL configured. Continuing to set other env vars and trigger deployment.")
+            database = {'id': 'manual-provided', 'name': 'manual-provided'}
         
         # Step 3: Link database to project
         link_result = self.link_database_to_project(database['id'], project_id)
         if not link_result:
-            print("\n❌ Failed to link database to project")
-            return False
+            print("\n⚠️  Failed to link database to project automatically.")
+            print("You can paste a POSTGRES_URL to set it manually and continue.")
+            provided = input("Paste POSTGRES_URL now (or press Enter to abort): ").strip()
+            if not provided:
+                print("Aborting setup.")
+                return False
+            self.set_environment_variables(project_id, {"POSTGRES_URL": provided})
         
         # Step 4: Set additional environment variables
         import secrets
