@@ -21,4 +21,12 @@ python manage.py migrate --noinput --settings=examination_system.settings_produc
 }
 
 echo "==================== MIGRATIONS COMPLETED SUCCESSFULLY ===================="
+
+# Create default admin and editor users
+echo "==================== CREATING DEFAULT USERS ===================="
+python manage.py create_default_users --settings=examination_system.settings_production || {
+    echo "WARNING: Failed to create default users, but continuing..."
+}
+
+echo "==================== DEFAULT USERS SETUP COMPLETED ===================="
 echo "==================== BUILD SCRIPT COMPLETED ===================="
