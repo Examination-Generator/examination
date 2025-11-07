@@ -3,9 +3,15 @@ URL Configuration for API app
 """
 
 from django.urls import path
-from . import auth_views, subject_views, question_views
+from . import auth_views, subject_views, question_views, database_views
 
 urlpatterns = [
+    # ==================== DATABASE MANAGEMENT ROUTES ====================
+    # These endpoints handle automatic database setup and migrations
+    path('database/initialize', database_views.initialize_database, name='database-initialize'),
+    path('database/health', database_views.database_health, name='database-health'),
+    path('database/create-admin', database_views.create_superuser, name='create-admin'),
+    
     # ==================== AUTHENTICATION ROUTES ====================
     # Auth endpoints without 'auth/' prefix to match frontend expectations
     path('send-otp', auth_views.send_otp, name='send-otp'),

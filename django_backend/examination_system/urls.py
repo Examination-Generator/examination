@@ -25,12 +25,55 @@ from drf_yasg import openapi
 
 # Simple home view
 def home_view(request):
-    """API home endpoint showing available routes"""
+    """API home endpoint showing available routes and database status"""
+    from django.db import connection
+    
+    # Check database status
+    db_status = 'unknown'
+    db_details = {}
+    
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        db_status = 'connected'
+        
+        try:
+            from api.models import User
+            user_count = User.objects.count()
+            db_details = {
+                'status': 'ready',
+                'users_count': user_count,
+                'migrations_applied': True
+            }
+        except Exception:
+            db_details = {
+                'status': 'needs_migration',
+                'migrations_applied': False,
+                'message': 'Database connected but tables not created. Run migrations via /api/database/initialize'
+            }
+    except Exception as e:
+        db_status = 'disconnected'
+        db_details = {
+            'status': 'error',
+            'error': str(e),
+            'message': 'Database not accessible. Check POSTGRES_URL environment variable.'
+        }
+    
     return JsonResponse({
         'status': 'success',
         'message': 'Examination System API is running on Vercel! 🚀',
         'version': 'v1',
+        'database': {
+            'connection': db_status,
+            **db_details
+        },
         'endpoints': {
+            'home': '/',
+            'database': {
+                'health': '/api/database/health',
+                'initialize': '/api/database/initialize (POST to run migrations)',
+                'create_admin': '/api/database/create-admin',
+            },
             'api': '/api/',
             'admin': '/admin/',
             'docs_swagger': '/swagger/',
@@ -46,8 +89,8 @@ def home_view(request):
             'subjects': '/api/subjects',
             'questions': '/api/questions',
         },
-        'database': 'Vercel Postgres',
         'deployment': 'Vercel Serverless',
+        'auto_migration': 'enabled',
     })
 
 # API Documentation

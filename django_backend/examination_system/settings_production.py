@@ -28,6 +28,12 @@ except Exception as e:
     print(f"✗ Failed to import base settings: {e}", file=sys.stderr)
     raise
 
+# Add auto-migration middleware at the beginning of MIDDLEWARE
+# This ensures database is automatically set up on first request
+MIDDLEWARE = [
+    'api.middleware.AutoMigrateMiddleware',  # AUTO-MIGRATE: Run migrations automatically
+] + MIDDLEWARE
+
 # Security settings for production
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 SECRET_KEY = os.getenv('SECRET_KEY', 'temporary-secret-key-change-in-production')
