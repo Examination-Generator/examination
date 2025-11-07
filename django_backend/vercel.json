@@ -2,15 +2,25 @@
   "version": 2,
   "builds": [
     {
-      "src": "examination_system/wsgi.py",
+      "src": "vercel_app.py",
       "use": "@vercel/python",
-      "config": { "maxLambdaSize": "15mb", "runtime": "python3.9" }
+      "config": { 
+        "maxLambdaSize": "15mb", 
+        "runtime": "python3.12"
+      }
     }
   ],
   "routes": [
     {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "examination_system/wsgi.py"
+      "dest": "vercel_app.py"
     }
-  ]
+  ],
+  "env": {
+    "DJANGO_SETTINGS_MODULE": "examination_system.settings_production"
+  }
 }
