@@ -92,7 +92,7 @@ vercel link
 ```bash
 vercel env pull .env.production
 ```
-
+pythonsetting
 5. **Run migrations locally against production database**:
 ```bash
 python manage.py migrate --settings=examination_system.settings_production
