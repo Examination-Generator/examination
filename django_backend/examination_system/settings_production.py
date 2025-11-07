@@ -45,31 +45,55 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '.vercel.app').split(',')
 print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}", file=sys.stderr)
 
 # Database configuration for Vercel Postgres
-if os.getenv('POSTGRES_URL'):
-    print("Using POSTGRES_URL for database configuration", file=sys.stderr)
+# CRITICAL: Check for Vercel Postgres environment variables
+postgres_url = (
+    os.getenv('POSTGRES_URL') or 
+    os.getenv('DATABASE_URL') or
+    os.getenv('POSTGRES_PRISMA_URL') or
+    os.getenv('POSTGRES_URL_NON_POOLING')
+)
+
+if postgres_url:
+    print(f"✓ Found database URL (length: {len(postgres_url)} chars)", file=sys.stderr)
     try:
         DATABASES = {
             'default': dj_database_url.config(
-                default=os.getenv('POSTGRES_URL'),
+                default=postgres_url,
                 conn_max_age=600,
                 conn_health_checks=True,
             )
         }
         print(f"✓ Database configured successfully", file=sys.stderr)
+        print(f"  Host: {DATABASES['default'].get('HOST', 'unknown')}", file=sys.stderr)
+        print(f"  Port: {DATABASES['default'].get('PORT', 'unknown')}", file=sys.stderr)
+        print(f"  Database: {DATABASES['default'].get('NAME', 'unknown')}", file=sys.stderr)
     except Exception as e:
         print(f"✗ Database configuration failed: {e}", file=sys.stderr)
         raise
-elif os.getenv('DATABASE_URL'):
-    print("Using DATABASE_URL for database configuration", file=sys.stderr)
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
-    }
 else:
-    print("⚠ No database URL found - using default from base settings", file=sys.stderr)
+    # NO DATABASE URL FOUND - This is critical!
+    print("=" * 80, file=sys.stderr)
+    print("✗ CRITICAL ERROR: NO DATABASE URL ENVIRONMENT VARIABLE FOUND!", file=sys.stderr)
+    print("=" * 80, file=sys.stderr)
+    print("Please set one of these environment variables on Vercel:", file=sys.stderr)
+    print("  - POSTGRES_URL (recommended)", file=sys.stderr)
+    print("  - DATABASE_URL", file=sys.stderr)
+    print("  - POSTGRES_PRISMA_URL", file=sys.stderr)
+    print("  - POSTGRES_URL_NON_POOLING", file=sys.stderr)
+    print("=" * 80, file=sys.stderr)
+    
+    # Use a dummy configuration that will fail gracefully
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'NOT_CONFIGURED',
+            'USER': 'NOT_CONFIGURED',
+            'PASSWORD': 'NOT_CONFIGURED',
+            'HOST': 'NOT_CONFIGURED',
+            'PORT': '5432',
+        }
+    }
+    print("⚠ Using dummy database config - app will not work until POSTGRES_URL is set", file=sys.stderr)
 
 # Static files configuration for Vercel
 STATIC_URL = '/static/'

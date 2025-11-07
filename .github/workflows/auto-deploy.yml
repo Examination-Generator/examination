@@ -1,0 +1,38 @@
+name: Auto-Deploy with Database Setup
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  setup-database:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      
+      - name: Install dependencies
+        run: |
+          pip install requests
+      
+      - name: Check and setup database
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          cd django_backend
+          python setup_database.py --token $VERCEL_TOKEN --project examination
+      
+      - name: Deployment complete
+        run: |
+          echo "✅ Database setup and deployment completed!"
+          echo "Backend will be available at: https://examination-s3np.vercel.app/"
