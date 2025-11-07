@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "django_backend/examination_system/wsgi.py",
+      "use": "@vercel/python",
+      "config": { "maxLambdaSize": "15mb" }
+    },
+    {
+      "src": "frontend/exam/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "frontend/exam/build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "django_backend/examination_system/wsgi.py"
+    },
+    {
+      "src": "/admin/(.*)",
+      "dest": "django_backend/examination_system/wsgi.py"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "django_backend/examination_system/wsgi.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/exam/build/$1"
+    }
+  ],
+  "env": {
+    "DJANGO_SETTINGS_MODULE": "examination_system.settings"
+  }
+}

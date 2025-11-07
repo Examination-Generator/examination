@@ -1,25 +1,30 @@
 # Django Core
-Django
-django-cors-headers
+Django==5.0.1
+django-cors-headers==4.3.1
 
 # PostgreSQL Database
-psycopg2-binary
+psycopg2-binary==2.9.9
+dj-database-url==2.1.0
 
 # REST Framework
-djangorestframework
-djangorestframework-simplejwt
+djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
 
 # Environment Variables
-python-dotenv
+python-dotenv==1.0.0
 
 # Password Hashing
-bcrypt
+bcrypt==4.1.2
 
 # Image Processing (for inline images)
-Pillow
+Pillow==10.2.0
 
 # API Documentation (optional)
-drf-yasg
+drf-yasg==1.21.7
 
 # Utilities
-pytz
+pytz==2024.1
+
+# Production server
+gunicorn==21.2.0
+whitenoise==6.6.0
