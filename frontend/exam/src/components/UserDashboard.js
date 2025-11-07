@@ -17,8 +17,6 @@ export default function UserDashboard({ onLogout }) {
     const [duration, setDuration] = useState('');
     const [instructions, setInstructions] = useState('');
     const [totalMarks, setTotalMarks] = useState('');
-    const [logoUrl, setLogoUrl] = useState('/exam.png'); // Default logo
-    const [useCustomLogo, setUseCustomLogo] = useState(false);
     
     // Generated Exam States
     const [generatedExam, setGeneratedExam] = useState(null);
@@ -126,23 +124,6 @@ export default function UserDashboard({ onLogout }) {
 
     const handleDownloadExam = () => {
         alert('Exam download functionality will be implemented');
-    };
-
-    const handleLogoUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setLogoUrl(reader.result);
-                setUseCustomLogo(true);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const handleUseDefaultLogo = () => {
-        setLogoUrl('/exam.png');
-        setUseCustomLogo(false);
     };
 
     return (
@@ -295,49 +276,6 @@ export default function UserDashboard({ onLogout }) {
                         
                         <form onSubmit={handleGenerateExam}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Logo Upload */}
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                                        School Logo (Optional)
-                                    </label>
-                                    <div className="flex items-center space-x-4">
-                                        <div className="flex-shrink-0">
-                                            <img 
-                                                src={logoUrl} 
-                                                alt="School Logo" 
-                                                className="w-20 h-20 object-contain border-2 border-gray-300 rounded-lg p-2"
-                                            />
-                                        </div>
-                                        <div className="flex-1">
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleLogoUpload}
-                                                className="hidden"
-                                                id="logo-upload"
-                                            />
-                                            <label
-                                                htmlFor="logo-upload"
-                                                className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg cursor-pointer transition mr-2"
-                                            >
-                                                Upload Custom Logo
-                                            </label>
-                                            {useCustomLogo && (
-                                                <button
-                                                    type="button"
-                                                    onClick={handleUseDefaultLogo}
-                                                    className="inline-block bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition"
-                                                >
-                                                    Use Default Logo
-                                                </button>
-                                            )}
-                                            <p className="text-xs text-gray-500 mt-2">
-                                                Upload your school logo or use the default exam.png
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {/* School Name */}
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -493,11 +431,11 @@ export default function UserDashboard({ onLogout }) {
                         {/* Cover Page */}
                         <div className="bg-white rounded-lg mb-8 print:border-0 print:h-screen print:flex print:flex-col print:justify-between" style={{ pageBreakAfter: 'always' }}>
                             <div className="p-8">
-                                {/* Logo and Header */}
+                                {/* Header */}
                                 <div className="mb-6">
                                     <div className="flex justify-start mb-4">
                                         <img 
-                                            src={logoUrl} 
+                                            src="/exam.png" 
                                             alt="School Logo" 
                                             className="w-16 h-16 object-contain"
                                         />
@@ -620,11 +558,9 @@ export default function UserDashboard({ onLogout }) {
                                     {/* Logo and Header */}
                                     <div className="mb-6">
                                         <div className="flex justify-start mb-4">
-                                            <img 
-                                                src={logoUrl} 
-                                                alt="School Logo" 
-                                                className="w-16 h-16 object-contain"
-                                            />
+                                            <div className="w-16 h-16 bg-orange-600 rounded-lg flex items-center justify-center">
+                                                <span className="text-white text-3xl font-bold">📋</span>
+                                            </div>
                                         </div>
                                         <div className="text-center">
                                             <h1 className="text-2xl font-bold mb-1">{schoolName}</h1>

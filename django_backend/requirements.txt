@@ -1,0 +1,25 @@
+# Django Core
+Django
+django-cors-headers
+
+# PostgreSQL Database
+psycopg2-binary
+
+# REST Framework
+djangorestframework
+djangorestframework-simplejwt
+
+# Environment Variables
+python-dotenv
+
+# Password Hashing
+bcrypt
+
+# Image Processing (for inline images)
+Pillow
+
+# API Documentation (optional)
+drf-yasg
+
+# Utilities
+pytz

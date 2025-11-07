@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as authService from '../services/authService';
 
 export default function Signup({ onSwitchToLogin }) {
     const [step, setStep] = useState(1); // 1: Phone & Name, 2: OTP, 3: Password
@@ -9,33 +10,130 @@ export default function Signup({ onSwitchToLogin }) {
         password: '',
         confirmPassword: ''
     });
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
     const handleChange = (e) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
         });
+        setError(''); // Clear error when user types
     };
 
-    const handlePhoneSubmit = (e) => {
+    const handlePhoneSubmit = async (e) => {
         e.preventDefault();
-        // TODO: Send OTP to phone number
-        console.log('Sending OTP to:', formData.phone);
-        setStep(2);
+        setError('');
+        setSuccessMessage('');
+        setIsLoading(true);
+        
+        try {
+            // Validate inputs
+            if (!formData.name.trim()) {
+                throw new Error('Please enter your full name');
+            }
+            if (!formData.phone.trim()) {
+                throw new Error('Please enter your phone number');
+            }
+            
+            // Request OTP
+            const response = await authService.requestOTP(formData.phone, formData.name);
+            console.log('OTP requested:', response);
+            setSuccessMessage(response.message || 'OTP sent successfully!');
+            setStep(2);
+        } catch (error) {
+            console.error('Error requesting OTP:', error);
+            setError(error.message || 'Failed to send OTP. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleOtpSubmit = (e) => {
+    const handleOtpSubmit = async (e) => {
         e.preventDefault();
-        // TODO: Verify OTP
-        console.log('Verifying OTP:', formData.otp);
-        setStep(3);
+        setError('');
+        setSuccessMessage('');
+        setIsLoading(true);
+        
+        try {
+            // Validate OTP
+            if (!formData.otp.trim() || formData.otp.length !== 6) {
+                throw new Error('Please enter a valid 6-digit OTP');
+            }
+            
+            // Verify OTP
+            const response = await authService.verifyOTP(formData.phone, formData.otp);
+            console.log('OTP verified:', response);
+            setSuccessMessage('OTP verified successfully!');
+            setTimeout(() => {
+                setStep(3);
+                setSuccessMessage('');
+            }, 1000);
+        } catch (error) {
+            console.error('Error verifying OTP:', error);
+            setError(error.message || 'Invalid OTP. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handlePasswordSubmit = (e) => {
+    const handlePasswordSubmit = async (e) => {
         e.preventDefault();
-        // TODO: Create account with password
-        console.log('Creating account:', formData);
-        // Redirect to login or dashboard
+        setError('');
+        setSuccessMessage('');
+        setIsLoading(true);
+        
+        try {
+            // Validate password
+            if (!formData.password || formData.password.length !== 4) {
+                throw new Error('Please enter a 4-digit PIN');
+            }
+            if (formData.password !== formData.confirmPassword) {
+                throw new Error('PINs do not match');
+            }
+            if (!/^\d{4}$/.test(formData.password)) {
+                throw new Error('PIN must be 4 digits');
+            }
+            
+            // Register user
+            const response = await authService.register(
+                formData.phone,
+                formData.name,
+                formData.password,
+                'user' // Default role is 'user', admin can change to 'editor' later
+            );
+            
+            console.log('Registration successful:', response);
+            setSuccessMessage('Registration successful! Redirecting to login...');
+            
+            // Redirect to login after 2 seconds
+            setTimeout(() => {
+                onSwitchToLogin();
+            }, 2000);
+        } catch (error) {
+            console.error('Error registering:', error);
+            setError(error.message || 'Registration failed. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleResendOTP = async () => {
+        setError('');
+        setSuccessMessage('');
+        setIsLoading(true);
+        
+        try {
+            const response = await authService.requestOTP(formData.phone, formData.name);
+            console.log('OTP resent:', response);
+            setSuccessMessage('OTP resent successfully!');
+        } catch (error) {
+            console.error('Error resending OTP:', error);
+            setError(error.message || 'Failed to resend OTP. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -74,6 +172,16 @@ export default function Signup({ onSwitchToLogin }) {
                         {/* Step 1: Phone & Name */}
                         {step === 1 && (
                             <form onSubmit={handlePhoneSubmit}>
+                                {error && (
+                                    <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                                        <p className="text-sm">{error}</p>
+                                    </div>
+                                )}
+                                {successMessage && (
+                                    <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                                        <p className="text-sm">{successMessage}</p>
+                                    </div>
+                                )}
                                 <div className="mb-4">
                                     <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name-mobile">
                                         Full Name
@@ -105,10 +213,21 @@ export default function Signup({ onSwitchToLogin }) {
                                     />
                                 </div>
                                 <button
-                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
                                     type="submit"
+                                    disabled={isLoading}
                                 >
-                                    Send OTP
+                                    {isLoading ? (
+                                        <span className="flex items-center justify-center">
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Sending OTP...
+                                        </span>
+                                    ) : (
+                                        'Send OTP'
+                                    )}
                                 </button>
                             </form>
                         )}
@@ -116,6 +235,16 @@ export default function Signup({ onSwitchToLogin }) {
                         {/* Step 2: OTP Verification */}
                         {step === 2 && (
                             <form onSubmit={handleOtpSubmit}>
+                                {error && (
+                                    <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                                        <p className="text-sm">{error}</p>
+                                    </div>
+                                )}
+                                {successMessage && (
+                                    <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                                        <p className="text-sm">{successMessage}</p>
+                                    </div>
+                                )}
                                 <div className="text-center mb-6">
                                     <p className="text-gray-600 text-sm">
                                         We've sent a verification code to
@@ -139,15 +268,27 @@ export default function Signup({ onSwitchToLogin }) {
                                     />
                                 </div>
                                 <button
-                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg mb-4"
+                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg mb-4 disabled:bg-gray-400 disabled:cursor-not-allowed"
                                     type="submit"
+                                    disabled={isLoading}
                                 >
-                                    Verify OTP
+                                    {isLoading ? (
+                                        <span className="flex items-center justify-center">
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Verifying...
+                                        </span>
+                                    ) : (
+                                        'Verify OTP'
+                                    )}
                                 </button>
                                 <button
-                                    className="w-full text-green-600 hover:text-green-700 font-medium text-sm"
+                                    className="w-full text-green-600 hover:text-green-700 font-medium text-sm disabled:text-gray-400"
                                     type="button"
-                                    onClick={() => console.log('Resending OTP...')}
+                                    onClick={handleResendOTP}
+                                    disabled={isLoading}
                                 >
                                     Resend OTP
                                 </button>
@@ -157,6 +298,16 @@ export default function Signup({ onSwitchToLogin }) {
                         {/* Step 3: Set Password */}
                         {step === 3 && (
                             <form onSubmit={handlePasswordSubmit}>
+                                {error && (
+                                    <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                                        <p className="text-sm">{error}</p>
+                                    </div>
+                                )}
+                                {successMessage && (
+                                    <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                                        <p className="text-sm">{successMessage}</p>
+                                    </div>
+                                )}
                                 <div className="text-center mb-6">
                                     <p className="text-gray-600 text-sm">
                                         Set a 4-digit PIN to secure your account
@@ -197,10 +348,21 @@ export default function Signup({ onSwitchToLogin }) {
                                     />
                                 </div>
                                 <button
-                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+                                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
                                     type="submit"
+                                    disabled={isLoading}
                                 >
-                                    Complete Registration
+                                    {isLoading ? (
+                                        <span className="flex items-center justify-center">
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Registering...
+                                        </span>
+                                    ) : (
+                                        'Complete Registration'
+                                    )}
                                 </button>
                             </form>
                         )}
@@ -221,13 +383,13 @@ export default function Signup({ onSwitchToLogin }) {
                     {/* Large Screen Layout - Logo side by side with form */}
                     <div className="hidden lg:flex bg-white rounded-xl shadow-2xl overflow-hidden">
                         {/* Left Side - Logo */}
-                        <div className="w-1/2 bg-gradient-to-br p-12 flex flex-col items-center justify-center">
+                        <div className="w-1/2 bg-gradient-to-br from-green-50 to-emerald-100 p-12 flex flex-col items-center justify-center">
                             <img 
                                 src="/exam.png" 
                                 alt="Exam Logo" 
                                 className="w-64 h-64 object-contain mb-8"
                             />
-                            <h2 className="text-4xl font-bold text-white text-center mb-4 text-green-600">Exam App</h2>
+                            <h2 className="text-4xl font-bold text-green-700 text-center mb-4">Exam App</h2>
                             <p className="text-green-600 text-center text-lg italic">
                                 Test your students with quality examinations
                             </p>
@@ -260,6 +422,16 @@ export default function Signup({ onSwitchToLogin }) {
                             {/* Step 1: Phone & Name */}
                             {step === 1 && (
                                 <form onSubmit={handlePhoneSubmit}>
+                                    {error && (
+                                        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                                            <p className="text-sm">{error}</p>
+                                        </div>
+                                    )}
+                                    {successMessage && (
+                                        <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                                            <p className="text-sm">{successMessage}</p>
+                                        </div>
+                                    )}
                                     <div className="mb-4">
                                         <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name-desktop">
                                             Full Name
@@ -291,10 +463,21 @@ export default function Signup({ onSwitchToLogin }) {
                                         />
                                     </div>
                                     <button
-                                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+                                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
                                         type="submit"
+                                        disabled={isLoading}
                                     >
-                                        Send OTP
+                                        {isLoading ? (
+                                            <span className="flex items-center justify-center">
+                                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Sending OTP...
+                                            </span>
+                                        ) : (
+                                            'Send OTP'
+                                        )}
                                     </button>
                                 </form>
                             )}
@@ -302,6 +485,16 @@ export default function Signup({ onSwitchToLogin }) {
                             {/* Step 2: OTP Verification */}
                             {step === 2 && (
                                 <form onSubmit={handleOtpSubmit}>
+                                    {error && (
+                                        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                                            <p className="text-sm">{error}</p>
+                                        </div>
+                                    )}
+                                    {successMessage && (
+                                        <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                                            <p className="text-sm">{successMessage}</p>
+                                        </div>
+                                    )}
                                     <div className="text-center mb-6">
                                         <p className="text-gray-600 text-sm">
                                             We've sent a verification code to
@@ -325,15 +518,27 @@ export default function Signup({ onSwitchToLogin }) {
                                         />
                                     </div>
                                     <button
-                                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg mb-4"
+                                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg mb-4 disabled:bg-gray-400 disabled:cursor-not-allowed"
                                         type="submit"
+                                        disabled={isLoading}
                                     >
-                                        Verify OTP
+                                        {isLoading ? (
+                                            <span className="flex items-center justify-center">
+                                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Verifying...
+                                            </span>
+                                        ) : (
+                                            'Verify OTP'
+                                        )}
                                     </button>
                                     <button
-                                        className="w-full text-green-600 hover:text-green-700 font-medium text-sm"
+                                        className="w-full text-green-600 hover:text-green-700 font-medium text-sm disabled:text-gray-400"
                                         type="button"
-                                        onClick={() => console.log('Resending OTP...')}
+                                        onClick={handleResendOTP}
+                                        disabled={isLoading}
                                     >
                                         Resend OTP
                                     </button>
@@ -343,6 +548,16 @@ export default function Signup({ onSwitchToLogin }) {
                             {/* Step 3: Set Password */}
                             {step === 3 && (
                                 <form onSubmit={handlePasswordSubmit}>
+                                    {error && (
+                                        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                                            <p className="text-sm">{error}</p>
+                                        </div>
+                                    )}
+                                    {successMessage && (
+                                        <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                                            <p className="text-sm">{successMessage}</p>
+                                        </div>
+                                    )}
                                     <div className="text-center mb-6">
                                         <p className="text-gray-600 text-sm">
                                             Set a 4-digit PIN to secure your account
@@ -383,10 +598,21 @@ export default function Signup({ onSwitchToLogin }) {
                                         />
                                     </div>
                                     <button
-                                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+                                        className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
                                         type="submit"
+                                        disabled={isLoading}
                                     >
-                                        Complete Registration
+                                        {isLoading ? (
+                                            <span className="flex items-center justify-center">
+                                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Registering...
+                                            </span>
+                                        ) : (
+                                            'Complete Registration'
+                                        )}
                                     </button>
                                 </form>
                             )}

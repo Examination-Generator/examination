@@ -1,0 +1,731 @@
+{
+	"info": {
+		"_postman_id": "exam-system-collection-2025",
+		"name": "Examination System API",
+		"description": "Complete API testing collection for the Examination System with MongoDB database verification",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health & Database",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:5000/api/health",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "health"]
+						},
+						"description": "Verify server is running and database is connected"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login - Editor",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Save token for subsequent requests",
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"auth_token\", jsonData.token);",
+									"    pm.environment.set(\"user_id\", jsonData.user._id);",
+									"    pm.environment.set(\"user_role\", jsonData.user.role);",
+									"    console.log(\"✅ Token saved:\", jsonData.token);",
+									"}",
+									"",
+									"// Test response",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has token\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('token');",
+									"});",
+									"",
+									"pm.test(\"User role is editor\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user.role).to.eql('editor');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phoneNumber\": \"+254700000001\",\n    \"password\": \"editor123\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/auth/login",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Login as editor and save authentication token"
+					},
+					"response": []
+				},
+				{
+					"name": "Login - Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"admin_token\", jsonData.token);",
+									"    console.log(\"✅ Admin token saved\");",
+									"}",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"User role is admin\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.user.role).to.eql('admin');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phoneNumber\": \"+254700000000\",\n    \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/auth/login",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Login as admin"
+					},
+					"response": []
+				},
+				{
+					"name": "Register New User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 or 400\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([201, 400]);",
+									"});",
+									"",
+									"if (pm.response.code === 201) {",
+									"    pm.test(\"User created successfully\", function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData).to.have.property('token');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fullName\": \"Test User\",\n    \"phoneNumber\": \"+254712345678\",\n    \"password\": \"test123\",\n    \"role\": \"editor\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/auth/register",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Register a new user"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Subjects",
+			"item": [
+				{
+					"name": "Get All Subjects",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has data array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"});",
+									"",
+									"pm.test(\"Database returns subjects\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    console.log(\"📚 Found\", jsonData.data.length, \"subjects in database\");",
+									"    ",
+									"    if (jsonData.data.length > 0) {",
+									"        var firstSubject = jsonData.data[0];",
+									"        pm.environment.set(\"subject_id\", firstSubject._id);",
+									"        console.log(\"✅ Sample subject:\", firstSubject.name);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/subjects",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "subjects"]
+						},
+						"description": "Fetch all subjects from database"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Subject by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has subject data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.have.property('_id');",
+									"    pm.expect(jsonData.data).to.have.property('name');",
+									"    pm.expect(jsonData.data).to.have.property('papers');",
+									"    ",
+									"    // Save first paper ID for later tests",
+									"    if (jsonData.data.papers && jsonData.data.papers.length > 0) {",
+									"        pm.environment.set('paper_id', jsonData.data.papers[0]._id);",
+									"        console.log('📄 Saved paper_id:', jsonData.data.papers[0]._id);",
+									"    }",
+									"});",
+									"",
+									"pm.test(\"Subject has papers array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data.papers).to.be.an('array');",
+									"    console.log(\"📄 Papers count:\", jsonData.data.papers.length);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/subjects/{{subject_id}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "subjects", "{{subject_id}}"]
+						},
+						"description": "Get a specific subject by ID with all papers"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Subject",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Subject created successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.have.property('_id');",
+									"    pm.environment.set(\"new_subject_id\", jsonData.data._id);",
+									"    console.log(\"✅ Created subject ID:\", jsonData.data._id);",
+									"});",
+									"",
+									"pm.test(\"Subject has correct papers count\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data.papers).to.have.lengthOf(3);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Physics\",\n    \"description\": \"Physics subject for secondary education\",\n    \"papers\": [\n        {\n            \"name\": \"Paper 1 - Mechanics\",\n            \"description\": \"Introduction to mechanics and motion\",\n            \"sections\": [\"Section A\", \"Section B\"],\n            \"topics\": [\"Mechanics\", \"Kinematics\", \"Dynamics\", \"Waves\"]\n        },\n        {\n            \"name\": \"Paper 2 - Electricity\",\n            \"description\": \"Electricity and magnetism\",\n            \"sections\": [\"Section A\"],\n            \"topics\": [\"Electricity\", \"Magnetism\", \"Electromagnetism\"]\n        },\n        {\n            \"name\": \"Paper 3 - Practical\",\n            \"description\": \"Laboratory experiments and practicals\",\n            \"sections\": [\"Practical Work\"],\n            \"topics\": [\"Experiments\", \"Data Analysis\", \"Lab Safety\"]\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/subjects",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "subjects"]
+						},
+						"description": "Create a new subject with papers, sections, and topics"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Subject",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Subject updated successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('updated');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Physics (Updated)\",\n    \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/subjects/{{new_subject_id}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "subjects", "{{new_subject_id}}"]
+						},
+						"description": "Update subject name or status"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Topics by Paper",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// This test requires getting paper ID first",
+									"// We'll use the subject_id and get the first paper from it"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has topics array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"    console.log(\"🏷️  Topics count:\", jsonData.data.length);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/subjects/{{subject_id}}/papers/{{paper_id}}/topics",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "subjects", "{{subject_id}}", "papers", "{{paper_id}}", "topics"]
+						},
+						"description": "Get all topics for a specific paper. Note: You need to set paper_id environment variable first from the 'Get Subject by ID' response."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Subject",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Subject deleted successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include('deleted');",
+									"    console.log(\"✅ Subject deleted\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/subjects/{{new_subject_id}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "subjects", "{{new_subject_id}}"]
+						},
+						"description": "Delete a subject (soft delete - sets isActive to false)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Questions",
+			"item": [
+				{
+					"name": "Get All Questions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has questions\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    console.log(\"❓ Questions count:\", jsonData.data.length);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/questions",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "questions"]
+						},
+						"description": "Get all questions from database"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Question",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Question created successfully\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.have.property('_id');",
+									"    console.log(\"✅ Question created:\", jsonData.data._id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"subject\": \"{{subject_id}}\",\n    \"paper\": 1,\n    \"section\": \"Section A\",\n    \"topic\": \"Mechanics\",\n    \"subtopic\": \"Newton's Laws\",\n    \"questionText\": \"What is Newton's First Law of Motion?\",\n    \"questionType\": \"multiple-choice\",\n    \"difficulty\": \"easy\",\n    \"marks\": 1,\n    \"options\": [\n        {\"text\": \"Law of Inertia\", \"isCorrect\": true},\n        {\"text\": \"F = ma\", \"isCorrect\": false},\n        {\"text\": \"Action-Reaction\", \"isCorrect\": false},\n        {\"text\": \"Law of Gravity\", \"isCorrect\": false}\n    ],\n    \"explanation\": \"Newton's First Law states that an object at rest stays at rest unless acted upon by an external force.\",\n    \"tags\": [\"physics\", \"mechanics\", \"newton\"]\n}"
+						},
+						"url": {
+							"raw": "http://localhost:5000/api/questions",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "questions"]
+						},
+						"description": "Create a new question"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Database Verification Tests",
+			"item": [
+				{
+					"name": "Verify Subject-Paper Relationship",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Database relationship intact\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data).to.have.property('papers');",
+									"    ",
+									"    // Verify each paper has sections",
+									"    jsonData.data.papers.forEach(function(paper) {",
+									"        pm.expect(paper).to.have.property('sections');",
+									"        console.log(\"📄 Paper\", paper.paperNumber, \"has\", paper.sections.length, \"sections\");",
+									"        ",
+									"        // Verify each section has topics",
+									"        paper.sections.forEach(function(section) {",
+									"            pm.expect(section).to.have.property('topics');",
+									"            console.log(\"  📋\", section.sectionName, \"has\", section.topics.length, \"topics\");",
+									"        });",
+									"    });",
+									"});",
+									"",
+									"console.log(\"✅ Database relationships verified successfully\");"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/subjects/{{subject_id}}",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "subjects", "{{subject_id}}"]
+						},
+						"description": "Verify that Subject -> Papers -> Sections -> Topics relationships are intact in the database"
+					},
+					"response": []
+				},
+				{
+					"name": "Test Dynamic Dropdown Data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Data structure matches frontend requirements\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('data');",
+									"    pm.expect(jsonData.data).to.be.an('array');",
+									"    ",
+									"    // Test each subject has required fields for dropdowns",
+									"    jsonData.data.forEach(function(subject) {",
+									"        pm.expect(subject).to.have.property('_id');",
+									"        pm.expect(subject).to.have.property('name');",
+									"        pm.expect(subject).to.have.property('papers');",
+									"        pm.expect(subject.papers).to.be.an('array');",
+									"        ",
+									"        console.log(\"✅\", subject.name, \"- Ready for dropdown\");",
+									"    });",
+									"});",
+									"",
+									"pm.test(\"Data can populate EditorDashboard dropdowns\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.data.length).to.be.above(0);",
+									"    console.log(\"✅ Frontend can load\", jsonData.data.length, \"subjects into dropdown\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:5000/api/subjects",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "5000",
+							"path": ["api", "subjects"]
+						},
+						"description": "Verify that the response data structure matches what EditorDashboard expects for dynamic dropdowns"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"console.log('🧪 Running request...');"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test for all requests",
+					"pm.test(\"Response time is less than 2000ms\", function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(2000);",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000",
+			"type": "default"
+		}
+	]
+}
