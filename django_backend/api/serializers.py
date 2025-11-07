@@ -26,10 +26,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['phone_number', 'full_name', 'phoneNumber', 'fullName', 'password']
+        fields = ['phone_number', 'full_name', 'phoneNumber', 'fullName', 'password', 'role']
         extra_kwargs = {
             'phone_number': {'required': False},
-            'full_name': {'required': False}
+            'full_name': {'required': False},
+            'role': {'required': False, 'default': 'user'}
         }
     
     def validate_password(self, value):
@@ -49,10 +50,14 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return data
     
     def create(self, validated_data):
+        # Extract role if provided, default to 'user'
+        role = validated_data.pop('role', 'user')
+        
         user = User.objects.create_user(
             phone_number=validated_data.get('phone_number'),
             full_name=validated_data.get('full_name'),
-            password=validated_data['password']
+            password=validated_data['password'],
+            role=role
         )
         user.otp_verified = True
         user.save()
