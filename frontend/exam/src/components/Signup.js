@@ -383,7 +383,7 @@ export default function Signup({ onSwitchToLogin }) {
                     {/* Large Screen Layout - Logo side by side with form */}
                     <div className="hidden lg:flex bg-white rounded-xl shadow-2xl overflow-hidden">
                         {/* Left Side - Logo */}
-                        <div className="w-1/2 bg-gradient-to-br from-green-50 to-emerald-100 p-12 flex flex-col items-center justify-center">
+                        <div className="w-1/2 bg-gradient-to-br from-white to-white p-12 flex flex-col items-center justify-center">
                             <img 
                                 src="/exam.png" 
                                 alt="Exam Logo" 
