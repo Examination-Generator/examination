@@ -19,14 +19,21 @@ function App() {
   const [userRole, setUserRole] = useState('user'); // 'editor' or 'user'
   const [isLoading, setIsLoading] = useState(true); // Loading state for session check
 
+  // Logging utility - only logs in development
+  const debugLog = (message, ...args) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(message, ...args);
+    }
+  };
+
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = () => {
-      console.log('[APP] Checking existing session...');
+      debugLog('[APP] Checking existing session...');
       
       if (isAuthenticated() && isSessionValid()) {
         const user = getCurrentUser();
-        console.log('[APP] Valid session found:', user);
+        debugLog('[APP] Valid session found:', user);
         
         setUserRole(user.role);
         if (user.role === 'editor') {
@@ -35,7 +42,7 @@ function App() {
           setCurrentView('user');
         }
       } else {
-        console.log('[APP] No valid session found');
+        debugLog('[APP] No valid session found');
         setCurrentView('login');
       }
       
@@ -50,10 +57,10 @@ function App() {
     let cleanup = null;
 
     if (currentView === 'editor' || currentView === 'user') {
-      console.log('[APP] Initializing activity tracking');
+      debugLog('[APP] Initializing activity tracking');
       
       cleanup = initActivityTracking(() => {
-        console.log('[APP] Session expired, redirecting to login');
+        debugLog('[APP] Session expired, redirecting to login');
         alert('Your session has expired due to inactivity. Please login again.');
         handleLogout();
       });
@@ -61,14 +68,14 @@ function App() {
 
     return () => {
       if (cleanup) {
-        console.log('[APP] Cleaning up activity tracking');
+        debugLog('[APP] Cleaning up activity tracking');
         cleanup();
       }
     };
   }, [currentView]);
 
   const handleLoginSuccess = (role) => {
-    console.log('[APP] Login successful, role:', role);
+    debugLog('[APP] Login successful, role:', role);
     setUserRole(role);
     if (role === 'editor') {
       setCurrentView('editor');
@@ -78,7 +85,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    console.log('[APP] Logging out');
+    debugLog('[APP] Logging out');
     logout();
     setCurrentView('login');
     setUserRole('user');
@@ -107,8 +114,12 @@ function App() {
         <SessionWarning onLogout={handleLogout} />
       )}
 
-      {/* Session Manager - debug info (only in development) */}
-      {process.env.NODE_ENV === 'development' && (currentView === 'editor' || currentView === 'user') && (
+      {/* Session Manager - COMPLETELY DISABLED in production */}
+      {/* Only shows in development mode AND can be toggled off */}
+      {/* To enable in development: Set REACT_APP_SHOW_SESSION_DEBUG=true in .env.local */}
+      {process.env.NODE_ENV === 'development' && 
+       process.env.REACT_APP_SHOW_SESSION_DEBUG === 'true' && 
+       (currentView === 'editor' || currentView === 'user') && (
         <SessionManager showDebugInfo={true} />
       )}
 

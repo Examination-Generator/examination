@@ -6,6 +6,13 @@ const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
 const ACTIVITY_CHECK_INTERVAL = 60 * 1000; // Check every minute
 const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh token if expiring in 5 minutes
 
+// Logging utility - only logs in development
+const debugLog = (message, ...args) => {
+    if (process.env.NODE_ENV === 'development') {
+        console.log(message, ...args);
+    }
+};
+
 // Activity tracker
 let activityTimeout = null;
 let activityCheckInterval = null;
@@ -54,7 +61,7 @@ const resetActivityTimeout = (onSessionExpired) => {
     }
     
     activityTimeout = setTimeout(() => {
-        console.log('[SESSION] Session expired due to inactivity');
+        debugLog('[SESSION] Session expired due to inactivity');
         handleSessionExpired(onSessionExpired);
     }, SESSION_TIMEOUT);
 };
@@ -68,7 +75,7 @@ const startActivityCheck = (onSessionExpired) => {
         
         // Check if session should expire
         if (timeSinceActivity > SESSION_TIMEOUT) {
-            console.log('[SESSION] Session expired due to inactivity (background check)');
+            debugLog('[SESSION] Session expired due to inactivity (background check)');
             handleSessionExpired(onSessionExpired);
         }
     }, ACTIVITY_CHECK_INTERVAL);
@@ -107,7 +114,7 @@ export const isSessionValid = () => {
     
     // Check if too much time has passed since last activity
     if (lastActivity && (now - lastActivity) > SESSION_TIMEOUT) {
-        console.log('[SESSION] Session expired');
+        debugLog('[SESSION] Session expired');
         logout();
         return false;
     }
@@ -238,7 +245,7 @@ export const logout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('loginTime');
     localStorage.removeItem('lastActivity');
-    console.log('[SESSION] User logged out');
+    debugLog('[SESSION] User logged out');
 };
 
 // Get current user from localStorage
