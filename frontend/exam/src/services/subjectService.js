@@ -85,7 +85,7 @@ export const createSubject = async (subjectData) => {
 export const updateSubject = async (subjectId, subjectData) => {
     try {
         const response = await fetch(`${API_BASE_URL}/subjects/${subjectId}`, {
-            method: 'PUT',
+            method: 'PATCH',  // Use PATCH for partial updates
             headers: getHeaders(),
             body: JSON.stringify(subjectData)
         });

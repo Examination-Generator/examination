@@ -328,6 +328,34 @@ class Question(models.Model):
         db_column='answerInlineImages'
     )
     
+    # Image positions for drag-and-drop positioning
+    question_image_positions = models.JSONField(
+        default=dict,
+        blank=True,
+        db_column='questionImagePositions',
+        help_text='Stores x,y coordinates for positioned images in question'
+    )
+    answer_image_positions = models.JSONField(
+        default=dict,
+        blank=True,
+        db_column='answerImagePositions',
+        help_text='Stores x,y coordinates for positioned images in answer'
+    )
+    
+    # Answer lines configuration for students to write answers
+    question_answer_lines = models.JSONField(
+        default=list,
+        blank=True,
+        db_column='questionAnswerLines',
+        help_text='Stores answer line configurations in question section'
+    )
+    answer_answer_lines = models.JSONField(
+        default=list,
+        blank=True,
+        db_column='answerAnswerLines',
+        help_text='Stores answer line configurations in answer section'
+    )
+    
     # Question metadata
     question_type = models.CharField(
         max_length=20,

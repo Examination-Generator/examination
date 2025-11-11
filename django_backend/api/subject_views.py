@@ -87,13 +87,14 @@ def subjects_list_create(request):
         )
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def subject_detail(request, subject_id):
     """
     Get, update, or delete a specific subject
     GET /api/subjects/<id>
-    PUT /api/subjects/<id>
+    PUT /api/subjects/<id> - Full replacement
+    PATCH /api/subjects/<id> - Partial update
     DELETE /api/subjects/<id>
     """
     try:
@@ -114,21 +115,29 @@ def subject_detail(request, subject_id):
             serializer.data
         )
     
-    elif request.method == 'PUT':
-        serializer = SubjectSerializer(
+    elif request.method in ['PUT', 'PATCH']:
+        serializer = SubjectCreateSerializer(
             subject,
             data=request.data,
-            partial=True
+            partial=True,
+            context={'request': request}
         )
         
         if not serializer.is_valid():
             return error_response('Validation error', serializer.errors, status.HTTP_400_BAD_REQUEST)
         
-        serializer.save()
+        with transaction.atomic():
+            serializer.save()
+        
+        # Fetch updated subject with all relations
+        updated_subject = Subject.objects.prefetch_related(
+            'papers__sections',
+            'papers__topics'
+        ).get(id=subject.id)
         
         return success_response(
             'Subject updated successfully',
-            serializer.data
+            SubjectSerializer(updated_subject).data
         )
     
     elif request.method == 'DELETE':

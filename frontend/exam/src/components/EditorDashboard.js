@@ -44,6 +44,7 @@ export default function EditorDashboard({ onLogout }) {
     
     // Inline images for question
     const [questionInlineImages, setQuestionInlineImages] = useState([]);
+    const [questionImagePositions, setQuestionImagePositions] = useState({}); // { imageId: { x, y } }
     
     // Answer section states
     const [uploadedAnswerImages, setUploadedAnswerImages] = useState([]);
@@ -57,6 +58,46 @@ export default function EditorDashboard({ onLogout }) {
     
     // Inline images for answer
     const [answerInlineImages, setAnswerInlineImages] = useState([]);
+    const [answerImagePositions, setAnswerImagePositions] = useState({}); // { imageId: { x, y } }
+    
+    // Voice transcription states
+    const [isQuestionListening, setIsQuestionListening] = useState(false);
+    const [isAnswerListening, setIsAnswerListening] = useState(false);
+    const questionRecognitionRef = useRef(null);
+    const answerRecognitionRef = useRef(null);
+    
+    // Text formatting states
+    const questionTextareaRef = useRef(null);
+    const answerTextareaRef = useRef(null);
+    
+    // Answer lines states
+    const [showAnswerLinesModal, setShowAnswerLinesModal] = useState(false);
+    const [answerLinesConfig, setAnswerLinesConfig] = useState({
+        numberOfLines: 5,
+        lineHeight: 30,
+        lineStyle: 'dotted', // 'dotted' or 'solid'
+        opacity: 0.5, // 0.1 to 1
+        targetSection: 'question' // 'question' or 'answer'
+    });
+    const [questionAnswerLines, setQuestionAnswerLines] = useState([]); // Array of line configurations
+    const [answerAnswerLines, setAnswerAnswerLines] = useState([]); // Array of line configurations
+    
+    // Edit questions states
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearchingQuestions, setIsSearchingQuestions] = useState(false);
+    const [selectedQuestion, setSelectedQuestion] = useState(null);
+    const [editQuestionText, setEditQuestionText] = useState('');
+    const [editAnswerText, setEditAnswerText] = useState('');
+    const [editMarks, setEditMarks] = useState('');
+    const [editQuestionInlineImages, setEditQuestionInlineImages] = useState([]);
+    const [editAnswerInlineImages, setEditAnswerInlineImages] = useState([]);
+    const [editQuestionImagePositions, setEditQuestionImagePositions] = useState({});
+    const [editAnswerImagePositions, setEditAnswerImagePositions] = useState({});
+    const [editQuestionAnswerLines, setEditQuestionAnswerLines] = useState([]);
+    const [editAnswerAnswerLines, setEditAnswerAnswerLines] = useState([]);
+    const editQuestionTextareaRef = useRef(null);
+    const editAnswerTextareaRef = useRef(null);
     
     // Bulk entry states
     const [bulkText, setBulkText] = useState('');
@@ -101,6 +142,13 @@ export default function EditorDashboard({ onLogout }) {
     const [deletingItem, setDeletingItem] = useState(null);
     const [expandedSubjects, setExpandedSubjects] = useState({}); // Track which subjects are expanded
     const [expandedPapers, setExpandedPapers] = useState({}); // Track which papers are expanded
+    
+    // Full subject edit states
+    const [editSubjectData, setEditSubjectData] = useState(null);
+    const [showFullEditModal, setShowFullEditModal] = useState(false);
+    const [selectedPaperIndices, setSelectedPaperIndices] = useState([]); // Papers selected for editing
+    const [showTopicsModal, setShowTopicsModal] = useState(false);
+    const [viewingPaperTopics, setViewingPaperTopics] = useState(null); // { paperName: '', topics: [], sections: [] }
 
     // Dynamic subjects loaded from database
     const [subjects, setSubjects] = useState({});
@@ -530,6 +578,10 @@ export default function EditorDashboard({ onLogout }) {
                 marks: parseInt(marks),
                 question_inline_images: questionInlineImages,
                 answer_inline_images: answerInlineImages,
+                question_image_positions: questionImagePositions, // NEW: Image positions for question
+                answer_image_positions: answerImagePositions, // NEW: Image positions for answer
+                question_answer_lines: questionAnswerLines, // NEW: Answer lines in question section
+                answer_answer_lines: answerAnswerLines, // NEW: Answer lines in answer section
                 is_active: isQuestionActive
             };
 
@@ -587,6 +639,10 @@ export default function EditorDashboard({ onLogout }) {
                 setUploadedAnswerImages([]);
                 setQuestionInlineImages([]);
                 setAnswerInlineImages([]);
+                setQuestionImagePositions({}); // NEW: Clear image positions
+                setAnswerImagePositions({}); // NEW: Clear image positions
+                setQuestionAnswerLines([]); // NEW: Clear answer lines
+                setAnswerAnswerLines([]); // NEW: Clear answer lines
                 setIsQuestionActive(true);
                 setSimilarQuestions([]);
                 
@@ -1183,12 +1239,393 @@ export default function EditorDashboard({ onLogout }) {
         });
     };
 
+    // Voice transcription handlers
+    const toggleQuestionVoiceRecording = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+            return;
+        }
+
+        if (isQuestionListening) {
+            // Stop recording
+            if (questionRecognitionRef.current) {
+                questionRecognitionRef.current.stop();
+            }
+            setIsQuestionListening(false);
+        } else {
+            // Start recording
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US'; // Change to your preferred language
+            
+            recognition.onstart = () => {
+                setIsQuestionListening(true);
+            };
+            
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                if (finalTranscript) {
+                    setQuestionText(prev => prev + finalTranscript);
+                }
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setIsQuestionListening(false);
+                if (event.error !== 'no-speech') {
+                    alert('Voice recognition error: ' + event.error);
+                }
+            };
+            
+            recognition.onend = () => {
+                setIsQuestionListening(false);
+            };
+            
+            questionRecognitionRef.current = recognition;
+            recognition.start();
+        }
+    };
+
+    const toggleAnswerVoiceRecording = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+            return;
+        }
+
+        if (isAnswerListening) {
+            // Stop recording
+            if (answerRecognitionRef.current) {
+                answerRecognitionRef.current.stop();
+            }
+            setIsAnswerListening(false);
+        } else {
+            // Start recording
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US'; // Change to your preferred language
+            
+            recognition.onstart = () => {
+                setIsAnswerListening(true);
+            };
+            
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                if (finalTranscript) {
+                    setAnswerText(prev => prev + finalTranscript);
+                }
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setIsAnswerListening(false);
+                if (event.error !== 'no-speech') {
+                    alert('Voice recognition error: ' + event.error);
+                }
+            };
+            
+            recognition.onend = () => {
+                setIsAnswerListening(false);
+            };
+            
+            answerRecognitionRef.current = recognition;
+            recognition.start();
+        }
+    };
+
+    // Cleanup speech recognition on unmount
+    useEffect(() => {
+        return () => {
+            if (questionRecognitionRef.current) {
+                questionRecognitionRef.current.stop();
+            }
+            if (answerRecognitionRef.current) {
+                answerRecognitionRef.current.stop();
+            }
+        };
+    }, []);
+
+    // Text formatting functions
+    const applyFormatting = (format, textareaRef, setText, section) => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+
+        if (!selectedText) {
+            alert('Please select text to format');
+            return;
+        }
+
+        let formattedText = '';
+        let wrapper = '';
+
+        switch (format) {
+            case 'bold':
+                wrapper = '**';
+                formattedText = `**${selectedText}**`;
+                break;
+            case 'italic':
+                wrapper = '*';
+                formattedText = `*${selectedText}*`;
+                break;
+            case 'underline':
+                wrapper = '__';
+                formattedText = `__${selectedText}__`;
+                break;
+            case 'scientific':
+                // Scientific names should be in italics
+                wrapper = '*';
+                formattedText = `*${selectedText}*`;
+                break;
+            default:
+                return;
+        }
+
+        // Replace selected text with formatted version
+        const newText = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+        setText(newText);
+
+        // Restore cursor position after the formatted text
+        setTimeout(() => {
+            textarea.focus();
+            const newCursorPos = start + formattedText.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
+    };
+
+    const applyQuestionFormatting = (format) => {
+        applyFormatting(format, questionTextareaRef, setQuestionText, 'question');
+    };
+
+    const applyAnswerFormatting = (format) => {
+        applyFormatting(format, answerTextareaRef, setAnswerText, 'answer');
+    };
+
+    // Render formatted text for display
+    const renderFormattedText = (text) => {
+        if (!text) return null;
+
+        // Split by markdown patterns while preserving image placeholders
+        const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
+
+        return parts.map((part, index) => {
+            // Bold: **text**
+            if (part.startsWith('**') && part.endsWith('**')) {
+                const content = part.slice(2, -2);
+                return <strong key={index}>{content}</strong>;
+            }
+            // Italic (including scientific names): *text*
+            if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
+                const content = part.slice(1, -1);
+                return <em key={index}>{content}</em>;
+            }
+            // Underline: __text__
+            if (part.startsWith('__') && part.endsWith('__')) {
+                const content = part.slice(2, -2);
+                return <u key={index}>{content}</u>;
+            }
+            // Single underscore italic: _text_
+            if (part.startsWith('_') && part.endsWith('_') && !part.startsWith('__')) {
+                const content = part.slice(1, -1);
+                return <em key={index}>{content}</em>;
+            }
+            // Image placeholder - will be handled separately
+            if (part.match(/\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]/)) {
+                return part;
+            }
+            // Regular text
+            return part;
+        });
+    };
+
     // Answer section handlers
     const scrollToSimilar = () => {
         const similarSection = document.getElementById('similar-questions-section');
         if (similarSection) {
             similarSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+    };
+
+    // Edit Questions functions
+    const handleSearchQuestions = async (query) => {
+        if (!query || query.trim().length < 2) {
+            setSearchResults([]);
+            return;
+        }
+
+        setIsSearchingQuestions(true);
+        try {
+            // Search questions by text content
+            const allQuestions = await questionService.getAllQuestions();
+            const filtered = allQuestions.filter(q => 
+                q.question_text?.toLowerCase().includes(query.toLowerCase()) ||
+                q.answer_text?.toLowerCase().includes(query.toLowerCase()) ||
+                q.subject_name?.toLowerCase().includes(query.toLowerCase()) ||
+                q.topic_name?.toLowerCase().includes(query.toLowerCase())
+            );
+            setSearchResults(filtered);
+        } catch (error) {
+            console.error('Error searching questions:', error);
+            alert('Failed to search questions');
+        } finally {
+            setIsSearchingQuestions(false);
+        }
+    };
+
+    const handleSelectQuestion = (question) => {
+        setSelectedQuestion(question);
+        setEditQuestionText(question.question_text || '');
+        setEditAnswerText(question.answer_text || '');
+        setEditMarks(question.marks || '');
+        
+        // Load inline images (if stored in database)
+        setEditQuestionInlineImages(question.question_inline_images || []);
+        setEditAnswerInlineImages(question.answer_inline_images || []);
+        
+        // NEW: Load image positions
+        setEditQuestionImagePositions(question.question_image_positions || {});
+        setEditAnswerImagePositions(question.answer_image_positions || {});
+        
+        // NEW: Load answer lines configurations
+        setEditQuestionAnswerLines(question.question_answer_lines || []);
+        setEditAnswerAnswerLines(question.answer_answer_lines || []);
+        
+        // Note: Answer lines are embedded in the text as [LINES:id] placeholders
+        // They will be rendered automatically when the text is displayed
+    };
+
+    const handleUpdateQuestion = async (e) => {
+        e.preventDefault();
+
+        if (!selectedQuestion) {
+            alert('No question selected');
+            return;
+        }
+
+        if (!editQuestionText.trim()) {
+            alert('Please enter the question text');
+            return;
+        }
+
+        if (!editAnswerText.trim()) {
+            alert('Please enter the answer text');
+            return;
+        }
+
+        try {
+            const updatedData = {
+                question_text: editQuestionText,
+                answer_text: editAnswerText,
+                marks: parseFloat(editMarks) || selectedQuestion.marks,
+                question_inline_images: editQuestionInlineImages, // Include images
+                answer_inline_images: editAnswerInlineImages, // Include images
+                question_image_positions: editQuestionImagePositions, // NEW: Image positions
+                answer_image_positions: editAnswerImagePositions, // NEW: Image positions
+                question_answer_lines: editQuestionAnswerLines, // NEW: Answer lines configurations
+                answer_answer_lines: editAnswerAnswerLines // NEW: Answer lines configurations
+            };
+
+            await questionService.updateQuestion(selectedQuestion.id, updatedData);
+            
+            alert('Question updated successfully!');
+            
+            // Refresh search results
+            if (searchQuery) {
+                handleSearchQuestions(searchQuery);
+            }
+            
+            // Clear selection
+            setSelectedQuestion(null);
+            setEditQuestionText('');
+            setEditAnswerText('');
+            setEditMarks('');
+            setEditQuestionInlineImages([]);
+            setEditAnswerInlineImages([]);
+            setEditQuestionImagePositions({}); // NEW: Clear positions
+            setEditAnswerImagePositions({}); // NEW: Clear positions
+            setEditQuestionAnswerLines([]); // NEW: Clear answer lines
+            setEditAnswerAnswerLines([]); // NEW: Clear answer lines
+            
+        } catch (error) {
+            console.error('Error updating question:', error);
+            alert('Failed to update question: ' + (error.message || 'Unknown error'));
+        }
+    };
+
+    const handleDeleteQuestion = async () => {
+        if (!selectedQuestion) {
+            alert('No question selected');
+            return;
+        }
+
+        if (!window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            await questionService.deleteQuestion(selectedQuestion.id);
+            
+            alert('Question deleted successfully!');
+            
+            // Refresh search results
+            if (searchQuery) {
+                handleSearchQuestions(searchQuery);
+            }
+            
+            // Clear selection
+            setSelectedQuestion(null);
+            setEditQuestionText('');
+            setEditAnswerText('');
+            setEditMarks('');
+            setEditQuestionInlineImages([]);
+            setEditAnswerInlineImages([]);
+            setEditQuestionImagePositions({}); // NEW: Clear positions
+            setEditAnswerImagePositions({}); // NEW: Clear positions
+            setEditQuestionAnswerLines([]); // NEW: Clear answer lines
+            setEditAnswerAnswerLines([]); // NEW: Clear answer lines
+            
+        } catch (error) {
+            console.error('Error deleting question:', error);
+            alert('Failed to delete question: ' + (error.message || 'Unknown error'));
+        }
+    };
+
+    const applyEditQuestionFormatting = (format) => {
+        applyFormatting(format, editQuestionTextareaRef, setEditQuestionText, 'editQuestion');
+    };
+
+    const applyEditAnswerFormatting = (format) => {
+        applyFormatting(format, editAnswerTextareaRef, setEditAnswerText, 'editAnswer');
     };
 
     // Bulk entry functions
@@ -1506,16 +1943,21 @@ export default function EditorDashboard({ onLogout }) {
 
         try {
             const result = await subjectService.createSubject(subjectData);
+            
+            // Update existing subjects list directly to avoid flickering
+            setExistingSubjects(prevSubjects => [...prevSubjects, result]);
+            
             alert(`Subject "${newSubjectName}" added successfully!`);
             
             // Reset form
             setNewSubjectName('');
             setNewSubjectPapers([{ name: '', topics: [''], sections: [''] }]);
             
-            // Refresh subjects list immediately
-            await fetchSubjects();
-            // Also refresh dynamic subjects for question entry dropdowns
-            await loadDynamicSubjects();
+            // Silent background refresh to ensure consistency (no UI disruption)
+            setTimeout(() => {
+                fetchSubjects();
+                loadDynamicSubjects();
+            }, 500);
         } catch (error) {
             console.error('Error creating subject:', error);
             // Display the actual error message from backend
@@ -1540,9 +1982,34 @@ export default function EditorDashboard({ onLogout }) {
     };
 
     // Edit handlers
-    const handleEditSubject = (subject) => {
-        setEditingItem({ type: 'subject', data: subject });
-        setShowEditModal(true);
+    const handleEditSubject = (subject, fullEdit = false) => {
+        if (fullEdit) {
+            // Full edit mode - allows adding/removing papers, topics, sections
+            const papers = subject.papers && Array.isArray(subject.papers) && subject.papers.length > 0 
+                ? subject.papers.map(paper => ({
+                    name: paper.name || '',
+                    topics: Array.isArray(paper.topics) && paper.topics.length > 0 
+                        ? paper.topics.map(t => (typeof t === 'string' ? t : ''))
+                        : [''],
+                    sections: Array.isArray(paper.sections) && paper.sections.length > 0 
+                        ? paper.sections.map(s => (typeof s === 'string' ? s : ''))
+                        : [] // Can be empty
+                }))
+                : [{ name: '', topics: [''], sections: [] }];
+                
+            setEditSubjectData({
+                id: subject.id,
+                name: subject.name || '',
+                papers: papers,
+                originalPaperCount: papers.length // Track how many papers existed originally
+            });
+            setSelectedPaperIndices([]); // Start with no papers selected for editing
+            setShowFullEditModal(true);
+        } else {
+            // Simple name edit mode
+            setEditingItem({ type: 'subject', data: subject });
+            setShowEditModal(true);
+        }
     };
 
     const handleEditPaper = (subject, paper) => {
@@ -1570,6 +2037,14 @@ export default function EditorDashboard({ onLogout }) {
                     await subjectService.updateSubject(editingItem.data.id, {
                         name: editingItem.data.name
                     });
+                    // Update state directly to avoid flickering
+                    setExistingSubjects(prevSubjects =>
+                        prevSubjects.map(subject =>
+                            subject.id === editingItem.data.id
+                                ? { ...subject, name: editingItem.data.name }
+                                : subject
+                        )
+                    );
                     break;
                     
                 case 'paper':
@@ -1578,18 +2053,61 @@ export default function EditorDashboard({ onLogout }) {
                         editingItem.data.paper.id,
                         { name: editingItem.data.paper.name }
                     );
+                    // Update state directly
+                    setExistingSubjects(prevSubjects =>
+                        prevSubjects.map(subject =>
+                            subject.id === editingItem.data.subject.id
+                                ? {
+                                    ...subject,
+                                    papers: subject.papers.map(paper =>
+                                        paper.id === editingItem.data.paper.id
+                                            ? { ...paper, name: editingItem.data.paper.name }
+                                            : paper
+                                    )
+                                }
+                                : subject
+                        )
+                    );
                     break;
                     
                 case 'topic':
                     await subjectService.updateTopic(editingItem.data.topic.id, {
                         name: editingItem.data.topic.name
                     });
+                    // Update state directly
+                    setExistingSubjects(prevSubjects =>
+                        prevSubjects.map(subject => ({
+                            ...subject,
+                            papers: subject.papers.map(paper => ({
+                                ...paper,
+                                topics: paper.topics.map(topic =>
+                                    topic.id === editingItem.data.topic.id
+                                        ? { ...topic, name: editingItem.data.topic.name }
+                                        : topic
+                                )
+                            }))
+                        }))
+                    );
                     break;
                     
                 case 'section':
                     await subjectService.updateSection(editingItem.data.section.id, {
                         name: editingItem.data.section.name
                     });
+                    // Update state directly
+                    setExistingSubjects(prevSubjects =>
+                        prevSubjects.map(subject => ({
+                            ...subject,
+                            papers: subject.papers.map(paper => ({
+                                ...paper,
+                                sections: paper.sections.map(section =>
+                                    section.id === editingItem.data.section.id
+                                        ? { ...section, name: editingItem.data.section.name }
+                                        : section
+                                )
+                            }))
+                        }))
+                    );
                     break;
                     
                 default:
@@ -1599,9 +2117,12 @@ export default function EditorDashboard({ onLogout }) {
             alert(`${editingItem.type.charAt(0).toUpperCase() + editingItem.type.slice(1)} updated successfully!`);
             setShowEditModal(false);
             setEditingItem(null);
-            fetchSubjects();
-            // Also refresh dynamic subjects for question entry dropdowns
-            loadDynamicSubjects();
+            
+            // Silent background refresh for consistency (no UI disruption)
+            setTimeout(() => {
+                fetchSubjects();
+                loadDynamicSubjects();
+            }, 500);
         } catch (error) {
             console.error('Error updating:', error);
             alert(error.message || `Failed to update ${editingItem.type}. Please try again.`);
@@ -1612,6 +2133,243 @@ export default function EditorDashboard({ onLogout }) {
     const handleDeleteSubject = (subject) => {
         setDeletingItem({ type: 'subject', data: subject });
         setShowDeleteConfirm(true);
+    };
+
+    // Full subject edit handlers
+    const handleEditSubjectNameChange = (value) => {
+        setEditSubjectData(prev => ({ ...prev, name: value }));
+    };
+
+    const handleAddEditPaper = () => {
+        setEditSubjectData(prev => ({
+            ...prev,
+            papers: [...prev.papers, { name: '', topics: [''], sections: [''] }]
+        }));
+        // Auto-select the new paper for editing
+        setSelectedPaperIndices(prev => [...prev, editSubjectData.papers.length]);
+    };
+
+    const handleRemoveEditPaper = (paperIndex) => {
+        setEditSubjectData(prev => ({
+            ...prev,
+            papers: prev.papers.filter((_, index) => index !== paperIndex)
+        }));
+        // Remove from selected indices and adjust remaining indices
+        setSelectedPaperIndices(prev => 
+            prev.filter(idx => idx !== paperIndex).map(idx => idx > paperIndex ? idx - 1 : idx)
+        );
+    };
+
+    const handleTogglePaperSelection = (paperIndex) => {
+        setSelectedPaperIndices(prev => {
+            if (prev.includes(paperIndex)) {
+                return prev.filter(idx => idx !== paperIndex);
+            } else {
+                return [...prev, paperIndex];
+            }
+        });
+    };
+
+    const handleViewPaperTopics = (paper) => {
+        setViewingPaperTopics({
+            paperName: paper.name,
+            topics: Array.isArray(paper.topics) ? paper.topics.filter(t => t && t.trim()) : [],
+            sections: Array.isArray(paper.sections) ? paper.sections.filter(s => s && s.trim()) : []
+        });
+        setShowTopicsModal(true);
+    };
+
+    const handleEditPaperNameChange = (paperIndex, value) => {
+        setEditSubjectData(prev => ({
+            ...prev,
+            papers: prev.papers.map((paper, index) => 
+                index === paperIndex ? { ...paper, name: value } : paper
+            )
+        }));
+    };
+
+    const handleAddEditTopic = (paperIndex) => {
+        setEditSubjectData(prev => ({
+            ...prev,
+            papers: prev.papers.map((paper, index) => 
+                index === paperIndex 
+                    ? { ...paper, topics: [...paper.topics, ''] }
+                    : paper
+            )
+        }));
+    };
+
+    const handleRemoveEditTopic = (paperIndex, topicIndex) => {
+        setEditSubjectData(prev => ({
+            ...prev,
+            papers: prev.papers.map((paper, index) => 
+                index === paperIndex 
+                    ? { ...paper, topics: paper.topics.filter((_, tIndex) => tIndex !== topicIndex) }
+                    : paper
+            )
+        }));
+    };
+
+    const handleEditTopicChange = (paperIndex, topicIndex, value) => {
+        setEditSubjectData(prev => ({
+            ...prev,
+            papers: prev.papers.map((paper, index) => 
+                index === paperIndex 
+                    ? { 
+                        ...paper, 
+                        topics: paper.topics.map((topic, tIndex) => 
+                            tIndex === topicIndex ? value : topic
+                        )
+                    }
+                    : paper
+            )
+        }));
+    };
+
+    const handleAddEditSection = (paperIndex) => {
+        setEditSubjectData(prev => ({
+            ...prev,
+            papers: prev.papers.map((paper, index) => 
+                index === paperIndex 
+                    ? { ...paper, sections: [...paper.sections, ''] }
+                    : paper
+            )
+        }));
+    };
+
+    const handleRemoveEditSection = (paperIndex, sectionIndex) => {
+        setEditSubjectData(prev => ({
+            ...prev,
+            papers: prev.papers.map((paper, index) => 
+                index === paperIndex 
+                    ? { ...paper, sections: paper.sections.filter((_, sIndex) => sIndex !== sectionIndex) }
+                    : paper
+            )
+        }));
+    };
+
+    const handleEditSectionChange = (paperIndex, sectionIndex, value) => {
+        setEditSubjectData(prev => ({
+            ...prev,
+            papers: prev.papers.map((paper, index) => 
+                index === paperIndex 
+                    ? { 
+                        ...paper, 
+                        sections: paper.sections.map((section, sIndex) => 
+                            sIndex === sectionIndex ? value : section
+                        )
+                    }
+                    : paper
+            )
+        }));
+    };
+
+    const handleSaveFullEdit = async () => {
+        if (!editSubjectData) return;
+
+        // Validation
+        if (!editSubjectData.name.trim()) {
+            alert('Subject name cannot be empty');
+            return;
+        }
+
+        const originalPaperCount = editSubjectData.originalPaperCount || 0;
+        
+        try {
+            // For PATCH request, we need to send ALL papers (not just selected/new ones)
+            // The backend will intelligently update only what changed
+            const allPapers = editSubjectData.papers.map((paper, index) => {
+                const isExistingPaper = index < originalPaperCount;
+                const isSelected = selectedPaperIndices.includes(index);
+                
+                // Clean up topics and sections
+                const topicsMap = new Map();
+                paper.topics
+                    .filter(topic => topic.trim())
+                    .forEach(topic => {
+                        const trimmed = topic.trim();
+                        const key = trimmed.toLowerCase();
+                        if (!topicsMap.has(key)) {
+                            topicsMap.set(key, trimmed);
+                        }
+                    });
+                
+                const sectionsMap = new Map();
+                paper.sections
+                    .filter(section => section.trim())
+                    .forEach(section => {
+                        const trimmed = section.trim();
+                        const key = trimmed.toLowerCase();
+                        if (!sectionsMap.has(key)) {
+                            sectionsMap.set(key, trimmed);
+                        }
+                    });
+
+                return {
+                    name: paper.name.trim(),
+                    topics: Array.from(topicsMap.values()),
+                    sections: Array.from(sectionsMap.values())
+                };
+            });
+
+            // Filter to only valid papers with name and at least one topic
+            const validPapers = allPapers.filter(paper => {
+                const hasName = paper.name.trim();
+                const hasTopics = paper.topics.length > 0;
+                return hasName && hasTopics;
+            });
+
+            if (validPapers.length === 0) {
+                alert('Please add at least one paper with a name and at least one topic');
+                return;
+            }
+
+            await subjectService.updateSubject(editSubjectData.id, {
+                name: editSubjectData.name.trim(),
+                papers: validPapers  // Send ALL papers, not just selected ones
+            });
+
+            const selectedCount = selectedPaperIndices.length;
+            const newPapersCount = editSubjectData.papers.length - originalPaperCount;
+            let message = 'Subject updated successfully!\n';
+            
+            if (selectedCount > 0) {
+                message += `• Updated ${selectedCount} existing paper${selectedCount > 1 ? 's' : ''}\n`;
+            }
+            if (newPapersCount > 0) {
+                message += `• Added ${newPapersCount} new paper${newPapersCount > 1 ? 's' : ''}`;
+            }
+            
+            alert(message);
+            
+            // Update the state directly instead of full refresh to avoid flickering
+            setExistingSubjects(prevSubjects => 
+                prevSubjects.map(subject => 
+                    subject.id === editSubjectData.id 
+                        ? { ...subject, name: editSubjectData.name.trim(), papers: validPapers.map(p => ({ ...p, topics: p.topics.map(t => ({ name: t })), sections: p.sections.map(s => ({ name: s })) })) }
+                        : subject
+                )
+            );
+            
+            setShowFullEditModal(false);
+            setEditSubjectData(null);
+            setSelectedPaperIndices([]);
+            
+            // Optional: Silent background refresh after modal closes (no flickering)
+            setTimeout(() => {
+                fetchSubjects();
+                loadDynamicSubjects();
+            }, 500);
+        } catch (error) {
+            console.error('Error updating subject:', error);
+            alert(error.message || 'Failed to update subject. Please try again.');
+        }
+    };
+
+    const handleCancelFullEdit = () => {
+        setShowFullEditModal(false);
+        setEditSubjectData(null);
+        setSelectedPaperIndices([]);
     };
 
     const handleDeletePaper = (subject, paper) => {
@@ -1637,6 +2395,8 @@ export default function EditorDashboard({ onLogout }) {
             switch (deletingItem.type) {
                 case 'subject':
                     await subjectService.deleteSubject(deletingItem.data.id);
+                    // Update state directly to avoid flickering
+                    setExistingSubjects(prevSubjects => prevSubjects.filter(s => s.id !== deletingItem.data.id));
                     break;
                     
                 case 'paper':
@@ -1644,14 +2404,42 @@ export default function EditorDashboard({ onLogout }) {
                         deletingItem.data.subject.id,
                         deletingItem.data.paper.id
                     );
+                    // Update state directly
+                    setExistingSubjects(prevSubjects =>
+                        prevSubjects.map(subject =>
+                            subject.id === deletingItem.data.subject.id
+                                ? { ...subject, papers: subject.papers.filter(p => p.id !== deletingItem.data.paper.id) }
+                                : subject
+                        )
+                    );
                     break;
                     
                 case 'topic':
                     await subjectService.deleteTopic(deletingItem.data.topic.id);
+                    // Update state directly
+                    setExistingSubjects(prevSubjects =>
+                        prevSubjects.map(subject => ({
+                            ...subject,
+                            papers: subject.papers.map(paper => ({
+                                ...paper,
+                                topics: paper.topics.filter(t => t.id !== deletingItem.data.topic.id)
+                            }))
+                        }))
+                    );
                     break;
                     
                 case 'section':
                     await subjectService.deleteSection(deletingItem.data.section.id);
+                    // Update state directly
+                    setExistingSubjects(prevSubjects =>
+                        prevSubjects.map(subject => ({
+                            ...subject,
+                            papers: subject.papers.map(paper => ({
+                                ...paper,
+                                sections: paper.sections.filter(s => s.id !== deletingItem.data.section.id)
+                            }))
+                        }))
+                    );
                     break;
                     
                 default:
@@ -1661,9 +2449,12 @@ export default function EditorDashboard({ onLogout }) {
             alert(`${deletingItem.type.charAt(0).toUpperCase() + deletingItem.type.slice(1)} deleted successfully!`);
             setShowDeleteConfirm(false);
             setDeletingItem(null);
-            fetchSubjects();
-            // Also refresh dynamic subjects for question entry dropdowns
-            loadDynamicSubjects();
+            
+            // Silent background refresh for consistency (no UI disruption)
+            setTimeout(() => {
+                fetchSubjects();
+                loadDynamicSubjects();
+            }, 500);
         } catch (error) {
             console.error('Error deleting:', error);
             alert(error.message || `Failed to delete ${deletingItem.type}. Please try again.`);
@@ -1674,7 +2465,7 @@ export default function EditorDashboard({ onLogout }) {
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
             {/* Header */}
             <header className="bg-white shadow-md">
-                <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+                <div className="max-w-8xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                             <img src="/exam.png" alt="Exam Logo" className="w-12 h-12 object-contain" />
@@ -1694,7 +2485,7 @@ export default function EditorDashboard({ onLogout }) {
             </header>
 
             {/* Navigation Tabs */}
-            <div className="max-w-7xl mx-auto px-4 pt-6 sm:px-6 lg:px-8">
+            <div className="max-w-8xl mx-auto px-4 pt-6 sm:px-6 lg:px-8">
                 <div className="bg-white rounded-lg shadow-md p-1 flex space-x-1">
                     <button
                         onClick={() => setActiveTab('questions')}
@@ -1741,10 +2532,25 @@ export default function EditorDashboard({ onLogout }) {
                             <span>Add New Subject</span>
                         </div>
                     </button>
+                    <button
+                        onClick={() => setActiveTab('edit')}
+                        className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-200 ${
+                            activeTab === 'edit'
+                                ? 'bg-green-600 text-white shadow-md'
+                                : 'bg-white text-gray-600 hover:bg-gray-50'
+                        }`}
+                    >
+                        <div className="flex items-center justify-center space-x-2">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            <span>Edit Questions</span>
+                        </div>
+                    </button>
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+            <div className="max-w-8xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
                 {/* Add Questions Tab Content */}
                 {activeTab === 'questions' && (
                     <>
@@ -1999,9 +2805,9 @@ export default function EditorDashboard({ onLogout }) {
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Question Entry Section */}
-                    <div className="lg:col-span-2">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    {/* Question Entry Section - 80% width on large screens */}
+                    <div className="lg:col-span-4">
                         <form onSubmit={bulkQuestions.length > 0 ? handleBulkSubmit : handleSubmit} className="bg-white rounded-xl shadow-lg p-6">
                             <h2 className="text-xl font-bold text-gray-800 mb-4">
                                 Question Entry {bulkQuestions.length > 0 && `(${currentBulkIndex + 1} of ${bulkQuestions.length})`}
@@ -2051,19 +2857,79 @@ export default function EditorDashboard({ onLogout }) {
                                             </svg>
                                             <span>Graph</span>
                                         </button>
+
+                                        {/* Text Formatting Buttons */}
+                                        <div className="flex items-center gap-1 border-l border-gray-300 pl-2">
+                                            {/* Bold */}
+                                            <button
+                                                type="button"
+                                                onClick={() => applyQuestionFormatting('bold')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs font-bold"
+                                                title="Bold (Select text first)"
+                                            >
+                                                B
+                                            </button>
+
+                                            {/* Italic */}
+                                            <button
+                                                type="button"
+                                                onClick={() => applyQuestionFormatting('italic')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs italic"
+                                                title="Italic / Scientific Name (Select text first)"
+                                            >
+                                                I
+                                            </button>
+
+                                            {/* Underline */}
+                                            <button
+                                                type="button"
+                                                onClick={() => applyQuestionFormatting('underline')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs underline"
+                                                title="Underline (Select text first)"
+                                            >
+                                                U
+                                            </button>
+                                        </div>
+
+                                        {/* Answer Lines Button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setAnswerLinesConfig(prev => ({ ...prev, targetSection: 'question' }));
+                                                setShowAnswerLinesModal(true);
+                                            }}
+                                            className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                            title="Add answer lines for students"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                            </svg>
+                                            <span>Lines</span>
+                                        </button>
+
+                                        {/* Voice Recording */}
+                                        <button
+                                            type="button"
+                                            onClick={toggleQuestionVoiceRecording}
+                                            className={`${isQuestionListening ? 'bg-red-600 animate-pulse' : 'bg-orange-500'} hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5`}
+                                            title={isQuestionListening ? "Stop voice recording" : "Start voice recording"}
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                            </svg>
+                                            <span>{isQuestionListening ? 'Recording...' : 'Mic'}</span>
+                                        </button>
                                     </div>
                                 </div>
 
                                 {/* Unified Content Editor with Inline Images */}
-                                <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden">
+                                <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '60vh' }}>
                                     {/* Scrollable Display Area showing rendered content with images */}
                                     <div 
-                                        className="p-4 overflow-y-auto" 
+                                        className="p-4 overflow-y-auto relative" 
                                         style={{ 
-                                            minHeight: '300px', 
-                                            maxHeight: '500px',
-                                            whiteSpace: 'pre-wrap',
-                                            paddingBottom: '120px' // Space for fixed textarea
+                                            height: '60%', // 60% for display, 40% for textarea
+                                            whiteSpace: 'pre-wrap'
                                         }}
                                         onDragOver={(e) => {
                                             e.preventDefault();
@@ -2077,42 +2943,97 @@ export default function EditorDashboard({ onLogout }) {
                                             e.currentTarget.style.backgroundColor = 'white';
                                             
                                             const imageId = parseFloat(e.dataTransfer.getData('imageId'));
-                                            const sourceIndex = parseInt(e.dataTransfer.getData('sourceIndex'));
                                             
                                             if (imageId) {
-                                                // Find the image placeholder in text
-                                                const parts = questionText.split(/(\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
-                                                let imageIndex = -1;
-                                                parts.forEach((part, idx) => {
-                                                    if (part.includes(`[IMAGE:${imageId}:`)) {
-                                                        imageIndex = idx;
-                                                    }
-                                                });
+                                                // Get the container bounds
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                const x = e.clientX - rect.left;
+                                                const y = e.clientY - rect.top;
                                                 
-                                                if (imageIndex !== -1) {
-                                                    // Remove from current position
-                                                    const imagePlaceholder = parts[imageIndex];
-                                                    parts.splice(imageIndex, 1);
-                                                    
-                                                    // Calculate drop position based on cursor
-                                                    const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
-                                                    let insertIndex = 0;
-                                                    
-                                                    // Find nearest text span
-                                                    if (dropTarget && dropTarget.closest('[data-text-index]')) {
-                                                        insertIndex = parseInt(dropTarget.closest('[data-text-index]').dataset.textIndex) || 0;
-                                                    }
-                                                    
-                                                    // Insert at new position
-                                                    parts.splice(insertIndex, 0, imagePlaceholder);
-                                                    
-                                                    // Update text
-                                                    setQuestionText(parts.join(''));
-                                                }
+                                                // Update position for this image
+                                                setQuestionImagePositions(prev => ({
+                                                    ...prev,
+                                                    [imageId]: { x, y }
+                                                }));
                                             }
                                         }}
                                     >
-                                        {questionText.split(/(\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+                                            // Check for formatting first
+                                            // Bold: **text**
+                                            if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+                                                const content = part.slice(2, -2);
+                                                return <strong key={index} data-text-index={index}>{content}</strong>;
+                                            }
+                                            // Italic (including scientific names): *text*
+                                            if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**') && part.length > 2) {
+                                                const content = part.slice(1, -1);
+                                                return <em key={index} data-text-index={index} className="italic">{content}</em>;
+                                            }
+                                            // Underline: __text__
+                                            if (part.startsWith('__') && part.endsWith('__') && part.length > 4) {
+                                                const content = part.slice(2, -2);
+                                                return <u key={index} data-text-index={index}>{content}</u>;
+                                            }
+                                            // Single underscore italic: _text_
+                                            if (part.startsWith('_') && part.endsWith('_') && !part.startsWith('__') && part.length > 2) {
+                                                const content = part.slice(1, -1);
+                                                return <em key={index} data-text-index={index} className="italic">{content}</em>;
+                                            }
+                                            
+                                            // Check for answer lines
+                                            const linesMatch = part.match(/\[LINES:([\d.]+)\]/);
+                                            if (linesMatch) {
+                                                const lineId = parseFloat(linesMatch[1]);
+                                                const lineConfig = questionAnswerLines.find(line => line.id === lineId);
+                                                
+                                                if (lineConfig) {
+                                                    // A4 page width is approximately 210mm = 595px at 72 DPI, content area ~700px
+                                                    const maxWidth = 700;
+                                                    const fullLines = Math.floor(lineConfig.numberOfLines);
+                                                    const hasHalfLine = lineConfig.numberOfLines % 1 !== 0;
+                                                    
+                                                    return (
+                                                        <div key={index} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
+                                                            {[...Array(fullLines)].map((_, idx) => (
+                                                                <div
+                                                                    key={idx}
+                                                                    style={{
+                                                                        height: `${lineConfig.lineHeight}px`,
+                                                                        borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
+                                                                        width: '100%'
+                                                                    }}
+                                                                ></div>
+                                                            ))}
+                                                            {hasHalfLine && (
+                                                                <div
+                                                                    style={{
+                                                                        height: `${lineConfig.lineHeight / 2}px`,
+                                                                        borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
+                                                                        width: '100%'
+                                                                    }}
+                                                                ></div>
+                                                            )}
+                                                            {/* Remove lines button */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    // Remove from array
+                                                                    setQuestionAnswerLines(prev => prev.filter(line => line.id !== lineId));
+                                                                    // Remove from text
+                                                                    setQuestionText(prev => prev.replace(`[LINES:${lineId}]`, ''));
+                                                                }}
+                                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                                                                title="Remove lines"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                }
+                                            }
+                                            
+                                            // Check for images
                                             const imageMatchNew = part.match(/\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
                                             const imageMatchOld = part.match(/\[IMAGE:([\d.]+):(\d+)px\]/);
                                             
@@ -2121,16 +3042,18 @@ export default function EditorDashboard({ onLogout }) {
                                                 const imageWidth = parseInt(imageMatchNew ? imageMatchNew[2] : imageMatchOld[2]);
                                                 const imageHeight = imageMatchNew ? parseInt(imageMatchNew[3]) : null;
                                                 const image = questionInlineImages.find(img => Math.abs(img.id - imageId) < 0.001);
+                                                const position = questionImagePositions[imageId];
                                                 
                                                 if (image) {
                                                     return (
                                                         <span 
                                                             key={index} 
-                                                            className="inline-block align-middle my-2 mx-1 relative"
+                                                            className={position ? "absolute z-10" : "inline-block align-middle my-2 mx-1"}
+                                                            style={position ? { left: `${position.x}px`, top: `${position.y}px` } : {}}
                                                             draggable={true}
                                                             onDragStart={(e) => {
                                                                 e.dataTransfer.setData('imageId', imageId.toString());
-                                                                e.dataTransfer.setData('sourceIndex', index.toString());
+                                                                e.dataTransfer.effectAllowed = 'move';
                                                             }}
                                                         >
                                                             <span className="relative inline-block group">
@@ -2156,6 +3079,24 @@ export default function EditorDashboard({ onLogout }) {
                                                                 >
                                                                     ✕
                                                                 </button>
+                                                                
+                                                                {/* Position Reset Button - only show if positioned */}
+                                                                {position && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setQuestionImagePositions(prev => {
+                                                                                const newPos = { ...prev };
+                                                                                delete newPos[imageId];
+                                                                                return newPos;
+                                                                            });
+                                                                        }}
+                                                                        className="absolute -top-2 -left-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                                                                        title="Reset to inline position"
+                                                                    >
+                                                                        ↺
+                                                                    </button>
+                                                                )}
                                                                 
                                                                 {/* Resize controls - appear on hover */}
                                                                 <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 z-10">
@@ -2212,15 +3153,15 @@ export default function EditorDashboard({ onLogout }) {
                                         )}
                                     </div>
                                     
-                                    {/* Fixed Editable textarea at bottom */}
-                                    <div className="sticky bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300 shadow-lg">
+                                    {/* Fixed Editable textarea at bottom - 40% height */}
+                                    <div className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300 shadow-lg" style={{ height: '40%' }}>
                                         <textarea
+                                            ref={questionTextareaRef}
                                             value={questionText}
                                             onChange={(e) => setQuestionText(e.target.value)}
                                             onDragOver={handleTextareaDragOver}
                                             onDrop={handleQuestionDrop}
-                                            className="w-full px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition text-sm resize-none"
-                                            rows="4"
+                                            className="w-full h-full px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none transition text-sm resize-none"
                                             placeholder="Type or edit your question text here..."
                                             style={{ fontFamily: 'monospace' }}
                                         />
@@ -2403,6 +3344,37 @@ export default function EditorDashboard({ onLogout }) {
                                     <label className="block text-sm font-bold text-gray-700">
                                         Answer/Solution Content *
                                     </label>
+                                    
+                                    {/* Button to copy question to answer section */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (questionText && !answerText) {
+                                                // Copy question text to answer if answer is empty
+                                                setAnswerText(questionText);
+                                                // Also copy question images to answer
+                                                setAnswerInlineImages([...questionInlineImages]);
+                                            } else if (questionText && answerText) {
+                                                // If answer already has content, ask for confirmation
+                                                if (window.confirm('Answer section already has content. Do you want to replace it with the question text?')) {
+                                                    setAnswerText(questionText);
+                                                    setAnswerInlineImages([...questionInlineImages]);
+                                                }
+                                            }
+                                        }}
+                                        disabled={!questionText}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+                                            questionText 
+                                                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        }`}
+                                        title="Copy question text to answer section for inline editing"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                        Copy Question to Answer
+                                    </button>
                                 </div>
 
                                 {/* Question Preview in Answer Section */}
@@ -2410,7 +3382,30 @@ export default function EditorDashboard({ onLogout }) {
                                     <div className="mb-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                                         <p className="text-xs font-bold text-blue-800 mb-2">📝 QUESTION PREVIEW:</p>
                                         <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                                            {questionText.split(/(\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                                // Check for formatting first
+                                                // Bold: **text**
+                                                if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+                                                    const content = part.slice(2, -2);
+                                                    return <strong key={index}>{content}</strong>;
+                                                }
+                                                // Italic (including scientific names): *text*
+                                                if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**') && part.length > 2) {
+                                                    const content = part.slice(1, -1);
+                                                    return <em key={index} className="italic">{content}</em>;
+                                                }
+                                                // Underline: __text__
+                                                if (part.startsWith('__') && part.endsWith('__') && part.length > 4) {
+                                                    const content = part.slice(2, -2);
+                                                    return <u key={index}>{content}</u>;
+                                                }
+                                                // Single underscore italic: _text_
+                                                if (part.startsWith('_') && part.endsWith('_') && !part.startsWith('__') && part.length > 2) {
+                                                    const content = part.slice(1, -1);
+                                                    return <em key={index} className="italic">{content}</em>;
+                                                }
+                                                
+                                                // Check for images
                                                 const imageMatchNew = part.match(/\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
                                                 const imageMatchOld = part.match(/\[IMAGE:([\d.]+):(\d+)px\]/);
                                                 
@@ -2445,15 +3440,13 @@ export default function EditorDashboard({ onLogout }) {
                                 )}
 
                                 {/* Unified Content Editor with Inline Images */}
-                                <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden">
+                                <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '60vh' }}>
                                     {/* Scrollable Display Area showing rendered content with images */}
                                     <div 
-                                        className="p-4 overflow-y-auto" 
+                                        className="p-4 overflow-y-auto relative" 
                                         style={{ 
-                                            minHeight: '300px', 
-                                            maxHeight: '500px',
-                                            whiteSpace: 'pre-wrap',
-                                            paddingBottom: '120px' // Space for fixed textarea
+                                            height: '60%', // 60% for display, 40% for textarea
+                                            whiteSpace: 'pre-wrap'
                                         }}
                                         onDragOver={(e) => {
                                             e.preventDefault();
@@ -2467,42 +3460,123 @@ export default function EditorDashboard({ onLogout }) {
                                             e.currentTarget.style.backgroundColor = 'white';
                                             
                                             const imageId = parseFloat(e.dataTransfer.getData('imageId'));
-                                            const sourceIndex = parseInt(e.dataTransfer.getData('sourceIndex'));
                                             
                                             if (imageId) {
-                                                // Find the image placeholder in text
-                                                const parts = answerText.split(/(\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
-                                                let imageIndex = -1;
-                                                parts.forEach((part, idx) => {
-                                                    if (part.includes(`[IMAGE:${imageId}:`)) {
-                                                        imageIndex = idx;
-                                                    }
-                                                });
+                                                // Get the container bounds
+                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                const x = e.clientX - rect.left;
+                                                const y = e.clientY - rect.top;
                                                 
-                                                if (imageIndex !== -1) {
-                                                    // Remove from current position
-                                                    const imagePlaceholder = parts[imageIndex];
-                                                    parts.splice(imageIndex, 1);
-                                                    
-                                                    // Calculate drop position based on cursor
-                                                    const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
-                                                    let insertIndex = 0;
-                                                    
-                                                    // Find nearest text span
-                                                    if (dropTarget && dropTarget.closest('[data-text-index]')) {
-                                                        insertIndex = parseInt(dropTarget.closest('[data-text-index]').dataset.textIndex) || 0;
-                                                    }
-                                                    
-                                                    // Insert at new position
-                                                    parts.splice(insertIndex, 0, imagePlaceholder);
-                                                    
-                                                    // Update text
-                                                    setAnswerText(parts.join(''));
-                                                }
+                                                // Update position for this image
+                                                setAnswerImagePositions(prev => ({
+                                                    ...prev,
+                                                    [imageId]: { x, y }
+                                                }));
                                             }
                                         }}
                                     >
-                                        {answerText.split(/(\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+                                            // Check for formatting first
+                                            // Bold: **text**
+                                            if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+                                                const content = part.slice(2, -2);
+                                                return <strong key={index} data-text-index={index}>{content}</strong>;
+                                            }
+                                            // Italic (including scientific names): *text*
+                                            if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**') && part.length > 2) {
+                                                const content = part.slice(1, -1);
+                                                return <em key={index} data-text-index={index} className="italic">{content}</em>;
+                                            }
+                                            // Underline: __text__
+                                            if (part.startsWith('__') && part.endsWith('__') && part.length > 4) {
+                                                const content = part.slice(2, -2);
+                                                return <u key={index} data-text-index={index}>{content}</u>;
+                                            }
+                                            // Single underscore italic: _text_
+                                            if (part.startsWith('_') && part.endsWith('_') && !part.startsWith('__') && part.length > 2) {
+                                                const content = part.slice(1, -1);
+                                                return <em key={index} data-text-index={index} className="italic">{content}</em>;
+                                            }
+                                            
+                                            // Check for answer lines
+                                            const linesMatch = part.match(/\[LINES:([\d.]+)\]/);
+                                            if (linesMatch) {
+                                                const lineId = parseFloat(linesMatch[1]);
+                                                const lineConfig = answerAnswerLines.find(line => line.id === lineId);
+                                                
+                                                if (lineConfig) {
+                                                    // A4 page width is approximately 210mm = 595px at 72 DPI, content area ~700px
+                                                    const maxWidth = 700;
+                                                    const fullLines = Math.floor(lineConfig.numberOfLines);
+                                                    const hasHalfLine = lineConfig.numberOfLines % 1 !== 0;
+                                                    
+                                                    return (
+                                                        <div key={index} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
+                                                            {[...Array(fullLines)].map((_, idx) => (
+                                                                <div
+                                                                    key={idx}
+                                                                    className="relative"
+                                                                    style={{
+                                                                        height: `${lineConfig.lineHeight}px`,
+                                                                        borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
+                                                                        width: '100%'
+                                                                    }}
+                                                                >
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Type your answer here..."
+                                                                        className="absolute inset-0 w-full bg-transparent border-none outline-none px-1"
+                                                                        style={{
+                                                                            height: `${lineConfig.lineHeight}px`,
+                                                                            lineHeight: `${lineConfig.lineHeight - 4}px`,
+                                                                            fontSize: `${Math.min(lineConfig.lineHeight * 0.6, 16)}px`,
+                                                                            paddingBottom: '2px'
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                            {hasHalfLine && (
+                                                                <div
+                                                                    className="relative"
+                                                                    style={{
+                                                                        height: `${lineConfig.lineHeight / 2}px`,
+                                                                        borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
+                                                                        width: '100%'
+                                                                    }}
+                                                                >
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Type here..."
+                                                                        className="absolute inset-0 w-full bg-transparent border-none outline-none px-1"
+                                                                        style={{
+                                                                            height: `${lineConfig.lineHeight / 2}px`,
+                                                                            lineHeight: `${(lineConfig.lineHeight / 2) - 4}px`,
+                                                                            fontSize: `${Math.min((lineConfig.lineHeight / 2) * 0.6, 14)}px`,
+                                                                            paddingBottom: '2px'
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                            {/* Remove lines button */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    // Remove from array
+                                                                    setAnswerAnswerLines(prev => prev.filter(line => line.id !== lineId));
+                                                                    // Remove from text
+                                                                    setAnswerText(prev => prev.replace(`[LINES:${lineId}]`, ''));
+                                                                }}
+                                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                                                                title="Remove lines"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                }
+                                            }
+                                            
+                                            // Check for images
                                             const imageMatchNew = part.match(/\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
                                             const imageMatchOld = part.match(/\[IMAGE:([\d.]+):(\d+)px\]/);
                                             
@@ -2511,17 +3585,18 @@ export default function EditorDashboard({ onLogout }) {
                                                 const imageWidth = parseInt(imageMatchNew ? imageMatchNew[2] : imageMatchOld[2]);
                                                 const imageHeight = imageMatchNew ? parseInt(imageMatchNew[3]) : null;
                                                 const image = answerInlineImages.find(img => Math.abs(img.id - imageId) < 0.001);
+                                                const position = answerImagePositions[imageId];
                                                 
                                                 if (image) {
                                                     return (
                                                         <span 
                                                             key={index} 
-                                                            className="inline-block align-middle my-2 mx-1 relative"
+                                                            className={position ? "absolute z-10" : "inline-block align-middle my-2 mx-1"}
+                                                            style={position ? { left: `${position.x}px`, top: `${position.y}px` } : {}}
                                                             draggable={true}
                                                             onDragStart={(e) => {
                                                                 e.dataTransfer.setData('imageId', imageId.toString());
-                                                                e.dataTransfer.setData('sourceIndex', index.toString());
-                                                                e.dataTransfer.setData('targetType', 'answer');
+                                                                e.dataTransfer.effectAllowed = 'move';
                                                             }}
                                                         >
                                                             <span className="relative inline-block group">
@@ -2547,6 +3622,24 @@ export default function EditorDashboard({ onLogout }) {
                                                                 >
                                                                     ✕
                                                                 </button>
+                                                                
+                                                                {/* Position Reset Button - only show if positioned */}
+                                                                {position && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setAnswerImagePositions(prev => {
+                                                                                const newPos = { ...prev };
+                                                                                delete newPos[imageId];
+                                                                                return newPos;
+                                                                            });
+                                                                        }}
+                                                                        className="absolute -top-2 -left-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                                                                        title="Reset to inline position"
+                                                                    >
+                                                                        ↺
+                                                                    </button>
+                                                                )}
                                                                 
                                                                 {/* Resize controls - appear on hover */}
                                                                 <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 z-10">
@@ -2603,13 +3696,13 @@ export default function EditorDashboard({ onLogout }) {
                                         )}
                                     </div>
                                     
-                                    {/* Fixed Editable textarea at bottom */}
-                                    <div className="sticky bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300 shadow-lg">
+                                    {/* Fixed Editable textarea at bottom - 40% height */}
+                                    <div className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300 shadow-lg" style={{ height: '40%' }}>
                                         <textarea
+                                            ref={answerTextareaRef}
                                             value={answerText}
                                             onChange={(e) => setAnswerText(e.target.value)}
-                                            className="w-full px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:outline-none transition text-sm resize-none"
-                                            rows="4"
+                                            className="w-full h-full px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:outline-none transition text-sm resize-none"
                                             placeholder="Type or edit your answer text here..."
                                             style={{ fontFamily: 'monospace' }}
                                         />
@@ -2647,6 +3740,72 @@ export default function EditorDashboard({ onLogout }) {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                                         </svg>
                                         {showAnswerDrawingTool ? 'Close Drawing Tool' : 'Draw/Add Graph'}
+                                    </button>
+
+                                    {/* Voice Recording Button */}
+                                    <button
+                                        type="button"
+                                        onClick={toggleAnswerVoiceRecording}
+                                        className={`inline-flex items-center px-4 py-2 rounded-lg transition shadow-md ${
+                                            isAnswerListening 
+                                                ? 'bg-red-600 text-white animate-pulse' 
+                                                : 'bg-orange-500 text-white hover:bg-orange-600'
+                                        }`}
+                                        title={isAnswerListening ? "Stop voice recording" : "Start voice recording"}
+                                    >
+                                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                        </svg>
+                                        {isAnswerListening ? 'Recording...' : 'Voice Input'}
+                                    </button>
+
+                                    {/* Text Formatting Buttons */}
+                                    <div className="flex items-center gap-1 border-l border-gray-300 pl-2">
+                                        {/* Bold */}
+                                        <button
+                                            type="button"
+                                            onClick={() => applyAnswerFormatting('bold')}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded transition font-bold"
+                                            title="Bold (Select text first)"
+                                        >
+                                            B
+                                        </button>
+
+                                        {/* Italic */}
+                                        <button
+                                            type="button"
+                                            onClick={() => applyAnswerFormatting('italic')}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded transition italic"
+                                            title="Italic / Scientific Name (Select text first)"
+                                        >
+                                            I
+                                        </button>
+
+                                        {/* Underline */}
+                                        <button
+                                            type="button"
+                                            onClick={() => applyAnswerFormatting('underline')}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded transition underline"
+                                            title="Underline (Select text first)"
+                                        >
+                                            U
+                                        </button>
+                                    </div>
+
+                                    {/* Answer Lines Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setAnswerLinesConfig(prev => ({ ...prev, targetSection: 'answer' }));
+                                            setShowAnswerLinesModal(true);
+                                        }}
+                                        className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded-lg transition text-sm flex items-center gap-1.5"
+                                        title="Add answer lines for students"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                        </svg>
+                                        <span>Lines</span>
                                     </button>
                                 </div>
                                 
@@ -3073,12 +4232,21 @@ export default function EditorDashboard({ onLogout }) {
                                                 </div>
                                                 <div className="flex items-center space-x-2">
                                                     <button
-                                                        onClick={() => handleEditSubject(subject)}
+                                                        onClick={() => handleEditSubject(subject, false)}
                                                         className="text-blue-600 hover:text-blue-700 p-2 hover:bg-blue-50 rounded transition"
-                                                        title="Edit Subject"
+                                                        title="Edit Subject Name"
                                                     >
                                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                        </svg>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleEditSubject(subject, true)}
+                                                        className="text-purple-600 hover:text-purple-700 p-2 hover:bg-purple-50 rounded transition"
+                                                        title="Manage Papers & Structure"
+                                                    >
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                                         </svg>
                                                     </button>
                                                     <button
@@ -3470,6 +4638,656 @@ export default function EditorDashboard({ onLogout }) {
                     </div>
                 )}
 
+                {/* Full Subject Edit Modal */}
+                {showFullEditModal && editSubjectData && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+                        <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full my-8 max-h-[90vh] overflow-y-auto">
+                            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 z-10">
+                                <h3 className="text-2xl font-bold text-gray-800">Manage Subject Structure</h3>
+                                <p className="text-sm text-gray-600 mt-1">Add or remove papers, topics, and sections</p>
+                            </div>
+
+                            <div className="p-6 space-y-6">
+                                {/* Current Subject Info Summary */}
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="flex items-start space-x-3">
+                                        <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <div className="flex-1">
+                                            <h4 className="text-sm font-semibold text-blue-900 mb-2">Current Subject Information</h4>
+                                            <div className="text-xs text-blue-800 space-y-2">
+                                                <p><span className="font-semibold">Subject:</span> {editSubjectData.name}</p>
+                                                <p><span className="font-semibold">Total Papers:</span> {editSubjectData.papers.length}</p>
+                                                
+                                                {/* Detailed Paper Information */}
+                                                <div className="mt-3 space-y-3">
+                                                    {editSubjectData.papers.map((paper, idx) => {
+                                                        const validTopics = Array.isArray(paper.topics) 
+                                                            ? paper.topics.filter(t => t && typeof t === 'string' && t.trim())
+                                                            : [];
+                                                        const validSections = Array.isArray(paper.sections) 
+                                                            ? paper.sections.filter(s => s && typeof s === 'string' && s.trim())
+                                                            : [];
+                                                        
+                                                        return (
+                                                            <div key={idx} className="bg-white bg-opacity-60 rounded p-2 border border-blue-100">
+                                                                <div className="font-semibold text-blue-900 mb-1">
+                                                                    📄 {paper.name || `Paper ${idx + 1}`}
+                                                                </div>
+                                                                
+                                                                {/* Topics List */}
+                                                                {validTopics.length > 0 && (
+                                                                    <div className="ml-3 mb-1">
+                                                                        <span className="font-semibold text-blue-800">Topics ({validTopics.length}):</span>
+                                                                        <div className="ml-2 mt-1 flex flex-wrap gap-1">
+                                                                            {validTopics.map((topic, tIdx) => (
+                                                                                <span key={tIdx} className="inline-block bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+                                                                                    {topic}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                {/* Sections List */}
+                                                                {validSections.length > 0 && (
+                                                                    <div className="ml-3">
+                                                                        <span className="font-semibold text-blue-800">Sections ({validSections.length}):</span>
+                                                                        <div className="ml-2 mt-1 flex flex-wrap gap-1">
+                                                                            {validSections.map((section, sIdx) => (
+                                                                                <span key={sIdx} className="inline-block bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">
+                                                                                    {section}
+                                                                                </span>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Subject Name */}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Subject Name *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editSubjectData.name}
+                                        onChange={(e) => handleEditSubjectNameChange(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                                        placeholder="Enter subject name"
+                                    />
+                                </div>
+
+                                {/* Papers Section */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-sm font-bold text-gray-700">
+                                            Papers * (at least one required)
+                                        </label>
+                                        <button
+                                            onClick={handleAddEditPaper}
+                                            className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition text-sm"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                            <span>Add Paper</span>
+                                        </button>
+                                    </div>
+
+                                    {editSubjectData.papers.map((paper, paperIndex) => {
+                                        // Determine if this paper is selected for editing
+                                        const isSelected = selectedPaperIndices.includes(paperIndex);
+                                        // Check if this is an existing paper (from original subject) or a new one
+                                        const isExistingPaper = paperIndex < (editSubjectData.originalPaperCount || 0);
+                                        
+                                        return (
+                                            <div key={paperIndex} className={`bg-gray-50 p-4 rounded-lg border-2 space-y-4 transition-all ${
+                                                isExistingPaper && !isSelected 
+                                                    ? 'border-gray-300 opacity-60' 
+                                                    : 'border-purple-300'
+                                            }`}>
+                                                {/* Paper Header with Selection Checkbox */}
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex items-start space-x-3 flex-1">
+                                                        {/* Selection Checkbox (only for existing papers) */}
+                                                        {isExistingPaper && (
+                                                            <div className="pt-6">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={isSelected}
+                                                                    onChange={() => handleTogglePaperSelection(paperIndex)}
+                                                                    className="w-5 h-5 text-purple-600 border-gray-300 rounded focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                                                                    title={isSelected ? "Uncheck to skip editing this paper" : "Check to edit this paper"}
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {/* Paper Name Input */}
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center space-x-2 mb-1">
+                                                                <label className="block text-xs font-semibold text-gray-600">
+                                                                    Paper {paperIndex + 1} Name *
+                                                                </label>
+                                                                {/* New Paper Badge */}
+                                                                {!isExistingPaper && (
+                                                                    <span className="inline-block bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-semibold">
+                                                                        New
+                                                                    </span>
+                                                                )}
+                                                                {/* Selected Badge */}
+                                                                {isExistingPaper && isSelected && (
+                                                                    <span className="inline-block bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs font-semibold">
+                                                                        Selected
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <input
+                                                                type="text"
+                                                                value={paper.name}
+                                                                onChange={(e) => handleEditPaperNameChange(paperIndex, e.target.value)}
+                                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm"
+                                                                placeholder="e.g., Paper 1"
+                                                                disabled={isExistingPaper && !isSelected}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Action Buttons */}
+                                                    <div className="flex items-start space-x-2 pt-6">
+                                                        {/* View Topics Button (only for existing papers) */}
+                                                        {isExistingPaper && (
+                                                            <button
+                                                                onClick={() => handleViewPaperTopics(paper)}
+                                                                className="flex items-center space-x-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg transition text-xs font-medium"
+                                                                title="View existing topics and sections"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                </svg>
+                                                                <span>View Topics</span>
+                                                            </button>
+                                                        )}
+                                                        
+                                                        {/* Remove Paper Button */}
+                                                        {editSubjectData.papers.length > 1 && (
+                                                            <button
+                                                                onClick={() => handleRemoveEditPaper(paperIndex)}
+                                                                className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded transition"
+                                                                title="Remove Paper"
+                                                            >
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Only show edit fields if paper is selected or is a new paper */}
+                                                {(!isExistingPaper || isSelected) && (
+                                                    <>
+
+                                            {/* Topics */}
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <label className="text-xs font-semibold text-gray-600">
+                                                        Topics * (at least one required)
+                                                    </label>
+                                                    <button
+                                                        onClick={() => handleAddEditTopic(paperIndex)}
+                                                        className="text-blue-600 hover:text-blue-700 text-xs flex items-center space-x-1"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                        <span>Add Topic</span>
+                                                    </button>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {paper.topics.map((topic, topicIndex) => {
+                                                        // Check for duplicates
+                                                        const isDuplicate = topic.trim() && paper.topics.filter((t, idx) => 
+                                                            idx !== topicIndex && t.trim().toLowerCase() === topic.trim().toLowerCase()
+                                                        ).length > 0;
+                                                        
+                                                        return (
+                                                            <div key={topicIndex} className="space-y-1">
+                                                                <div className="flex items-center space-x-2">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={topic}
+                                                                        onChange={(e) => handleEditTopicChange(paperIndex, topicIndex, e.target.value)}
+                                                                        className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 outline-none text-sm ${
+                                                                            isDuplicate 
+                                                                                ? 'border-red-300 bg-red-50 focus:ring-red-500 focus:border-red-500' 
+                                                                                : 'border-gray-300 focus:ring-blue-500 focus:border-transparent'
+                                                                        }`}
+                                                                        placeholder={`Topic ${topicIndex + 1}`}
+                                                                    />
+                                                                    {paper.topics.length > 1 && (
+                                                                        <button
+                                                                            onClick={() => handleRemoveEditTopic(paperIndex, topicIndex)}
+                                                                            className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded transition"
+                                                                        >
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                            </svg>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                                {isDuplicate && (
+                                                                    <div className="flex items-center space-x-1 text-xs text-red-600 ml-1">
+                                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                                        </svg>
+                                                                        <span>Duplicate topic - this topic already exists in this paper</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            {/* Sections */}
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <label className="text-xs font-semibold text-gray-600">
+                                                        Sections (optional)
+                                                    </label>
+                                                    <button
+                                                        onClick={() => handleAddEditSection(paperIndex)}
+                                                        className="text-blue-600 hover:text-blue-700 text-xs flex items-center space-x-1"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                        <span>Add Section</span>
+                                                    </button>
+                                                </div>
+                                                {paper.sections.length > 0 ? (
+                                                    <div className="space-y-2">
+                                                        {paper.sections.map((section, sectionIndex) => (
+                                                            <div key={sectionIndex} className="flex items-center space-x-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={section}
+                                                                    onChange={(e) => handleEditSectionChange(paperIndex, sectionIndex, e.target.value)}
+                                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                                                                    placeholder={`Section ${sectionIndex + 1}`}
+                                                                />
+                                                                <button
+                                                                    onClick={() => handleRemoveEditSection(paperIndex, sectionIndex)}
+                                                                    className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded transition"
+                                                                >
+                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-gray-500 italic">No sections added. Click "Add Section" to create one.</p>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                        </div>
+                                    );
+                                    })}
+
+                                    {editSubjectData.papers.length === 0 && (
+                                        <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                                            <p className="text-gray-500 mb-3">No papers added yet</p>
+                                            <button
+                                                onClick={handleAddEditPaper}
+                                                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition"
+                                            >
+                                                Add First Paper
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 flex space-x-3">
+                                <button
+                                    onClick={handleSaveFullEdit}
+                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+                                >
+                                    Save Changes
+                                </button>
+                                <button
+                                    onClick={handleCancelFullEdit}
+                                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 px-6 rounded-lg transition duration-200"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* View Paper Topics Modal */}
+                {showTopicsModal && viewingPaperTopics && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                            {/* Modal Header */}
+                            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-t-xl">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-2xl font-bold">Paper Topics & Sections</h2>
+                                        <p className="text-blue-100 mt-1">{viewingPaperTopics.paperName}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowTopicsModal(false)}
+                                        className="text-white hover:bg-blue-800 p-2 rounded-lg transition"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-6 space-y-6">
+                                {/* Topics Section */}
+                                <div>
+                                    <div className="flex items-center space-x-2 mb-3">
+                                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                        </svg>
+                                        <h3 className="text-lg font-bold text-gray-800">
+                                            Topics ({viewingPaperTopics.topics.length})
+                                        </h3>
+                                    </div>
+                                    
+                                    {viewingPaperTopics.topics.length > 0 ? (
+                                        <div className="bg-blue-50 rounded-lg p-4">
+                                            <div className="flex flex-wrap gap-2">
+                                                {viewingPaperTopics.topics.map((topic, idx) => (
+                                                    <div key={idx} className="flex items-center space-x-2 bg-blue-100 text-blue-800 px-3 py-2 rounded-lg">
+                                                        <span className="font-semibold text-blue-600">{idx + 1}.</span>
+                                                        <span className="font-medium">{topic}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-gray-50 rounded-lg p-4 text-center">
+                                            <p className="text-gray-500 italic">No topics found for this paper</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Sections Section */}
+                                <div>
+                                    <div className="flex items-center space-x-2 mb-3">
+                                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                                        </svg>
+                                        <h3 className="text-lg font-bold text-gray-800">
+                                            Sections ({viewingPaperTopics.sections.length})
+                                        </h3>
+                                    </div>
+                                    
+                                    {viewingPaperTopics.sections.length > 0 ? (
+                                        <div className="bg-green-50 rounded-lg p-4">
+                                            <div className="flex flex-wrap gap-2">
+                                                {viewingPaperTopics.sections.map((section, idx) => (
+                                                    <div key={idx} className="flex items-center space-x-2 bg-green-100 text-green-800 px-3 py-2 rounded-lg">
+                                                        <span className="font-semibold text-green-600">{idx + 1}.</span>
+                                                        <span className="font-medium">{section}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-gray-50 rounded-lg p-4 text-center">
+                                            <p className="text-gray-500 italic">No sections found for this paper</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Info Note */}
+                                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                                    <div className="flex items-start space-x-3">
+                                        <svg className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                        </svg>
+                                        <div>
+                                            <p className="text-sm font-medium text-yellow-800">Note</p>
+                                            <p className="text-sm text-yellow-700 mt-1">
+                                                Check the existing topics above to avoid creating duplicates when editing this paper.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 rounded-b-xl">
+                                <button
+                                    onClick={() => setShowTopicsModal(false)}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Answer Lines Configuration Modal */}
+                {showAnswerLinesModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-bold text-gray-800">Add Answer Lines</h3>
+                                <button
+                                    onClick={() => setShowAnswerLinesModal(false)}
+                                    className="text-gray-500 hover:text-gray-700"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {/* Number of Lines */}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Number of Lines *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0.5"
+                                        max="50"
+                                        step="0.5"
+                                        value={answerLinesConfig.numberOfLines}
+                                        onChange={(e) => setAnswerLinesConfig(prev => ({ 
+                                            ...prev, 
+                                            numberOfLines: parseFloat(e.target.value) || 1 
+                                        }))}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                        placeholder="e.g., 5 or 2.5 for half line"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Enter whole numbers (1, 2, 3...) or half lines (0.5, 1.5, 2.5...)
+                                    </p>
+                                </div>
+
+                                {/* Line Height */}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Line Height (spacing) *
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="range"
+                                            min="20"
+                                            max="80"
+                                            value={answerLinesConfig.lineHeight}
+                                            onChange={(e) => setAnswerLinesConfig(prev => ({ 
+                                                ...prev, 
+                                                lineHeight: parseInt(e.target.value) 
+                                            }))}
+                                            className="flex-1"
+                                        />
+                                        <span className="text-sm font-semibold text-gray-700 w-12">{answerLinesConfig.lineHeight}px</span>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Adjust spacing between lines (20px = tight, 80px = wide)
+                                    </p>
+                                </div>
+
+                                {/* Line Style */}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Line Style *
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setAnswerLinesConfig(prev => ({ ...prev, lineStyle: 'dotted' }))}
+                                            className={`px-4 py-3 rounded-lg border-2 transition ${
+                                                answerLinesConfig.lineStyle === 'dotted'
+                                                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold'
+                                                    : 'border-gray-300 hover:border-indigo-400'
+                                            }`}
+                                        >
+                                            <div className="border-b-2 border-dotted border-gray-600 mb-1"></div>
+                                            Dotted
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAnswerLinesConfig(prev => ({ ...prev, lineStyle: 'solid' }))}
+                                            className={`px-4 py-3 rounded-lg border-2 transition ${
+                                                answerLinesConfig.lineStyle === 'solid'
+                                                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700 font-bold'
+                                                    : 'border-gray-300 hover:border-indigo-400'
+                                            }`}
+                                        >
+                                            <div className="border-b-2 border-solid border-gray-600 mb-1"></div>
+                                            Solid
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Opacity/Visibility */}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Line Visibility (Opacity) *
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="range"
+                                            min="0.1"
+                                            max="1"
+                                            step="0.1"
+                                            value={answerLinesConfig.opacity}
+                                            onChange={(e) => setAnswerLinesConfig(prev => ({ 
+                                                ...prev, 
+                                                opacity: parseFloat(e.target.value) 
+                                            }))}
+                                            className="flex-1"
+                                        />
+                                        <span className="text-sm font-semibold text-gray-700 w-12">{Math.round(answerLinesConfig.opacity * 100)}%</span>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        10% = very faint, 100% = fully visible
+                                    </p>
+                                </div>
+
+                                {/* Preview */}
+                                <div className="bg-gray-50 rounded-lg p-4">
+                                    <p className="text-xs font-bold text-gray-700 mb-2">Preview:</p>
+                                    <div className="bg-white p-3 rounded border border-gray-300">
+                                        {[...Array(Math.min(3, Math.ceil(answerLinesConfig.numberOfLines)))].map((_, idx) => (
+                                            <div
+                                                key={idx}
+                                                style={{
+                                                    height: `${answerLinesConfig.lineHeight}px`,
+                                                    borderBottom: `2px ${answerLinesConfig.lineStyle} rgba(0, 0, 0, ${answerLinesConfig.opacity})`,
+                                                    marginBottom: idx === Math.min(3, Math.ceil(answerLinesConfig.numberOfLines)) - 1 ? 0 : 0
+                                                }}
+                                            ></div>
+                                        ))}
+                                        {answerLinesConfig.numberOfLines > 3 && (
+                                            <p className="text-xs text-gray-500 text-center mt-2">
+                                                ... and {answerLinesConfig.numberOfLines - 3} more lines
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex space-x-3 mt-6">
+                                <button
+                                    onClick={() => {
+                                        // Add lines to the appropriate section
+                                        const lineBlock = {
+                                            id: Date.now() + Math.random(),
+                                            ...answerLinesConfig
+                                        };
+                                        
+                                        if (answerLinesConfig.targetSection === 'question') {
+                                            setQuestionAnswerLines(prev => [...prev, lineBlock]);
+                                            // Insert placeholder in question text at cursor position
+                                            const textarea = questionTextareaRef.current;
+                                            if (textarea) {
+                                                const cursorPos = textarea.selectionStart;
+                                                const textBefore = questionText.substring(0, cursorPos);
+                                                const textAfter = questionText.substring(cursorPos);
+                                                setQuestionText(textBefore + `\n[LINES:${lineBlock.id}]\n` + textAfter);
+                                            } else {
+                                                setQuestionText(prev => prev + `\n[LINES:${lineBlock.id}]\n`);
+                                            }
+                                        } else {
+                                            setAnswerAnswerLines(prev => [...prev, lineBlock]);
+                                            // Insert placeholder in answer text at cursor position
+                                            const textarea = answerTextareaRef.current;
+                                            if (textarea) {
+                                                const cursorPos = textarea.selectionStart;
+                                                const textBefore = answerText.substring(0, cursorPos);
+                                                const textAfter = answerText.substring(cursorPos);
+                                                setAnswerText(textBefore + `\n[LINES:${lineBlock.id}]\n` + textAfter);
+                                            } else {
+                                                setAnswerText(prev => prev + `\n[LINES:${lineBlock.id}]\n`);
+                                            }
+                                        }
+                                        
+                                        setShowAnswerLinesModal(false);
+                                    }}
+                                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+                                >
+                                    Add Lines
+                                </button>
+                                <button
+                                    onClick={() => setShowAnswerLinesModal(false)}
+                                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 px-6 rounded-lg transition duration-200"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Delete Confirmation Modal */}
                 {showDeleteConfirm && deletingItem && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -3518,6 +5336,404 @@ export default function EditorDashboard({ onLogout }) {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* Edit Questions Tab Content */}
+                {activeTab === 'edit' && (
+                    <div className="space-y-6">
+                        {/* Search Section */}
+                        <div className="bg-white rounded-xl shadow-lg p-6">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-4">Search & Edit Questions</h2>
+                            
+                            <div className="flex gap-3 mb-6">
+                                <div className="flex-1">
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => {
+                                            setSearchQuery(e.target.value);
+                                            if (e.target.value.length >= 2) {
+                                                handleSearchQuestions(e.target.value);
+                                            } else {
+                                                setSearchResults([]);
+                                            }
+                                        }}
+                                        placeholder="Search by question text, answer, subject, or topic..."
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => handleSearchQuestions(searchQuery)}
+                                    disabled={isSearchingQuestions || searchQuery.length < 2}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    Search
+                                </button>
+                            </div>
+
+                            {/* Search Results */}
+                            {isSearchingQuestions ? (
+                                <div className="flex justify-center items-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                                </div>
+                            ) : searchResults.length > 0 ? (
+                                <div className="space-y-3">
+                                    <p className="text-sm text-gray-600 mb-3">Found {searchResults.length} question(s)</p>
+                                    <div className="max-h-96 overflow-y-auto space-y-2">
+                                        {searchResults.map((question) => (
+                                            <div
+                                                key={question.id}
+                                                onClick={() => handleSelectQuestion(question)}
+                                                className={`p-4 border rounded-lg cursor-pointer transition ${
+                                                    selectedQuestion?.id === question.id
+                                                        ? 'border-blue-500 bg-blue-50'
+                                                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-semibold text-gray-800 line-clamp-2">
+                                                            {question.question_text?.substring(0, 150)}...
+                                                        </p>
+                                                    </div>
+                                                    <span className="ml-3 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full whitespace-nowrap">
+                                                        {question.marks} marks
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+                                                    <span className="bg-gray-100 px-2 py-1 rounded">
+                                                        📚 {question.subject_name}
+                                                    </span>
+                                                    {question.paper_name && (
+                                                        <span className="bg-gray-100 px-2 py-1 rounded">
+                                                            📄 {question.paper_name}
+                                                        </span>
+                                                    )}
+                                                    {question.topic_name && (
+                                                        <span className="bg-gray-100 px-2 py-1 rounded">
+                                                            📖 {question.topic_name}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : searchQuery.length >= 2 ? (
+                                <div className="text-center py-12 text-gray-500">
+                                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p className="text-lg font-semibold">No questions found</p>
+                                    <p className="text-sm">Try a different search term</p>
+                                </div>
+                            ) : null}
+                        </div>
+
+                        {/* Edit Form */}
+                        {selectedQuestion && (
+                            <form onSubmit={handleUpdateQuestion} className="bg-white rounded-xl shadow-lg p-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-bold text-gray-800">Edit Question</h2>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedQuestion(null);
+                                                setEditQuestionText('');
+                                                setEditAnswerText('');
+                                                setEditMarks('');
+                                            }}
+                                            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleDeleteQuestion}
+                                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Delete
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Question Info */}
+                                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                        <div>
+                                            <span className="font-semibold text-gray-700">Subject:</span>
+                                            <span className="ml-2 text-gray-600">{selectedQuestion.subject_name}</span>
+                                        </div>
+                                        {selectedQuestion.paper_name && (
+                                            <div>
+                                                <span className="font-semibold text-gray-700">Paper:</span>
+                                                <span className="ml-2 text-gray-600">{selectedQuestion.paper_name}</span>
+                                            </div>
+                                        )}
+                                        {selectedQuestion.topic_name && (
+                                            <div>
+                                                <span className="font-semibold text-gray-700">Topic:</span>
+                                                <span className="ml-2 text-gray-600">{selectedQuestion.topic_name}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Question Content */}
+                                <div className="mb-6">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-sm font-bold text-gray-700">
+                                            Question Content *
+                                        </label>
+                                        
+                                        {/* Text Formatting Buttons */}
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => applyEditQuestionFormatting('bold')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs font-bold"
+                                                title="Bold"
+                                            >
+                                                B
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => applyEditQuestionFormatting('italic')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs italic"
+                                                title="Italic"
+                                            >
+                                                I
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => applyEditQuestionFormatting('underline')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs underline"
+                                                title="Underline"
+                                            >
+                                                U
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
+                                        {/* Display Area */}
+                                        <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
+                                            {editQuestionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                                if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+                                                    return <strong key={index}>{part.slice(2, -2)}</strong>;
+                                                }
+                                                if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**') && part.length > 2) {
+                                                    return <em key={index} className="italic">{part.slice(1, -1)}</em>;
+                                                }
+                                                if (part.startsWith('__') && part.endsWith('__') && part.length > 4) {
+                                                    return <u key={index}>{part.slice(2, -2)}</u>;
+                                                }
+                                                return <span key={index}>{part}</span>;
+                                            })}
+                                            {editQuestionText.length === 0 && (
+                                                <span className="text-gray-400">Question preview...</span>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Editable Textarea */}
+                                        <div className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300" style={{ height: '40%' }}>
+                                            <textarea
+                                                ref={editQuestionTextareaRef}
+                                                value={editQuestionText}
+                                                onChange={(e) => setEditQuestionText(e.target.value)}
+                                                className="w-full h-full px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition text-sm resize-none"
+                                                placeholder="Edit question text..."
+                                                style={{ fontFamily: 'monospace' }}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Answer Content */}
+                                <div className="mb-6">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-sm font-bold text-gray-700">
+                                            Answer Content *
+                                        </label>
+                                        
+                                        {/* Text Formatting Buttons */}
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => applyEditAnswerFormatting('bold')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs font-bold"
+                                                title="Bold"
+                                            >
+                                                B
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => applyEditAnswerFormatting('italic')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs italic"
+                                                title="Italic"
+                                            >
+                                                I
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => applyEditAnswerFormatting('underline')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs underline"
+                                                title="Underline"
+                                            >
+                                                U
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
+                                        {/* Display Area */}
+                                        <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
+                                            {editAnswerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[LINES:[\d.]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                                if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+                                                    return <strong key={index}>{part.slice(2, -2)}</strong>;
+                                                }
+                                                if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**') && part.length > 2) {
+                                                    return <em key={index} className="italic">{part.slice(1, -1)}</em>;
+                                                }
+                                                if (part.startsWith('__') && part.endsWith('__') && part.length > 4) {
+                                                    return <u key={index}>{part.slice(2, -2)}</u>;
+                                                }
+                                                if (part.startsWith('_') && part.endsWith('_') && !part.startsWith('__') && part.length > 2) {
+                                                    return <em key={index} className="italic">{part.slice(1, -1)}</em>;
+                                                }
+                                                
+                                                // Check for answer lines
+                                                const linesMatch = part.match(/\[LINES:([\d.]+)\]/);
+                                                if (linesMatch) {
+                                                    const lineId = parseFloat(linesMatch[1]);
+                                                    const lineConfig = editAnswerAnswerLines.find(line => line.id === lineId);
+                                                    
+                                                    if (lineConfig) {
+                                                        const maxWidth = 700;
+                                                        const fullLines = Math.floor(lineConfig.numberOfLines);
+                                                        const hasHalfLine = lineConfig.numberOfLines % 1 !== 0;
+                                                        
+                                                        return (
+                                                            <div key={index} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
+                                                                {[...Array(fullLines)].map((_, idx) => (
+                                                                    <div
+                                                                        key={idx}
+                                                                        className="relative"
+                                                                        style={{
+                                                                            height: `${lineConfig.lineHeight}px`,
+                                                                            borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
+                                                                            width: '100%'
+                                                                        }}
+                                                                    >
+                                                                        <input
+                                                                            type="text"
+                                                                            placeholder="Type your answer here..."
+                                                                            className="absolute inset-0 w-full bg-transparent border-none outline-none px-1"
+                                                                            style={{
+                                                                                height: `${lineConfig.lineHeight}px`,
+                                                                                lineHeight: `${lineConfig.lineHeight - 4}px`,
+                                                                                fontSize: `${Math.min(lineConfig.lineHeight * 0.6, 16)}px`,
+                                                                                paddingBottom: '2px'
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                ))}
+                                                                {hasHalfLine && (
+                                                                    <div
+                                                                        className="relative"
+                                                                        style={{
+                                                                            height: `${lineConfig.lineHeight / 2}px`,
+                                                                            borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
+                                                                            width: '100%'
+                                                                        }}
+                                                                    >
+                                                                        <input
+                                                                            type="text"
+                                                                            placeholder="Type here..."
+                                                                            className="absolute inset-0 w-full bg-transparent border-none outline-none px-1"
+                                                                            style={{
+                                                                                height: `${lineConfig.lineHeight / 2}px`,
+                                                                                lineHeight: `${(lineConfig.lineHeight / 2) - 4}px`,
+                                                                                fontSize: `${Math.min((lineConfig.lineHeight / 2) * 0.6, 14)}px`,
+                                                                                paddingBottom: '2px'
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                                {/* Remove lines button */}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setEditAnswerAnswerLines(prev => prev.filter(line => line.id !== lineId));
+                                                                        setEditAnswerText(prev => prev.replace(`[LINES:${lineId}]`, ''));
+                                                                    }}
+                                                                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                                                                    title="Remove lines"
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    }
+                                                }
+                                                
+                                                return <span key={index}>{part}</span>;
+                                            })}
+                                            {editAnswerText.length === 0 && (
+                                                <span className="text-gray-400">Answer preview...</span>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Editable Textarea */}
+                                        <div className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300" style={{ height: '40%' }}>
+                                            <textarea
+                                                ref={editAnswerTextareaRef}
+                                                value={editAnswerText}
+                                                onChange={(e) => setEditAnswerText(e.target.value)}
+                                                className="w-full h-full px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition text-sm resize-none"
+                                                placeholder="Edit answer text..."
+                                                style={{ fontFamily: 'monospace' }}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Marks */}
+                                <div className="mb-6">
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Marks
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={editMarks}
+                                        onChange={(e) => setEditMarks(e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                        placeholder="Enter marks"
+                                        step="0.5"
+                                        min="0"
+                                    />
+                                </div>
+                            </form>
+                        )}
                     </div>
                 )}
 

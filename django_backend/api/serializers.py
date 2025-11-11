@@ -2,8 +2,11 @@
 Django REST Framework Serializers for Examination System
 """
 
+import logging
 from rest_framework import serializers
 from .models import User, OTPLog, Subject, Paper, Topic, Section, Question
+
+logger = logging.getLogger(__name__)
 
 
 # ==================== USER SERIALIZERS ====================
@@ -261,6 +264,162 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
                     )
         
         return subject
+    
+    def update(self, instance, validated_data):
+        """Handle partial/full update of subject with papers, sections, and topics
+        
+        This method supports incremental updates:
+        - Add new papers to existing subject
+        - Update existing papers
+        - Add topics/sections to existing or new papers
+        """
+        papers_data = validated_data.pop('papers', None)
+        user = self.context['request'].user
+        
+        logger.info(f"[SUBJECT UPDATE] Updating subject ID={instance.id}, name={instance.name}")
+        
+        # Update subject basic fields (only if provided)
+        if 'name' in validated_data:
+            old_name = instance.name
+            instance.name = validated_data['name']
+            logger.info(f"[SUBJECT UPDATE] Name changed: '{old_name}' -> '{instance.name}'")
+        if 'description' in validated_data:
+            instance.description = validated_data['description']
+        instance.save()
+        
+        # Only update papers if papers data is explicitly provided
+        if papers_data is not None:
+            logger.info(f"[SUBJECT UPDATE] Processing {len(papers_data)} paper(s)")
+            
+            # Get existing papers mapped by name for easier lookup
+            existing_papers = {paper.name: paper for paper in instance.papers.all()}
+            updated_paper_names = set()
+            
+            # Process each paper in the request
+            for paper_data in papers_data:
+                paper_name = paper_data.get('name', '').strip()
+                if not paper_name:
+                    continue
+                    
+                sections_data = paper_data.pop('sections', [])
+                topics_data = paper_data.pop('topics', [])
+                
+                # Check if paper exists
+                if paper_name in existing_papers:
+                    # UPDATE existing paper
+                    logger.info(f"[SUBJECT UPDATE] Updating existing paper: '{paper_name}'")
+                    paper = existing_papers[paper_name]
+                    updated_paper_names.add(paper_name)
+                    
+                    # Update paper description if provided
+                    if 'description' in paper_data:
+                        paper.description = paper_data.get('description', '')
+                        paper.save()
+                    
+                    # Get existing topics and sections
+                    existing_topics = {topic.name: topic for topic in paper.topics.all()}
+                    existing_sections = {section.name: section for section in paper.sections.all()}
+                    
+                    # Update/Add Topics
+                    provided_topic_names = set()
+                    new_topics_count = 0
+                    for topic_name in topics_data:
+                        topic_name_clean = topic_name.strip()
+                        if topic_name_clean:
+                            provided_topic_names.add(topic_name_clean)
+                            if topic_name_clean not in existing_topics:
+                                # Create new topic
+                                Topic.objects.create(
+                                    paper=paper,
+                                    name=topic_name_clean,
+                                    created_by=user
+                                )
+                                new_topics_count += 1
+                    
+                    if new_topics_count > 0:
+                        logger.info(f"[SUBJECT UPDATE] Added {new_topics_count} new topic(s) to '{paper_name}'")
+                    
+                    # Remove topics that are not in the new list
+                    topics_to_remove = set(existing_topics.keys()) - provided_topic_names
+                    if topics_to_remove:
+                        logger.info(f"[SUBJECT UPDATE] Removing {len(topics_to_remove)} topic(s) from '{paper_name}'")
+                    for topic_name in topics_to_remove:
+                        existing_topics[topic_name].delete()
+                    
+                    # Update/Add Sections
+                    provided_section_names = set()
+                    new_sections_count = 0
+                    for i, section_name in enumerate(sections_data):
+                        section_name_clean = section_name.strip()
+                        if section_name_clean:
+                            provided_section_names.add(section_name_clean)
+                            if section_name_clean not in existing_sections:
+                                # Create new section
+                                Section.objects.create(
+                                    paper=paper,
+                                    name=section_name_clean,
+                                    order=i,
+                                    created_by=user
+                                )
+                                new_sections_count += 1
+                            else:
+                                # Update order if section exists
+                                section = existing_sections[section_name_clean]
+                                section.order = i
+                                section.save()
+                    
+                    if new_sections_count > 0:
+                        logger.info(f"[SUBJECT UPDATE] Added {new_sections_count} new section(s) to '{paper_name}'")
+                    
+                    # Remove sections that are not in the new list
+                    sections_to_remove = set(existing_sections.keys()) - provided_section_names
+                    if sections_to_remove:
+                        logger.info(f"[SUBJECT UPDATE] Removing {len(sections_to_remove)} section(s) from '{paper_name}'")
+                    for section_name in sections_to_remove:
+                        existing_sections[section_name].delete()
+                
+                else:
+                    # CREATE new paper
+                    logger.info(f"[SUBJECT UPDATE] Creating new paper: '{paper_name}' with {len(topics_data)} topic(s) and {len(sections_data)} section(s)")
+                    updated_paper_names.add(paper_name)
+                    
+                    paper = Paper.objects.create(
+                        subject=instance,
+                        created_by=user,
+                        name=paper_name,
+                        description=paper_data.get('description', '')
+                    )
+                    
+                    # Create sections
+                    for i, section_name in enumerate(sections_data):
+                        if section_name and section_name.strip():
+                            Section.objects.create(
+                                paper=paper,
+                                name=section_name.strip(),
+                                order=i,
+                                created_by=user
+                            )
+                    
+                    # Create topics
+                    for topic_name in topics_data:
+                        if topic_name and topic_name.strip():
+                            Topic.objects.create(
+                                paper=paper,
+                                name=topic_name.strip(),
+                                created_by=user
+                            )
+            
+            # Remove papers that are not in the updated list
+            papers_to_remove = set(existing_papers.keys()) - updated_paper_names
+            if papers_to_remove:
+                logger.info(f"[SUBJECT UPDATE] Removing {len(papers_to_remove)} paper(s): {papers_to_remove}")
+            for paper_name in papers_to_remove:
+                existing_papers[paper_name].delete()
+        else:
+            logger.info(f"[SUBJECT UPDATE] No papers data provided - keeping existing papers")
+        
+        logger.info(f"[SUBJECT UPDATE] Update complete for subject ID={instance.id}")
+        return instance
 
 
 # ==================== QUESTION SERIALIZERS ====================
@@ -295,6 +454,8 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
                   'topic', 'topic_name', 'section', 'section_name',
                   'question_text', 'question_inline_images', 
                   'answer_text', 'answer_inline_images',
+                  'question_image_positions', 'answer_image_positions',
+                  'question_answer_lines', 'answer_answer_lines',
                   'question_type', 'difficulty', 'marks',
                   'options', 'correct_answer', 'answer_explanation',
                   'is_active', 'times_used', 'last_used',
@@ -310,6 +471,8 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
         fields = ['subject', 'paper', 'topic', 'section',
                   'question_text', 'question_inline_images',
                   'answer_text', 'answer_inline_images',
+                  'question_image_positions', 'answer_image_positions',
+                  'question_answer_lines', 'answer_answer_lines',
                   'question_type', 'difficulty', 'marks',
                   'options', 'correct_answer', 'answer_explanation',
                   'is_active']

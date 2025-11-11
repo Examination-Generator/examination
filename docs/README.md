@@ -17,6 +17,12 @@ Welcome to the Examination System documentation. This directory contains all the
 - **[Database Schema](./DATABASE_SCHEMA.md)** - Database structure and models
 - **[Deployment](./DEPLOYMENT.md)** - Deploy to Vercel guide
 
+### Feature Guides
+- **[Voice Transcription](./VOICE_TRANSCRIPTION.md)** - Voice-to-text input feature
+- **[Text Formatting](./TEXT_FORMATTING.md)** - Rich text formatting and scientific names
+- **[Edit Questions](./EDIT_QUESTIONS.md)** - Search, edit, and manage questions
+- **[Subject Management](./SUBJECT_MANAGEMENT.md)** - Enhanced subject structure management
+
 ### Troubleshooting
 - **[Common Issues](./TROUBLESHOOTING.md)** - Solutions to common problems
 
