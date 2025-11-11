@@ -1,75 +1,120 @@
-"# Examination System - Full Stack Application
+"# Examination System
 
-## 🚀 Live Demo
+A full-stack web application for managing examination questions, subjects, papers, and topics. Built with Django REST Framework and React, deployed on Vercel.
 
-- **Frontend**: [Your App URL after deployment]
-- **Backend API**: [Your Backend URL after deployment]
-- **Admin Panel**: [Your Backend URL]/admin
+## 🚀 Live Application
 
-## 📖 Overview
+- **Frontend:** https://examination-frontend.vercel.app
+- **Backend API:** https://examination-s3np.vercel.app/api
+- **Health Check:** https://examination-s3np.vercel.app/api/database/health
 
-This is a full-stack examination system built with Django (backend) and React (frontend), ready for deployment on Vercel with PostgreSQL database.
+## 🔑 Quick Access
 
-### Features
-- ✅ User authentication with JWT & OTP
-- ✅ Question management with inline images (base64)
-- ✅ Subject, Paper, Topic, and Section organization
-- ✅ Similar questions search with keyword matching
-- ✅ Real-time statistics dashboard
-- ✅ Advanced filtering system
-- ✅ Mobile responsive design
+**Default Login Credentials:**
+- **Admin:** Phone: `0000000001`, Password: `0000`
+- **Editor:** Phone: `0000000002`, Password: `0000`
 
-## 🛠️ Tech Stack
+## � Documentation
 
-### Backend
-- Django 5.0 + Django REST Framework
-- PostgreSQL with UUID primary keys
-- JWT Authentication (SimpleJWT)
-- Vercel Serverless Functions compatible
+All documentation is located in the **[`docs/`](./docs/)** directory:
 
-### Frontend
-- React 19 with Hooks
-- Tailwind CSS
-- Fetch API for HTTP requests
+### Essential Guides
+- **[Quick Start](./docs/QUICK_START.md)** - Get running in 5 minutes
+- **[Project Overview](./docs/PROJECT_OVERVIEW.md)** - Architecture and tech stack
+- **[Default Users](./docs/DEFAULT_USERS.md)** - Pre-configured accounts
 
-### Deployment
-- Vercel (Frontend & Backend)
-- Vercel Postgres (Database - can migrate to cloud later)
+### Reference
+- **[API Reference](./docs/API_REFERENCE.md)** - Complete API documentation
+- **[Database Schema](./docs/DATABASE_SCHEMA.md)** - Database structure
+- **[Authentication](./docs/AUTHENTICATION.md)** - User authentication guide
 
-## 📋 Deployment Documentation
+### Operations
+- **[Deployment](./docs/DEPLOYMENT.md)** - Deploy to Vercel
+- **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Common issues & solutions
 
-- **[📘 VERCEL_DEPLOYMENT_GUIDE.md](VERCEL_DEPLOYMENT_GUIDE.md)** - Complete step-by-step deployment instructions
-- **[⚡ DEPLOYMENT_QUICK_REFERENCE.md](DEPLOYMENT_QUICK_REFERENCE.md)** - Quick commands and troubleshooting
-- **[✅ PRE_DEPLOYMENT_CHECKLIST.md](PRE_DEPLOYMENT_CHECKLIST.md)** - Ensure you're ready to deploy
-- **[🗄️ DATABASE_MIGRATION_GUIDE.md](DATABASE_MIGRATION_GUIDE.md)** - Move database to cloud (AWS/Azure/GCP)
+## ✨ Features
 
-## 🚀 Quick Start - Local Development
+- ✅ Phone number authentication with JWT tokens
+- ✅ Role-based access (User, Editor, Admin)
+- ✅ Subject and paper management
+- ✅ Question bank with inline images (base64)
+- ✅ Topics and sections organization
+- ✅ Question search and filtering
+- ✅ Automatic database migrations
+- ✅ Default admin/editor accounts
+- ✅ Deployed on Vercel serverless
 
-### Backend Setup
+## 🛠️ Technology Stack
+
+**Backend:**
+- Django 5.0
+- Django REST Framework
+- PostgreSQL (Vercel Postgres)
+- JWT Authentication
+- Bcrypt password hashing
+
+**Frontend:**
+- React 18
+- React Router v6
+- Axios
+- Deployed on Vercel
+
+## � Quick Start
+
+### Local Development
+
 ```bash
+# Backend
 cd django_backend
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
 python manage.py migrate
-python manage.py createsuperuser
+python manage.py create_default_users
 python manage.py runserver
-# Backend runs on http://localhost:8000
-```
 
-### Frontend Setup
-```bash
+# Frontend (new terminal)
 cd frontend/exam
 npm install
 npm start
-# Frontend runs on http://localhost:3000
 ```
 
-## 🚀 Deploy to Vercel
+Visit: http://localhost:3000
 
-See **[VERCEL_DEPLOYMENT_GUIDE.md](VERCEL_DEPLOYMENT_GUIDE.md)** for complete instructions.
+### Deployment
+
+Push to `main` branch - automatic deployment to Vercel:
+
+```bash
+git add .
+git commit -m "Your changes"
+git push origin main
+```
+
+See [Deployment Guide](./docs/DEPLOYMENT.md) for details.
+
+## 📂 Project Structure
+
+```
+exam/
+├── frontend/exam/         # React frontend
+├── django_backend/        # Django REST API
+├── docs/                  # Complete documentation
+└── README.md             # This file
+```
+
+## 🔗 Quick Links
+
+- [📖 Full Documentation](./docs/README.md)
+- [🚀 Quick Start Guide](./docs/QUICK_START.md)
+- [🔐 Default Users](./docs/DEFAULT_USERS.md)
+- [📡 API Reference](./docs/API_REFERENCE.md)
+- [🐛 Troubleshooting](./docs/TROUBLESHOOTING.md)
+
+## 📝 License
+
+This project is for educational purposes.
 
 ---
 
-**Ready to deploy? Start with [VERCEL_DEPLOYMENT_GUIDE.md](VERCEL_DEPLOYMENT_GUIDE.md)!**
-
-*Built with ❤️ using Django & React | Deployed on Vercel* 🚀
-" 
+**Need help?** Check the [documentation](./docs/) or [troubleshooting guide](./docs/TROUBLESHOOTING.md)." 
