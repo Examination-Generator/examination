@@ -1,6 +1,120 @@
 // Authentication API Service
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
+// Session configuration
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+const ACTIVITY_CHECK_INTERVAL = 60 * 1000; // Check every minute
+const TOKEN_REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh token if expiring in 5 minutes
+
+// Activity tracker
+let activityTimeout = null;
+let activityCheckInterval = null;
+let lastActivityTime = Date.now();
+
+// Update last activity time
+const updateActivity = () => {
+    lastActivityTime = Date.now();
+    localStorage.setItem('lastActivity', lastActivityTime.toString());
+};
+
+// Initialize activity tracking
+export const initActivityTracking = (onSessionExpired) => {
+    // Track user activity
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    
+    const handleActivity = () => {
+        updateActivity();
+        resetActivityTimeout(onSessionExpired);
+    };
+    
+    // Add event listeners
+    events.forEach(event => {
+        document.addEventListener(event, handleActivity, true);
+    });
+    
+    // Start checking for inactivity
+    startActivityCheck(onSessionExpired);
+    
+    // Initial activity update
+    updateActivity();
+    
+    // Return cleanup function
+    return () => {
+        events.forEach(event => {
+            document.removeEventListener(event, handleActivity, true);
+        });
+        stopActivityCheck();
+    };
+};
+
+// Reset activity timeout
+const resetActivityTimeout = (onSessionExpired) => {
+    if (activityTimeout) {
+        clearTimeout(activityTimeout);
+    }
+    
+    activityTimeout = setTimeout(() => {
+        console.log('[SESSION] Session expired due to inactivity');
+        handleSessionExpired(onSessionExpired);
+    }, SESSION_TIMEOUT);
+};
+
+// Start activity check interval
+const startActivityCheck = (onSessionExpired) => {
+    activityCheckInterval = setInterval(() => {
+        const now = Date.now();
+        const lastActivity = parseInt(localStorage.getItem('lastActivity') || '0', 10);
+        const timeSinceActivity = now - lastActivity;
+        
+        // Check if session should expire
+        if (timeSinceActivity > SESSION_TIMEOUT) {
+            console.log('[SESSION] Session expired due to inactivity (background check)');
+            handleSessionExpired(onSessionExpired);
+        }
+    }, ACTIVITY_CHECK_INTERVAL);
+};
+
+// Stop activity check
+const stopActivityCheck = () => {
+    if (activityTimeout) {
+        clearTimeout(activityTimeout);
+        activityTimeout = null;
+    }
+    if (activityCheckInterval) {
+        clearInterval(activityCheckInterval);
+        activityCheckInterval = null;
+    }
+};
+
+// Handle session expiration
+const handleSessionExpired = (callback) => {
+    stopActivityCheck();
+    logout();
+    if (callback) {
+        callback();
+    }
+};
+
+// Check if session is still valid
+export const isSessionValid = () => {
+    const token = localStorage.getItem('token');
+    const lastActivity = parseInt(localStorage.getItem('lastActivity') || '0', 10);
+    const now = Date.now();
+    
+    if (!token) {
+        return false;
+    }
+    
+    // Check if too much time has passed since last activity
+    if (lastActivity && (now - lastActivity) > SESSION_TIMEOUT) {
+        console.log('[SESSION] Session expired');
+        logout();
+        return false;
+    }
+    
+    return true;
+};
+
 // Request OTP for registration
 export const requestOTP = async (phoneNumber, fullName) => {
     try {
@@ -68,10 +182,12 @@ export const register = async (phoneNumber, fullName, password, role = 'user') =
         const result = await response.json();
         const data = result.data || result; // Handle both formats
         
-        // Store token in localStorage
+        // Store token and user data in localStorage
         if (data.token) {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('loginTime', Date.now().toString());
+            updateActivity(); // Initialize activity tracking
         }
         
         return data;
@@ -104,6 +220,8 @@ export const login = async (phoneNumber, password) => {
         if (data.token) {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
+            localStorage.setItem('loginTime', Date.now().toString());
+            updateActivity(); // Initialize activity tracking
         }
         
         return data;
@@ -115,8 +233,12 @@ export const login = async (phoneNumber, password) => {
 
 // Logout user
 export const logout = () => {
+    stopActivityCheck();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('loginTime');
+    localStorage.removeItem('lastActivity');
+    console.log('[SESSION] User logged out');
 };
 
 // Get current user from localStorage
@@ -137,12 +259,27 @@ export const getCurrentUser = () => {
 export const isAuthenticated = () => {
     const token = localStorage.getItem('token');
     const user = getCurrentUser();
-    return !!(token && user);
+    return !!(token && user && isSessionValid());
 };
 
 // Get authentication token
 export const getAuthToken = () => {
     return localStorage.getItem('token');
+};
+
+// Get session info for debugging
+export const getSessionInfo = () => {
+    const lastActivity = parseInt(localStorage.getItem('lastActivity') || '0', 10);
+    const loginTime = parseInt(localStorage.getItem('loginTime') || '0', 10);
+    const now = Date.now();
+    
+    return {
+        isValid: isSessionValid(),
+        loginTime: loginTime ? new Date(loginTime).toISOString() : null,
+        lastActivity: lastActivity ? new Date(lastActivity).toISOString() : null,
+        timeUntilExpiry: SESSION_TIMEOUT - (now - lastActivity),
+        sessionTimeout: SESSION_TIMEOUT,
+    };
 };
 
 // Request password reset OTP
