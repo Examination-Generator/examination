@@ -32,6 +32,7 @@ export default function EditorDashboard({ onLogout }) {
     
     // New features states
     const [isQuestionActive, setIsQuestionActive] = useState(true); // Changed from isQuestionComplete
+    const [isNested, setIsNested] = useState(false); // Track if question is nested
     const [uploadedImages, setUploadedImages] = useState([]);
     const [showDrawingTool, setShowDrawingTool] = useState(false);
     const [showGraphPaper, setShowGraphPaper] = useState(false);
@@ -576,6 +577,7 @@ export default function EditorDashboard({ onLogout }) {
                 question_text: questionText,
                 answer_text: answerText,
                 marks: parseInt(marks),
+                is_nested: isNested, // NEW: Nested question flag
                 question_inline_images: questionInlineImages,
                 answer_inline_images: answerInlineImages,
                 question_image_positions: questionImagePositions, // NEW: Image positions for question
@@ -644,6 +646,7 @@ export default function EditorDashboard({ onLogout }) {
                 setQuestionAnswerLines([]); // NEW: Clear answer lines
                 setAnswerAnswerLines([]); // NEW: Clear answer lines
                 setIsQuestionActive(true);
+                setIsNested(false); // NEW: Reset nested checkbox
                 setSimilarQuestions([]);
                 
                 alert('✅ Question saved to database successfully!');
@@ -3978,6 +3981,41 @@ export default function EditorDashboard({ onLogout }) {
                                     min="1"
                                     required
                                 />
+                            </div>
+
+                            {/* Nested Question Checkbox */}
+                            <div className="mb-4 border-2 rounded-lg p-4" style={{
+                                borderColor: isNested ? '#8b5cf6' : '#d1d5db',
+                                backgroundColor: isNested ? '#f3e8ff' : '#f9fafb'
+                            }}>
+                                <label className="flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={isNested}
+                                        onChange={(e) => setIsNested(e.target.checked)}
+                                        className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                                    />
+                                    <span className="ml-3 text-sm font-bold text-gray-700">
+                                        This is a Nested Question
+                                    </span>
+                                </label>
+                                <p className="text-xs mt-2 ml-8" style={{color: isNested ? '#6b21a8' : '#6b7280'}}>
+                                    {isNested 
+                                        ? '✓ Nested - Question contains multiple sub-parts (e.g., 4-7 marks total)' 
+                                        : 'Standalone - Single question without sub-parts (e.g., 1-4 marks)'}
+                                </p>
+                                {isNested && marks && parseInt(marks) > 0 && (
+                                    <div className="mt-2 ml-8 text-xs text-purple-700 flex items-start">
+                                        <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                        </svg>
+                                        <span>
+                                            Recommended marks for nested questions: 4-7 marks
+                                            {parseInt(marks) < 4 && ' (Consider increasing marks or marking as standalone)'}
+                                            {parseInt(marks) > 7 && ' (Consider reducing marks or splitting into separate questions)'}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Question Status */}
