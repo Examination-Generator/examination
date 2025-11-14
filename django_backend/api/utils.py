@@ -4,11 +4,33 @@ Utility functions for the API
 
 import random
 import logging
+from functools import wraps
 from rest_framework.views import exception_handler
 from rest_framework.response import Response
+from rest_framework import status as http_status
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+def editor_or_admin_required(view_func):
+    """
+    Decorator to ensure user is editor or admin
+    Use with @permission_classes([IsAuthenticated])
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if request.user.role not in ['editor', 'admin']:
+            return Response(
+                {
+                    'success': False,
+                    'message': 'Permission denied. Editor or admin role required.',
+                    'error': 'PERMISSION_DENIED'
+                },
+                status=http_status.HTTP_403_FORBIDDEN
+            )
+        return view_func(request, *args, **kwargs)
+    return wrapper
 
 
 def generate_otp():

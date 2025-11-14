@@ -176,6 +176,17 @@ class Paper(models.Model):
         related_name='papers'
     )
     description = models.TextField(blank=True, null=True)
+    
+    # Paper configuration
+    total_marks = models.IntegerField(
+        default=80,
+        help_text='Total marks for this paper'
+    )
+    time_allocation = models.IntegerField(
+        default=120,
+        help_text='Time allocation in minutes'
+    )
+    
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(
         User,
@@ -211,6 +222,17 @@ class Topic(models.Model):
         related_name='topics'
     )
     description = models.TextField(blank=True, null=True)
+    
+    # Mark allocation constraints for paper generation
+    min_marks = models.IntegerField(
+        default=4,
+        help_text='Minimum marks this topic should have in a generated paper'
+    )
+    max_marks = models.IntegerField(
+        default=10,
+        help_text='Maximum marks this topic should have in a generated paper'
+    )
+    
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(
         User,
@@ -280,6 +302,16 @@ class Question(models.Model):
         ('short_answer', 'Short Answer'),
         ('essay', 'Essay'),
         ('structured', 'Structured'),
+    ]
+    
+    # KCSE-specific question types for Biology Paper 1
+    KCSE_QUESTION_TYPE_CHOICES = [
+        ('name_identify', 'Name/Identify'),
+        ('state_give_reasons', 'State/Give Reasons'),
+        ('distinguish', 'Distinguish/Differentiate'),
+        ('explain_account', 'Explain/Account For'),
+        ('describe', 'Describe'),
+        ('calculate', 'Calculate'),
     ]
     
     DIFFICULTY_CHOICES = [
@@ -362,12 +394,31 @@ class Question(models.Model):
         choices=QUESTION_TYPE_CHOICES,
         default='structured'
     )
+    kcse_question_type = models.CharField(
+        max_length=30,
+        choices=KCSE_QUESTION_TYPE_CHOICES,
+        null=True,
+        blank=True,
+        help_text='KCSE-specific question type for Biology Paper 1 generation'
+    )
     difficulty = models.CharField(
         max_length=20,
         choices=DIFFICULTY_CHOICES,
         default='medium'
     )
     marks = models.IntegerField()
+    
+    # Nested question support for KCSE papers
+    is_nested = models.BooleanField(
+        default=False,
+        help_text='True if question has multiple parts (a, b, c, d). Only the total marks need to be specified.'
+    )
+    nested_parts = models.JSONField(
+        default=list,
+        blank=True,
+        null=True,
+        help_text='OPTIONAL: Can store part breakdowns if needed, but not required for paper generation.'
+    )
     
     # MCQ options (for multiple choice questions)
     options = models.JSONField(null=True, blank=True)
@@ -399,3 +450,257 @@ class Question(models.Model):
     
     def __str__(self):
         return f"{self.subject.name} - {self.question_text[:50]}..."
+
+
+# ==================== PAPER CONFIGURATION MODEL ====================
+
+class PaperConfiguration(models.Model):
+    """Configuration and constraints for paper generation"""
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    paper = models.OneToOneField(
+        Paper,
+        on_delete=models.CASCADE,
+        related_name='configuration'
+    )
+    
+    # Mark distribution constraints (percentages)
+    one_mark_min_percent = models.FloatField(
+        default=30.0,
+        help_text='Minimum percentage of 1-mark questions'
+    )
+    one_mark_max_percent = models.FloatField(
+        default=40.0,
+        help_text='Maximum percentage of 1-mark questions'
+    )
+    
+    two_mark_min_percent = models.FloatField(
+        default=35.0,
+        help_text='Minimum percentage of 2-mark questions'
+    )
+    two_mark_max_percent = models.FloatField(
+        default=45.0,
+        help_text='Maximum percentage of 2-mark questions'
+    )
+    
+    three_mark_min_percent = models.FloatField(
+        default=15.0,
+        help_text='Minimum percentage of 3-mark questions'
+    )
+    three_mark_max_percent = models.FloatField(
+        default=25.0,
+        help_text='Maximum percentage of 3-mark questions'
+    )
+    
+    four_mark_min_percent = models.FloatField(
+        default=0.0,
+        help_text='Minimum percentage of 4-mark questions'
+    )
+    four_mark_max_percent = models.FloatField(
+        default=5.0,
+        help_text='Maximum percentage of 4-mark questions'
+    )
+    
+    # Question type distribution (percentages)
+    name_identify_min_percent = models.FloatField(
+        default=20.0,
+        help_text='Minimum percentage of name/identify questions'
+    )
+    name_identify_max_percent = models.FloatField(
+        default=30.0,
+        help_text='Maximum percentage of name/identify questions'
+    )
+    
+    state_reasons_min_percent = models.FloatField(
+        default=25.0,
+        help_text='Minimum percentage of state/give reasons questions'
+    )
+    state_reasons_max_percent = models.FloatField(
+        default=35.0,
+        help_text='Maximum percentage of state/give reasons questions'
+    )
+    
+    distinguish_min_percent = models.FloatField(
+        default=10.0,
+        help_text='Minimum percentage of distinguish questions'
+    )
+    distinguish_max_percent = models.FloatField(
+        default=15.0,
+        help_text='Maximum percentage of distinguish questions'
+    )
+    
+    explain_min_percent = models.FloatField(
+        default=20.0,
+        help_text='Minimum percentage of explain questions'
+    )
+    explain_max_percent = models.FloatField(
+        default=30.0,
+        help_text='Maximum percentage of explain questions'
+    )
+    
+    describe_min_percent = models.FloatField(
+        default=10.0,
+        help_text='Minimum percentage of describe questions'
+    )
+    describe_max_percent = models.FloatField(
+        default=20.0,
+        help_text='Maximum percentage of describe questions'
+    )
+    
+    calculate_min_percent = models.FloatField(
+        default=0.0,
+        help_text='Minimum percentage of calculate questions'
+    )
+    calculate_max_percent = models.FloatField(
+        default=5.0,
+        help_text='Maximum percentage of calculate questions'
+    )
+    
+    # Question count constraints
+    min_questions = models.IntegerField(
+        default=25,
+        help_text='Minimum number of questions in paper'
+    )
+    max_questions = models.IntegerField(
+        default=30,
+        help_text='Maximum number of questions in paper'
+    )
+    
+    # Additional configuration
+    max_backtracking_attempts = models.IntegerField(
+        default=100,
+        help_text='Maximum backtracking attempts before restart'
+    )
+    max_generation_attempts = models.IntegerField(
+        default=5,
+        help_text='Maximum full generation attempts'
+    )
+    
+    # Instructions and metadata
+    instructions = models.TextField(
+        default='Answer all questions in the spaces provided on this paper.',
+        help_text='Standard instructions for candidates'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'paper_configurations'
+        ordering = ['paper']
+    
+    def __str__(self):
+        return f"Configuration for {self.paper}"
+
+
+# ==================== GENERATED PAPER MODEL ====================
+
+class GeneratedPaper(models.Model):
+    """Store generated examination papers"""
+    
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('validated', 'Validated'),
+        ('published', 'Published'),
+        ('archived', 'Archived'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    paper = models.ForeignKey(
+        Paper,
+        on_delete=models.CASCADE,
+        related_name='generated_papers'
+    )
+    
+    # Generation metadata
+    unique_code = models.CharField(
+        max_length=20,
+        unique=True,
+        help_text='Unique identifier for this generated paper'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='draft'
+    )
+    
+    # Selected questions (stored as JSON array of question IDs in order)
+    question_ids = models.JSONField(
+        help_text='Ordered list of question IDs in this paper'
+    )
+    
+    # Topic selections and adjustments
+    selected_topics = models.JSONField(
+        help_text='List of topic IDs selected for generation'
+    )
+    topic_adjustments = models.JSONField(
+        null=True,
+        blank=True,
+        help_text='Proportional adjustments made to topic mark ranges'
+    )
+    
+    # Generation statistics
+    total_marks = models.IntegerField()
+    total_questions = models.IntegerField()
+    
+    mark_distribution = models.JSONField(
+        help_text='Distribution of questions by mark value'
+    )
+    topic_distribution = models.JSONField(
+        help_text='Distribution of marks by topic'
+    )
+    question_type_distribution = models.JSONField(
+        help_text='Distribution of question types'
+    )
+    
+    # Validation results
+    validation_passed = models.BooleanField(default=False)
+    validation_report = models.JSONField(
+        null=True,
+        blank=True,
+        help_text='Detailed validation results'
+    )
+    
+    # Generation process info
+    generation_attempts = models.IntegerField(
+        default=1,
+        help_text='Number of attempts before successful generation'
+    )
+    backtracking_count = models.IntegerField(
+        default=0,
+        help_text='Number of backtracking operations performed'
+    )
+    generation_time_seconds = models.FloatField(
+        null=True,
+        blank=True,
+        help_text='Time taken to generate this paper'
+    )
+    
+    # Coverpage data
+    coverpage_data = models.JSONField(
+        null=True,
+        blank=True,
+        help_text='Coverpage information (school name, logo, instructions, etc.)'
+    )
+    
+    # User tracking
+    generated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='generated_papers'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'generated_papers'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['paper', 'status']),
+            models.Index(fields=['unique_code']),
+        ]
+    
+    def __str__(self):
+        return f"{self.paper.name} - {self.unique_code}"

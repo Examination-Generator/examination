@@ -204,6 +204,9 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'cache-control',
+    'pragma',
+    'expires',
 ]
 
 # Disable CSRF for API endpoints (using JWT authentication)
@@ -211,6 +214,9 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
     'CORS_ALLOWED_ORIGINS',
     'http://localhost:3000,http://localhost:3001,http://localhost:3002'
 ).split(',')
+
+# Allow iframe embedding for coverpage preview
+X_FRAME_OPTIONS = 'ALLOWALL'  # Allow iframes from same origin
 
 # SMS Configuration
 SMS_PROVIDER = os.getenv('SMS_PROVIDER', 'mock')

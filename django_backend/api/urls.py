@@ -3,7 +3,7 @@ URL Configuration for API app
 """
 
 from django.urls import path
-from . import auth_views, subject_views, question_views, database_views
+from . import auth_views, subject_views, question_views, database_views, paper_generation_views
 
 urlpatterns = [
     # ==================== DATABASE MANAGEMENT ROUTES ====================
@@ -51,4 +51,18 @@ urlpatterns = [
     path('questions/search-similar/', question_views.search_similar_questions_post, name='search-similar-post'),
     path('questions/bulk', question_views.bulk_create_questions, name='bulk-create'),
     path('questions/stats/overview', question_views.get_question_stats, name='question-stats'),
+    
+    # ==================== PAPER GENERATION ROUTES ====================
+    # KCSE Biology Paper 1 generation endpoints
+    path('papers/generate', paper_generation_views.generate_paper, name='generate-paper'),
+    path('papers/generated', paper_generation_views.list_generated_papers, name='list-generated-papers'),
+    path('papers/generated/<uuid:paper_id>', paper_generation_views.get_generated_paper, name='get-generated-paper'),
+    path('papers/generated/<uuid:paper_id>/view/', paper_generation_views.view_full_paper, name='view-full-paper'),
+    path('papers/generated/<uuid:paper_id>/coverpage/', paper_generation_views.coverpage_data, name='coverpage-data'),
+    path('papers/generated/<uuid:paper_id>/preview/', paper_generation_views.preview_full_exam, name='preview-full-exam'),
+    path('papers/generated/<uuid:paper_id>/download/', paper_generation_views.download_paper, name='download-paper'),
+    path('papers/generated/<uuid:paper_id>/status', paper_generation_views.update_paper_status, name='update-paper-status'),
+    path('papers/<uuid:paper_id>/configuration', paper_generation_views.get_paper_configuration, name='get-paper-config'),
+    path('papers/<uuid:paper_id>/configuration/update', paper_generation_views.update_paper_configuration, name='update-paper-config'),
+    path('papers/<uuid:paper_id>/topics/statistics', paper_generation_views.get_topic_statistics, name='topic-statistics'),
 ]
