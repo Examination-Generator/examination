@@ -1090,12 +1090,11 @@ export default function PaperGenerationDashboard() {
                 {activeTab === 'generate' && (
                     <div className="bg-white rounded-lg shadow-md p-6">
                         {/* Info Box */}
-                        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        {/* <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                             <p className="text-sm text-blue-800">
                                 <strong>💡 Tip:</strong> For best results, select <strong>all 6 topics</strong> or at least 5 topics. 
-                                This ensures enough questions are available to meet KCSE constraints (80 marks, 25-30 questions, proper mark distribution).
                             </p>
-                        </div>
+                        </div> */}
 
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-bold text-gray-800">Select Topics</h2>
