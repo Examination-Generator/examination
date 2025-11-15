@@ -846,7 +846,7 @@ export default function EditorDashboard({ onLogout }) {
             }
 
             // Send to database
-            const response = await fetch('http://localhost:8000/api/questions', {
+            const response = await fetch(`${API_URL}/questions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
