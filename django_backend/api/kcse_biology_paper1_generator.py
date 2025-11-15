@@ -131,11 +131,11 @@ class KCSEBiologyPaper1Generator:
     def _select_nested_questions(self) -> bool:
         """
         Select nested questions dynamically based on marks.
-        Target: ~60 marks, aiming for close to 16 questions (but flexible: 10-18 range).
+        Target: ~52 marks, aiming for close to 16 questions (but flexible: 10-18 range).
         All questions have equal chance of selection (shuffled).
         
         Returns:
-            bool: True if successful (10-18 questions, 55-65 marks)
+            bool: True if successful (10-18 questions, 47-58 marks)
         """
         available = [q for q in self.nested_questions if q.id not in self.used_ids]
         
@@ -147,15 +147,15 @@ class KCSEBiologyPaper1Generator:
         
         selected = []
         total_marks = 0
-        target_marks = 60
+        target_marks = 52
         
         # Select questions one by one, counting marks as we go
         for question in available:
             current_count = len(selected)
             
             # Stop conditions:
-            # 1. If we have 10+ questions and adding this would exceed 65 marks
-            if current_count >= 10 and (total_marks + question.marks) > 65:
+            # 1. If we have 10+ questions and adding this would exceed 58 marks
+            if current_count >= 10 and (total_marks + question.marks) > 58:
                 break
             
             # 2. If we have 18 questions (maximum)
@@ -166,15 +166,15 @@ class KCSEBiologyPaper1Generator:
             selected.append(question)
             total_marks += question.marks
             
-            # 3. If we're in the sweet spot: 10-18 questions and 55-65 marks
-            if current_count >= 10 and 55 <= total_marks <= 65:
+            # 3. If we're in the sweet spot: 10-18 questions and 47-58 marks
+            if current_count >= 10 and 47 <= total_marks <= 58:
                 # We're good! Can stop here or continue if we're far from 16
                 if current_count >= 14:  # Close enough to 16
                     break
         
-        # Final validation: must have 10-18 questions and 55-65 marks
+        # Final validation: must have 10-18 questions and 47-58 marks
         question_count = len(selected)
-        if not (10 <= question_count <= 18 and 55 <= total_marks <= 65):
+        if not (10 <= question_count <= 18 and 47 <= total_marks <= 58):
             return False
         
         # Accept selection
@@ -189,7 +189,7 @@ class KCSEBiologyPaper1Generator:
         
         print(f"\n[NESTED SELECTION]")
         print(f"  Selected: {self.nested_count} questions (target: ~16)")
-        print(f"  Total marks: {self.nested_marks} (target: ~60)")
+        print(f"  Total marks: {self.nested_marks} (target: ~52)")
         
         return True
     
