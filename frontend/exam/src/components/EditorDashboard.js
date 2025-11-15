@@ -5,6 +5,8 @@ import * as subjectService from '../services/subjectService';
 import * as questionService from '../services/questionService';
 import * as authService from '../services/authService';
 
+API_URL = $`{process.env.REACT_APP_API_URL}/api`;
+
 // Configure PDF.js worker using a more reliable CDN
 if (typeof window !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
@@ -320,7 +322,7 @@ export default function EditorDashboard({ onLogout }) {
                 return;
             }
             
-            const response = await fetch('http://localhost:8000/api/subjects', {
+            const response = await fetch($`{API_URL}/subjects`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -499,7 +501,7 @@ export default function EditorDashboard({ onLogout }) {
                     }
                     
                     // Call API to search for similar questions
-                    const response = await fetch('http://localhost:8000/api/questions/search-similar/', {
+                    const response = await fetch($`{API_URL}/questions/search-similar/`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
