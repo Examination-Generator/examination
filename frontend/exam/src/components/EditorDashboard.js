@@ -91,6 +91,8 @@ export default function EditorDashboard({ onLogout }) {
     const [editQuestionText, setEditQuestionText] = useState('');
     const [editAnswerText, setEditAnswerText] = useState('');
     const [editMarks, setEditMarks] = useState('');
+    const [editTopic, setEditTopic] = useState(''); // Topic ID for editing
+    const [editQuestionTopics, setEditQuestionTopics] = useState([]); // Topics for the selected paper
     const [editQuestionInlineImages, setEditQuestionInlineImages] = useState([]);
     const [editAnswerInlineImages, setEditAnswerInlineImages] = useState([]);
     const [editQuestionImagePositions, setEditQuestionImagePositions] = useState({});
@@ -303,6 +305,68 @@ export default function EditorDashboard({ onLogout }) {
             console.error('Error fetching statistics:', error);
         } finally {
             setIsLoadingStats(false);
+        }
+    };
+
+    // Fetch topics for a specific paper (for edit question dropdown)
+    const fetchTopicsForPaper = async (paperId) => {
+        try {
+            console.log('📚 [fetchTopicsForPaper] Starting fetch for paper ID:', paperId);
+            
+            const token = localStorage.getItem('token');
+            if (!token) {
+                console.error('❌ [fetchTopicsForPaper] No auth token found');
+                setEditQuestionTopics([]);
+                return;
+            }
+            
+            const response = await fetch('http://localhost:8000/api/subjects', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('📚 [fetchTopicsForPaper] Response status:', response.status, response.ok);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ [fetchTopicsForPaper] Failed to fetch subjects. Status:', response.status);
+                console.error('❌ [fetchTopicsForPaper] Error text:', errorText);
+                throw new Error(`Failed to fetch subjects: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('📦 [fetchTopicsForPaper] Received data:', data);
+            const subjects = data.data || [];
+            console.log('📋 [fetchTopicsForPaper] Processing', subjects.length, 'subjects to find paper:', paperId);
+            
+            // Find the paper in subjects and get its topics
+            for (const subject of subjects) {
+                console.log('🔍 [fetchTopicsForPaper] Checking subject:', subject.name, '| Papers count:', subject.papers?.length);
+                if (subject.papers) {
+                    subject.papers.forEach(p => {
+                        console.log('  📄 Paper ID:', p.id, '| Name:', p.name, '| Topics count:', p.topics?.length);
+                    });
+                }
+                const paper = subject.papers?.find(p => p.id === paperId);
+                if (paper) {
+                    console.log('✅ [fetchTopicsForPaper] FOUND matching paper!');
+                    console.log('✅ [fetchTopicsForPaper] Paper name:', paper.name);
+                    console.log('✅ [fetchTopicsForPaper] Topics:', paper.topics);
+                    console.log('✅ [fetchTopicsForPaper] Setting editQuestionTopics with', paper.topics?.length, 'topics');
+                    setEditQuestionTopics(paper.topics || []);
+                    return;
+                }
+            }
+            
+            console.warn('⚠️ [fetchTopicsForPaper] No paper found with ID:', paperId);
+            console.warn('⚠️ [fetchTopicsForPaper] Setting editQuestionTopics to empty array');
+            setEditQuestionTopics([]);
+        } catch (error) {
+            console.error('❌ [fetchTopicsForPaper] Error:', error);
+            console.error('❌ [fetchTopicsForPaper] Error stack:', error.stack);
+            setEditQuestionTopics([]);
         }
     };
 
@@ -1696,6 +1760,16 @@ export default function EditorDashboard({ onLogout }) {
         setEditQuestionText(question.question_text || '');
         setEditAnswerText(question.answer_text || '');
         setEditMarks(question.marks || '');
+        setEditTopic(question.topic || ''); // Set the topic ID for editing
+        
+        // Fetch topics for the selected paper
+        console.log('🔄 About to fetch topics for paper:', question.paper);
+        if (question.paper) {
+            console.log('✅ Calling fetchTopicsForPaper with paper ID:', question.paper);
+            fetchTopicsForPaper(question.paper);
+        } else {
+            console.warn('⚠️ No paper ID found in question:', question);
+        }
         
         // Load inline images (if stored in database)
         const questionImages = question.question_inline_images || [];
@@ -1842,15 +1916,22 @@ export default function EditorDashboard({ onLogout }) {
 
         try {
             const updatedData = {
+                subject: selectedQuestion.subject, // Include subject for validation
+                paper: selectedQuestion.paper, // Include paper for validation
+                section: selectedQuestion.section, // Include section
                 question_text: editQuestionText,
                 answer_text: editAnswerText,
                 marks: parseFloat(editMarks) || selectedQuestion.marks,
+                topic: editTopic || selectedQuestion.topic, // Use editTopic if changed, otherwise keep current
                 question_inline_images: editQuestionInlineImages, // Include images
                 answer_inline_images: editAnswerInlineImages, // Include images
                 question_image_positions: editQuestionImagePositions, // NEW: Image positions
                 answer_image_positions: editAnswerImagePositions, // NEW: Image positions
                 question_answer_lines: editQuestionAnswerLines, // NEW: Answer lines configurations
-                answer_answer_lines: editAnswerAnswerLines // NEW: Answer lines configurations
+                answer_answer_lines: editAnswerAnswerLines, // NEW: Answer lines configurations
+                difficulty: selectedQuestion.difficulty, // Include difficulty
+                question_type: selectedQuestion.question_type, // Include question type
+                is_active: selectedQuestion.is_active // Include is_active
             };
 
             await questionService.updateQuestion(selectedQuestion.id, updatedData);
@@ -1867,6 +1948,7 @@ export default function EditorDashboard({ onLogout }) {
             setEditQuestionText('');
             setEditAnswerText('');
             setEditMarks('');
+            setEditTopic(''); // Clear topic
             setEditQuestionInlineImages([]);
             setEditAnswerInlineImages([]);
             setEditQuestionImagePositions({}); // NEW: Clear positions
@@ -5818,6 +5900,8 @@ export default function EditorDashboard({ onLogout }) {
                                                 setEditQuestionText('');
                                                 setEditAnswerText('');
                                                 setEditMarks('');
+                                                setEditTopic('');
+                                                setEditQuestionTopics([]);
                                             }}
                                             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
                                         >
@@ -5858,12 +5942,21 @@ export default function EditorDashboard({ onLogout }) {
                                                 <span className="ml-2 text-gray-600">{selectedQuestion.paper_name}</span>
                                             </div>
                                         )}
-                                        {selectedQuestion.topic_name && (
-                                            <div>
-                                                <span className="font-semibold text-gray-700">Topic:</span>
-                                                <span className="ml-2 text-gray-600">{selectedQuestion.topic_name}</span>
-                                            </div>
-                                        )}
+                                        <div>
+                                            <label className="font-semibold text-gray-700 block mb-1">Topic:</label>
+                                            <select
+                                                value={editTopic}
+                                                onChange={(e) => setEditTopic(e.target.value)}
+                                                className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                                            >
+                                                <option value="">Select topic...</option>
+                                                {editQuestionTopics.map(topic => (
+                                                    <option key={topic.id} value={topic.id}>
+                                                        {topic.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
 
