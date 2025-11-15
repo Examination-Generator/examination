@@ -108,6 +108,79 @@ export default function PaperGenerationDashboard() {
         }
     }, [coverpageData, selectedPaper]);
 
+    // ====== HELPER FUNCTION: RENDER TEXT WITH IMAGES ======
+    const renderTextWithImages = (text, images = [], imagePositions = {}, context = 'preview') => {
+        if (!text) return [];
+        
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+            // Bold formatting
+            if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+                return <strong key={index}>{part.slice(2, -2)}</strong>;
+            }
+            
+            // Italic formatting
+            if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**') && part.length > 2) {
+                return <em key={index} className="italic">{part.slice(1, -1)}</em>;
+            }
+            
+            // Underline formatting
+            if (part.startsWith('__') && part.endsWith('__') && part.length > 4) {
+                return <u key={index}>{part.slice(2, -2)}</u>;
+            }
+            
+            // Single underscore italic
+            if (part.startsWith('_') && part.endsWith('_') && !part.startsWith('__') && part.length > 2) {
+                return <em key={index} className="italic">{part.slice(1, -1)}</em>;
+            }
+            
+            // Answer lines (placeholder for visualization)
+            const linesMatch = part.match(/\[LINES:([\d.]+)\]/);
+            if (linesMatch) {
+                return <span key={index} className="text-gray-400 italic text-sm">[Answer Lines]</span>;
+            }
+            
+            // Images
+            const imageMatchNew = part.match(/\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
+            const imageMatchOld = part.match(/\[IMAGE:([\d.]+):(\d+)px\]/);
+            
+            if (imageMatchNew || imageMatchOld) {
+                const imageId = parseFloat(imageMatchNew ? imageMatchNew[1] : imageMatchOld[1]);
+                const imageWidth = parseInt(imageMatchNew ? imageMatchNew[2] : imageMatchOld[2]);
+                const imageHeight = imageMatchNew ? parseInt(imageMatchNew[3]) : null;
+                const image = images.find(img => Math.abs(img.id - imageId) < 0.001);
+                const position = imagePositions?.[imageId];
+                
+                if (image) {
+                    return (
+                        <span 
+                            key={index} 
+                            className={position ? "absolute z-10" : "inline-block align-middle my-2 mx-1"}
+                            style={position ? { left: `${position.x}px`, top: `${position.y}px` } : {}}
+                        >
+                            <img 
+                                src={image.url} 
+                                alt={image.name || 'Question image'}
+                                style={{ 
+                                    width: `${imageWidth}px`, 
+                                    height: imageHeight ? `${imageHeight}px` : 'auto',
+                                    maxWidth: context === 'paper' ? '500px' : '100%',
+                                    display: 'block'
+                                }}
+                                className="border-2 border-gray-300 rounded shadow-sm"
+                            />
+                        </span>
+                    );
+                }
+                
+                // If image not found, show placeholder
+                return <span key={index} className="text-gray-400 italic text-sm">[Image {imageId}]</span>;
+            }
+            
+            // Regular text
+            return <span key={index}>{part}</span>;
+        });
+    };
+
     const loadSubjects = async () => {
         try {
             setSubjectsLoading(true);
@@ -941,7 +1014,14 @@ export default function PaperGenerationDashboard() {
                                             <p className="text-xs text-gray-500 mt-1">{question?.kcse_question_type || 'N/A'}</p>
                                         </div>
                                     </div>
-                                    <p className="text-gray-800 mb-2 whitespace-pre-wrap">{question?.question_text || 'No question text'}</p>
+                                    <div className="text-gray-800 mb-2 whitespace-pre-wrap">
+                                        {renderTextWithImages(
+                                            question?.question_text || 'No question text',
+                                            question?.question_inline_images || [],
+                                            question?.question_image_positions || {},
+                                            'paper'
+                                        )}
+                                    </div>
                                     <p className="text-sm text-gray-600">
                                         <strong>Topic:</strong> {question?.topic?.name || 'Unknown'}
                                     </p>

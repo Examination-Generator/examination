@@ -478,6 +478,179 @@ export default function EditorDashboard({ onLogout }) {
         return () => clearTimeout(timer);
     }, [questionText, selectedSubject]);
 
+    // ====== HELPER FUNCTION: RENDER TEXT WITH IMAGES ======
+    /**
+     * Renders text content with inline images displayed properly
+     * @param {string} text - The text with placeholders like [IMAGE:id:WxH]
+     * @param {Array} images - Array of image objects with {id, url, name}
+     * @param {Object} imagePositions - Object with image positions {imageId: {x, y}}
+     * @param {Array} answerLines - Array of answer line configurations
+     * @param {Function} onRemoveImage - Optional callback to remove image
+     * @param {Function} onRemoveLines - Optional callback to remove lines
+     * @param {string} context - Context identifier (e.g., 'preview', 'edit', 'similar')
+     * @returns {Array} - React elements to render
+     */
+    const renderTextWithImages = (text, images = [], imagePositions = {}, answerLines = [], onRemoveImage = null, onRemoveLines = null, context = 'preview') => {
+        if (!text) return [];
+        
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+            // Bold formatting
+            if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+                const content = part.slice(2, -2);
+                return <strong key={index}>{content}</strong>;
+            }
+            
+            // Italic formatting
+            if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**') && part.length > 2) {
+                const content = part.slice(1, -1);
+                return <em key={index} className="italic">{content}</em>;
+            }
+            
+            // Underline formatting
+            if (part.startsWith('__') && part.endsWith('__') && part.length > 4) {
+                const content = part.slice(2, -2);
+                return <u key={index}>{content}</u>;
+            }
+            
+            // Single underscore italic
+            if (part.startsWith('_') && part.endsWith('_') && !part.startsWith('__') && part.length > 2) {
+                const content = part.slice(1, -1);
+                return <em key={index} className="italic">{content}</em>;
+            }
+            
+            // Answer lines
+            const linesMatch = part.match(/\[LINES:([\d.]+)\]/);
+            if (linesMatch) {
+                const lineId = parseFloat(linesMatch[1]);
+                const lineConfig = answerLines.find(line => line.id === lineId);
+                
+                if (lineConfig) {
+                    const maxWidth = 700;
+                    const fullLines = Math.floor(lineConfig.numberOfLines);
+                    const hasHalfLine = lineConfig.numberOfLines % 1 !== 0;
+                    
+                    return (
+                        <div key={index} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
+                            {[...Array(fullLines)].map((_, idx) => (
+                                <div
+                                    key={idx}
+                                    style={{
+                                        height: `${lineConfig.lineHeight}px`,
+                                        borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
+                                        width: '100%'
+                                    }}
+                                ></div>
+                            ))}
+                            {hasHalfLine && (
+                                <div
+                                    style={{
+                                        height: `${lineConfig.lineHeight / 2}px`,
+                                        borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
+                                        width: '100%'
+                                    }}
+                                ></div>
+                            )}
+                            {onRemoveLines && (
+                                <button
+                                    type="button"
+                                    onClick={() => onRemoveLines(lineId)}
+                                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                                    title="Remove lines"
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+                    );
+                } else {
+                    // Show placeholder when line config not found (e.g., lines from DB without config loaded)
+                    // This can happen if the question was created but the line configuration wasn't saved properly
+                    return (
+                        <div key={index} className="my-2 p-4 bg-yellow-50 border-2 border-dashed border-yellow-400 rounded-lg">
+                            <div className="flex items-center gap-2 text-sm text-yellow-800">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <span className="font-medium">Answer Lines (Configuration Missing)</span>
+                            </div>
+                            <div className="mt-2 text-xs text-yellow-700">
+                                Line ID: {lineId.toFixed(0)} - The line configuration was not found. This might be an old question. 
+                                You can remove this placeholder and add new lines if needed.
+                            </div>
+                        </div>
+                    );
+                }
+            }
+            
+            // Images
+            const imageMatchNew = part.match(/\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
+            const imageMatchOld = part.match(/\[IMAGE:([\d.]+):(\d+)px\]/);
+            
+            if (imageMatchNew || imageMatchOld) {
+                const imageId = parseFloat(imageMatchNew ? imageMatchNew[1] : imageMatchOld[1]);
+                const imageWidth = parseInt(imageMatchNew ? imageMatchNew[2] : imageMatchOld[2]);
+                const imageHeight = imageMatchNew ? parseInt(imageMatchNew[3]) : null;
+                const image = images.find(img => Math.abs(img.id - imageId) < 0.001);
+                const position = imagePositions[imageId];
+                
+                if (image) {
+                    return (
+                        <span 
+                            key={index} 
+                            className={position ? "absolute z-10" : "inline-block align-middle my-2 mx-1"}
+                            style={position ? { left: `${position.x}px`, top: `${position.y}px` } : {}}
+                        >
+                            <span className="relative inline-block group">
+                                <img 
+                                    src={image.url} 
+                                    alt={image.name || 'Question image'}
+                                    style={{ 
+                                        width: `${imageWidth}px`, 
+                                        height: imageHeight ? `${imageHeight}px` : 'auto',
+                                        maxWidth: context === 'similar' ? '200px' : '100%',
+                                        display: 'block'
+                                    }}
+                                    className="border-2 border-blue-400 rounded shadow-sm select-none"
+                                />
+                                
+                                {onRemoveImage && (
+                                    <button
+                                        type="button"
+                                        onClick={() => onRemoveImage(imageId)}
+                                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                                        title="Remove image"
+                                    >
+                                        ✕
+                                    </button>
+                                )}
+                            </span>
+                        </span>
+                    );
+                }
+                
+                // If image not found, show informative placeholder
+                return (
+                    <div key={index} className="my-2 p-4 bg-red-50 border-2 border-dashed border-red-300 rounded-lg inline-block">
+                        <div className="flex items-center gap-2 text-sm text-red-800">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="font-medium">Image Not Found</span>
+                        </div>
+                        <div className="mt-2 text-xs text-red-700">
+                            <div>Image ID: {imageId.toFixed(0)}</div>
+                            <div>Expected Size: {imageWidth}px × {imageHeight ? imageHeight + 'px' : 'auto'}</div>
+                            <div className="mt-1 italic">The image data is missing from the database. This question may need to be re-edited.</div>
+                        </div>
+                    </div>
+                );
+            }
+            
+            // Regular text
+            return <span key={index}>{part}</span>;
+        });
+    };
+
     const handleSubjectChange = (subject) => {
         setSelectedSubject(subject);
         setSelectedPaper('');
@@ -587,7 +760,16 @@ export default function EditorDashboard({ onLogout }) {
                 is_active: isQuestionActive
             };
 
-            console.log('Submitting question to database:', questionData);
+            console.log('💾 Submitting question to database:', questionData);
+            console.log('💾 Question images being saved:', {
+                count: questionInlineImages.length,
+                images: questionInlineImages,
+                firstImageUrl: questionInlineImages[0]?.url?.substring(0, 50) + '...'
+            });
+            console.log('💾 Answer images being saved:', {
+                count: answerInlineImages.length,
+                images: answerInlineImages
+            });
 
             // Get auth token from localStorage
             const token = localStorage.getItem('token');
@@ -1506,22 +1688,135 @@ export default function EditorDashboard({ onLogout }) {
     };
 
     const handleSelectQuestion = (question) => {
+        console.log('🔍 RAW question data received:', question);
+        console.log('🔍 question_inline_images field:', question.question_inline_images);
+        console.log('🔍 answer_inline_images field:', question.answer_inline_images);
+        
         setSelectedQuestion(question);
         setEditQuestionText(question.question_text || '');
         setEditAnswerText(question.answer_text || '');
         setEditMarks(question.marks || '');
         
         // Load inline images (if stored in database)
-        setEditQuestionInlineImages(question.question_inline_images || []);
-        setEditAnswerInlineImages(question.answer_inline_images || []);
+        const questionImages = question.question_inline_images || [];
+        const answerImages = question.answer_inline_images || [];
+        
+        // Debug: Log image data to check structure
+        console.log('📸 Loading question images:', {
+            questionId: question.id,
+            questionImages,
+            answerImages,
+            questionImagesCount: questionImages.length,
+            answerImagesCount: answerImages.length,
+            // Log first image structure if available
+            firstQuestionImage: questionImages[0],
+            firstAnswerImage: answerImages[0]
+        });
+        
+        // Validate image structure
+        if (questionImages.length > 0) {
+            questionImages.forEach((img, idx) => {
+                if (!img.url) {
+                    console.error(`❌ Question image ${idx} is missing URL:`, img);
+                } else if (!img.url.startsWith('data:')) {
+                    console.warn(`⚠️ Question image ${idx} URL doesn't start with data::`, img.url.substring(0, 50));
+                } else {
+                    console.log(`✅ Question image ${idx} looks valid (${img.url.length} bytes)`);
+                }
+            });
+        }
+        
+        // Check for IMAGE placeholders in text
+        const questionText = question.question_text || '';
+        const answerText = question.answer_text || '';
+        const questionImageMatches = questionText.match(/\[IMAGE:([\d.]+):(?:\d+x\d+|\d+)px\]/g) || [];
+        const answerImageMatches = answerText.match(/\[IMAGE:([\d.]+):(?:\d+x\d+|\d+)px\]/g) || [];
+        
+        if (questionImageMatches.length > 0 || answerImageMatches.length > 0) {
+            console.log('📷 Image placeholders found:', {
+                questionPlaceholders: questionImageMatches,
+                answerPlaceholders: answerImageMatches,
+                questionImagesInDB: questionImages.length,
+                answerImagesInDB: answerImages.length
+            });
+            
+            // Warn if placeholders exist but no images - DATA INTEGRITY ISSUE
+            if (questionImageMatches.length > 0 && questionImages.length === 0) {
+                console.error('❌ Question has IMAGE placeholders but no image data in database - DATA CORRUPTION!');
+                alert('⚠️ Warning: This question has image placeholders but the actual images are missing from the database. The images were not saved properly when the question was created.');
+            }
+            if (answerImageMatches.length > 0 && answerImages.length === 0) {
+                console.error('❌ Answer has IMAGE placeholders but no image data in database - DATA CORRUPTION!');
+                alert('⚠️ Warning: This answer has image placeholders but the actual images are missing from the database. The images were not saved properly.');
+            }
+        }
+        
+        setEditQuestionInlineImages(questionImages);
+        setEditAnswerInlineImages(answerImages);
         
         // NEW: Load image positions
         setEditQuestionImagePositions(question.question_image_positions || {});
         setEditAnswerImagePositions(question.answer_image_positions || {});
         
         // NEW: Load answer lines configurations
-        setEditQuestionAnswerLines(question.question_answer_lines || []);
-        setEditAnswerAnswerLines(question.answer_answer_lines || []);
+        const questionLines = question.question_answer_lines || [];
+        const answerLines = question.answer_answer_lines || [];
+        
+        // Debug: Log if there are LINES placeholders but no configurations
+        const questionHasLines = questionText.includes('[LINES:');
+        const answerHasLines = answerText.includes('[LINES:');
+        
+        if ((questionHasLines && questionLines.length === 0) || (answerHasLines && answerLines.length === 0)) {
+            console.warn('⚠️ Question has LINES placeholders but no configuration:', {
+                questionId: question.id,
+                questionHasLines,
+                answerHasLines,
+                questionLinesCount: questionLines.length,
+                answerLinesCount: answerLines.length
+            });
+            
+            // Auto-generate default line configurations for missing lines
+            if (questionHasLines && questionLines.length === 0) {
+                const matches = questionText.matchAll(/\[LINES:([\d.]+)\]/g);
+                const defaultLines = [];
+                for (const match of matches) {
+                    const lineId = parseFloat(match[1]);
+                    defaultLines.push({
+                        id: lineId,
+                        numberOfLines: 3, // Default to 3 lines
+                        lineHeight: 30,   // Default height
+                        lineStyle: 'solid',
+                        opacity: 0.5
+                    });
+                }
+                setEditQuestionAnswerLines(defaultLines);
+                console.log('✅ Auto-generated question line configurations:', defaultLines);
+            } else {
+                setEditQuestionAnswerLines(questionLines);
+            }
+            
+            if (answerHasLines && answerLines.length === 0) {
+                const matches = answerText.matchAll(/\[LINES:([\d.]+)\]/g);
+                const defaultLines = [];
+                for (const match of matches) {
+                    const lineId = parseFloat(match[1]);
+                    defaultLines.push({
+                        id: lineId,
+                        numberOfLines: 3,
+                        lineHeight: 30,
+                        lineStyle: 'solid',
+                        opacity: 0.5
+                    });
+                }
+                setEditAnswerAnswerLines(defaultLines);
+                console.log('✅ Auto-generated answer line configurations:', defaultLines);
+            } else {
+                setEditAnswerAnswerLines(answerLines);
+            }
+        } else {
+            setEditQuestionAnswerLines(questionLines);
+            setEditAnswerAnswerLines(answerLines);
+        }
         
         // Note: Answer lines are embedded in the text as [LINES:id] placeholders
         // They will be rendered automatically when the text is displayed
@@ -1990,15 +2285,28 @@ export default function EditorDashboard({ onLogout }) {
             // Full edit mode - allows adding/removing papers, topics, sections
             const papers = subject.papers && Array.isArray(subject.papers) && subject.papers.length > 0 
                 ? subject.papers.map(paper => ({
+                    id: paper.id, // PRESERVE paper ID
                     name: paper.name || '',
+                    // Topics can be objects {id, name} or strings - preserve both
                     topics: Array.isArray(paper.topics) && paper.topics.length > 0 
-                        ? paper.topics.map(t => (typeof t === 'string' ? t : ''))
-                        : [''],
+                        ? paper.topics.map(t => {
+                            if (typeof t === 'object' && t !== null) {
+                                return { id: t.id, name: t.name || '' }; // Preserve object structure
+                            }
+                            return { name: typeof t === 'string' ? t : '' }; // Convert strings to objects
+                        })
+                        : [{ name: '' }],
+                    // Sections can be objects {id, name} or strings - preserve both
                     sections: Array.isArray(paper.sections) && paper.sections.length > 0 
-                        ? paper.sections.map(s => (typeof s === 'string' ? s : ''))
-                        : [] // Can be empty
+                        ? paper.sections.map(s => {
+                            if (typeof s === 'object' && s !== null) {
+                                return { id: s.id, name: s.name || '' }; // Preserve object structure
+                            }
+                            return { name: typeof s === 'string' ? s : '' }; // Convert strings to objects
+                        })
+                        : [] // Sections can be empty
                 }))
-                : [{ name: '', topics: [''], sections: [] }];
+                : [{ name: '', topics: [{ name: '' }], sections: [] }];
                 
             setEditSubjectData({
                 id: subject.id,
@@ -2146,7 +2454,7 @@ export default function EditorDashboard({ onLogout }) {
     const handleAddEditPaper = () => {
         setEditSubjectData(prev => ({
             ...prev,
-            papers: [...prev.papers, { name: '', topics: [''], sections: [''] }]
+            papers: [...prev.papers, { name: '', topics: [{ name: '' }], sections: [] }]
         }));
         // Auto-select the new paper for editing
         setSelectedPaperIndices(prev => [...prev, editSubjectData.papers.length]);
@@ -2196,7 +2504,7 @@ export default function EditorDashboard({ onLogout }) {
             ...prev,
             papers: prev.papers.map((paper, index) => 
                 index === paperIndex 
-                    ? { ...paper, topics: [...paper.topics, ''] }
+                    ? { ...paper, topics: [...paper.topics, { name: '' }] } // Add as object
                     : paper
             )
         }));
@@ -2221,7 +2529,9 @@ export default function EditorDashboard({ onLogout }) {
                     ? { 
                         ...paper, 
                         topics: paper.topics.map((topic, tIndex) => 
-                            tIndex === topicIndex ? value : topic
+                            tIndex === topicIndex 
+                                ? { ...topic, name: value } // Update name property in object
+                                : topic
                         )
                     }
                     : paper
@@ -2234,7 +2544,7 @@ export default function EditorDashboard({ onLogout }) {
             ...prev,
             papers: prev.papers.map((paper, index) => 
                 index === paperIndex 
-                    ? { ...paper, sections: [...paper.sections, ''] }
+                    ? { ...paper, sections: [...paper.sections, { name: '' }] } // Add as object
                     : paper
             )
         }));
@@ -2259,7 +2569,9 @@ export default function EditorDashboard({ onLogout }) {
                     ? { 
                         ...paper, 
                         sections: paper.sections.map((section, sIndex) => 
-                            sIndex === sectionIndex ? value : section
+                            sIndex === sectionIndex 
+                                ? { ...section, name: value } // Update name property in object
+                                : section
                         )
                     }
                     : paper
@@ -2279,40 +2591,54 @@ export default function EditorDashboard({ onLogout }) {
         const originalPaperCount = editSubjectData.originalPaperCount || 0;
         
         try {
-            // For PATCH request, we need to send ALL papers (not just selected/new ones)
-            // The backend will intelligently update only what changed
+            // Build the update payload - preserve existing papers and add new ones
             const allPapers = editSubjectData.papers.map((paper, index) => {
-                const isExistingPaper = index < originalPaperCount;
-                const isSelected = selectedPaperIndices.includes(index);
+                const isExistingPaper = index < originalPaperCount && paper.id;
                 
-                // Clean up topics and sections
+                // Clean up topics - remove empty ones and deduplicate
                 const topicsMap = new Map();
                 paper.topics
-                    .filter(topic => topic.trim())
+                    .filter(topic => {
+                        const name = (typeof topic === 'object' ? topic.name : topic) || '';
+                        return name.trim();
+                    })
                     .forEach(topic => {
-                        const trimmed = topic.trim();
-                        const key = trimmed.toLowerCase();
+                        const topicObj = typeof topic === 'object' ? topic : { name: topic };
+                        const name = topicObj.name.trim();
+                        const key = name.toLowerCase();
                         if (!topicsMap.has(key)) {
-                            topicsMap.set(key, trimmed);
+                            topicsMap.set(key, topicObj);
                         }
                     });
                 
+                // Clean up sections - remove empty ones and deduplicate
                 const sectionsMap = new Map();
                 paper.sections
-                    .filter(section => section.trim())
+                    .filter(section => {
+                        const name = (typeof section === 'object' ? section.name : section) || '';
+                        return name.trim();
+                    })
                     .forEach(section => {
-                        const trimmed = section.trim();
-                        const key = trimmed.toLowerCase();
+                        const sectionObj = typeof section === 'object' ? section : { name: section };
+                        const name = sectionObj.name.trim();
+                        const key = name.toLowerCase();
                         if (!sectionsMap.has(key)) {
-                            sectionsMap.set(key, trimmed);
+                            sectionsMap.set(key, sectionObj);
                         }
                     });
 
-                return {
+                const paperData = {
                     name: paper.name.trim(),
                     topics: Array.from(topicsMap.values()),
                     sections: Array.from(sectionsMap.values())
                 };
+                
+                // Include ID for existing papers to preserve them
+                if (isExistingPaper) {
+                    paperData.id = paper.id;
+                }
+
+                return paperData;
             });
 
             // Filter to only valid papers with name and at least one topic
@@ -2327,17 +2653,18 @@ export default function EditorDashboard({ onLogout }) {
                 return;
             }
 
+            // Send update request with ALL papers (existing + new)
             await subjectService.updateSubject(editSubjectData.id, {
                 name: editSubjectData.name.trim(),
-                papers: validPapers  // Send ALL papers, not just selected ones
+                papers: validPapers  // Backend will merge/update based on IDs
             });
 
-            const selectedCount = selectedPaperIndices.length;
-            const newPapersCount = editSubjectData.papers.length - originalPaperCount;
-            let message = 'Subject updated successfully!\n';
+            const newPapersCount = validPapers.filter(p => !p.id).length;
+            const updatedPapersCount = validPapers.filter(p => p.id).length;
             
-            if (selectedCount > 0) {
-                message += `• Updated ${selectedCount} existing paper${selectedCount > 1 ? 's' : ''}\n`;
+            let message = 'Subject updated successfully!\n';
+            if (updatedPapersCount > 0) {
+                message += `• Preserved ${updatedPapersCount} existing paper${updatedPapersCount > 1 ? 's' : ''}\n`;
             }
             if (newPapersCount > 0) {
                 message += `• Added ${newPapersCount} new paper${newPapersCount > 1 ? 's' : ''}`;
@@ -2345,24 +2672,15 @@ export default function EditorDashboard({ onLogout }) {
             
             alert(message);
             
-            // Update the state directly instead of full refresh to avoid flickering
-            setExistingSubjects(prevSubjects => 
-                prevSubjects.map(subject => 
-                    subject.id === editSubjectData.id 
-                        ? { ...subject, name: editSubjectData.name.trim(), papers: validPapers.map(p => ({ ...p, topics: p.topics.map(t => ({ name: t })), sections: p.sections.map(s => ({ name: s })) })) }
-                        : subject
-                )
-            );
-            
             setShowFullEditModal(false);
             setEditSubjectData(null);
             setSelectedPaperIndices([]);
             
-            // Optional: Silent background refresh after modal closes (no flickering)
+            // Refresh data to reflect changes
             setTimeout(() => {
                 fetchSubjects();
                 loadDynamicSubjects();
-            }, 500);
+            }, 300);
         } catch (error) {
             console.error('Error updating subject:', error);
             alert(error.message || 'Failed to update subject. Please try again.');
@@ -4123,9 +4441,17 @@ export default function EditorDashboard({ onLogout }) {
                                             </div>
                                             
                                             {/* Question Text */}
-                                            <p className="text-sm text-gray-800 mb-3 leading-relaxed border-l-2 border-green-400 pl-3">
-                                                {question.question_text || question.text}
-                                            </p>
+                                            <div className="text-sm text-gray-800 mb-3 leading-relaxed border-l-2 border-green-400 pl-3">
+                                                {renderTextWithImages(
+                                                    question.question_text || question.text,
+                                                    question.question_inline_images || [],
+                                                    question.question_image_positions || {},
+                                                    question.question_answer_lines || [],
+                                                    null,
+                                                    null,
+                                                    'similar'
+                                                )}
+                                            </div>
                                             
                                             {/* Question Metadata */}
                                             <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-100">
@@ -4893,17 +5219,19 @@ export default function EditorDashboard({ onLogout }) {
                                                 </div>
                                                 <div className="space-y-2">
                                                     {paper.topics.map((topic, topicIndex) => {
-                                                        // Check for duplicates
-                                                        const isDuplicate = topic.trim() && paper.topics.filter((t, idx) => 
-                                                            idx !== topicIndex && t.trim().toLowerCase() === topic.trim().toLowerCase()
-                                                        ).length > 0;
+                                                        // Check for duplicates - handle both object and string formats
+                                                        const topicName = typeof topic === 'object' ? (topic.name || '') : (topic || '');
+                                                        const isDuplicate = topicName.trim() && paper.topics.filter((t, idx) => {
+                                                            const tName = typeof t === 'object' ? (t.name || '') : (t || '');
+                                                            return idx !== topicIndex && tName.trim().toLowerCase() === topicName.trim().toLowerCase();
+                                                        }).length > 0;
                                                         
                                                         return (
                                                             <div key={topicIndex} className="space-y-1">
                                                                 <div className="flex items-center space-x-2">
                                                                     <input
                                                                         type="text"
-                                                                        value={topic}
+                                                                        value={topicName}
                                                                         onChange={(e) => handleEditTopicChange(paperIndex, topicIndex, e.target.value)}
                                                                         className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 outline-none text-sm ${
                                                                             isDuplicate 
@@ -4955,25 +5283,30 @@ export default function EditorDashboard({ onLogout }) {
                                                 </div>
                                                 {paper.sections.length > 0 ? (
                                                     <div className="space-y-2">
-                                                        {paper.sections.map((section, sectionIndex) => (
-                                                            <div key={sectionIndex} className="flex items-center space-x-2">
-                                                                <input
-                                                                    type="text"
-                                                                    value={section}
-                                                                    onChange={(e) => handleEditSectionChange(paperIndex, sectionIndex, e.target.value)}
-                                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-                                                                    placeholder={`Section ${sectionIndex + 1}`}
-                                                                />
-                                                                <button
-                                                                    onClick={() => handleRemoveEditSection(paperIndex, sectionIndex)}
-                                                                    className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded transition"
-                                                                >
-                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                                                    </svg>
-                                                                </button>
-                                                            </div>
-                                                        ))}
+                                                        {paper.sections.map((section, sectionIndex) => {
+                                                            // Handle both object and string formats
+                                                            const sectionName = typeof section === 'object' ? (section.name || '') : (section || '');
+                                                            
+                                                            return (
+                                                                <div key={sectionIndex} className="flex items-center space-x-2">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={sectionName}
+                                                                        onChange={(e) => handleEditSectionChange(paperIndex, sectionIndex, e.target.value)}
+                                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                                                                        placeholder={`Section ${sectionIndex + 1}`}
+                                                                    />
+                                                                    <button
+                                                                        onClick={() => handleRemoveEditSection(paperIndex, sectionIndex)}
+                                                                        className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded transition"
+                                                                    >
+                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 ) : (
                                                     <p className="text-xs text-gray-500 italic">No sections added. Click "Add Section" to create one.</p>
@@ -5573,19 +5906,17 @@ export default function EditorDashboard({ onLogout }) {
                                     <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
                                         {/* Display Area */}
                                         <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
-                                            {editQuestionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
-                                                if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
-                                                    return <strong key={index}>{part.slice(2, -2)}</strong>;
-                                                }
-                                                if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**') && part.length > 2) {
-                                                    return <em key={index} className="italic">{part.slice(1, -1)}</em>;
-                                                }
-                                                if (part.startsWith('__') && part.endsWith('__') && part.length > 4) {
-                                                    return <u key={index}>{part.slice(2, -2)}</u>;
-                                                }
-                                                return <span key={index}>{part}</span>;
-                                            })}
-                                            {editQuestionText.length === 0 && (
+                                            {editQuestionText.length > 0 ? (
+                                                renderTextWithImages(
+                                                    editQuestionText,
+                                                    editQuestionInlineImages,
+                                                    editQuestionImagePositions,
+                                                    editQuestionAnswerLines,
+                                                    null,
+                                                    null,
+                                                    'edit'
+                                                )
+                                            ) : (
                                                 <span className="text-gray-400">Question preview...</span>
                                             )}
                                         </div>
@@ -5644,98 +5975,20 @@ export default function EditorDashboard({ onLogout }) {
                                     <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
                                         {/* Display Area */}
                                         <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
-                                            {editAnswerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[LINES:[\d.]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
-                                                if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
-                                                    return <strong key={index}>{part.slice(2, -2)}</strong>;
-                                                }
-                                                if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**') && part.length > 2) {
-                                                    return <em key={index} className="italic">{part.slice(1, -1)}</em>;
-                                                }
-                                                if (part.startsWith('__') && part.endsWith('__') && part.length > 4) {
-                                                    return <u key={index}>{part.slice(2, -2)}</u>;
-                                                }
-                                                if (part.startsWith('_') && part.endsWith('_') && !part.startsWith('__') && part.length > 2) {
-                                                    return <em key={index} className="italic">{part.slice(1, -1)}</em>;
-                                                }
-                                                
-                                                // Check for answer lines
-                                                const linesMatch = part.match(/\[LINES:([\d.]+)\]/);
-                                                if (linesMatch) {
-                                                    const lineId = parseFloat(linesMatch[1]);
-                                                    const lineConfig = editAnswerAnswerLines.find(line => line.id === lineId);
-                                                    
-                                                    if (lineConfig) {
-                                                        const maxWidth = 700;
-                                                        const fullLines = Math.floor(lineConfig.numberOfLines);
-                                                        const hasHalfLine = lineConfig.numberOfLines % 1 !== 0;
-                                                        
-                                                        return (
-                                                            <div key={index} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
-                                                                {[...Array(fullLines)].map((_, idx) => (
-                                                                    <div
-                                                                        key={idx}
-                                                                        className="relative"
-                                                                        style={{
-                                                                            height: `${lineConfig.lineHeight}px`,
-                                                                            borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
-                                                                            width: '100%'
-                                                                        }}
-                                                                    >
-                                                                        <input
-                                                                            type="text"
-                                                                            placeholder="Type your answer here..."
-                                                                            className="absolute inset-0 w-full bg-transparent border-none outline-none px-1"
-                                                                            style={{
-                                                                                height: `${lineConfig.lineHeight}px`,
-                                                                                lineHeight: `${lineConfig.lineHeight - 4}px`,
-                                                                                fontSize: `${Math.min(lineConfig.lineHeight * 0.6, 16)}px`,
-                                                                                paddingBottom: '2px'
-                                                                            }}
-                                                                        />
-                                                                    </div>
-                                                                ))}
-                                                                {hasHalfLine && (
-                                                                    <div
-                                                                        className="relative"
-                                                                        style={{
-                                                                            height: `${lineConfig.lineHeight / 2}px`,
-                                                                            borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
-                                                                            width: '100%'
-                                                                        }}
-                                                                    >
-                                                                        <input
-                                                                            type="text"
-                                                                            placeholder="Type here..."
-                                                                            className="absolute inset-0 w-full bg-transparent border-none outline-none px-1"
-                                                                            style={{
-                                                                                height: `${lineConfig.lineHeight / 2}px`,
-                                                                                lineHeight: `${(lineConfig.lineHeight / 2) - 4}px`,
-                                                                                fontSize: `${Math.min((lineConfig.lineHeight / 2) * 0.6, 14)}px`,
-                                                                                paddingBottom: '2px'
-                                                                            }}
-                                                                        />
-                                                                    </div>
-                                                                )}
-                                                                {/* Remove lines button */}
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setEditAnswerAnswerLines(prev => prev.filter(line => line.id !== lineId));
-                                                                        setEditAnswerText(prev => prev.replace(`[LINES:${lineId}]`, ''));
-                                                                    }}
-                                                                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
-                                                                    title="Remove lines"
-                                                                >
-                                                                    ✕
-                                                                </button>
-                                                            </div>
-                                                        );
-                                                    }
-                                                }
-                                                
-                                                return <span key={index}>{part}</span>;
-                                            })}
-                                            {editAnswerText.length === 0 && (
+                                            {editAnswerText.length > 0 ? (
+                                                renderTextWithImages(
+                                                    editAnswerText,
+                                                    editAnswerInlineImages,
+                                                    editAnswerImagePositions,
+                                                    editAnswerAnswerLines,
+                                                    null,
+                                                    (lineId) => {
+                                                        setEditAnswerAnswerLines(prev => prev.filter(line => line.id !== lineId));
+                                                        setEditAnswerText(prev => prev.replace(`[LINES:${lineId}]`, ''));
+                                                    },
+                                                    'edit'
+                                                )
+                                            ) : (
                                                 <span className="text-gray-400">Answer preview...</span>
                                             )}
                                         </div>

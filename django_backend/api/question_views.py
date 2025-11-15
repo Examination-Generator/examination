@@ -62,6 +62,13 @@ def questions_list_create(request):
         
         serializer = QuestionListSerializer(questions, many=True)
         
+        # Log image data to debug
+        if len(serializer.data) > 0:
+            first_q = serializer.data[0]
+            logger.info(f"[QUESTION] First question serialized data - ID: {first_q.get('id')}")
+            logger.info(f"[QUESTION] question_inline_images: {first_q.get('question_inline_images')}")
+            logger.info(f"[QUESTION] answer_inline_images: {first_q.get('answer_inline_images')}")
+        
         return success_response(
             'Questions retrieved successfully',
             {
@@ -426,8 +433,14 @@ def search_similar_questions_post(request):
         if similarity_score > 10:  # Only include if >10% similarity (lowered from 20%)
             results.append({
                 'id': question.id,
-                'question_text': question.question_text[:200] + ('...' if len(question.question_text) > 200 else ''),
-                'answer_text': question.answer_text[:100] + ('...' if len(question.answer_text) > 100 else ''),
+                'question_text': question.question_text,
+                'question_inline_images': question.question_inline_images,
+                'question_image_positions': question.question_image_positions,
+                'question_answer_lines': question.question_answer_lines,
+                'answer_text': question.answer_text,
+                'answer_inline_images': question.answer_inline_images,
+                'answer_image_positions': question.answer_image_positions,
+                'answer_answer_lines': question.answer_answer_lines,
                 'topic': question.topic.name if question.topic else 'N/A',
                 'paper': question.paper.name if question.paper else 'N/A',
                 'section': question.section.name if question.section else 'N/A',

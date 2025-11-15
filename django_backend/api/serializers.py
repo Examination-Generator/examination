@@ -323,8 +323,13 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
                     # Update/Add Topics
                     provided_topic_names = set()
                     new_topics_count = 0
-                    for topic_name in topics_data:
-                        topic_name_clean = topic_name.strip()
+                    for topic_item in topics_data:
+                        # Handle both string and object formats: 'topic_name' or {id: 'uuid', name: 'topic_name'}
+                        if isinstance(topic_item, dict):
+                            topic_name_clean = topic_item.get('name', '').strip()
+                        else:
+                            topic_name_clean = topic_item.strip() if topic_item else ''
+                        
                         if topic_name_clean:
                             provided_topic_names.add(topic_name_clean)
                             if topic_name_clean not in existing_topics:
@@ -349,8 +354,13 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
                     # Update/Add Sections
                     provided_section_names = set()
                     new_sections_count = 0
-                    for i, section_name in enumerate(sections_data):
-                        section_name_clean = section_name.strip()
+                    for i, section_item in enumerate(sections_data):
+                        # Handle both string and object formats: 'section_name' or {id: 'uuid', name: 'section_name'}
+                        if isinstance(section_item, dict):
+                            section_name_clean = section_item.get('name', '').strip()
+                        else:
+                            section_name_clean = section_item.strip() if section_item else ''
+                        
                         if section_name_clean:
                             provided_section_names.add(section_name_clean)
                             if section_name_clean not in existing_sections:
@@ -391,21 +401,33 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
                     )
                     
                     # Create sections
-                    for i, section_name in enumerate(sections_data):
-                        if section_name and section_name.strip():
+                    for i, section_item in enumerate(sections_data):
+                        # Handle both string and object formats
+                        if isinstance(section_item, dict):
+                            section_name = section_item.get('name', '').strip()
+                        else:
+                            section_name = section_item.strip() if section_item else ''
+                        
+                        if section_name:
                             Section.objects.create(
                                 paper=paper,
-                                name=section_name.strip(),
+                                name=section_name,
                                 order=i,
                                 created_by=user
                             )
                     
                     # Create topics
-                    for topic_name in topics_data:
-                        if topic_name and topic_name.strip():
+                    for topic_item in topics_data:
+                        # Handle both string and object formats
+                        if isinstance(topic_item, dict):
+                            topic_name = topic_item.get('name', '').strip()
+                        else:
+                            topic_name = topic_item.strip() if topic_item else ''
+                        
+                        if topic_name:
                             Topic.objects.create(
                                 paper=paper,
-                                name=topic_name.strip(),
+                                name=topic_name,
                                 created_by=user
                             )
             
@@ -435,7 +457,11 @@ class QuestionListSerializer(serializers.ModelSerializer):
         model = Question
         fields = ['id', 'subject', 'subject_name', 'paper', 'paper_name', 
                   'topic', 'topic_name', 'section', 'section_name',
-                  'question_text', 'answer_text', 'marks', 'question_type',
+                  'question_text', 'question_inline_images',
+                  'answer_text', 'answer_inline_images',
+                  'question_image_positions', 'answer_image_positions',
+                  'question_answer_lines', 'answer_answer_lines',
+                  'marks', 'question_type',
                   'difficulty', 'is_active', 'times_used', 'created_at']
         read_only_fields = ['id', 'created_at', 'times_used']
 
@@ -506,7 +532,21 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         user = self.context['request'].user
-        return Question.objects.create(created_by=user, **validated_data)
+        
+        # DEBUG: Log image data being saved
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Creating question with images: question_images={len(validated_data.get('question_inline_images', []))}, answer_images={len(validated_data.get('answer_inline_images', []))}")
+        
+        if validated_data.get('question_inline_images'):
+            logger.info(f"Question images sample: {validated_data['question_inline_images'][0] if validated_data['question_inline_images'] else 'None'}")
+        
+        question = Question.objects.create(created_by=user, **validated_data)
+        
+        # DEBUG: Verify what was saved
+        logger.info(f"Question created with ID: {question.id}, question_images_in_db={len(question.question_inline_images or [])}, answer_images_in_db={len(question.answer_inline_images or [])}")
+        
+        return question
 
 
 class QuestionBulkCreateSerializer(serializers.Serializer):
