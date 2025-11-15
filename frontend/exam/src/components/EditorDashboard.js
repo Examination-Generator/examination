@@ -5,7 +5,7 @@ import * as subjectService from '../services/subjectService';
 import * as questionService from '../services/questionService';
 import * as authService from '../services/authService';
 
-const API_URL = `${process.env.REACT_APP_API_URL}/api`;
+const API_URL = `${process.env.REACT_APP_API_URL}`;
 
 // Configure PDF.js worker using a more reliable CDN
 if (typeof window !== 'undefined') {
