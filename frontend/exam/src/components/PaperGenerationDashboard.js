@@ -5,7 +5,6 @@ import { getCurrentUser, getAuthToken } from '../services/authService';
 
 // Biology Paper 1 ID from create_sample_questions.py
 const BIOLOGY_PAPER_1_ID = 'efa6d535-6a6b-45ac-931a-d20b9ccf15aa';
-// const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 export default function PaperGenerationDashboard() {
     const [activeTab, setActiveTab] = useState('generate'); // 'generate' or 'history'
