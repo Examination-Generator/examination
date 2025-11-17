@@ -328,38 +328,45 @@ class KCSEBiologyPaper1Generator:
         # Create pools for each mark value
         pools = {mark: list(by_marks.get(mark, [])) for mark in [1, 2, 3, 4, 5, 6]}
         
-        # PHASE 1: Select 4-6 mark questions to reach ~52 marks
+        # PHASE 1: Select 4-6 mark questions to reach ~52 marks (if available)
         # Priority: 4-mark > 5-mark > 6-mark
         phase1_priority = [4, 5, 6]
         phase1_selected = []
         phase1_marks = 0
         phase1_target = 52
         
-        print(f"\n  [Phase 1] Selecting 4-6 mark questions...")
-        while phase1_marks < phase1_target:
-            marks_left = phase1_target - phase1_marks
-            added = False
-            
-            # Try each priority in order
-            for mark_value in phase1_priority:
-                if mark_value <= marks_left and pools[mark_value]:
-                    q = pools[mark_value].pop(0)
-                    phase1_selected.append(q)
-                    phase1_marks += mark_value
-                    added = True
-                    break
-            
-            if not added:
-                # Can't reach target with available questions
-                # Check if we're close enough (47-58 range)
-                if 47 <= phase1_marks <= 58:
-                    print(f"  Phase 1: Achieved {phase1_marks} marks (acceptable range)")
-                    break
-                else:
-                    print(f"  Phase 1: Failed - only reached {phase1_marks} marks")
-                    return False
+        # Check if any 4-6 mark questions exist
+        has_high_mark_questions = any(pools[mark] for mark in phase1_priority)
         
-        print(f"  ✅ Phase 1: Selected {len(phase1_selected)} questions, {phase1_marks} marks")
+        if has_high_mark_questions:
+            print(f"\n  [Phase 1] Selecting 4-6 mark questions...")
+            while phase1_marks < phase1_target:
+                marks_left = phase1_target - phase1_marks
+                added = False
+                
+                # Try each priority in order
+                for mark_value in phase1_priority:
+                    if mark_value <= marks_left and pools[mark_value]:
+                        q = pools[mark_value].pop(0)
+                        phase1_selected.append(q)
+                        phase1_marks += mark_value
+                        added = True
+                        break
+                
+                if not added:
+                    # Can't reach target with available questions
+                    # Check if we're close enough (47-58 range)
+                    if 47 <= phase1_marks <= 58:
+                        print(f"  Phase 1: Achieved {phase1_marks} marks (acceptable range)")
+                        break
+                    else:
+                        print(f"  Phase 1: Stopped at {phase1_marks} marks (will use Phase 2 for remainder)")
+                        break
+            
+            print(f"  ✅ Phase 1: Selected {len(phase1_selected)} questions, {phase1_marks} marks")
+        else:
+            print(f"\n  [Phase 1] SKIPPED - No 4-6 mark questions available")
+            print(f"  → Will use only 1-3 mark questions for entire paper")
         
         # PHASE 2: Fill remaining marks with 3, 2, 1 mark questions
         # Priority: 3-mark > 2-mark > 1-mark (only when needed)
