@@ -124,9 +124,11 @@ class KCSEBiologyPaper1Generator:
         print(f"  2-mark standalone: {len(self.standalone_2mark)}")
         print(f"  3-mark standalone: {len(self.standalone_3mark)}")
         
-        # Validation
-        if len(self.nested_questions) < self.MIN_NESTED_QUESTIONS:
-            raise ValueError(f"Need at least {self.MIN_NESTED_QUESTIONS} nested questions, found {len(self.nested_questions)}")
+        # Check if we have nested questions - if not, we'll use standalone only
+        self.use_standalone_only = len(self.nested_questions) < self.MIN_NESTED_QUESTIONS
+        if self.use_standalone_only:
+            print(f"\n⚠️  WARNING: Not enough nested questions ({len(self.nested_questions)} < {self.MIN_NESTED_QUESTIONS})")
+            print(f"  → Using STANDALONE-ONLY mode with priority for 4-6 mark questions")
     
     def _select_nested_questions(self) -> bool:
         """
@@ -294,6 +296,91 @@ class KCSEBiologyPaper1Generator:
         
         return False
     
+    def _select_standalone_only(self) -> bool:
+        """
+        Select standalone questions to reach exactly 80 marks when no nested questions available.
+        Priority: 4-6 mark questions, then 3-mark, then 2-mark, then 1-mark
+        
+        Returns:
+            bool: True if exactly 80 marks achieved
+        """
+        print(f"\n[STANDALONE-ONLY SELECTION]")
+        print(f"  Target: 80 marks using standalone questions")
+        print(f"  Priority: 4-6 marks > 3 marks > 2 marks > 1 mark")
+        
+        # Get all available standalone questions
+        all_standalone = []
+        all_standalone.extend(self.standalone_1mark)
+        all_standalone.extend(self.standalone_2mark)
+        all_standalone.extend(self.standalone_3mark)
+        
+        # Group by marks for prioritization
+        by_marks = defaultdict(list)
+        for q in all_standalone:
+            by_marks[q.marks].append(q)
+        
+        # Shuffle each group to randomize selection within same mark value
+        for questions in by_marks.values():
+            random.shuffle(questions)
+        
+        # Priority order: 6, 5, 4, 3, 2, 1
+        priority_marks = [6, 5, 4, 3, 2, 1]
+        
+        selected = []
+        current_marks = 0
+        target_marks = 80
+        
+        # Create pools for each mark value
+        pools = {mark: list(by_marks.get(mark, [])) for mark in priority_marks}
+        
+        while current_marks < target_marks:
+            marks_left = target_marks - current_marks
+            added = False
+            
+            # Try to add highest priority question that fits
+            for mark_value in priority_marks:
+                if mark_value <= marks_left and pools[mark_value]:
+                    q = pools[mark_value].pop(0)
+                    selected.append(q)
+                    current_marks += mark_value
+                    added = True
+                    break
+            
+            if not added:
+                # Can't continue - no suitable questions available
+                return False
+        
+        # Check if we hit exactly the target
+        if current_marks == target_marks:
+            self.selected_questions = selected
+            for q in selected:
+                self.used_ids.add(q.id)
+                self.selected_question_ids.append(str(q.id))
+            
+            # Update counts
+            self.nested_count = 0
+            self.nested_marks = 0
+            self.standalone_count = len(selected)
+            self.standalone_marks = current_marks
+            self.total_marks = current_marks
+            
+            print(f"  ✅ Selected: {self.standalone_count} standalone questions")
+            print(f"  Total marks: {self.total_marks}")
+            
+            # Show marks distribution
+            marks_dist = defaultdict(int)
+            for q in selected:
+                marks_dist[q.marks] += 1
+            print(f"  Marks breakdown:")
+            for mark_value in sorted(marks_dist.keys(), reverse=True):
+                count = marks_dist[mark_value]
+                total_m = mark_value * count
+                print(f"    {mark_value}-mark: {count} questions ({total_m} marks)")
+            
+            return True
+        
+        return False
+    
     def generate(self) -> Dict:
         """
         Generate Biology Paper 1
@@ -324,17 +411,25 @@ class KCSEBiologyPaper1Generator:
             self.standalone_marks = 0
             self.total_marks = 0
             
-            # Phase 1: Select 10-18 nested questions (~60 marks, flexible count)
-            if not self._select_nested_questions():
-                if attempt % 10 == 0:
-                    print(f"[ATTEMPT {attempt}] Failed at nested selection")
-                continue
-            
-            # Phase 2: Fill remaining marks with standalone (2-mark, 3-mark, 1-mark)
-            if not self._select_standalone_questions():
-                if attempt % 10 == 0:
-                    print(f"[ATTEMPT {attempt}] Failed at standalone selection")
-                continue
+            # Check if we should use standalone-only mode
+            if self.use_standalone_only:
+                # Use only standalone questions with priority for 4-6 marks
+                if not self._select_standalone_only():
+                    if attempt % 10 == 0:
+                        print(f"[ATTEMPT {attempt}] Failed at standalone-only selection")
+                    continue
+            else:
+                # Normal mode: Phase 1 - Select 10-18 nested questions (~60 marks)
+                if not self._select_nested_questions():
+                    if attempt % 10 == 0:
+                        print(f"[ATTEMPT {attempt}] Failed at nested selection")
+                    continue
+                
+                # Phase 2: Fill remaining marks with standalone (2-mark, 3-mark, 1-mark)
+                if not self._select_standalone_questions():
+                    if attempt % 10 == 0:
+                        print(f"[ATTEMPT {attempt}] Failed at standalone selection")
+                    continue
             
             # Success!
             generation_time = time.time() - start_time
