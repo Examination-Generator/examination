@@ -1215,19 +1215,23 @@ export default function PaperGenerationDashboard() {
                                                     <p className="text-xs text-gray-500">
                                                         Total questions: {topic?.total_questions || 0}
                                                     </p>
-                                                    <div className="flex gap-2 text-xs">
-                                                        <span className="bg-gray-100 px-2 py-1 rounded">
-                                                            1m: {topic?.questions_by_marks?.['1'] || 0}
-                                                        </span>
-                                                        <span className="bg-gray-100 px-2 py-1 rounded">
-                                                            2m: {topic?.questions_by_marks?.['2'] || 0}
-                                                        </span>
-                                                        <span className="bg-gray-100 px-2 py-1 rounded">
-                                                            3m: {topic?.questions_by_marks?.['3'] || 0}
-                                                        </span>
-                                                        <span className="bg-gray-100 px-2 py-1 rounded">
-                                                            4m: {topic?.questions_by_marks?.['4'] || 0}
-                                                        </span>
+                                                    <div className="flex flex-wrap gap-2 text-xs">
+                                                        {[1, 2, 3, 4, 5, 6].map(marks => {
+                                                            const count = topic?.questions_by_marks?.[marks.toString()] || 0;
+                                                            // Only show if there are questions for this mark value
+                                                            if (count > 0) {
+                                                                return (
+                                                                    <span key={marks} className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">
+                                                                        {marks}m: {count}
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })}
+                                                        {/* Show message if no questions */}
+                                                        {topic?.total_questions === 0 && (
+                                                            <span className="text-gray-400 italic">No questions available</span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
