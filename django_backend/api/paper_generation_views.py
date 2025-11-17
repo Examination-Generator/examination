@@ -117,7 +117,13 @@ def generate_paper(request):
         result = generator.generate()
         
         # Create GeneratedPaper record from result
-        unique_code = f"{paper.subject.name[:2].upper()}-{time.strftime('%Y')}-{GeneratedPaper.objects.filter(paper=paper, created_at__year=time.strftime('%Y')).count() + 1:03d}"
+        from datetime import datetime
+        current_year = datetime.now().year
+        year_count = GeneratedPaper.objects.filter(
+            paper=paper, 
+            created_at__year=current_year
+        ).count()
+        unique_code = f"{paper.subject.name[:2].upper()}-{current_year}-{year_count + 1:03d}"
         
         generated_paper = GeneratedPaper.objects.create(
             paper=paper,
