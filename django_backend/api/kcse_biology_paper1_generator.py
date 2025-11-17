@@ -299,14 +299,16 @@ class KCSEBiologyPaper1Generator:
     def _select_standalone_only(self) -> bool:
         """
         Select standalone questions to reach exactly 80 marks when no nested questions available.
-        Priority: 4-6 mark questions, then 3-mark, then 2-mark, then 1-mark
+        Two-phase approach:
+        - Phase 1: Use 4-mark, 5-mark, 6-mark questions to reach ~52 marks (mimicking nested section)
+        - Phase 2: Fill remaining ~28 marks with 3-mark, 2-mark, 1-mark questions
         
         Returns:
             bool: True if exactly 80 marks achieved
         """
-        print(f"\n[STANDALONE-ONLY SELECTION]")
-        print(f"  Target: 80 marks using standalone questions")
-        print(f"  Priority: 4-6 marks > 3 marks > 2 marks > 1 mark")
+        print(f"\n[STANDALONE-ONLY SELECTION - TWO PHASE]")
+        print(f"  Phase 1 Target: ~52 marks using 4-6 mark questions (Priority: 4 > 5 > 6)")
+        print(f"  Phase 2 Target: Remaining marks using 3, 2, 1 mark questions")
         
         # Get all available standalone questions
         all_standalone = []
@@ -314,68 +316,146 @@ class KCSEBiologyPaper1Generator:
         all_standalone.extend(self.standalone_2mark)
         all_standalone.extend(self.standalone_3mark)
         
-        # Group by marks for prioritization
+        # Group by marks
         by_marks = defaultdict(list)
         for q in all_standalone:
             by_marks[q.marks].append(q)
         
-        # Shuffle each group to randomize selection within same mark value
+        # Shuffle each group for randomization
         for questions in by_marks.values():
             random.shuffle(questions)
         
-        # Priority order: 6, 5, 4, 3, 2, 1
-        priority_marks = [6, 5, 4, 3, 2, 1]
-        
-        selected = []
-        current_marks = 0
-        target_marks = 80
-        
         # Create pools for each mark value
-        pools = {mark: list(by_marks.get(mark, [])) for mark in priority_marks}
+        pools = {mark: list(by_marks.get(mark, [])) for mark in [1, 2, 3, 4, 5, 6]}
         
-        while current_marks < target_marks:
-            marks_left = target_marks - current_marks
+        # PHASE 1: Select 4-6 mark questions to reach ~52 marks
+        # Priority: 4-mark > 5-mark > 6-mark
+        phase1_priority = [4, 5, 6]
+        phase1_selected = []
+        phase1_marks = 0
+        phase1_target = 52
+        
+        print(f"\n  [Phase 1] Selecting 4-6 mark questions...")
+        while phase1_marks < phase1_target:
+            marks_left = phase1_target - phase1_marks
             added = False
             
-            # Try to add highest priority question that fits
-            for mark_value in priority_marks:
+            # Try each priority in order
+            for mark_value in phase1_priority:
                 if mark_value <= marks_left and pools[mark_value]:
                     q = pools[mark_value].pop(0)
-                    selected.append(q)
-                    current_marks += mark_value
+                    phase1_selected.append(q)
+                    phase1_marks += mark_value
                     added = True
                     break
             
             if not added:
-                # Can't continue - no suitable questions available
-                return False
+                # Can't reach target with available questions
+                # Check if we're close enough (47-58 range)
+                if 47 <= phase1_marks <= 58:
+                    print(f"  Phase 1: Achieved {phase1_marks} marks (acceptable range)")
+                    break
+                else:
+                    print(f"  Phase 1: Failed - only reached {phase1_marks} marks")
+                    return False
+        
+        print(f"  ✅ Phase 1: Selected {len(phase1_selected)} questions, {phase1_marks} marks")
+        
+        # PHASE 2: Fill remaining marks with 3, 2, 1 mark questions
+        # Priority: 3-mark > 2-mark > 1-mark (only when needed)
+        phase2_priority = [3, 2, 1]
+        phase2_selected = []
+        phase2_marks = 0
+        remaining_target = 80 - phase1_marks
+        
+        print(f"\n  [Phase 2] Need {remaining_target} more marks...")
+        
+        current_marks = 0
+        while current_marks < remaining_target:
+            marks_left = remaining_target - current_marks
+            added = False
+            
+            # Special case: exactly 1 mark needed
+            if marks_left == 1:
+                if pools[1]:
+                    q = pools[1].pop(0)
+                    phase2_selected.append(q)
+                    current_marks += 1
+                    break
+                else:
+                    return False
+            
+            # Special case: exactly 2 marks needed
+            if marks_left == 2:
+                if pools[2]:
+                    q = pools[2].pop(0)
+                    phase2_selected.append(q)
+                    current_marks += 2
+                    break
+                else:
+                    return False
+            
+            # For 3+ marks: prefer 3-mark or 2-mark
+            # Use 3-mark if marks_left is odd or if we have many marks to fill
+            if marks_left >= 3 and pools[3] and (marks_left % 2 == 1 or marks_left >= 9):
+                q = pools[3].pop(0)
+                phase2_selected.append(q)
+                current_marks += 3
+            elif marks_left >= 2 and pools[2]:
+                q = pools[2].pop(0)
+                phase2_selected.append(q)
+                current_marks += 2
+            elif marks_left >= 3 and pools[3]:
+                q = pools[3].pop(0)
+                phase2_selected.append(q)
+                current_marks += 3
+            elif marks_left >= 1 and pools[1]:
+                q = pools[1].pop(0)
+                phase2_selected.append(q)
+                current_marks += 1
+            else:
+                return False  # Can't continue
         
         # Check if we hit exactly the target
-        if current_marks == target_marks:
-            self.selected_questions = selected
-            for q in selected:
+        if current_marks == remaining_target:
+            phase2_marks = current_marks
+            print(f"  ✅ Phase 2: Selected {len(phase2_selected)} questions, {phase2_marks} marks")
+            
+            # Combine both phases
+            all_selected = phase1_selected + phase2_selected
+            total_marks = phase1_marks + phase2_marks
+            
+            self.selected_questions = all_selected
+            for q in all_selected:
                 self.used_ids.add(q.id)
                 self.selected_question_ids.append(str(q.id))
             
             # Update counts
             self.nested_count = 0
             self.nested_marks = 0
-            self.standalone_count = len(selected)
-            self.standalone_marks = current_marks
-            self.total_marks = current_marks
+            self.standalone_count = len(all_selected)
+            self.standalone_marks = total_marks
+            self.total_marks = total_marks
             
-            print(f"  ✅ Selected: {self.standalone_count} standalone questions")
-            print(f"  Total marks: {self.total_marks}")
+            print(f"\n  ✅ TOTAL: {self.standalone_count} questions, {self.total_marks} marks")
             
-            # Show marks distribution
-            marks_dist = defaultdict(int)
-            for q in selected:
-                marks_dist[q.marks] += 1
-            print(f"  Marks breakdown:")
-            for mark_value in sorted(marks_dist.keys(), reverse=True):
-                count = marks_dist[mark_value]
-                total_m = mark_value * count
-                print(f"    {mark_value}-mark: {count} questions ({total_m} marks)")
+            # Show marks distribution by phase
+            print(f"\n  Marks Distribution:")
+            print(f"    Phase 1 (4-6 marks): {len(phase1_selected)} questions, {phase1_marks} marks")
+            phase1_dist = defaultdict(int)
+            for q in phase1_selected:
+                phase1_dist[q.marks] += 1
+            for mark_value in sorted(phase1_dist.keys(), reverse=True):
+                count = phase1_dist[mark_value]
+                print(f"      {mark_value}-mark: {count} questions")
+            
+            print(f"    Phase 2 (1-3 marks): {len(phase2_selected)} questions, {phase2_marks} marks")
+            phase2_dist = defaultdict(int)
+            for q in phase2_selected:
+                phase2_dist[q.marks] += 1
+            for mark_value in sorted(phase2_dist.keys(), reverse=True):
+                count = phase2_dist[mark_value]
+                print(f"      {mark_value}-mark: {count} questions")
             
             return True
         
