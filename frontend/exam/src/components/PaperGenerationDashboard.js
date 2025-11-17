@@ -3,9 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 import { getTopicStatistics, generatePaper, listGeneratedPapers, viewFullPaper, getCoverpageData, updateCoverpageData, getAllSubjects } from '../services/paperService';
 import { getCurrentUser, getAuthToken } from '../services/authService';
 
-// Biology Paper 1 ID from create_sample_questions.py
-const BIOLOGY_PAPER_1_ID = 'efa6d535-6a6b-45ac-931a-d20b9ccf15aa';
-
 export default function PaperGenerationDashboard() {
     const [activeTab, setActiveTab] = useState('generate'); // 'generate' or 'history'
     
@@ -13,7 +10,7 @@ export default function PaperGenerationDashboard() {
     const [subjects, setSubjects] = useState([]);
     const [selectedSubject, setSelectedSubject] = useState('');
     const [papers, setPapers] = useState([]);
-    const [selectedPaperId, setSelectedPaperId] = useState(BIOLOGY_PAPER_1_ID);
+    const [selectedPaperId, setSelectedPaperId] = useState('');
     const [subjectsLoading, setSubjectsLoading] = useState(false);
     
     // Generate tab states
@@ -188,16 +185,15 @@ export default function PaperGenerationDashboard() {
             const subjectsData = response?.data || [];
             setSubjects(subjectsData);
             
-            // Auto-select Biology if available
-            const biologySubject = subjectsData.find(s => s.name.toLowerCase().includes('biology'));
-            if (biologySubject) {
-                setSelectedSubject(biologySubject.id);
-                setPapers(biologySubject.papers || []);
+            // Auto-select first available subject and paper
+            if (subjectsData.length > 0) {
+                const firstSubject = subjectsData[0];
+                setSelectedSubject(firstSubject.id);
+                setPapers(firstSubject.papers || []);
                 
-                // Auto-select Biology Paper 1 if available
-                const paper1 = biologySubject.papers?.find(p => p.id === BIOLOGY_PAPER_1_ID || p.name.toLowerCase().includes('paper 1'));
-                if (paper1) {
-                    setSelectedPaperId(paper1.id);
+                // Auto-select first paper if available
+                if (firstSubject.papers && firstSubject.papers.length > 0) {
+                    setSelectedPaperId(firstSubject.papers[0].id);
                 }
             }
         } catch (err) {
