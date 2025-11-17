@@ -542,14 +542,21 @@ def get_topic_statistics(request, paper_id):
             )
             standalone_by_mark = standalone_questions.values('marks').annotate(count=Count('id'))
             
-            standalone_counts = {1: 0, 2: 0, 3: 0, 4: 0}
+            standalone_counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
             for item in standalone_by_mark:
-                if item['marks'] <= 4:
+                if item['marks'] <= 6:
                     standalone_counts[item['marks']] = item['count']
             
             total_nested = nested_questions.count()
             total_standalone = standalone_questions.count()
             total_questions = total_nested + total_standalone
+            
+            # Combine nested and standalone counts into questions_by_marks (1-6 marks)
+            questions_by_marks = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0}
+            for mark_value in range(1, 7):
+                nested_count = nested_counts.get(mark_value, 0)
+                standalone_count = standalone_counts.get(mark_value, 0)
+                questions_by_marks[mark_value] = nested_count + standalone_count
             
             topic_stats.append({
                 'id': str(topic.id),
@@ -557,6 +564,7 @@ def get_topic_statistics(request, paper_id):
                 'min_marks': topic.min_marks,
                 'max_marks': topic.max_marks,
                 'total_questions': total_questions,
+                'questions_by_marks': questions_by_marks,
                 'nested_questions': {
                     'count': total_nested,
                     'by_marks': nested_counts,
