@@ -9,7 +9,7 @@ export default function UserDashboard({ onLogout }) {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                             <img src="/exam.png" alt="Exam Logo" className="w-12 h-12 object-contain" />
-                            <h1 className="text-2xl font-bold text-green-600">KCSE Exam Generator</h1>
+                            <h1 className="text-2xl font-bold text-green-600">Exam Generator</h1>
                         </div>
                         <button 
                             onClick={onLogout}
