@@ -5,6 +5,7 @@ import { getCurrentUser, getAuthToken } from '../services/authService';
 
 // Biology Paper 1 ID from create_sample_questions.py
 const BIOLOGY_PAPER_1_ID = 'efa6d535-6a6b-45ac-931a-d20b9ccf15aa';
+// const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 export default function PaperGenerationDashboard() {
     const [activeTab, setActiveTab] = useState('generate'); // 'generate' or 'history'
@@ -304,7 +305,7 @@ export default function PaperGenerationDashboard() {
         if (selectedTopics.length < 5) {
             const confirmed = window.confirm(
                 `You have selected only ${selectedTopics.length} topic(s). ` +
-                `For best results and to meet KCSE constraints, we recommend selecting at least 5 topics. ` +
+                `For best results and to meet best constraints, we recommend selecting at least 5 topics. ` +
                 `\n\nDo you want to continue anyway?`
             );
             if (!confirmed) {

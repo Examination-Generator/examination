@@ -10,6 +10,8 @@ if (typeof window !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
 }
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
 export default function EditorDashboard({ onLogout }) {
     const [activeTab, setActiveTab] = useState('questions'); // 'questions', 'subjects', 'stats'
     const [selectedSubject, setSelectedSubject] = useState('');
@@ -320,7 +322,7 @@ export default function EditorDashboard({ onLogout }) {
                 return;
             }
             
-            const response = await fetch('http://localhost:8000/api/subjects', {
+            const response = await fetch(`${API_URL}/subjects`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -499,7 +501,7 @@ export default function EditorDashboard({ onLogout }) {
                     }
                     
                     // Call API to search for similar questions
-                    const response = await fetch('http://localhost:8000/api/questions/search-similar/', {
+                    const response = await fetch(`${API_URL}/questions/search-similar/`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -844,7 +846,7 @@ export default function EditorDashboard({ onLogout }) {
             }
 
             // Send to database
-            const response = await fetch('http://localhost:8000/api/questions', {
+            const response = await fetch(`${API_URL}/questions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
