@@ -515,13 +515,24 @@ class BiologyPaper1Coverpage:
         # Calculate total pages: 1 coverpage + question pages (3-4 questions per page)
         total_pages = 1 + ((generated_paper.total_questions + 2) // 3)
         
+        # Generate paper name - avoid duplication if paper name already contains subject
+        paper_name_upper = paper.name.upper()
+        subject_name_upper = paper.subject.name.upper()
+        
+        if subject_name_upper in paper_name_upper:
+            # Paper name already contains subject (e.g., "Biology Paper I")
+            display_paper_name = paper_name_upper
+        else:
+            # Combine subject and paper name (e.g., "BIOLOGY" + "PAPER I")
+            display_paper_name = f'{subject_name_upper} {paper_name_upper}'
+        
         return {
             'school_name': 'EXAMINATION CENTRE',
             'school_logo': '/exam.png',
             'logo_position': 'center',
             'class_name': '',
             'exam_title': 'END TERM EXAMINATION 2025',
-            'paper_name': f'{paper.subject.name.upper()} {paper.name.upper()}',
+            'paper_name': display_paper_name,
             'total_questions': generated_paper.total_questions,
             'total_marks': generated_paper.total_marks,
             'time_allocation': format_time_allocation(paper.time_allocation),
