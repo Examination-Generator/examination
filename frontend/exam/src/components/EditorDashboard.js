@@ -431,8 +431,8 @@ export default function EditorDashboard({ onLogout }) {
     useEffect(() => {
         if (activeTab === 'stats') {
             fetchStatistics();
-            // Fetch ALL questions for statistics cards
-            fetchQuestions().then(questions => {
+            // Fetch ALL questions for statistics cards (no limit)
+            fetchQuestions({ limit: 10000 }).then(questions => {
                 setAllQuestions(questions || []);
                 setSavedQuestions(questions || []); // Initially show all questions
             });
