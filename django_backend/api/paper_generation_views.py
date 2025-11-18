@@ -733,6 +733,10 @@ def coverpage_data(request, paper_id):
             # Merge with saved data
             coverpage_data = {**default_coverpage, **coverpage}
             
+            # Ensure time_allocation is always formatted (in case old data has numeric value)
+            if isinstance(coverpage_data.get('time_allocation'), int):
+                coverpage_data['time_allocation'] = format_time_allocation(coverpage_data['time_allocation'])
+            
             if output_format == 'html':
                 # Generate HTML coverpage
                 html_content = BiologyPaper1Coverpage.generate_html(coverpage_data)

@@ -661,7 +661,7 @@ export default function PaperGenerationDashboard() {
                                         <div className="grid grid-cols-3 gap-3">
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Time (hours)
+                                                    Time (HOURS)
                                                 </label>
                                                 <input
                                                     type="text"
