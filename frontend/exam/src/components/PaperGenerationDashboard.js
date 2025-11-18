@@ -1164,13 +1164,6 @@ export default function PaperGenerationDashboard() {
                 {/* Generate Tab */}
                 {activeTab === 'generate' && (
                     <div className="bg-white rounded-lg shadow-md p-6">
-                        {/* Info Box */}
-                        {/* <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <p className="text-sm text-blue-800">
-                                <strong>💡 Tip:</strong> For best results, select <strong>all 6 topics</strong> or at least 5 topics. 
-                            </p>
-                        </div> */}
-
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-bold text-gray-800">Select Topics</h2>
                             <button
@@ -1207,9 +1200,9 @@ export default function PaperGenerationDashboard() {
                                             />
                                             <div className="ml-3 flex-1">
                                                 <p className="font-semibold text-gray-800">{topic?.name || 'Unknown Topic'}</p>
-                                                <p className="text-sm text-gray-600">
+                                                {/* <p className="text-sm text-gray-600">
                                                     {topic?.min_marks || 0}-{topic?.max_marks || 0} marks
-                                                </p>
+                                                </p> */}
                                                 <div className="mt-2 space-y-1">
                                                     <p className="text-xs text-gray-500">
                                                         Total questions: {topic?.total_questions || 0}
