@@ -8,7 +8,7 @@ from .coverpage_templates import MarkingSchemeCoverpage
 
 def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
     """
-    Generate complete marking scheme HTML with coverpage and all answers
+    Generate complete marking scheme HTML with coverpage, answers, and page numbers
     
     Args:
         coverpage_data (dict): Coverpage information
@@ -21,8 +21,8 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
     # Generate coverpage HTML
     coverpage_html = MarkingSchemeCoverpage.generate_html(coverpage_data)
     
-    # Generate marking scheme body
-    answers_html = generate_answers_html(marking_scheme_items)
+    # Generate marking scheme body with pagination
+    answers_html = generate_answers_with_pagination(marking_scheme_items, coverpage_data.get('total_questions', 25))
     
     # Combine coverpage and answers
     full_html = f"""
@@ -36,6 +36,10 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
         @page {{
             size: A4;
             margin: 20mm;
+            
+            @bottom-center {{
+                content: "Page " counter(page) " of " counter(pages);
+            }}
         }}
         
         body {{
@@ -45,24 +49,35 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
             color: #000;
         }}
         
-        .coverpage {{
+        .page {{
             page-break-after: always;
+            position: relative;
+            min-height: 250mm;
+            padding-bottom: 30px;
         }}
         
-        .marking-scheme-page {{
-            padding: 20px 0;
+        .page:last-child {{
+            page-break-after: auto;
+        }}
+        
+        .page-number {{
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 11pt;
+            color: #666;
         }}
         
         .answer-item {{
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             page-break-inside: avoid;
         }}
         
         .question-header {{
             background: #f0f0f0;
-            padding: 10px;
+            padding: 8px 12px;
             border-left: 4px solid #2563eb;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -70,25 +85,17 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
         
         .question-number {{
             font-weight: bold;
-            font-size: 14pt;
+            font-size: 13pt;
             color: #1e40af;
         }}
         
         .question-marks {{
             background: #2563eb;
             color: white;
-            padding: 4px 12px;
-            border-radius: 4px;
+            padding: 3px 10px;
+            border-radius: 3px;
             font-weight: bold;
-        }}
-        
-        .question-preview {{
-            font-style: italic;
-            color: #666;
-            margin-bottom: 10px;
-            padding: 8px;
-            background: #f9fafb;
-            border-left: 2px solid #cbd5e1;
+            font-size: 11pt;
         }}
         
         .answer-content {{
@@ -99,11 +106,12 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
         .answer-text {{
             margin-bottom: 10px;
             white-space: pre-wrap;
+            line-height: 1.8;
         }}
         
         .marking-points {{
-            margin-top: 10px;
-            padding: 10px;
+            margin-top: 12px;
+            padding: 12px;
             background: #fef3c7;
             border-left: 3px solid #f59e0b;
         }}
@@ -115,7 +123,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
         }}
         
         .marking-point {{
-            margin: 5px 0;
+            margin: 6px 0;
             padding-left: 20px;
         }}
         
@@ -134,25 +142,29 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
             margin: 10px 0;
             border: 1px solid #ddd;
             padding: 5px;
+            display: block;
         }}
         
         @media print {{
-            .coverpage {{
+            .page {{
                 page-break-after: always;
             }}
             
             .answer-item {{
                 page-break-inside: avoid;
             }}
+            
+            .page-number {{
+                position: fixed;
+                bottom: 10mm;
+                right: 10mm;
+            }}
         }}
     </style>
 </head>
 <body>
     {coverpage_html}
-    
-    <div class="marking-scheme-page">
-        {answers_html}
-    </div>
+    {answers_html}
 </body>
 </html>
     """
@@ -160,28 +172,46 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
     return full_html.strip()
 
 
-def generate_answers_html(marking_scheme_items):
+def generate_answers_with_pagination(marking_scheme_items, total_questions):
     """
-    Generate HTML for all answers in the marking scheme
+    Generate HTML for all answers with pagination (approx 2-3 answers per page)
     
     Args:
         marking_scheme_items (list): List of marking scheme items
+        total_questions (int): Total number of questions for page calculation
     
     Returns:
-        str: HTML for all answers
+        str: HTML for all answers with page breaks
     """
-    answers_html_parts = []
+    pages_html = []
+    current_page_answers = []
+    answers_per_page = 2  # Approximately 2 answers per page
+    total_pages = 1 + ((len(marking_scheme_items) + answers_per_page - 1) // answers_per_page)
+    current_page = 2  # Page 1 is coverpage
     
-    for item in marking_scheme_items:
+    for idx, item in enumerate(marking_scheme_items):
         answer_html = generate_single_answer_html(item)
-        answers_html_parts.append(answer_html)
+        current_page_answers.append(answer_html)
+        
+        # Create new page after every 2 answers or at the end
+        if len(current_page_answers) >= answers_per_page or idx == len(marking_scheme_items) - 1:
+            page_content = '\n'.join(current_page_answers)
+            page_html = f"""
+    <div class="page">
+        {page_content}
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+            """
+            pages_html.append(page_html)
+            current_page_answers = []
+            current_page += 1
     
-    return '\n'.join(answers_html_parts)
+    return '\n'.join(pages_html)
 
 
 def generate_single_answer_html(item):
     """
-    Generate HTML for a single answer
+    Generate HTML for a single answer (NO question text, only answer)
     
     Args:
         item (dict): Marking scheme item with answer details
@@ -190,7 +220,6 @@ def generate_single_answer_html(item):
         str: HTML for single answer
     """
     number = item.get('number', 1)
-    question_preview = item.get('question_preview', '')
     answer = item.get('answer', 'No answer provided')
     marks = item.get('marks', 0)
     is_nested = item.get('is_nested', False)
@@ -227,12 +256,8 @@ def generate_single_answer_html(item):
             </div>
             <span class="question-marks">{marks} mark{'' if marks == 1 else 's'}</span>
         </div>
-        <div class="question-preview">
-            <strong>Question:</strong> {question_preview}
-        </div>
         <div class="answer-content">
             <div class="answer-text">
-                <strong>Answer:</strong><br>
                 {answer_text_with_images}
             </div>
             {marking_points_html}

@@ -592,31 +592,38 @@ if __name__ == '__main__':
 
 class MarkingSchemeCoverpage:
     """
-    Marking Scheme Coverpage Template
-    Generates a professional coverpage for marking schemes
+    Marking Scheme Coverpage Template - matches question paper style
     """
     
     @staticmethod
     def generate_html(data):
         """
-        Generate HTML for Marking Scheme coverpage
-        
-        Args:
-            data (dict): Coverpage data with keys:
-                - school_name: Name of the school
-                - exam_title: e.g., "END TERM 3 EXAMINATION 2025"
-                - paper_name: e.g., "BIOLOGY PAPER 1"
-                - total_questions: Number of questions
-                - total_marks: Total marks
-        
-        Returns:
-            str: HTML content for marking scheme coverpage
+        Generate HTML for Marking Scheme coverpage (similar to question paper but without candidate section)
         """
         school_name = data.get('school_name', 'EXAMINATION CENTRE')
+        school_logo = data.get('school_logo', '/exam.png')
+        logo_position = data.get('logo_position', 'center')
+        class_name = data.get('class_name', '')
         exam_title = data.get('exam_title', 'END TERM EXAMINATION 2025')
         paper_name = data.get('paper_name', 'BIOLOGY PAPER 1')
         total_questions = data.get('total_questions', 25)
         total_marks = data.get('total_marks', 80)
+        
+        # Calculate total pages for marking scheme (coverpage + answer pages)
+        total_pages = 1 + ((total_questions + 1) // 2)  # Approximately 2 answers per page
+        
+        # Instructions for marking scheme
+        instructions = [
+            'This is a confidential document for authorized examiners only.',
+            'Do not distribute to candidates before or during examination.',
+            'Award marks strictly according to the marking points provided.',
+            'Accept any valid alternative answers that demonstrate understanding.',
+            f'This marking scheme consists of {total_pages} printed pages.',
+            'Check that all pages are printed and no answers are missing.'
+        ]
+        
+        # Generate marking grid (same as question paper)
+        marking_grid_html = BiologyPaper1Coverpage._generate_marking_grid(total_questions)
         
         html = f"""
 <!DOCTYPE html>
@@ -624,146 +631,207 @@ class MarkingSchemeCoverpage:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marking Scheme - {paper_name}</title>
+    <title>{paper_name} - MARKING SCHEME</title>
     <style>
         @page {{
             size: A4;
             margin: 0;
         }}
         
-        body {{
+        * {{
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
             font-family: 'Times New Roman', Times, serif;
+            width: 210mm;
+            height: 297mm;
+            padding: 20mm;
             background: white;
         }}
         
         .coverpage {{
-            width: 210mm;
-            height: 297mm;
-            padding: 20mm;
-            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            page-break-after: always;
+            justify-content: space-between;
         }}
         
         .header {{
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 20px;
+        }}
+        
+        .logo-container {{
+            display: flex;
+            align-items: center;
+            justify-content: {logo_position};
+            margin-bottom: 10px;
+        }}
+        
+        .school-logo {{
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: contain;
         }}
         
         .school-name {{
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
-            margin-bottom: 10px;
             text-transform: uppercase;
+            margin-bottom: 5px;
+        }}
+        
+        .class-title {{
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 5px;
         }}
         
         .exam-title {{
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }}
+        
+        .paper-title {{
             font-size: 18px;
             font-weight: bold;
-            margin-bottom: 30px;
+            text-decoration: underline;
+            margin-bottom: 5px;
         }}
         
-        .paper-info {{
-            text-align: center;
-            margin-bottom: 40px;
+        .marking-scheme-label {{
+            font-size: 16px;
+            font-weight: bold;
+            color: #dc2626;
+            margin-bottom: 10px;
         }}
         
-        .paper-name {{
-            font-size: 28px;
+        .paper-details {{
+            font-size: 14px;
+            margin-bottom: 20px;
+        }}
+        
+        /* Instructions Section */
+        .instructions {{
+            border: 2px solid #000;
+            padding: 15px;
+            margin-bottom: 20px;
+        }}
+        
+        .instructions-title {{
+            font-size: 14px;
             font-weight: bold;
             margin-bottom: 10px;
             text-decoration: underline;
         }}
         
-        .marking-scheme-label {{
-            font-size: 32px;
-            font-weight: bold;
-            color: #c00;
-            margin-top: 20px;
-            margin-bottom: 40px;
+        .instruction-list {{
+            list-style: none;
+            padding-left: 0;
         }}
         
-        .stats-box {{
+        .instruction-list li {{
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+            font-size: 12px;
+            line-height: 1.4;
+        }}
+        
+        .instruction-list li:before {{
+            content: counter(item, lower-alpha) ')';
+            position: absolute;
+            left: 0;
+        }}
+        
+        .instruction-list {{
+            counter-reset: item;
+        }}
+        
+        .instruction-list li {{
+            counter-increment: item;
+        }}
+        
+        /* Marking Grid */
+        .marking-grid {{
             border: 2px solid #000;
-            padding: 30px;
-            margin: 20px 0;
-            background: #f9f9f9;
-            min-width: 400px;
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
         }}
         
-        .stats-row {{
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #ccc;
-            font-size: 16px;
+        .marking-grid th,
+        .marking-grid td {{
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
         }}
         
-        .stats-row:last-child {{
-            border-bottom: none;
-        }}
-        
-        .stats-label {{
+        .marking-grid th {{
+            background-color: #f3f4f6;
             font-weight: bold;
+        }}
+        
+        .marking-grid .question-col {{
+            width: 60px;
+        }}
+        
+        .marking-grid .marks-col {{
+            width: 80px;
+            background-color: #fef3c7;
         }}
         
         .confidential-notice {{
-            margin-top: 40px;
-            padding: 20px;
-            border: 3px solid #c00;
-            background: #fff5f5;
+            background: #fee2e2;
+            border: 2px solid #dc2626;
+            padding: 10px;
             text-align: center;
-            max-width: 500px;
+            margin-top: 10px;
         }}
         
         .confidential-text {{
-            font-size: 20px;
             font-weight: bold;
-            color: #c00;
-            margin-bottom: 10px;
-        }}
-        
-        .confidential-subtext {{
+            color: #991b1b;
             font-size: 14px;
-            color: #666;
         }}
     </style>
 </head>
 <body>
     <div class="coverpage">
+        <!-- Header -->
         <div class="header">
+            <div class="logo-container">
+                <img src="{school_logo}" alt="School Logo" class="school-logo" onerror="this.style.display='none'">
+            </div>
             <div class="school-name">{school_name}</div>
+            {f'<div class="class-title">{class_name}</div>' if class_name else ''}
             <div class="exam-title">{exam_title}</div>
+            <div class="paper-title">{paper_name}</div>
+            <div class="marking-scheme-label">*** MARKING SCHEME ***</div>
         </div>
         
-        <div class="paper-info">
-            <div class="paper-name">{paper_name}</div>
-            <div class="marking-scheme-label">MARKING SCHEME</div>
-        </div>
-        
-        <div class="stats-box">
-            <div class="stats-row">
-                <span class="stats-label">Total Questions:</span>
-                <span>{total_questions}</span>
-            </div>
-            <div class="stats-row">
-                <span class="stats-label">Total Marks:</span>
-                <span>{total_marks}</span>
-            </div>
-        </div>
-        
+        <!-- Confidential Notice -->
         <div class="confidential-notice">
-            <div class="confidential-text">⚠ CONFIDENTIAL ⚠</div>
-            <div class="confidential-subtext">
-                This marking scheme is for authorized examiners only.<br>
-                Do not distribute to candidates before or after examination.
-            </div>
+            <div class="confidential-text">⚠ CONFIDENTIAL - FOR EXAMINERS ONLY ⚠</div>
         </div>
+        
+        <!-- Instructions -->
+        <div class="instructions">
+            <div class="instructions-title">Instructions to Examiners</div>
+            <ol class="instruction-list">
+                {"".join([f"<li>{instruction}</li>" for instruction in instructions])}
+            </ol>
+        </div>
+        
+        <!-- Marking Grid -->
+        {marking_grid_html}
     </div>
 </body>
 </html>
@@ -774,7 +842,7 @@ class MarkingSchemeCoverpage:
     @staticmethod
     def generate_default_data(generated_paper, paper):
         """
-        Generate default marking scheme coverpage data
+        Generate default marking scheme coverpage data (matches question paper coverpage structure)
         
         Args:
             generated_paper: GeneratedPaper instance
@@ -783,6 +851,9 @@ class MarkingSchemeCoverpage:
         Returns:
             dict: Default marking scheme coverpage data
         """
+        # Get coverpage data from generated paper if available (to match question paper settings)
+        saved_coverpage = getattr(generated_paper, 'coverpage_data', None) or {}
+        
         # Generate paper name - avoid duplication if paper name already contains subject
         paper_name_upper = paper.name.upper()
         subject_name_upper = paper.subject.name.upper()
@@ -793,8 +864,11 @@ class MarkingSchemeCoverpage:
             display_paper_name = f'{subject_name_upper} {paper_name_upper}'
         
         return {
-            'school_name': 'EXAMINATION CENTRE',
-            'exam_title': 'END TERM EXAMINATION 2025',
+            'school_name': saved_coverpage.get('school_name', 'EXAMINATION CENTRE'),
+            'school_logo': saved_coverpage.get('school_logo', '/exam.png'),
+            'logo_position': saved_coverpage.get('logo_position', 'center'),
+            'class_name': saved_coverpage.get('class_name', ''),
+            'exam_title': saved_coverpage.get('exam_title', 'END TERM EXAMINATION 2025'),
             'paper_name': display_paper_name,
             'total_questions': generated_paper.total_questions,
             'total_marks': generated_paper.total_marks,
