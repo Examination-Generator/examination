@@ -588,3 +588,214 @@ if __name__ == '__main__':
     print(f"\n{'='*50}")
     print("All test files generated successfully!")
     print(f"{'='*50}")
+
+
+class MarkingSchemeCoverpage:
+    """
+    Marking Scheme Coverpage Template
+    Generates a professional coverpage for marking schemes
+    """
+    
+    @staticmethod
+    def generate_html(data):
+        """
+        Generate HTML for Marking Scheme coverpage
+        
+        Args:
+            data (dict): Coverpage data with keys:
+                - school_name: Name of the school
+                - exam_title: e.g., "END TERM 3 EXAMINATION 2025"
+                - paper_name: e.g., "BIOLOGY PAPER 1"
+                - total_questions: Number of questions
+                - total_marks: Total marks
+        
+        Returns:
+            str: HTML content for marking scheme coverpage
+        """
+        school_name = data.get('school_name', 'EXAMINATION CENTRE')
+        exam_title = data.get('exam_title', 'END TERM EXAMINATION 2025')
+        paper_name = data.get('paper_name', 'BIOLOGY PAPER 1')
+        total_questions = data.get('total_questions', 25)
+        total_marks = data.get('total_marks', 80)
+        
+        html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marking Scheme - {paper_name}</title>
+    <style>
+        @page {{
+            size: A4;
+            margin: 0;
+        }}
+        
+        body {{
+            margin: 0;
+            padding: 0;
+            font-family: 'Times New Roman', Times, serif;
+            background: white;
+        }}
+        
+        .coverpage {{
+            width: 210mm;
+            height: 297mm;
+            padding: 20mm;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            page-break-after: always;
+        }}
+        
+        .header {{
+            text-align: center;
+            margin-bottom: 40px;
+        }}
+        
+        .school-name {{
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }}
+        
+        .exam-title {{
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }}
+        
+        .paper-info {{
+            text-align: center;
+            margin-bottom: 40px;
+        }}
+        
+        .paper-name {{
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-decoration: underline;
+        }}
+        
+        .marking-scheme-label {{
+            font-size: 32px;
+            font-weight: bold;
+            color: #c00;
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }}
+        
+        .stats-box {{
+            border: 2px solid #000;
+            padding: 30px;
+            margin: 20px 0;
+            background: #f9f9f9;
+            min-width: 400px;
+        }}
+        
+        .stats-row {{
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ccc;
+            font-size: 16px;
+        }}
+        
+        .stats-row:last-child {{
+            border-bottom: none;
+        }}
+        
+        .stats-label {{
+            font-weight: bold;
+        }}
+        
+        .confidential-notice {{
+            margin-top: 40px;
+            padding: 20px;
+            border: 3px solid #c00;
+            background: #fff5f5;
+            text-align: center;
+            max-width: 500px;
+        }}
+        
+        .confidential-text {{
+            font-size: 20px;
+            font-weight: bold;
+            color: #c00;
+            margin-bottom: 10px;
+        }}
+        
+        .confidential-subtext {{
+            font-size: 14px;
+            color: #666;
+        }}
+    </style>
+</head>
+<body>
+    <div class="coverpage">
+        <div class="header">
+            <div class="school-name">{school_name}</div>
+            <div class="exam-title">{exam_title}</div>
+        </div>
+        
+        <div class="paper-info">
+            <div class="paper-name">{paper_name}</div>
+            <div class="marking-scheme-label">MARKING SCHEME</div>
+        </div>
+        
+        <div class="stats-box">
+            <div class="stats-row">
+                <span class="stats-label">Total Questions:</span>
+                <span>{total_questions}</span>
+            </div>
+            <div class="stats-row">
+                <span class="stats-label">Total Marks:</span>
+                <span>{total_marks}</span>
+            </div>
+        </div>
+        
+        <div class="confidential-notice">
+            <div class="confidential-text">⚠ CONFIDENTIAL ⚠</div>
+            <div class="confidential-subtext">
+                This marking scheme is for authorized examiners only.<br>
+                Do not distribute to candidates before or after examination.
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+        """
+        
+        return html.strip()
+    
+    @staticmethod
+    def generate_default_data(generated_paper, paper):
+        """
+        Generate default marking scheme coverpage data
+        
+        Args:
+            generated_paper: GeneratedPaper instance
+            paper: Paper instance
+        
+        Returns:
+            dict: Default marking scheme coverpage data
+        """
+        # Generate paper name - avoid duplication if paper name already contains subject
+        paper_name_upper = paper.name.upper()
+        subject_name_upper = paper.subject.name.upper()
+        
+        if subject_name_upper in paper_name_upper:
+            display_paper_name = paper_name_upper
+        else:
+            display_paper_name = f'{subject_name_upper} {paper_name_upper}'
+        
+        return {
+            'school_name': 'EXAMINATION CENTRE',
+            'exam_title': 'END TERM EXAMINATION 2025',
+            'paper_name': display_paper_name,
+            'total_questions': generated_paper.total_questions,
+            'total_marks': generated_paper.total_marks,
+        }

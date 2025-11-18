@@ -31,7 +31,7 @@ from .models import (
     Paper, Topic, PaperConfiguration, GeneratedPaper, Question
 )
 from .kcse_biology_paper1_generator import KCSEBiologyPaper1Generator
-from .coverpage_templates import BiologyPaper1Coverpage, format_time_allocation
+from .coverpage_templates import BiologyPaper1Coverpage, MarkingSchemeCoverpage, format_time_allocation
 
 logger = logging.getLogger(__name__)
 
@@ -617,6 +617,7 @@ def view_full_paper(request, paper_id):
         # Create ordered list maintaining the sequence from generation
         question_map = {str(q.id): q for q in questions}
         ordered_questions = []
+        marking_scheme = []
         
         for idx, qid in enumerate(question_ids, start=1):
             question = question_map.get(qid)
@@ -627,6 +628,8 @@ def view_full_paper(request, paper_id):
                     'question_number': idx,
                     'question_text': question.question_text,
                     'question_inline_images': question.question_inline_images,
+                    'question_image_positions': question.question_image_positions,
+                    'question_answer_lines': question.question_answer_lines,
                     'marks': question.marks,
                     'is_nested': question.is_nested,
                     'nested_parts': question.nested_parts if question.is_nested else None,
@@ -644,6 +647,21 @@ def view_full_paper(request, paper_id):
                     } if question.section else None,
                 }
                 ordered_questions.append(question_data)
+                
+                # Answer data for marking scheme preview
+                answer_data = {
+                    'question_number': idx,
+                    'question_id': str(question.id),
+                    'question_text_preview': question.question_text[:100] + '...' if len(question.question_text) > 100 else question.question_text,
+                    'answer_text': question.answer_text,
+                    'answer_inline_images': question.answer_inline_images,
+                    'answer_image_positions': question.answer_image_positions,
+                    'answer_answer_lines': question.answer_answer_lines,
+                    'marks': question.marks,
+                    'is_nested': question.is_nested,
+                    'marking_points': question.nested_parts if question.is_nested else None,
+                }
+                marking_scheme.append(answer_data)
         
         # Calculate question statistics
         nested_count = sum(1 for q in ordered_questions if q['is_nested'])
@@ -669,6 +687,7 @@ def view_full_paper(request, paper_id):
                 'topic_distribution': generated_paper.topic_distribution,
             },
             'questions': ordered_questions,
+            'marking_scheme': marking_scheme,
             'created_at': generated_paper.created_at,
             'generated_by': {
                 'id': str(generated_paper.generated_by.id),
@@ -929,55 +948,103 @@ def update_paper_status(request, paper_id):
 @permission_classes([IsAuthenticated])
 def preview_full_exam(request, paper_id):
     """
-    Preview the full exam paper with coverpage and all questions paginated
+    Preview the full exam paper or marking scheme
     
-    GET /api/papers/generated/{paper_id}/preview/?output=html
+    GET /api/papers/generated/{paper_id}/preview/?output=html&view=questions|marking_scheme
     
-    Returns complete exam paper with:
-    - Coverpage (page 1)
-    - All questions with proper pagination
-    - Page numbers on each page
+    Returns:
+    - If view=questions (default): Complete exam paper with coverpage and all questions
+    - If view=marking_scheme: Complete marking scheme with coverpage and all answers
     """
     try:
         from django.http import HttpResponse
         
         output_format = request.GET.get('output', 'json')
+        view_type = request.GET.get('view', 'questions')  # 'questions' or 'marking_scheme'
         generated_paper = get_object_or_404(GeneratedPaper, id=paper_id)
         
-        # Get coverpage data
-        coverpage_data_dict = getattr(generated_paper, 'coverpage_data', None) or {}
-        default_coverpage = BiologyPaper1Coverpage.generate_default_coverpage_data(
-            generated_paper, 
-            generated_paper.paper
-        )
-        coverpage_data = {**default_coverpage, **coverpage_data_dict}
+        if view_type == 'marking_scheme':
+            # Generate marking scheme preview
+            marking_scheme_coverpage = MarkingSchemeCoverpage.generate_default_data(
+                generated_paper, 
+                generated_paper.paper
+            )
+            
+            # Get all questions in order with answers
+            question_ids = generated_paper.question_ids
+            questions = Question.objects.filter(id__in=question_ids).select_related(
+                'topic', 'section'
+            )
+            
+            # Create ordered marking scheme
+            question_map = {str(q.id): q for q in questions}
+            marking_scheme_items = []
+            
+            for idx, qid in enumerate(question_ids, start=1):
+                question = question_map.get(qid)
+                if question:
+                    marking_scheme_items.append({
+                        'number': idx,
+                        'question_preview': question.question_text[:100] + '...' if len(question.question_text) > 100 else question.question_text,
+                        'answer': question.answer_text,
+                        'answer_inline_images': question.answer_inline_images,
+                        'answer_image_positions': question.answer_image_positions,
+                        'marks': question.marks,
+                        'is_nested': question.is_nested,
+                        'marking_points': question.nested_parts if question.is_nested else None,
+                    })
+            
+            if output_format == 'html':
+                # Generate marking scheme HTML
+                from .marking_scheme_template import generate_marking_scheme_html
+                html_content = generate_marking_scheme_html(marking_scheme_coverpage, marking_scheme_items)
+                return HttpResponse(html_content, content_type='text/html')
+            
+            return Response({
+                'coverpage': marking_scheme_coverpage,
+                'marking_scheme': marking_scheme_items
+            })
         
-        # Get all questions in order
-        question_ids = generated_paper.question_ids
-        questions = Question.objects.filter(id__in=question_ids).select_related(
-            'topic', 'section'
-        )
-        
-        # Create ordered list
-        question_map = {str(q.id): q for q in questions}
-        ordered_questions = []
-        
-        for idx, qid in enumerate(question_ids, start=1):
-            question = question_map.get(qid)
-            if question:
-                ordered_questions.append({
-                    'number': idx,
-                    'text': question.question_text,
-                    'marks': question.marks,
-                    'is_nested': question.is_nested,
-                    'topic': question.topic.name
-                })
-        
-        if output_format == 'html':
-            # Generate complete exam HTML
-            from .exam_paper_template import generate_full_exam_html
-            html_content = generate_full_exam_html(coverpage_data, ordered_questions)
-            return HttpResponse(html_content, content_type='text/html')
+        else:
+            # Generate questions preview (default)
+            # Get coverpage data
+            coverpage_data_dict = getattr(generated_paper, 'coverpage_data', None) or {}
+            default_coverpage = BiologyPaper1Coverpage.generate_default_coverpage_data(
+                generated_paper, 
+                generated_paper.paper
+            )
+            coverpage_data = {**default_coverpage, **coverpage_data_dict}
+            
+            # Get all questions in order
+            question_ids = generated_paper.question_ids
+            questions = Question.objects.filter(id__in=question_ids).select_related(
+                'topic', 'section'
+            )
+            
+            # Create ordered list
+            question_map = {str(q.id): q for q in questions}
+            ordered_questions = []
+            
+            for idx, qid in enumerate(question_ids, start=1):
+                question = question_map.get(qid)
+                if question:
+                    ordered_questions.append({
+                        'number': idx,
+                        'text': question.question_text,
+                        'question_inline_images': question.question_inline_images,
+                        'question_image_positions': question.question_image_positions,
+                        'question_answer_lines': question.question_answer_lines,
+                        'marks': question.marks,
+                        'is_nested': question.is_nested,
+                        'nested_parts': question.nested_parts if question.is_nested else None,
+                        'topic': question.topic.name
+                    })
+            
+            if output_format == 'html':
+                # Generate complete exam HTML
+                from .exam_paper_template import generate_full_exam_html
+                html_content = generate_full_exam_html(coverpage_data, ordered_questions)
+                return HttpResponse(html_content, content_type='text/html')
         
         # Return JSON
         return Response({

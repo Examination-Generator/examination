@@ -53,8 +53,9 @@ export default function PaperGenerationDashboard() {
     });
     const [previewMode, setPreviewMode] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [logoPreview, setLogoPreview] = useState(null);
+    const [logoPreview, setLogoPreview] = useState(false);
     const [showFullExamModal, setShowFullExamModal] = useState(false);
+    const [examModalView, setExamModalView] = useState('questions'); // 'questions' or 'marking_scheme'
 
     // Load subjects and topics on component mount
     useEffect(() => {
@@ -857,7 +858,31 @@ export default function PaperGenerationDashboard() {
                             >
                                 {/* Modal Header */}
                                 <div className="flex justify-between items-center p-4 border-b">
-                                    <h3 className="text-xl font-bold text-gray-800">📋 Full Exam Preview</h3>
+                                    <div className="flex gap-4 items-center">
+                                        <h3 className="text-xl font-bold text-gray-800">📋 Full Exam Preview</h3>
+                                        <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
+                                            <button
+                                                onClick={() => setExamModalView('questions')}
+                                                className={`px-4 py-2 rounded-lg font-medium transition ${
+                                                    examModalView === 'questions'
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'text-gray-600 hover:bg-gray-200'
+                                                }`}
+                                            >
+                                                📝 Questions
+                                            </button>
+                                            <button
+                                                onClick={() => setExamModalView('marking_scheme')}
+                                                className={`px-4 py-2 rounded-lg font-medium transition ${
+                                                    examModalView === 'marking_scheme'
+                                                        ? 'bg-green-600 text-white'
+                                                        : 'text-gray-600 hover:bg-gray-200'
+                                                }`}
+                                            >
+                                                ✓ Marking Scheme
+                                            </button>
+                                        </div>
+                                    </div>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => {
@@ -871,7 +896,10 @@ export default function PaperGenerationDashboard() {
                                             🖨️ Print
                                         </button>
                                         <button
-                                            onClick={() => setShowFullExamModal(false)}
+                                            onClick={() => {
+                                                setShowFullExamModal(false);
+                                                setExamModalView('questions'); // Reset to questions view
+                                            }}
                                             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition text-sm"
                                         >
                                             ✕ Close
@@ -883,15 +911,17 @@ export default function PaperGenerationDashboard() {
                                 <div className="flex-1 overflow-hidden">
                                     <iframe
                                         id="full-exam-iframe"
+                                        key={examModalView} // Force re-render when view changes
                                         className="w-full h-full"
-                                        title="Full Exam Preview"
+                                        title={examModalView === 'questions' ? 'Questions Preview' : 'Marking Scheme Preview'}
                                         style={{ border: 'none' }}
                                         sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"
                                         ref={(iframe) => {
                                             if (iframe && !iframe.dataset.loaded) {
                                                 iframe.dataset.loaded = 'true';
                                                 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-                                                const fullExamUrl = `${API_BASE_URL}/papers/generated/${paperId}/preview/?output=html`;
+                                                const viewParam = examModalView === 'marking_scheme' ? '&view=marking_scheme' : '';
+                                                const fullExamUrl = `${API_BASE_URL}/papers/generated/${paperId}/preview/?output=html${viewParam}`;
                                                 
                                                 // Fetch HTML with authentication
                                                 fetch(fullExamUrl, {
@@ -911,7 +941,7 @@ export default function PaperGenerationDashboard() {
                                                     console.error('Error loading full exam:', err);
                                                     const doc = iframe.contentDocument || iframe.contentWindow.document;
                                                     doc.open();
-                                                    doc.write(`<div style="padding: 20px; color: red;">Error loading full exam: ${err.message}</div>`);
+                                                    doc.write(`<div style="padding: 20px; color: red;">Error loading content: ${err.message}</div>`);
                                                     doc.close();
                                                 });
                                             }
