@@ -661,14 +661,13 @@ export default function PaperGenerationDashboard() {
                                         <div className="grid grid-cols-3 gap-3">
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Time
+                                                    Time (hours)
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={editableData.time_allocation}
-                                                    onChange={(e) => setEditableData({...editableData, time_allocation: e.target.value})}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                    placeholder="2 hours"
+                                                    disabled
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                                                 />
                                             </div>
                                             <div>
@@ -678,8 +677,8 @@ export default function PaperGenerationDashboard() {
                                                 <input
                                                     type="number"
                                                     value={editableData.total_marks}
-                                                    onChange={(e) => setEditableData({...editableData, total_marks: parseInt(e.target.value)})}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    disabled
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                                                 />
                                             </div>
                                             <div>

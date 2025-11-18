@@ -6,6 +6,27 @@ Generates professional coverpages with dynamic marking grids
 from datetime import datetime
 
 
+def format_time_allocation(minutes):
+    """
+    Convert time in minutes to human-readable hours format
+    
+    Args:
+        minutes (int): Time in minutes
+    
+    Returns:
+        str: Formatted time string (e.g., "2 hours", "1 hour 30 minutes", "45 minutes")
+    """
+    if minutes >= 60:
+        hours = minutes // 60
+        remaining_minutes = minutes % 60
+        if remaining_minutes == 0:
+            return f"{hours} {'hour' if hours == 1 else 'hours'}"
+        else:
+            return f"{hours} {'hour' if hours == 1 else 'hours'} {remaining_minutes} minutes"
+    else:
+        return f"{minutes} minutes"
+
+
 class BiologyPaper1Coverpage:
     """
     Biology Paper 1 Coverpage Template
@@ -503,7 +524,7 @@ class BiologyPaper1Coverpage:
             'paper_name': f'{paper.subject.name.upper()} {paper.name.upper()}',
             'total_questions': generated_paper.total_questions,
             'total_marks': generated_paper.total_marks,
-            'time_allocation': paper.time_allocation,
+            'time_allocation': format_time_allocation(paper.time_allocation),
             'instructions': [
                 'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',

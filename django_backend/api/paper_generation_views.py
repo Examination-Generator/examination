@@ -31,7 +31,7 @@ from .models import (
     Paper, Topic, PaperConfiguration, GeneratedPaper, Question
 )
 from .kcse_biology_paper1_generator import KCSEBiologyPaper1Generator
-from .coverpage_templates import BiologyPaper1Coverpage
+from .coverpage_templates import BiologyPaper1Coverpage, format_time_allocation
 
 logger = logging.getLogger(__name__)
 
@@ -385,7 +385,7 @@ def get_paper_configuration(request, paper_id):
             'paper_id': str(paper.id),
             'paper_name': paper.name,
             'total_marks': paper.total_marks,
-            'time_allocation': paper.time_allocation,
+            'time_allocation': format_time_allocation(paper.time_allocation),
             'configuration': {
                 'mark_distribution': {
                     'one_mark': {
@@ -658,7 +658,7 @@ def view_full_paper(request, paper_id):
                 'name': generated_paper.paper.name,
                 'subject_name': generated_paper.paper.subject.name,
                 'total_marks': generated_paper.paper.total_marks,
-                'time_allocation': generated_paper.paper.time_allocation,
+                'time_allocation': format_time_allocation(generated_paper.paper.time_allocation),
             },
             'statistics': {
                 'total_questions': generated_paper.total_questions,
@@ -850,7 +850,7 @@ def download_paper(request, paper_id):
                     'Write your name and admission number in the spaces provided.',
                     'Answer ALL questions in the spaces provided.',
                 ]),
-                'time_allocation': coverpage.get('time_allocation', generated_paper.paper.time_allocation),
+                'time_allocation': coverpage.get('time_allocation', format_time_allocation(generated_paper.paper.time_allocation)),
                 'total_marks': coverpage.get('total_marks', generated_paper.total_marks),
                 'candidate_name_field': coverpage.get('candidate_name_field', True),
                 'candidate_number_field': coverpage.get('candidate_number_field', True),
