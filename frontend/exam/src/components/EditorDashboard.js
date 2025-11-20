@@ -2223,7 +2223,7 @@ export default function EditorDashboard({ onLogout }) {
             // By topic - use topic_name from API response
             const topicName = q.topic_name || q.topic?.name || 'Unknown';
             if (!stats.byTopic[topicName]) {
-                stats.byTopic[topicName] = { total: 0, active: 0, inactive: 0 };
+                stats.byTopic[topicName] = { total: 0, active: 0, inactive: 0, byMarks: {} };
             }
             stats.byTopic[topicName].total += 1;
             if (q.is_active !== false) {
@@ -2231,6 +2231,13 @@ export default function EditorDashboard({ onLogout }) {
             } else {
                 stats.byTopic[topicName].inactive += 1;
             }
+            
+            // Track questions by marks
+            const marks = q.marks || 0;
+            if (!stats.byTopic[topicName].byMarks[marks]) {
+                stats.byTopic[topicName].byMarks[marks] = 0;
+            }
+            stats.byTopic[topicName].byMarks[marks] += 1;
         });
 
         return stats;
@@ -6508,15 +6515,15 @@ export default function EditorDashboard({ onLogout }) {
                             {/* By Topic */}
                             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
                                 <h3 className="text-lg font-bold mb-4">Questions by Topic</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {Object.entries(stats.byTopic).map(([topic, counts]) => (
-                                        <div key={topic} className="border-2 border-gray-200 rounded-lg p-3 hover:border-green-500 transition bg-gradient-to-br from-green-50 to-white">
-                                            <h4 className="text-xs font-bold text-gray-700 truncate mb-2">{topic}</h4>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-xs text-gray-600">Total</span>
-                                                <span className="text-lg font-bold text-green-600">{counts.total}</span>
+                                        <div key={topic} className="border-2 border-gray-200 rounded-lg p-4 hover:border-green-500 transition bg-gradient-to-br from-green-50 to-white">
+                                            <h4 className="text-sm font-bold text-gray-700 truncate mb-3">{topic}</h4>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-xs text-gray-600">Total Questions</span>
+                                                <span className="text-xl font-bold text-green-600">{counts.total}</span>
                                             </div>
-                                            <div className="space-y-1">
+                                            <div className="space-y-1 mb-3">
                                                 <div className="flex justify-between text-xs">
                                                     <span className="text-gray-600">Active:</span>
                                                     <span className="font-semibold text-green-700">{counts.active}</span>
@@ -6526,6 +6533,21 @@ export default function EditorDashboard({ onLogout }) {
                                                     <span className="font-semibold text-red-700">{counts.inactive}</span>
                                                 </div>
                                             </div>
+                                            {/* Marks Breakdown */}
+                                            {Object.keys(counts.byMarks || {}).length > 0 && (
+                                                <div className="pt-3 border-t border-gray-200">
+                                                    <p className="text-xs font-semibold text-gray-600 mb-2">By Marks:</p>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {Object.entries(counts.byMarks)
+                                                            .sort(([a], [b]) => Number(a) - Number(b))
+                                                            .map(([marks, count]) => (
+                                                                <span key={marks} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                                                                    {marks}m: {count}
+                                                                </span>
+                                                            ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                     {Object.keys(stats.byTopic).length === 0 && (

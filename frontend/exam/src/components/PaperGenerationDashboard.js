@@ -1230,31 +1230,13 @@ export default function PaperGenerationDashboard() {
                                             />
                                             <div className="ml-3 flex-1">
                                                 <p className="font-semibold text-gray-800">{topic?.name || 'Unknown Topic'}</p>
-                                                {/* <p className="text-sm text-gray-600">
-                                                    {topic?.min_marks || 0}-{topic?.max_marks || 0} marks
-                                                </p> */}
-                                                <div className="mt-2 space-y-1">
+                                                <div className="mt-2">
                                                     <p className="text-xs text-gray-500">
                                                         Total questions: {topic?.total_questions || 0}
                                                     </p>
-                                                    <div className="flex flex-wrap gap-2 text-xs">
-                                                        {[1, 2, 3, 4, 5, 6].map(marks => {
-                                                            const count = topic?.questions_by_marks?.[marks.toString()] || 0;
-                                                            // Only show if there are questions for this mark value
-                                                            if (count > 0) {
-                                                                return (
-                                                                    <span key={marks} className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">
-                                                                        {marks}m: {count}
-                                                                    </span>
-                                                                );
-                                                            }
-                                                            return null;
-                                                        })}
-                                                        {/* Show message if no questions */}
-                                                        {topic?.total_questions === 0 && (
-                                                            <span className="text-gray-400 italic">No questions available</span>
-                                                        )}
-                                                    </div>
+                                                    {topic?.total_questions === 0 && (
+                                                        <span className="text-xs text-gray-400 italic">No questions available</span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </label>
