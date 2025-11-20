@@ -4431,8 +4431,8 @@ export default function EditorDashboard({ onLogout }) {
                                 </label>
                                 <p className="text-xs mt-2 ml-8" style={{color: isNested ? '#6b21a8' : '#6b7280'}}>
                                     {isNested 
-                                        ? '✓ Nested - Question contains multiple sub-parts (e.g., 4-7 marks total)' 
-                                        : 'Standalone - Single question without sub-parts (e.g., 1-4 marks)'}
+                                        ? '✓ Nested ' 
+                                        : 'Standalone'}
                                 </p>
                                 {isNested && marks && parseInt(marks) > 0 && (
                                     <div className="mt-2 ml-8 text-xs text-purple-700 flex items-start">
