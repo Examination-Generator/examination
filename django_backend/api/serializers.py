@@ -462,7 +462,7 @@ class QuestionListSerializer(serializers.ModelSerializer):
                   'question_image_positions', 'answer_image_positions',
                   'question_answer_lines', 'answer_answer_lines',
                   'marks', 'question_type',
-                  'difficulty', 'is_active', 'times_used', 'created_at']
+                  'difficulty', 'is_nested', 'is_active', 'times_used', 'created_at']
         read_only_fields = ['id', 'created_at', 'times_used']
 
 
@@ -484,7 +484,7 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
                   'question_answer_lines', 'answer_answer_lines',
                   'question_type', 'difficulty', 'marks',
                   'options', 'correct_answer', 'answer_explanation',
-                  'is_active', 'times_used', 'last_used',
+                  'is_nested', 'is_active', 'times_used', 'last_used',
                   'created_by', 'created_by_name', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at', 'times_used', 'last_used']
 
@@ -501,7 +501,7 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
                   'question_answer_lines', 'answer_answer_lines',
                   'question_type', 'difficulty', 'marks',
                   'options', 'correct_answer', 'answer_explanation',
-                  'is_active']
+                  'is_nested', 'is_active']
     
     def validate(self, data):
         """Validate relationships between subject, paper, topic, section"""

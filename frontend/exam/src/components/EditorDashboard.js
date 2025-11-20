@@ -91,6 +91,8 @@ export default function EditorDashboard({ onLogout }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearchingQuestions, setIsSearchingQuestions] = useState(false);
+    const [editFilterStatus, setEditFilterStatus] = useState('all'); // 'all', 'active', 'inactive'
+    const [editFilterType, setEditFilterType] = useState('all'); // 'all', 'nested', 'standalone'
     const [selectedQuestion, setSelectedQuestion] = useState(null);
     const [editQuestionText, setEditQuestionText] = useState('');
     const [editAnswerText, setEditAnswerText] = useState('');
@@ -103,6 +105,8 @@ export default function EditorDashboard({ onLogout }) {
     const [editAnswerImagePositions, setEditAnswerImagePositions] = useState({});
     const [editQuestionAnswerLines, setEditQuestionAnswerLines] = useState([]);
     const [editAnswerAnswerLines, setEditAnswerAnswerLines] = useState([]);
+    const [editIsActive, setEditIsActive] = useState(true); // Question active status
+    const [editIsNested, setEditIsNested] = useState(false); // Question nested status
     const editQuestionTextareaRef = useRef(null);
     const editAnswerTextareaRef = useRef(null);
     
@@ -1740,12 +1744,27 @@ export default function EditorDashboard({ onLogout }) {
         try {
             // Search questions by text content
             const allQuestions = await questionService.getAllQuestions();
-            const filtered = allQuestions.filter(q => 
+            let filtered = allQuestions.filter(q => 
                 q.question_text?.toLowerCase().includes(query.toLowerCase()) ||
                 q.answer_text?.toLowerCase().includes(query.toLowerCase()) ||
                 q.subject_name?.toLowerCase().includes(query.toLowerCase()) ||
                 q.topic_name?.toLowerCase().includes(query.toLowerCase())
             );
+            
+            // Apply status filter
+            if (editFilterStatus === 'active') {
+                filtered = filtered.filter(q => q.is_active !== false);
+            } else if (editFilterStatus === 'inactive') {
+                filtered = filtered.filter(q => q.is_active === false);
+            }
+            
+            // Apply type filter
+            if (editFilterType === 'nested') {
+                filtered = filtered.filter(q => q.is_nested === true);
+            } else if (editFilterType === 'standalone') {
+                filtered = filtered.filter(q => q.is_nested !== true);
+            }
+            
             setSearchResults(filtered);
         } catch (error) {
             console.error('Error searching questions:', error);
@@ -1765,6 +1784,8 @@ export default function EditorDashboard({ onLogout }) {
         setEditAnswerText(question.answer_text || '');
         setEditMarks(question.marks || '');
         setEditTopic(question.topic || ''); // Set the topic ID for editing
+        setEditIsActive(question.is_active !== false); // Load active status
+        setEditIsNested(question.is_nested === true); // Load nested status
         
         // Fetch topics for the selected paper
         console.log('🔄 About to fetch topics for paper:', question.paper);
@@ -1935,7 +1956,8 @@ export default function EditorDashboard({ onLogout }) {
                 answer_answer_lines: editAnswerAnswerLines, // NEW: Answer lines configurations
                 difficulty: selectedQuestion.difficulty, // Include difficulty
                 question_type: selectedQuestion.question_type, // Include question type
-                is_active: selectedQuestion.is_active // Include is_active
+                is_active: editIsActive, // Use edited status
+                is_nested: editIsNested // Use edited type
             };
 
             await questionService.updateQuestion(selectedQuestion.id, updatedData);
@@ -1959,6 +1981,8 @@ export default function EditorDashboard({ onLogout }) {
             setEditAnswerImagePositions({}); // NEW: Clear positions
             setEditQuestionAnswerLines([]); // NEW: Clear answer lines
             setEditAnswerAnswerLines([]); // NEW: Clear answer lines
+            setEditIsActive(true); // Reset to active
+            setEditIsNested(false); // Reset to standalone
             
         } catch (error) {
             console.error('Error updating question:', error);
@@ -1997,6 +2021,8 @@ export default function EditorDashboard({ onLogout }) {
             setEditAnswerImagePositions({}); // NEW: Clear positions
             setEditQuestionAnswerLines([]); // NEW: Clear answer lines
             setEditAnswerAnswerLines([]); // NEW: Clear answer lines
+            setEditIsActive(true); // Reset to active
+            setEditIsNested(false); // Reset to standalone
             
         } catch (error) {
             console.error('Error deleting question:', error);
@@ -5803,7 +5829,7 @@ export default function EditorDashboard({ onLogout }) {
                         <div className="bg-white rounded-xl shadow-lg p-6">
                             <h2 className="text-2xl font-bold text-gray-800 mb-4">Search & Edit Questions</h2>
                             
-                            <div className="flex gap-3 mb-6">
+                            <div className="flex gap-3 mb-4">
                                 <div className="flex-1">
                                     <input
                                         type="text"
@@ -5830,6 +5856,44 @@ export default function EditorDashboard({ onLogout }) {
                                     </svg>
                                     Search
                                 </button>
+                            </div>
+                            
+                            {/* Filter Options */}
+                            <div className="flex gap-3 mb-6">
+                                <div className="flex-1">
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Status Filter</label>
+                                    <select
+                                        value={editFilterStatus}
+                                        onChange={(e) => {
+                                            setEditFilterStatus(e.target.value);
+                                            if (searchQuery.length >= 2) {
+                                                handleSearchQuestions(searchQuery);
+                                            }
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                                    >
+                                        <option value="all">All Questions</option>
+                                        <option value="active">Active Only</option>
+                                        <option value="inactive">Inactive Only</option>
+                                    </select>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Type Filter</label>
+                                    <select
+                                        value={editFilterType}
+                                        onChange={(e) => {
+                                            setEditFilterType(e.target.value);
+                                            if (searchQuery.length >= 2) {
+                                                handleSearchQuestions(searchQuery);
+                                            }
+                                        }}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                                    >
+                                        <option value="all">All Types</option>
+                                        <option value="nested">Nested Only</option>
+                                        <option value="standalone">Standalone Only</option>
+                                    </select>
+                                </div>
                             </div>
 
                             {/* Search Results */}
@@ -5875,6 +5939,20 @@ export default function EditorDashboard({ onLogout }) {
                                                             📖 {question.topic_name}
                                                         </span>
                                                     )}
+                                                    <span className={`px-2 py-1 rounded font-semibold ${
+                                                        question.is_active !== false 
+                                                            ? 'bg-green-100 text-green-700' 
+                                                            : 'bg-red-100 text-red-700'
+                                                    }`}>
+                                                        {question.is_active !== false ? '✓ Active' : '✕ Inactive'}
+                                                    </span>
+                                                    <span className={`px-2 py-1 rounded font-semibold ${
+                                                        question.is_nested === true 
+                                                            ? 'bg-purple-100 text-purple-700' 
+                                                            : 'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                        {question.is_nested === true ? '⊕ Nested' : '◉ Standalone'}
+                                                    </span>
                                                 </div>
                                             </div>
                                         ))}
@@ -5906,6 +5984,8 @@ export default function EditorDashboard({ onLogout }) {
                                                 setEditMarks('');
                                                 setEditTopic('');
                                                 setEditQuestionTopics([]);
+                                                setEditIsActive(true);
+                                                setEditIsNested(false);
                                             }}
                                             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
                                         >
@@ -6119,6 +6199,98 @@ export default function EditorDashboard({ onLogout }) {
                                         step="0.5"
                                         min="0"
                                     />
+                                </div>
+
+                                {/* Status Controls */}
+                                <div className="mb-6 p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border-2 border-gray-200">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                                        </svg>
+                                        Question Status
+                                    </h3>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Active/Inactive Toggle */}
+                                        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-blue-300 transition">
+                                            <label className="block text-sm font-bold text-gray-700 mb-3">
+                                                Activation Status
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditIsActive(true)}
+                                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                                                        editIsActive
+                                                            ? 'bg-green-600 text-white shadow-lg'
+                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                    }`}
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    Active
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditIsActive(false)}
+                                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                                                        !editIsActive
+                                                            ? 'bg-red-600 text-white shadow-lg'
+                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                    }`}
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                    Inactive
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                {editIsActive 
+                                                    ? '✓ This question will be available for paper generation' 
+                                                    : '✕ This question will be hidden from paper generation'}
+                                            </p>
+                                        </div>
+
+                                        {/* Nested/Standalone Toggle */}
+                                        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-purple-300 transition">
+                                            <label className="block text-sm font-bold text-gray-700 mb-3">
+                                                Question Type
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditIsNested(true)}
+                                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                                                        editIsNested
+                                                            ? 'bg-purple-600 text-white shadow-lg'
+                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                    }`}
+                                                >
+                                                    <span className="text-lg">⊕</span>
+                                                    Nested
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditIsNested(false)}
+                                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                                                        !editIsNested
+                                                            ? 'bg-blue-600 text-white shadow-lg'
+                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                    }`}
+                                                >
+                                                    <span className="text-lg">◉</span>
+                                                    Standalone
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                {editIsNested 
+                                                    ? '⊕ Question has multiple parts (a, b, c, etc.)' 
+                                                    : '◉ Question is a single standalone item'}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </form>
                         )}
