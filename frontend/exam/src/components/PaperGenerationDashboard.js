@@ -833,7 +833,7 @@ export default function PaperGenerationDashboard() {
                             onClick={handleCloseViewer}
                             className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition"
                         >
-                            Close and Return to Dashboard
+                            Dashboard
                         </button>
                     </div>
                     
