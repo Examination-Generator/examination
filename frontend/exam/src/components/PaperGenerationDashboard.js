@@ -849,21 +849,21 @@ export default function PaperGenerationDashboard() {
                     {/* Full Exam Preview Modal */}
                     {showFullExamModal && (
                         <div 
-                            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+                            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4"
                             onClick={() => setShowFullExamModal(false)}
                         >
                             <div 
-                                className="bg-white rounded-lg shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col"
+                                className="bg-white rounded-lg shadow-2xl w-full max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {/* Modal Header */}
-                                <div className="flex justify-between items-center p-4 border-b">
-                                    <div className="flex gap-4 items-center">
-                                        <h3 className="text-xl font-bold text-gray-800">📋 Full Exam Preview</h3>
-                                        <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
+                                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 p-3 sm:p-4 border-b">
+                                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center">
+                                        <h3 className="text-lg sm:text-xl font-bold text-gray-800">📋 Full Exam Preview</h3>
+                                        <div className="flex gap-1 sm:gap-2 bg-gray-100 rounded-lg p-1 w-full sm:w-auto">
                                             <button
                                                 onClick={() => setExamModalView('questions')}
-                                                className={`px-4 py-2 rounded-lg font-medium transition ${
+                                                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition ${
                                                     examModalView === 'questions'
                                                         ? 'bg-blue-600 text-white'
                                                         : 'text-gray-600 hover:bg-gray-200'
@@ -873,7 +873,7 @@ export default function PaperGenerationDashboard() {
                                             </button>
                                             <button
                                                 onClick={() => setExamModalView('marking_scheme')}
-                                                className={`px-4 py-2 rounded-lg font-medium transition ${
+                                                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg font-medium text-sm sm:text-base transition ${
                                                     examModalView === 'marking_scheme'
                                                         ? 'bg-green-600 text-white'
                                                         : 'text-gray-600 hover:bg-gray-200'
@@ -883,7 +883,7 @@ export default function PaperGenerationDashboard() {
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 w-full md:w-auto">
                                         <button
                                             onClick={() => {
                                                 const iframe = document.getElementById('full-exam-iframe');
@@ -891,7 +891,7 @@ export default function PaperGenerationDashboard() {
                                                     iframe.contentWindow.print();
                                                 }
                                             }}
-                                            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition text-sm"
+                                            className="flex-1 md:flex-none bg-purple-600 hover:bg-purple-700 text-white px-3 sm:px-4 py-2 rounded-lg transition text-sm"
                                         >
                                             🖨️ Print
                                         </button>
@@ -900,7 +900,7 @@ export default function PaperGenerationDashboard() {
                                                 setShowFullExamModal(false);
                                                 setExamModalView('questions'); // Reset to questions view
                                             }}
-                                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition text-sm"
+                                            className="flex-1 md:flex-none bg-red-600 hover:bg-red-700 text-white px-3 sm:px-4 py-2 rounded-lg transition text-sm"
                                         >
                                             ✕ Close
                                         </button>
