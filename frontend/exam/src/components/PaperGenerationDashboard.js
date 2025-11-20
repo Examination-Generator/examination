@@ -828,19 +828,10 @@ export default function PaperGenerationDashboard() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="mt-6 flex gap-4">
-                        <button
-                            onClick={() => {
-                                setViewingCoverpage(false);
-                                setViewingPaper(true);
-                            }}
-                            className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition"
-                        >
-                            ← Back to Questions
-                        </button>
+                    <div className="mt-6">
                         <button
                             onClick={handleCloseViewer}
-                            className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition"
+                            className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition"
                         >
                             Close and Return to Dashboard
                         </button>
