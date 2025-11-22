@@ -5706,7 +5706,7 @@ export default function EditorDashboard({ onLogout }) {
                                 {/* Preview */}
                                 <div className="bg-gray-50 rounded-lg p-4">
                                     <p className="text-xs font-bold text-gray-700 mb-2">Preview:</p>
-                                    <div className="bg-white p-3 rounded border border-gray-300">
+                                    <div className="bg-white p-3 rounded border border-gray-300 overflow-y-auto h-64">
                                         {[...Array(Math.min(3, Math.ceil(answerLinesConfig.numberOfLines)))].map((_, idx) => (
                                             <div
                                                 key={idx}

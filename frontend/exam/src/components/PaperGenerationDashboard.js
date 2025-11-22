@@ -756,8 +756,8 @@ export default function PaperGenerationDashboard() {
                             </div>
                             
                             {/* iframe for HTML preview */}
-                            <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-white" style={{ height: previewMode ? '900px' : '700px' }}>
-                                <div className="bg-gray-100 p-2 border-b flex justify-between items-center">
+                            <div className="border-2 border-gray-300 rounded-lg overflow-auto bg-white" style={{ height: previewMode ? '900px' : '700px' }}>
+                                <div className="bg-gray-100 p-2 border-b flex justify-between items-center sticky top-0 z-10">
                                     <span className="text-xs text-gray-600">Live Preview (Save changes to update)</span>
                                     <button
                                         onClick={() => {
@@ -792,9 +792,9 @@ export default function PaperGenerationDashboard() {
                                 </div>
                                 <iframe
                                     id="coverpage-iframe"
-                                    className="w-full"
+                                    className="w-full min-h-full"
                                     title="Coverpage Preview"
-                                    style={{ border: 'none', height: 'calc(100% - 40px)' }}
+                                    style={{ border: 'none', height: 'auto', minHeight: 'calc(100% - 40px)' }}
                                     sandbox="allow-same-origin allow-scripts allow-popups"
                                     ref={(iframe) => {
                                         if (iframe && !iframe.dataset.loaded) {
@@ -899,11 +899,11 @@ export default function PaperGenerationDashboard() {
                                 </div>
                                 
                                 {/* Modal Body - Iframe */}
-                                <div className="flex-1 overflow-hidden">
+                                <div className="flex-1 overflow-auto">
                                     <iframe
                                         id="full-exam-iframe"
                                         key={examModalView} // Force re-render when view changes
-                                        className="w-full h-full"
+                                        className="w-full h-full min-h-full"
                                         title={examModalView === 'questions' ? 'Questions Preview' : 'Marking Scheme Preview'}
                                         style={{ border: 'none' }}
                                         sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"
