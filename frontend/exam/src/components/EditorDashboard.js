@@ -5599,7 +5599,7 @@ export default function EditorDashboard({ onLogout }) {
 
                             <div className="space-y-4">
                                 {/* Number of Lines */}
-                                <div>
+                                {/* <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">
                                         Number of Lines *
                                     </label>
@@ -5618,6 +5618,44 @@ export default function EditorDashboard({ onLogout }) {
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
                                         Enter whole numbers (1, 2, 3...) or half lines (0.5, 1.5, 2.5...)
+                                    </p>
+                                </div> */}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Number of Lines *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={answerLinesConfig.numberOfLines}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            // Allow empty input or valid decimal numbers
+                                            if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                                                const numValue = parseFloat(value);
+                                                // Only update if it's a valid number within range or empty
+                                                if (value === '' || (!isNaN(numValue) && numValue >= 0.5 && numValue <= 400)) {
+                                                    setAnswerLinesConfig(prev => ({ 
+                                                        ...prev, 
+                                                        numberOfLines: value === '' ? 0.5 : numValue
+                                                    }));
+                                                }
+                                            }
+                                        }}
+                                        onBlur={(e) => {
+                                            // Ensure valid value on blur
+                                            const value = parseFloat(e.target.value);
+                                            if (isNaN(value) || value < 0.5) {
+                                                setAnswerLinesConfig(prev => ({ ...prev, numberOfLines: 0.5 }));
+                                            } else if (value > 400) {
+                                                setAnswerLinesConfig(prev => ({ ...prev, numberOfLines: 400 }));
+                                            }
+                                        }}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                        placeholder="e.g., 5 or 2.5 for half line"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Enter whole numbers (1, 2, 3...) or half lines (0.5, 1.5, 2.5...). Range: 0.5 - 400
                                     </p>
                                 </div>
 
