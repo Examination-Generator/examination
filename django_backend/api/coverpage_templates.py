@@ -20,11 +20,11 @@ def format_time_allocation(minutes):
         hours = minutes // 60
         remaining_minutes = minutes % 60
         if remaining_minutes == 0:
-            return f"{hours} {'hour' if hours == 1 else 'hours'}"
+            return f"{hours} {'HOUR' if hours == 1 else 'HOURS'}"
         else:
-            return f"{hours} {'hour' if hours == 1 else 'hours'} {remaining_minutes} minutes"
+            return f"{hours} {'HOUR' if hours == 1 else 'HOURS'} {remaining_minutes} MINUTES"
     else:
-        return f"{minutes} minutes"
+        return f"{minutes} MINUTES"
 
 
 class BiologyPaper1Coverpage:
