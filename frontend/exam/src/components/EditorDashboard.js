@@ -5764,7 +5764,7 @@ export default function EditorDashboard({ onLogout }) {
                                 </div>
                             </div>
 
-                            <div className="flex space-x-3 mt-6">
+                            <div className="flex space-x-3 mt-4">
                                 <button
                                     onClick={() => {
                                         // Add lines to the appropriate section
