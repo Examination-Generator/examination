@@ -158,15 +158,6 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
             font-size: 11pt;
         }}
         
-        .nested-label {{
-            background: #10b981;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 3px;
-            font-size: 10pt;
-            margin-left: 10px;
-        }}
-        
         /* Image styling */
         .answer-image {{
             display: block;
@@ -185,7 +176,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
             margin: 5px;
         }}
         
-        /* Answer lines styling - FIXED */
+        /* Answer lines styling */
         .answer-lines {{
             margin: 15px 0;
             max-width: 700px;
@@ -196,36 +187,6 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }}
-        
-        /* Image placeholder styling */
-        .image-placeholder {{
-            display: inline-block;
-            margin: 10px 0;
-            padding: 16px;
-            background: #fef2f2;
-            border: 2px dashed #dc2626;
-            border-radius: 8px;
-        }}
-        
-        .image-placeholder-header {{
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #991b1b;
-            font-size: 11pt;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }}
-        
-        .image-placeholder-details {{
-            margin-top: 8px;
-            font-size: 10pt;
-            color: #7f1d1d;
-        }}
-        
-        .image-placeholder-details div {{
-            margin: 4px 0;
         }}
         
         /* Formatting styles */
@@ -370,34 +331,9 @@ def _generate_single_answer_html(item):
     answer = item.get('answer', 'No answer provided')
     marking_points = item.get('marking_points', None)
     
-    # FIXED: Get images from multiple possible locations
-    answer_images = (
-        item.get('answer_inline_images') or 
-        item.get('answerInlineImages') or 
-        item.get('inline_images') or 
-        item.get('images') or 
-        []
-    )
-    
-    # FIXED: Get lines from multiple possible locations
-    answer_lines = (
-        item.get('answer_answer_lines') or 
-        item.get('answerAnswerLines') or 
-        item.get('answer_lines') or 
-        item.get('lines') or 
-        []
-    )
-    
-    # Debug logging
-    print(f"[DEBUG] Question {number}:")
-    print(f"  - Images found: {len(answer_images)}")
-    print(f"  - Lines found: {len(answer_lines)}")
-    if answer_images:
-        print(f"  - First image ID: {answer_images[0].get('id') if isinstance(answer_images[0], dict) else 'N/A'}")
-    if answer_lines:
-        print(f"  - First line ID: {answer_lines[0].get('id') if isinstance(answer_lines[0], dict) else 'N/A'}")
-    
-
+    # Get images and lines - USE SAME APPROACH AS EXAM PAPER
+    answer_images = item.get('answer_inline_images', [])
+    answer_lines = item.get('answer_answer_lines', [])
     
     # Build marking points HTML
     marking_points_html = ''
@@ -413,7 +349,7 @@ def _generate_single_answer_html(item):
         </div>
         """
     
-    # Process answer text with images and lines
+    # Process answer text with images and lines - USE SAME FUNCTION AS EXAM PAPER
     processed_answer = _process_answer_text(answer, answer_images, answer_lines)
     
     html = f"""
@@ -433,6 +369,7 @@ def _generate_single_answer_html(item):
 def _process_answer_text(text, images=None, answer_lines=None):
     """
     Process answer text to render images, lines, and formatting
+    USES THE SAME RELIABLE APPROACH AS THE EXAM PAPER GENERATOR
     
     Args:
         text (str): Answer text with placeholders
@@ -445,47 +382,16 @@ def _process_answer_text(text, images=None, answer_lines=None):
     if not text:
         return "No answer provided"
     
-    # FIXED: Better image dictionary creation with multiple ID formats
+    # Create lookup dictionaries - SIMPLE AND RELIABLE
     images_dict = {}
     if images:
         for img in images:
-            try:
-                if isinstance(img, dict):
-                    img_id = img.get('id')
-                    if img_id is not None:
-                        # Store with float key for matching
-                        images_dict[float(img_id)] = img
-                        print(f"[DEBUG] Stored image with ID: {img_id} (float: {float(img_id)})")
-                elif hasattr(img, 'id'):
-                    img_id = img.id
-                    images_dict[float(img_id)] = img
-                    print(f"[DEBUG] Stored image object with ID: {img_id}")
-            except (ValueError, TypeError) as e:
-                print(f"[WARNING] Could not process image: {e}")
-                continue
+            images_dict[float(img.get('id', 0))] = img
     
-    # FIXED: Better line dictionary creation
     lines_dict = {}
     if answer_lines:
         for line in answer_lines:
-            try:
-                if isinstance(line, dict):
-                    line_id = line.get('id')
-                    if line_id is not None:
-                        lines_dict[float(line_id)] = line
-                        print(f"[DEBUG] Stored line with ID: {line_id} (float: {float(line_id)})")
-                elif hasattr(line, 'id'):
-                    line_id = line.id
-                    lines_dict[float(line_id)] = line
-                    print(f"[DEBUG] Stored line object with ID: {line_id}")
-            except (ValueError, TypeError) as e:
-                print(f"[WARNING] Could not process line: {e}")
-                continue
-    
-    print(f"[DEBUG] Total images in dict: {len(images_dict)}")
-    print(f"[DEBUG] Total lines in dict: {len(lines_dict)}")
-    print(f"[DEBUG] Image IDs: {list(images_dict.keys())}")
-    print(f"[DEBUG] Line IDs: {list(lines_dict.keys())}")
+            lines_dict[float(line.get('id', 0))] = line
     
     # Split text by formatting, images, and lines
     pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])'
@@ -517,36 +423,26 @@ def _process_answer_text(text, images=None, answer_lines=None):
             content = part[1:-1]
             result.append(f'<em class="italic">{content}</em>')
             
-        # FIXED: Answer lines rendering
+        # Answer lines: [LINES:id]
         elif part.startswith('[LINES:') and part.endswith(']'):
             line_match = re.match(r'\[LINES:([\d.]+)\]', part)
             if line_match:
                 line_id = float(line_match.group(1))
-                print(f"[DEBUG] Looking for line ID: {line_id}")
                 line_config = lines_dict.get(line_id)
                 
                 if line_config:
-                    print(f"[DEBUG] Found line config: {line_config}")
-                    
-                    # FIXED: Handle both dict and object attribute access
-                    if isinstance(line_config, dict):
-                        num_lines = line_config.get('numberOfLines', 5)
-                        line_height = line_config.get('lineHeight', 30)
-                        line_style = line_config.get('lineStyle', 'dotted')
-                        opacity = line_config.get('opacity', 0.5)
-                    else:
-                        num_lines = getattr(line_config, 'numberOfLines', 5)
-                        line_height = getattr(line_config, 'lineHeight', 30)
-                        line_style = getattr(line_config, 'lineStyle', 'dotted')
-                        opacity = getattr(line_config, 'opacity', 0.5)
+                    num_lines = line_config.get('numberOfLines', 5)
+                    line_height = line_config.get('lineHeight', 30)
+                    line_style = line_config.get('lineStyle', 'dotted')
+                    opacity = line_config.get('opacity', 0.5)
                     
                     full_lines = int(num_lines)
                     has_half_line = (num_lines % 1) != 0
                     
                     lines_html = '<div class="answer-lines">'
                     
-                    # Full lines with proper styling
-                    for i in range(full_lines):
+                    # Full lines
+                    for _ in range(full_lines):
                         lines_html += f'<div class="answer-line" style="height: {line_height}px; border-bottom: 2px {line_style} rgba(0, 0, 0, {opacity}); margin: 0; padding: 0;"></div>'
                     
                     # Half line if needed
@@ -556,13 +452,8 @@ def _process_answer_text(text, images=None, answer_lines=None):
                     
                     lines_html += '</div>'
                     result.append(lines_html)
-                    print(f"[DEBUG] Successfully rendered {num_lines} lines")
-                else:
-                    # Line config not found - show placeholder
-                    print(f"[DEBUG] Line config NOT FOUND for ID: {line_id}")
-                    result.append(f'<div style="margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 11px;">⚠️ Answer Lines (ID: {int(line_id)}) - Configuration not found</div>')
         
-        # FIXED: Images rendering with better matching
+        # Images: [IMAGE:id:WxHpx] or [IMAGE:id:Wpx]
         elif part.startswith('[IMAGE:') and part.endswith('px]'):
             # New format: [IMAGE:id:300x200px]
             image_match_new = re.match(r'\[IMAGE:([\d.]+):(\d+)x(\d+)px\]', part)
@@ -579,70 +470,22 @@ def _process_answer_text(text, images=None, answer_lines=None):
                     image_width = int(image_match_old.group(2))
                     image_height = None
                 
-                print(f"[DEBUG] Looking for image ID: {image_id} (type: {type(image_id)})")
+                image = images_dict.get(image_id)
                 
-                # FIXED: Better image matching with tolerance
-                image = None
-                for img_id, img_data in images_dict.items():
-                    print(f"[DEBUG] Comparing {img_id} with {image_id}, diff: {abs(img_id - image_id)}")
-                    if abs(img_id - image_id) < 0.001:
-                        image = img_data
-                        print(f"[DEBUG] MATCH FOUND!")
-                        break
-                
-                if image:
-                    # FIXED: Get URL with better handling
-                    if isinstance(image, dict):
-                        img_url = image.get('url') or image.get('data') or image.get('src')
-                        img_alt = image.get('name', 'Answer image')
-                    else:
-                        img_url = getattr(image, 'url', None) or getattr(image, 'data', None) or getattr(image, 'src', None)
-                        img_alt = getattr(image, 'name', 'Answer image')
+                if image and image.get('url'):
+                    img_url = image['url']
+                    img_alt = image.get('name', 'Answer image')
                     
-                    if img_url:
-                        # Build style
-                        style = f"width: {image_width}px;"
-                        if image_height:
-                            style += f" height: {image_height}px;"
-                        else:
-                            style += " height: auto;"
-                        
-                        result.append(f'<br><img src="{img_url}" alt="{img_alt}" class="answer-image" style="{style}" /><br>')
-                        print(f"[DEBUG] Successfully rendered image {image_id}")
+                    # Build style
+                    style = f"width: {image_width}px;"
+                    if image_height:
+                        style += f" height: {image_height}px;"
                     else:
-                        print(f"[DEBUG] Image found but no URL: {image}")
-                        result.append(_generate_image_placeholder(image_id, image_width, image_height))
-                else:
-                    # Image not found
-                    print(f"[DEBUG] Image NOT FOUND for ID: {image_id}")
-                    result.append(_generate_image_placeholder(image_id, image_width, image_height))
+                        style += " height: auto;"
+                    
+                    result.append(f'<br><img src="{img_url}" alt="{img_alt}" class="answer-image" style="{style}" /><br>')
         
         else:
             result.append(part)
     
     return ''.join(result)
-
-
-def _generate_image_placeholder(image_id, width, height):
-    """
-    Generate an image placeholder for missing images
-    """
-    height_info = f'{height}px' if height else 'auto'
-    return f'''
-    <div class="image-placeholder">
-        <div class="image-placeholder-header">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-            </svg>
-            <span>Image Not Found</span>
-        </div>
-        <div class="image-placeholder-details">
-            <div>Image ID: {int(image_id)}</div>
-            <div>Expected Size: {width}px × {height_info}</div>
-            <div style="margin-top: 4px; font-style: italic;">
-                The image data is missing from the database. This answer may need to be re-edited.
-            </div>
-        </div>
-    </div>
-    '''
