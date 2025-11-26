@@ -758,34 +758,37 @@ class MarkingSchemeCoverpage:
             counter-increment: item;
         }}
         
-        /* Marking Grid */
-        .marking-grid {{
-            border: 2px solid #000;
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 20px;
+         /* Marking Grid Section */
+        .marking-grid-container {{
+            margin-top: auto;
+            padding-top: 20px;
         }}
         
-        .marking-grid th,
-        .marking-grid td {{
-            border: 1px solid #000;
-            padding: 8px;
-            text-align: center;
-            font-size: 12px;
-        }}
-        
-        .marking-grid th {{
-            background-color: #f3f4f6;
+        .grid-title {{
             font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 10px;
+            text-align: center;
         }}
         
-        .marking-grid .question-col {{
-            width: 60px;
+        .marking-grid {{
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid black;
         }}
         
-        .marking-grid .marks-col {{
-            width: 80px;
-            background-color: #fef3c7;
+        .marking-grid td {{
+            border: 1px solid black;
+            text-align: center;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 8px 4px;
+            height: 30px;
+        }}
+        
+        .question-number {{
+            min-width: 35px;
+            width: 35px;
         }}
         
         .confidential-notice {{
@@ -801,6 +804,7 @@ class MarkingSchemeCoverpage:
             color: #991b1b;
             font-size: 14px;
             text-align:center;
+            opacity: 0.8;
         }}
     </style>
 </head>
