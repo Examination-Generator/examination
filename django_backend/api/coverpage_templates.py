@@ -654,7 +654,7 @@ def generate_marking_table(total_questions):
     
     # Add answer boxes for actual questions
     for i in range(second_row_count):
-        second_row_boxes += '    <td style="min-width: 35px; width: 35px;">&nbsp;</td>\n'
+        second_row_boxes += '    <td style="min-width: 35px; width: 35px;  border-right: 2px solid black; padding: 5px;">&nbsp;</td>\n'
     
     # Fill remaining answer boxes
     for i in range(remaining_cells):
