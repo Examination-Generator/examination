@@ -634,7 +634,7 @@ def generate_marking_table(total_questions):
     
     # Add question numbers for second row (17 onwards)
     for i in range(17, 17 + second_row_count):
-        second_row_html += f'    <td style="min-width: 35px; width: 35px;">{i}</td>\n'
+        second_row_html += f'    <td style="min-width: 35px; width: 35px; border-right: 2px solid black; padding: 5px;">{i}</td>\n'
     
     # Fill remaining cells in second row with empty cells (up to 16 total cells)
     remaining_cells = 16 - second_row_count
