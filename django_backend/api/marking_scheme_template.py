@@ -99,9 +99,8 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
         }}
         
         .answer-content {{
-            padding: 10px;
+            padding: 12px 2px;
             background: #ffffff;
-            text-align: left;
         }}
         
         .answer-text {{
