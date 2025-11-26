@@ -101,13 +101,13 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
         .answer-content {{
             padding: 10px;
             background: #ffffff;
+            text-align: left;
         }}
         
         .answer-text {{
             margin-bottom: 10px;
             white-space: pre-wrap;
             line-height: 1.8;
-            text-align: left;
         }}
         
         .marking-points {{
