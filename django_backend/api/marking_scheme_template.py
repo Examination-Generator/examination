@@ -3,6 +3,7 @@ Marking Scheme Template for KCSE Examination Papers
 Generates professional marking schemes with coverpage and answers
 """
 
+import re
 from .coverpage_templates import MarkingSchemeCoverpage
 
 
@@ -140,9 +141,61 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
             max-width: 100%;
             height: auto;
             margin: 10px 0;
-            border: 1px solid #ddd;
+            border: 2px solid #60a5fa;
+            border-radius: 4px;
             padding: 5px;
             display: block;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }}
+        
+        .answer-image-inline {{
+            display: inline-block;
+            vertical-align: middle;
+            margin: 8px 4px;
+            border: 2px solid #60a5fa;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }}
+        
+        .image-placeholder {{
+            display: inline-block;
+            margin: 8px 0;
+            padding: 16px;
+            background: #fef2f2;
+            border: 2px dashed #dc2626;
+            border-radius: 8px;
+        }}
+        
+        .image-placeholder-header {{
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #991b1b;
+            font-size: 11pt;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }}
+        
+        .image-placeholder-details {{
+            margin-top: 8px;
+            font-size: 10pt;
+            color: #7f1d1d;
+        }}
+        
+        .image-placeholder-details div {{
+            margin: 4px 0;
+        }}
+        
+        .bold-text {{
+            font-weight: bold;
+        }}
+        
+        .italic-text {{
+            font-style: italic;
+        }}
+        
+        .underline-text {{
+            text-decoration: underline;
         }}
         
         @media print {{
@@ -244,8 +297,8 @@ def generate_single_answer_html(item):
         </div>
         """
     
-    # Build answer with images
-    answer_text_with_images = render_text_with_images(answer, answer_images, image_positions)
+    # Build answer with images using new rendering function
+    answer_text_with_images = render_text_with_images(answer, answer_images)
     
     html = f"""
     <div class="answer-item">
@@ -261,41 +314,137 @@ def generate_single_answer_html(item):
     return html
 
 
-def render_text_with_images(text, images, image_positions):
+def render_text_with_images(text, images):
     """
-    Render text with inline images at specified positions
+    Render text with inline images, diagrams, and formatting
+    Supports: **bold**, *italic*, __underline__, _underline_, [IMAGE:id:WxH], [LINES:id]
     
     Args:
-        text (str): The text content
-        images (list): List of base64 encoded images
-        image_positions (dict): Dictionary mapping image indices to character positions
+        text (str): The text content with placeholders
+        images (list): List of image objects/data (base64 or URLs)
     
     Returns:
-        str: HTML with images inserted at correct positions
+        str: HTML with images and formatting applied
     """
     if not text:
         return "No answer provided"
     
-    if not images or not image_positions:
-        return text
+    # Create image lookup dictionary
+    image_dict = {}
+    if images:
+        for img in images:
+            if isinstance(img, dict):
+                img_id = img.get('id')
+                img_url = img.get('url') or img.get('data')
+                if img_id is not None and img_url:
+                    image_dict[float(img_id)] = img_url
+            elif isinstance(img, str):
+                # If images is just a list of base64 strings, use index as ID
+                image_dict[float(len(image_dict))] = img
     
-    # Convert image_positions keys to integers and sort by position
-    try:
-        positions = []
-        for img_idx_str, pos in image_positions.items():
-            img_idx = int(img_idx_str)
-            if img_idx < len(images):
-                positions.append((pos, img_idx))
+    # Split text by formatting markers and image placeholders
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])'
+    parts = re.split(pattern, text)
+    
+    result_html = []
+    
+    for part in parts:
+        if not part:
+            continue
         
-        positions.sort(reverse=True)  # Sort in reverse to insert from end
+        # Handle bold text **text**
+        if part.startswith('**') and part.endswith('**'):
+            content = part[2:-2]
+            result_html.append(f'<span class="bold-text">{content}</span>')
+            continue
         
-        # Insert images at positions
-        result = text
-        for pos, img_idx in positions:
-            image_data = images[img_idx]
-            img_tag = f'<br><img src="{image_data}" class="answer-image" alt="Answer Image {img_idx + 1}"><br>'
-            result = result[:pos] + img_tag + result[pos:]
+        # Handle italic text *text*
+        if part.startswith('*') and part.endswith('*') and not part.startswith('**'):
+            content = part[1:-1]
+            result_html.append(f'<span class="italic-text">{content}</span>')
+            continue
         
-        return result
-    except (ValueError, IndexError, TypeError):
-        return text
+        # Handle underline __text__
+        if part.startswith('__') and part.endswith('__'):
+            content = part[2:-2]
+            result_html.append(f'<span class="underline-text">{content}</span>')
+            continue
+        
+        # Handle underline _text_
+        if part.startswith('_') and part.endswith('_') and not part.startswith('__'):
+            content = part[1:-1]
+            result_html.append(f'<span class="underline-text">{content}</span>')
+            continue
+        
+        # Handle images [IMAGE:id:WxHpx] or [IMAGE:id:Wpx]
+        image_match_new = re.match(r'\[IMAGE:([\d.]+):(\d+)x(\d+)px\]', part)
+        image_match_old = re.match(r'\[IMAGE:([\d.]+):(\d+)px\]', part)
+        
+        if image_match_new or image_match_old:
+            if image_match_new:
+                image_id = float(image_match_new.group(1))
+                image_width = int(image_match_new.group(2))
+                image_height = int(image_match_new.group(3))
+            else:
+                image_id = float(image_match_old.group(1))
+                image_width = int(image_match_old.group(2))
+                image_height = None
+            
+            # Find matching image (with tolerance for floating point comparison)
+            image_url = None
+            for img_id, img_url in image_dict.items():
+                if abs(img_id - image_id) < 0.001:
+                    image_url = img_url
+                    break
+            
+            if image_url:
+                height_style = f'height: {image_height}px;' if image_height else ''
+                result_html.append(f'''
+                <br>
+                <img src="{image_url}" 
+                     alt="Answer Image {int(image_id)}"
+                     class="answer-image"
+                     style="width: {image_width}px; {height_style} max-width: 100%;">
+                <br>
+                ''')
+            else:
+                # Image not found - show placeholder
+                height_info = f'{image_height}px' if image_height else 'auto'
+                result_html.append(f'''
+                <div class="image-placeholder">
+                    <div class="image-placeholder-header">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span>Image Not Found</span>
+                    </div>
+                    <div class="image-placeholder-details">
+                        <div>Image ID: {int(image_id)}</div>
+                        <div>Expected Size: {image_width}px × {height_info}</div>
+                        <div style="margin-top: 4px; font-style: italic;">
+                            The image data is missing from the database. This question may need to be re-edited.
+                        </div>
+                    </div>
+                </div>
+                ''')
+            continue
+        
+        # Handle answer lines [LINES:id]
+        lines_match = re.match(r'\[LINES:([\d.]+)\]', part)
+        if lines_match:
+            lines_id = float(lines_match.group(1))
+            # For now, just show a placeholder for lines
+            result_html.append(f'<div style="margin: 10px 0; color: #666;">[Answer Lines: {int(lines_id)}]</div>')
+            continue
+        
+        # Regular text - escape HTML entities
+        escaped_text = (part
+                       .replace('&', '&amp;')
+                       .replace('<', '&lt;')
+                       .replace('>', '&gt;')
+                       .replace('"', '&quot;')
+                       .replace("'", '&#39;'))
+        result_html.append(escaped_text)
+    
+    return ''.join(result_html)
