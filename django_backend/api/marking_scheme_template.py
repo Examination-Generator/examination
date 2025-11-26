@@ -86,7 +86,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
         .question-number {{
             font-weight: bold;
             font-size: 13pt;
-            color: #1e40af;
+            color: black;
         }}
         
         .question-marks {{
@@ -107,6 +107,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
             margin-bottom: 10px;
             white-space: pre-wrap;
             line-height: 1.8;
+            text-align: left;
         }}
         
         .marking-points {{
@@ -239,7 +240,7 @@ def generate_single_answer_html(item):
         ])
         marking_points_html = f"""
         <div class="marking-points">
-            <div class="marking-points-title">📌 Marking Points:</div>
+            <div class="marking-points-title">Marking Points:</div>
             {points_list}
         </div>
         """
