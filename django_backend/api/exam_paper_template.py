@@ -382,12 +382,11 @@ def _generate_question_pages(questions, total_pages):
         for q in page_questions:
             questions_html += f"""
         <div class="question">
-            <div class="question-header">
+            <!--<div class="question-header">
                 <span class="question-number">{q['number']}.</span>
-                <div class="question-text">{q['text']}</div>
                 <!--<span class="question-marks">({q['marks']} mark{'s' if q['marks'] > 1 else ''})</span>-->
-            </div>
-            <!--<div class="question-text">{q['text']}</div>-->
+            </div>-->
+            <div class="question-text">{q['number']}.{q['text']}</div>
             <!--<div class="answer-space"></div>-->
         </div>
 """
