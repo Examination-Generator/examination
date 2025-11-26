@@ -892,8 +892,8 @@ class MarkingSchemeCoverpage:
         </div>
         
         <!-- Marking Grid Section - at bottom -->
-        <div class="marking-grid-container">
-            <div class="grid-title">For Examiner's Use Only</div>
+        <div class="marking-grid-container" style="margin-top: auto; padding-top: 20px;">
+            <div class="grid-title" style="font-weight: bold;">For Examiner's Use Only</div>
             {marking_grid_html}
         </div>
     </div>
