@@ -1203,7 +1203,7 @@ export default function PaperGenerationDashboard() {
                         ) : (
                             <>
                                 {/* Topics Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 h-96 overflow-y-auto">
                                     {topics.map((topic) => (
                                         <label
                                             key={topic?.id || Math.random()}
