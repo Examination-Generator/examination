@@ -108,6 +108,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
             margin-bottom: 10px;
             white-space: pre-wrap;
             line-height: 1.8;
+            text-align: left;
         }}
         
         .marking-points {{
@@ -304,7 +305,7 @@ def generate_single_answer_html(item):
     <div class="answer-item">
         <div class="answer-content">
             <div class="answer-text">
-             <span class="question-number">{number}</span> {answer_text_with_images}
+<span class="question-number">{number}.</span> {answer_text_with_images}
             </div>
             {marking_points_html}
         </div>
