@@ -319,11 +319,11 @@ export default function EditorDashboard({ onLogout }) {
     // Fetch topics for a specific paper (for edit question dropdown)
     const fetchTopicsForPaper = async (paperId) => {
         try {
-            console.log('📚 [fetchTopicsForPaper] Starting fetch for paper ID:', paperId);
+            console.log('[fetchTopicsForPaper] Starting fetch for paper ID:', paperId);
             
             const token = localStorage.getItem('token');
             if (!token) {
-                console.error('❌ [fetchTopicsForPaper] No auth token found');
+                console.error('[fetchTopicsForPaper] No auth token found');
                 setEditQuestionTopics([]);
                 return;
             }
@@ -335,45 +335,45 @@ export default function EditorDashboard({ onLogout }) {
                 }
             });
             
-            console.log('📚 [fetchTopicsForPaper] Response status:', response.status, response.ok);
+            console.log('[fetchTopicsForPaper] Response status:', response.status, response.ok);
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('❌ [fetchTopicsForPaper] Failed to fetch subjects. Status:', response.status);
-                console.error('❌ [fetchTopicsForPaper] Error text:', errorText);
+                console.error('[fetchTopicsForPaper] Failed to fetch subjects. Status:', response.status);
+                console.error('[fetchTopicsForPaper] Error text:', errorText);
                 throw new Error(`Failed to fetch subjects: ${response.status}`);
             }
             
             const data = await response.json();
-            console.log('📦 [fetchTopicsForPaper] Received data:', data);
+            console.log('[fetchTopicsForPaper] Received data:', data);
             const subjects = data.data || [];
-            console.log('📋 [fetchTopicsForPaper] Processing', subjects.length, 'subjects to find paper:', paperId);
+            console.log('[fetchTopicsForPaper] Processing', subjects.length, 'subjects to find paper:', paperId);
             
             // Find the paper in subjects and get its topics
             for (const subject of subjects) {
-                console.log('🔍 [fetchTopicsForPaper] Checking subject:', subject.name, '| Papers count:', subject.papers?.length);
+                console.log('[fetchTopicsForPaper] Checking subject:', subject.name, '| Papers count:', subject.papers?.length);
                 if (subject.papers) {
                     subject.papers.forEach(p => {
-                        console.log('  📄 Paper ID:', p.id, '| Name:', p.name, '| Topics count:', p.topics?.length);
+                        console.log('  Paper ID:', p.id, '| Name:', p.name, '| Topics count:', p.topics?.length);
                     });
                 }
                 const paper = subject.papers?.find(p => p.id === paperId);
                 if (paper) {
-                    console.log('✅ [fetchTopicsForPaper] FOUND matching paper!');
-                    console.log('✅ [fetchTopicsForPaper] Paper name:', paper.name);
-                    console.log('✅ [fetchTopicsForPaper] Topics:', paper.topics);
-                    console.log('✅ [fetchTopicsForPaper] Setting editQuestionTopics with', paper.topics?.length, 'topics');
+                    console.log('[fetchTopicsForPaper] FOUND matching paper!');
+                    console.log('[fetchTopicsForPaper] Paper name:', paper.name);
+                    console.log('[fetchTopicsForPaper] Topics:', paper.topics);
+                    console.log('[fetchTopicsForPaper] Setting editQuestionTopics with', paper.topics?.length, 'topics');
                     setEditQuestionTopics(paper.topics || []);
                     return;
                 }
             }
             
-            console.warn('⚠️ [fetchTopicsForPaper] No paper found with ID:', paperId);
-            console.warn('⚠️ [fetchTopicsForPaper] Setting editQuestionTopics to empty array');
+            console.warn('[fetchTopicsForPaper] No paper found with ID:', paperId);
+            console.warn('[fetchTopicsForPaper] Setting editQuestionTopics to empty array');
             setEditQuestionTopics([]);
         } catch (error) {
-            console.error('❌ [fetchTopicsForPaper] Error:', error);
-            console.error('❌ [fetchTopicsForPaper] Error stack:', error.stack);
+            console.error('[fetchTopicsForPaper] Error:', error);
+            console.error('[fetchTopicsForPaper] Error stack:', error.stack);
             setEditQuestionTopics([]);
         }
     };
@@ -903,15 +903,15 @@ export default function EditorDashboard({ onLogout }) {
                 setIsNested(false); // NEW: Reset nested checkbox
                 setSimilarQuestions([]);
                 
-                alert('✅ Question saved to database successfully!');
+                alert('Question saved to database successfully!');
                 console.log('Question saved:', result);
             } else {
                 console.error('Failed to save question:', result);
-                alert(`❌ Failed to save question: ${result.message || 'Unknown error'}`);
+                alert(`Failed to save question: ${result.message || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error submitting question:', error);
-            alert('❌ Error submitting question. Please check your connection and try again.');
+            alert('Error submitting question. Please check your connection and try again.');
         }
     };
 
@@ -1287,7 +1287,7 @@ export default function EditorDashboard({ onLogout }) {
         setAnswerText(prev => prev + imagePlaceholder);
         
         setShowAnswerDrawingTool(false);
-        alert('✅ Answer drawing inserted!');
+        alert('Answer drawing inserted!');
     };
     
     const handleAnswerFileUpload = (e) => {
@@ -1332,7 +1332,7 @@ export default function EditorDashboard({ onLogout }) {
         
         const image = images.find(img => img.id === imageId);
         if (!image) {
-            alert('❌ Image not found!');
+            alert('Image not found!');
             return;
         }
         
@@ -1345,7 +1345,7 @@ export default function EditorDashboard({ onLogout }) {
             img.id === imageId ? { ...img, position: text.length } : img
         ));
         
-        alert('✅ Image inserted!');
+        alert('Image inserted!');
     };
 
     // Insert image directly with image object (for when state hasn't updated yet)
@@ -1355,7 +1355,7 @@ export default function EditorDashboard({ onLogout }) {
         const text = targetType === 'question' ? questionText : answerText;
         
         if (!image) {
-            alert('❌ Image not found!');
+            alert('Image not found!');
             return;
         }
         
@@ -1368,7 +1368,7 @@ export default function EditorDashboard({ onLogout }) {
             img.id === image.id ? { ...img, position: text.length } : img
         ));
         
-        alert('✅ Image inserted!');
+        alert('Image inserted!');
     };
 
 
@@ -1775,7 +1775,7 @@ export default function EditorDashboard({ onLogout }) {
     };
 
     const handleSelectQuestion = (question) => {
-        console.log('🔍 RAW question data received:', question);
+        console.log('RAW question data received:', question);
         console.log('🔍 question_inline_images field:', question.question_inline_images);
         console.log('🔍 answer_inline_images field:', question.answer_inline_images);
         

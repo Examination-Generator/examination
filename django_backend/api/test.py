@@ -4,8 +4,6 @@ Generates complete exam papers with coverpage and paginated questions
 """
 
 from .coverpage_templates import BiologyPaper1Coverpage
-import re
-import base64
 
 
 def generate_full_exam_html(coverpage_data, questions):
@@ -14,8 +12,7 @@ def generate_full_exam_html(coverpage_data, questions):
     
     Args:
         coverpage_data (dict): Coverpage information
-        questions (list): List of question dictionaries with 'number', 'text', 'marks', 
-                         'question_inline_images', 'question_answer_lines'
+        questions (list): List of question dictionaries with 'number', 'text', 'marks'
     
     Returns:
         str: Complete HTML document
@@ -25,6 +22,7 @@ def generate_full_exam_html(coverpage_data, questions):
     coverpage_html = BiologyPaper1Coverpage.generate_html(coverpage_data)
     
     # Extract coverpage content (remove html/body tags to combine later)
+    import re
     coverpage_body = re.search(r'<body>(.*?)</body>', coverpage_html, re.DOTALL)
     if coverpage_body:
         coverpage_content = coverpage_body.group(1)
@@ -146,58 +144,10 @@ def generate_full_exam_html(coverpage_data, questions):
             white-space: pre-wrap;
         }}
         
-        /* Image styling */
-        .question-image {{
-            display: block;
-            margin: 10px auto;
-            max-width: 100%;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }}
-        
-        .question-image.inline {{
-            display: inline-block;
-            vertical-align: middle;
-            margin: 0 5px;
-        }}
-        
-        /* Answer lines styling */
-        .answer-lines {{
-            margin: 10px 0;
-            max-width: 700px;
-        }}
-        
-        .answer-line {{
-            width: 100%;
-            margin: 0;
-            padding: 0;
-        }}
-        
-        .answer-line.dotted {{
-            border-bottom: 2px dotted rgba(0, 0, 0, 0.5);
-        }}
-        
-        .answer-line.solid {{
-            border-bottom: 2px solid rgba(0, 0, 0, 0.5);
-        }}
-        
         .answer-space {{
             margin-top: 10px;
             border-top: 1px dotted #999;
             min-height: 80px;
-        }}
-        
-        /* Formatting styles */
-        .bold {{
-            font-weight: bold;
-        }}
-        
-        .italic {{
-            font-style: italic;
-        }}
-        
-        .underline {{
-            text-decoration: underline;
         }}
         
         /* Coverpage styles from original template */
@@ -409,142 +359,12 @@ def generate_full_exam_html(coverpage_data, questions):
     return full_html
 
 
-def _process_question_text(text, images=None, answer_lines=None):
-    """
-    Process question text to render images and answer lines
-    
-    Args:
-        text (str): Question text with placeholders
-        images (list): List of image objects with id, url, width, height
-        answer_lines (list): List of answer line configurations
-    
-    Returns:
-        str: Processed HTML with images and lines rendered
-    """
-    if not text:
-        return ""
-    
-    # Create lookup dictionaries
-    images_dict = {}
-    if images:
-        for img in images:
-            images_dict[float(img.get('id', 0))] = img
-    
-    lines_dict = {}
-    if answer_lines:
-        for line in answer_lines:
-            lines_dict[float(line.get('id', 0))] = line
-    
-    # Split text by formatting, images, and lines
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])'
-    parts = re.split(pattern, text)
-    
-    result = []
-    
-    for part in parts:
-        if not part:
-            continue
-            
-        # Bold: **text**
-        if part.startswith('**') and part.endswith('**') and len(part) > 4:
-            content = part[2:-2]
-            result.append(f'<strong>{content}</strong>')
-            
-        # Italic: *text* (not **)
-        elif part.startswith('*') and part.endswith('*') and not part.startswith('**') and len(part) > 2:
-            content = part[1:-1]
-            result.append(f'<em>{content}</em>')
-            
-        # Underline: __text__
-        elif part.startswith('__') and part.endswith('__') and len(part) > 4:
-            content = part[2:-2]
-            result.append(f'<u>{content}</u>')
-            
-        # Single underscore italic: _text_
-        elif part.startswith('_') and part.endswith('_') and not part.startswith('__') and len(part) > 2:
-            content = part[1:-1]
-            result.append(f'<em>{content}</em>')
-            
-        # Answer lines: [LINES:id]
-        elif part.startswith('[LINES:') and part.endswith(']'):
-            line_match = re.match(r'\[LINES:([\d.]+)\]', part)
-            if line_match:
-                line_id = float(line_match.group(1))
-                line_config = lines_dict.get(line_id)
-                
-                if line_config:
-                    num_lines = line_config.get('numberOfLines', 5)
-                    line_height = line_config.get('lineHeight', 30)
-                    line_style = line_config.get('lineStyle', 'dotted')
-                    opacity = line_config.get('opacity', 0.5)
-                    
-                    full_lines = int(num_lines)
-                    has_half_line = (num_lines % 1) != 0
-                    
-                    lines_html = '<div class="answer-lines">'
-                    
-                    # Full lines
-                    for _ in range(full_lines):
-                        lines_html += f'<div class="answer-line {line_style}" style="height: {line_height}px; border-bottom: 2px {line_style} rgba(0, 0, 0, {opacity});"></div>'
-                    
-                    # Half line if needed
-                    if has_half_line:
-                        half_height = line_height / 2
-                        lines_html += f'<div class="answer-line {line_style}" style="height: {half_height}px; border-bottom: 2px {line_style} rgba(0, 0, 0, {opacity});"></div>'
-                    
-                    lines_html += '</div>'
-                    result.append(lines_html)
-                else:
-                    # Line config not found - show placeholder
-                    result.append(f'<div style="margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 11px;">⚠️ Answer Lines (ID: {int(line_id)})</div>')
-        
-        # Images: [IMAGE:id:WxH] or [IMAGE:id:Wpx]
-        elif part.startswith('[IMAGE:') and part.endswith('px]'):
-            # New format: [IMAGE:id:300x200px]
-            image_match_new = re.match(r'\[IMAGE:([\d.]+):(\d+)x(\d+)px\]', part)
-            # Old format: [IMAGE:id:300px]
-            image_match_old = re.match(r'\[IMAGE:([\d.]+):(\d+)px\]', part)
-            
-            if image_match_new or image_match_old:
-                if image_match_new:
-                    image_id = float(image_match_new.group(1))
-                    image_width = int(image_match_new.group(2))
-                    image_height = int(image_match_new.group(3))
-                else:
-                    image_id = float(image_match_old.group(1))
-                    image_width = int(image_match_old.group(2))
-                    image_height = None
-                
-                image = images_dict.get(image_id)
-                
-                if image and image.get('url'):
-                    img_url = image['url']
-                    img_alt = image.get('name', 'Question image')
-                    
-                    # Determine if image should be inline or block
-                    style = f"width: {image_width}px;"
-                    if image_height:
-                        style += f" height: {image_height}px;"
-                    
-                    result.append(f'<img src="{img_url}" alt="{img_alt}" class="question-image" style="{style}" />')
-                else:
-                    # Image not found - show placeholder
-                    result.append(f'<div style="margin: 10px 0; padding: 10px; background: #f8d7da; border: 1px solid #dc3545; border-radius: 4px; font-size: 11px;">❌ Image Not Found (ID: {int(image_id)}, Size: {image_width}×{image_height or "auto"}px)</div>')
-        
-        # Regular text
-        else:
-            result.append(part)
-    
-    return ''.join(result)
-
-
 def _generate_question_pages(questions, total_pages):
     """
     Generate paginated question pages
     
     Args:
-        questions (list): List of questions with 'number', 'text', 'marks', 
-                         'question_inline_images', 'question_answer_lines'
+        questions (list): List of questions
         total_pages (int): Total number of pages in the exam
     
     Returns:
@@ -560,16 +380,9 @@ def _generate_question_pages(questions, total_pages):
         
         questions_html = ""
         for q in page_questions:
-            # Process question text to render images and lines
-            processed_text = _process_question_text(
-                q.get('text', ''),
-                q.get('question_inline_images', []),
-                q.get('question_answer_lines', [])
-            )
-            
             questions_html += f"""
         <div class="question">
-            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
+            <div class="question-text"><span class="question-number">{q['number']}.</span>{q['text']}</div>
             <!--<div class="answer-space"></div>-->
         </div>
 """
