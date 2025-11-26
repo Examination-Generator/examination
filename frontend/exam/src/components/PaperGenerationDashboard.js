@@ -20,6 +20,7 @@ export default function PaperGenerationDashboard() {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [generatedResult, setGeneratedResult] = useState(null);
+    const [topicSearchQuery, setTopicSearchQuery] = useState('');
     
     // History tab states
     const [generatedPapers, setGeneratedPapers] = useState([]);
@@ -285,6 +286,10 @@ export default function PaperGenerationDashboard() {
             setSelectedTopics(topics.map(t => t.id));
         }
     };
+
+    const filteredTopics = topics.filter(topic => 
+    topic?.name?.toLowerCase().includes(topicSearchQuery.toLowerCase())
+    );
 
     const handleGeneratePaper = async () => {
         if (selectedTopics.length === 0) {
@@ -1185,14 +1190,53 @@ export default function PaperGenerationDashboard() {
                 {/* Generate Tab */}
                 {activeTab === 'generate' && (
                     <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                             <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Select Topics</h2>
                             <button
                                 onClick={handleSelectAll}
-                                className="text-blue-600 hover:text-blue-700 font-semibold"
+                                className="text-blue-600 hover:text-blue-700 font-semibold whitespace-nowrap"
                             >
                                 {selectedTopics.length === topics.length ? 'Deselect All' : 'Select All'}
                             </button>
+                        </div>
+
+                        {/* Search Bar */}
+                        <div className="mb-4">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="🔍 Search topics by name..."
+                                    value={topicSearchQuery}
+                                    onChange={(e) => setTopicSearchQuery(e.target.value)}
+                                    className="w-full px-4 py-3 pl-10 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <svg 
+                                    className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" 
+                                    fill="none" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                    strokeWidth="2" 
+                                    viewBox="0 0 24 24" 
+                                    stroke="currentColor"
+                                >
+                                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                {topicSearchQuery && (
+                                    <button
+                                        onClick={() => setTopicSearchQuery('')}
+                                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                                    >
+                                        <svg className="h-5 w-5" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+                            {topicSearchQuery && (
+                                <p className="mt-2 text-sm text-gray-600">
+                                    Found {filteredTopics.length} topic{filteredTopics.length !== 1 ? 's' : ''} matching "{topicSearchQuery}"
+                                </p>
+                            )}
                         </div>
 
                         {loading && topics.length === 0 ? (
@@ -1204,34 +1248,44 @@ export default function PaperGenerationDashboard() {
                             <>
                                 {/* Topics Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 h-96 overflow-y-auto">
-                                    {topics.map((topic) => (
-                                        <label
-                                            key={topic?.id || Math.random()}
-                                            className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition ${
-                                                selectedTopics.includes(topic?.id)
-                                                    ? 'border-blue-500 bg-blue-50'
-                                                    : 'border-gray-300 hover:border-blue-300'
-                                            }`}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedTopics.includes(topic?.id)}
-                                                onChange={() => handleTopicToggle(topic?.id)}
-                                                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 mt-1"
-                                            />
-                                            <div className="ml-3 flex-1">
-                                                <p className="font-semibold text-gray-800">{topic?.name || 'Unknown Topic'}</p>
-                                                <div className="mt-2">
-                                                    <p className="text-xs text-gray-500">
-                                                        Total questions: {topic?.total_questions || 0}
-                                                    </p>
-                                                    {topic?.total_questions === 0 && (
-                                                        <span className="text-xs text-gray-400 italic">No questions available</span>
-                                                    )}
+                                    {filteredTopics.length === 0 ? (
+                                        <div className="col-span-2 text-center py-12">
+                                            <p className="text-gray-500">
+                                                {topicSearchQuery ? 
+                                                    `No topics found matching "${topicSearchQuery}"` : 
+                                                    'No topics available'}
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        filteredTopics.map((topic) => (
+                                            <label
+                                                key={topic?.id || Math.random()}
+                                                className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition ${
+                                                    selectedTopics.includes(topic?.id)
+                                                        ? 'border-blue-500 bg-blue-50'
+                                                        : 'border-gray-300 hover:border-blue-300'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedTopics.includes(topic?.id)}
+                                                    onChange={() => handleTopicToggle(topic?.id)}
+                                                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 mt-1"
+                                                />
+                                                <div className="ml-3 flex-1">
+                                                    <p className="font-semibold text-gray-800">{topic?.name || 'Unknown Topic'}</p>
+                                                    <div className="mt-2">
+                                                        <p className="text-xs text-gray-500">
+                                                            Total questions: {topic?.total_questions || 0}
+                                                        </p>
+                                                        {topic?.total_questions === 0 && (
+                                                            <span className="text-xs text-gray-400 italic">No questions available</span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </label>
-                                    ))}
+                                            </label>
+                                        ))
+                                    )}
                                 </div>
 
                                 {/* Selection Summary */}
