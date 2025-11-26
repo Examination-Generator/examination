@@ -1205,7 +1205,7 @@ export default function PaperGenerationDashboard() {
                             <div className="relative">
                                 <input
                                     type="text"
-                                    placeholder="🔍 Search topics by name..."
+                                    placeholder="Search topics by name..."
                                     value={topicSearchQuery}
                                     onChange={(e) => setTopicSearchQuery(e.target.value)}
                                     className="w-full px-4 py-3 pl-10 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
