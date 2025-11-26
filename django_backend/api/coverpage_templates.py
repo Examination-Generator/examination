@@ -615,13 +615,13 @@ def generate_marking_table(total_questions):
     # Build first row (question numbers)
     first_row_html = '<tr>\n'
     for i in range(1, first_row_count + 1):
-        first_row_html += f'    <td style="min-width: 35px; width: 35px; border-right: 2px solid black; padding: 5px;">{i}</td>\n'
+        first_row_html += f'    <td style="min-width: 35px; width: 35px; border-right: 2px solid black; border-bottom: 2px solid black; padding: 5px;">{i}</td>\n'
     first_row_html += '</tr>\n'
     
     # Build first row (answer boxes)
     first_row_boxes = '<tr>\n'
     for i in range(first_row_count):
-        first_row_boxes += '    <td style="min-width: 35px; width: 35px; border-right: 2px solid black; padding: 5px;">&nbsp;</td>\n'
+        first_row_boxes += '    <td style="min-width: 35px; width: 35px; border-right: 2px solid black; border-bottom: 2px solid black; padding: 5px;">&nbsp;</td>\n'
     first_row_boxes += '</tr>\n'
     
     # Build second row if needed
@@ -630,11 +630,11 @@ def generate_marking_table(total_questions):
     
     # Always show second row (even if no questions)
     # Second row question numbers (with spacing)
-    second_row_html = '<tr class="row-with-spacing" style="border-top: 2px solid black; padding-top: 8px;">\n'
+    second_row_html = '<tr class="row-with-spacing" style="border-top: 2px solid black; border-bottom: 2px solid black; padding-top: 8px;">\n'
     
     # Add question numbers for second row (17 onwards)
     for i in range(17, 17 + second_row_count):
-        second_row_html += f'    <td style="min-width: 35px; width: 35px; border-right: 2px solid black; padding: 5px;">{i}</td>\n'
+        second_row_html += f'    <td style="min-width: 35px; width: 35px; border-right: 2px solid black; border-bottom: 2px solid black; padding: 5px;">{i}</td>\n'
     
     # Fill remaining cells in second row with empty cells (up to 16 total cells)
     remaining_cells = 16 - second_row_count
