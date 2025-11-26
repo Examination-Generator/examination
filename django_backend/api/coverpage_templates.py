@@ -800,6 +800,7 @@ class MarkingSchemeCoverpage:
             font-weight: bold;
             color: #991b1b;
             font-size: 14px;
+            text-align:center;
         }}
     </style>
 </head>
@@ -819,7 +820,7 @@ class MarkingSchemeCoverpage:
         
         <!-- Confidential Notice -->
         <div class="confidential-notice">
-            <div class="confidential-text">⚠ CONFIDENTIAL - FOR EXAMINERS ONLY ⚠</div>
+            <div class="confidential-text">CONFIDENTIAL - FOR EXAMINERS ONLY </div>
         </div>
         
         <!-- Instructions -->
@@ -830,8 +831,11 @@ class MarkingSchemeCoverpage:
             </ol>
         </div>
         
-        <!-- Marking Grid -->
-        {marking_grid_html}
+         <!-- Marking Grid -->
+        <div class="marking-grid-container">
+            <div class="grid-title">For Examiner's Use Only</div>
+            {marking_grid_html}
+        </div>
     </div>
 </body>
 </html>
