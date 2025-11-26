@@ -7,137 +7,17 @@ import re
 from .coverpage_templates import MarkingSchemeCoverpage
 
 
-class DataIntegrityError(Exception):
-    """Raised when there's a mismatch between placeholders and provided data"""
-    pass
-
-
-def validate_data_integrity(marking_scheme_items):
-    """
-    Validate data integrity - ensures placeholders match provided image/line arrays
-    This catches data structure issues, not missing database records
-    
-    Args:
-        marking_scheme_items (list): List of marking scheme items
-    
-    Returns:
-        dict: Validation results with 'valid', 'mismatches', 'errors'
-    """
-    validation_results = {
-        'valid': True,
-        'mismatches': [],
-        'errors': []
-    }
-    
-    # Pattern to find all image and line placeholders
-    image_pattern = r'\[IMAGE:([\d.]+):(?:\d+x\d+|\d+)px\]'
-    lines_pattern = r'\[LINES:([\d.]+)\]'
-    
-    for idx, item in enumerate(marking_scheme_items):
-        question_num = item.get('number', idx + 1)
-        answer_text = item.get('answer', '')
-        
-        if not answer_text:
-            continue
-        
-        # Get provided images and lines arrays
-        provided_images = item.get('answer_inline_images', [])
-        provided_lines = item.get('answer_answer_lines', [])
-        
-        # Create lookup dictionaries
-        image_dict = {float(img.get('id', 0)): img for img in provided_images if img.get('id') is not None}
-        line_dict = {float(line.get('id', 0)): line for line in provided_lines if line.get('id') is not None}
-        
-        # Find all image references in text
-        image_matches = re.findall(image_pattern, answer_text)
-        for img_id_str in image_matches:
-            img_id = float(img_id_str)
-            
-            # Check if ID exists in provided array
-            if img_id not in image_dict:
-                validation_results['mismatches'].append({
-                    'type': 'image',
-                    'question': question_num,
-                    'id': img_id,
-                    'error': f'Question {question_num}: Image placeholder [IMAGE:{img_id}:...] found but ID {img_id} not in answer_inline_images array'
-                })
-                validation_results['valid'] = False
-            else:
-                # Check if image has URL (data integrity)
-                img_data = image_dict[img_id]
-                if not img_data.get('url'):
-                    validation_results['mismatches'].append({
-                        'type': 'image_url',
-                        'question': question_num,
-                        'id': img_id,
-                        'error': f'Question {question_num}: Image ID {img_id} exists but has no URL property'
-                    })
-                    validation_results['valid'] = False
-        
-        # Find all line references in text
-        line_matches = re.findall(lines_pattern, answer_text)
-        for line_id_str in line_matches:
-            line_id = float(line_id_str)
-            
-            # Check if ID exists in provided array
-            if line_id not in line_dict:
-                validation_results['mismatches'].append({
-                    'type': 'line',
-                    'question': question_num,
-                    'id': line_id,
-                    'error': f'Question {question_num}: Line placeholder [LINES:{line_id}] found but ID {line_id} not in answer_answer_lines array'
-                })
-                validation_results['valid'] = False
-    
-    # Compile all errors
-    validation_results['errors'] = [item['error'] for item in validation_results['mismatches']]
-    
-    return validation_results
-
-
-def generate_marking_scheme_html(coverpage_data, marking_scheme_items, validate_integrity=True):
+def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
     """
     Generate complete marking scheme HTML with coverpage, answers, and page numbers
     
     Args:
         coverpage_data (dict): Coverpage information
         marking_scheme_items (list): List of marking scheme items with answers
-        validate_integrity (bool): If True, validates data structure integrity before generating
     
     Returns:
         str: Complete HTML for marking scheme
-    
-    Raises:
-        DataIntegrityError: If validate_integrity=True and data structure issues found
     """
-    
-    # VALIDATE DATA INTEGRITY
-    if validate_integrity:
-        validation = validate_data_integrity(marking_scheme_items)
-        
-        if not validation['valid']:
-            error_summary = f"\n❌ DATA INTEGRITY ERROR - {len(validation['errors'])} mismatch(es) found:\n\n"
-            error_summary += "This indicates a bug in the application - placeholders and data arrays don't match.\n\n"
-            
-            image_mismatches = [m for m in validation['mismatches'] if m['type'] in ['image', 'image_url']]
-            line_mismatches = [m for m in validation['mismatches'] if m['type'] == 'line']
-            
-            if image_mismatches:
-                error_summary += f"📷 Image Mismatches ({len(image_mismatches)}):\n"
-                for item in image_mismatches:
-                    error_summary += f"  • {item['error']}\n"
-                error_summary += "\n"
-            
-            if line_mismatches:
-                error_summary += f"📝 Line Mismatches ({len(line_mismatches)}):\n"
-                for item in line_mismatches:
-                    error_summary += f"  • {item['error']}\n"
-                error_summary += "\n"
-            
-            error_summary += "⚠️  This is likely a data serialization issue.\n"
-            error_summary += "Check that answer_inline_images and answer_answer_lines arrays are properly populated.\n"
-            
-            raise DataIntegrityError(error_summary)
     
     # Generate coverpage HTML (page 1)
     coverpage_html = MarkingSchemeCoverpage.generate_html(coverpage_data)
@@ -451,7 +331,7 @@ def _generate_single_answer_html(item):
     answer = item.get('answer', 'No answer provided')
     marking_points = item.get('marking_points', None)
     
-    # Get images and lines - SIMPLE AND DIRECT
+    # Get images and lines - USE SAME APPROACH AS EXAM PAPER
     answer_images = item.get('answer_inline_images', [])
     answer_lines = item.get('answer_answer_lines', [])
     
@@ -469,7 +349,7 @@ def _generate_single_answer_html(item):
         </div>
         """
     
-    # Process answer text with images and lines
+    # Process answer text with images and lines - USE SAME FUNCTION AS EXAM PAPER
     processed_answer = _process_answer_text(answer, answer_images, answer_lines)
     
     html = f"""
@@ -489,6 +369,7 @@ def _generate_single_answer_html(item):
 def _process_answer_text(text, images=None, answer_lines=None):
     """
     Process answer text to render images, lines, and formatting
+    USES THE SAME RELIABLE APPROACH AS THE EXAM PAPER GENERATOR
     
     Args:
         text (str): Answer text with placeholders
@@ -501,20 +382,16 @@ def _process_answer_text(text, images=None, answer_lines=None):
     if not text:
         return "No answer provided"
     
-    # Create lookup dictionaries
+    # Create lookup dictionaries - SIMPLE AND RELIABLE
     images_dict = {}
     if images:
         for img in images:
-            img_id = img.get('id')
-            if img_id is not None:
-                images_dict[float(img_id)] = img
+            images_dict[float(img.get('id', 0))] = img
     
     lines_dict = {}
     if answer_lines:
         for line in answer_lines:
-            line_id = line.get('id')
-            if line_id is not None:
-                lines_dict[float(line_id)] = line
+            lines_dict[float(line.get('id', 0))] = line
     
     # Split text by formatting, images, and lines
     pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])'
@@ -612,22 +489,3 @@ def _process_answer_text(text, images=None, answer_lines=None):
             result.append(part)
     
     return ''.join(result)
-
-
-# Utility function for checking data integrity of specific items
-def check_item_integrity(item):
-    """
-    Check a single marking scheme item for data integrity issues
-    
-    Args:
-        item (dict): Single marking scheme item
-    
-    Returns:
-        dict: Integrity check results with 'valid', 'mismatches', 'errors'
-    """
-    validation = validate_data_integrity([item])
-    return {
-        'valid': validation['valid'],
-        'mismatches': validation['mismatches'],
-        'errors': validation['errors']
-    }
