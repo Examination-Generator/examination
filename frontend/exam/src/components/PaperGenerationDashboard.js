@@ -1355,7 +1355,7 @@ export default function PaperGenerationDashboard() {
                                 </button>
                             </div>
                         ) : (
-                            <div className="space-y-4">
+                            <div className="space-y-4 h-96 overflow-y-auto">
                                 {generatedPapers.map((paper) => {
                                     const daysRemaining = paper?.days_remaining ?? null;
                                     const isExpiringSoon = daysRemaining !== null && daysRemaining <= 7;
