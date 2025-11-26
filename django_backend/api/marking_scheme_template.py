@@ -249,16 +249,9 @@ def generate_single_answer_html(item):
     
     html = f"""
     <div class="answer-item">
-        <div class="question-header">
-            <div>
-                <span class="question-number">Question {number}</span>
-                {nested_badge}
-            </div>
-            <span class="question-marks">{marks} mark{'' if marks == 1 else 's'}</span>
-        </div>
         <div class="answer-content">
             <div class="answer-text">
-                {answer_text_with_images}
+             <span class="question-number">{number}</span> {answer_text_with_images}
             </div>
             {marking_points_html}
         </div>
