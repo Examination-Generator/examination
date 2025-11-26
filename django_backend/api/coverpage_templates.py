@@ -630,7 +630,7 @@ def generate_marking_table(total_questions):
     
     # Always show second row (even if no questions)
     # Second row question numbers (with spacing)
-    second_row_html = '<tr class="row-with-spacing" style="border-top: 2px solid black; border-bottom: 2px solid black; padding-top: 8px;">\n'
+    second_row_html = '<tr class="row-with-spacing" style="border-top: 2px solid black; padding-top: 8px;">\n'
     
     # Add question numbers for second row (17 onwards)
     for i in range(17, 17 + second_row_count):
