@@ -885,14 +885,14 @@ class MarkingSchemeCoverpage:
         
         <!-- Instructions Section - positioned in middle -->
         <div class="instructions">
-            <div class="instructions-title">INSTRUCTIONS TO EXAMINERS</div>
-            <ol>
-                {"".join([f"<li>{instruction}</li>" for instruction in instructions])}
+            <div class="instructions-title"  style="border: 2px solid #000; padding: 15px; margin: 20px 0; flex-grow: 1; display: flex; flex-direction: column;">INSTRUCTIONS TO EXAMINERS</div>
+            <ol style="margin-left: 20px; font-size: 12px; line-height: 1.6;">
+                {"".join([f"<li style=\"margin-bottom: 8px;\">{instruction}</li>" for instruction in instructions])}
             </ol>
         </div>
         
         <!-- Marking Grid Section - at bottom -->
-        <div class="marking-grid-container" style="margin-top: auto; padding-top: 20px;">
+        <div class="marking-grid-container" style="margin-top: auto; padding-top: 40px;">
             <div class="grid-title" style="font-weight: bold;">For Examiner's Use Only</div>
             {marking_grid_html}
         </div>
