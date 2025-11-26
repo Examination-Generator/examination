@@ -38,7 +38,7 @@ export default function PaperGenerationDashboard() {
         class_name: '',
         exam_title: 'END TERM 3 EXAMINATION 2025',
         paper_title: 'BIOLOGY PAPER 1',
-        time_allocation: '2 hours',
+        time_allocation: '2 HOURS',
         total_marks: 80,
         total_questions: 0,
         instructions: [

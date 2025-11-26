@@ -384,10 +384,11 @@ def _generate_question_pages(questions, total_pages):
         <div class="question">
             <div class="question-header">
                 <span class="question-number">{q['number']}.</span>
-                <span class="question-marks">({q['marks']} mark{'s' if q['marks'] > 1 else ''})</span>
+                <div class="question-text">{q['text']}</div>
+                <!--<span class="question-marks">({q['marks']} mark{'s' if q['marks'] > 1 else ''})</span>-->
             </div>
-            <div class="question-text">{q['text']}</div>
-            <div class="answer-space"></div>
+            <!--<div class="question-text">{q['text']}</div>-->
+            <!--<div class="answer-space"></div>-->
         </div>
 """
         
