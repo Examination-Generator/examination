@@ -368,8 +368,6 @@ def _generate_single_answer_html(item):
     """
     number = item.get('number', 1)
     answer = item.get('answer', 'No answer provided')
-    marks = item.get('marks', 0)
-    is_nested = item.get('is_nested', False)
     marking_points = item.get('marking_points', None)
     
     # FIXED: Get images from multiple possible locations
@@ -399,8 +397,7 @@ def _generate_single_answer_html(item):
     if answer_lines:
         print(f"  - First line ID: {answer_lines[0].get('id') if isinstance(answer_lines[0], dict) else 'N/A'}")
     
-    # Build nested label
-    nested_badge = f'<span class="nested-label">NESTED ({marks} marks)</span>' if is_nested else ''
+
     
     # Build marking points HTML
     marking_points_html = ''
@@ -423,7 +420,7 @@ def _generate_single_answer_html(item):
         <div class="answer-item">
             <div class="answer-content">
                 <div class="answer-text">
-<span class="question-number">{number}.</span> {nested_badge} {processed_answer}
+<span class="question-number">{number}.</span>  {processed_answer}
                 </div>
                 {marking_points_html}
             </div>
