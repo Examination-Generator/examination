@@ -377,8 +377,18 @@ def _generate_single_answer_html(item):
     marks = item.get('marks', 0)
     is_nested = item.get('is_nested', False)
     marking_points = item.get('marking_points', None)
+    # Get images and lines from the correct keys
     answer_images = item.get('answer_inline_images', [])
     answer_lines = item.get('answer_answer_lines', [])
+    
+    # Debug: Check if we have the data
+    if not answer_images:
+        # Try alternative key names
+        answer_images = item.get('inline_images', []) or item.get('images', [])
+    
+    if not answer_lines:
+        # Try alternative key names
+        answer_lines = item.get('answer_lines', []) or item.get('lines', [])
     
     # Build nested label
     nested_badge = f'<span class="nested-label">NESTED ({marks} marks)</span>' if is_nested else ''
@@ -433,16 +443,27 @@ def _process_answer_text(text, images=None, answer_lines=None):
     images_dict = {}
     if images:
         for img in images:
-            img_id = img.get('id')
-            if img_id is not None:
-                images_dict[float(img_id)] = img
+            # Handle both dict and other formats
+            if isinstance(img, dict):
+                img_id = img.get('id')
+                if img_id is not None:
+                    # Store the entire image object
+                    images_dict[float(img_id)] = img
+            elif hasattr(img, 'id'):
+                # Handle objects with id attribute
+                images_dict[float(img.id)] = img
     
     lines_dict = {}
     if answer_lines:
         for line in answer_lines:
-            line_id = line.get('id')
-            if line_id is not None:
-                lines_dict[float(line_id)] = line
+            # Handle both dict and other formats
+            if isinstance(line, dict):
+                line_id = line.get('id')
+                if line_id is not None:
+                    lines_dict[float(line_id)] = line
+            elif hasattr(line, 'id'):
+                # Handle objects with id attribute
+                lines_dict[float(line.id)] = line
     
     # Split text by formatting, images, and lines
     pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])'
@@ -486,6 +507,13 @@ def _process_answer_text(text, images=None, answer_lines=None):
                     line_height = line_config.get('lineHeight', 30)
                     line_style = line_config.get('lineStyle', 'dotted')
                     opacity = line_config.get('opacity', 0.5)
+                    
+                    # Handle both dict and object attribute access
+                    if not isinstance(line_config, dict):
+                        num_lines = getattr(line_config, 'numberOfLines', 5)
+                        line_height = getattr(line_config, 'lineHeight', 30)
+                        line_style = getattr(line_config, 'lineStyle', 'dotted')
+                        opacity = getattr(line_config, 'opacity', 0.5)
                     
                     full_lines = int(num_lines)
                     has_half_line = (num_lines % 1) != 0
@@ -531,9 +559,14 @@ def _process_answer_text(text, images=None, answer_lines=None):
                         image = img_data
                         break
                 
-                if image and image.get('url'):
-                    img_url = image['url']
-                    img_alt = image.get('name', 'Answer image')
+                if image and (image.get('url') if isinstance(image, dict) else getattr(image, 'url', None)):
+                    # Handle both dict and object
+                    if isinstance(image, dict):
+                        img_url = image.get('url') or image.get('data')
+                        img_alt = image.get('name', 'Answer image')
+                    else:
+                        img_url = getattr(image, 'url', None) or getattr(image, 'data', None)
+                        img_alt = getattr(image, 'name', 'Answer image')
                     
                     # Build style
                     style = f"width: {image_width}px;"
@@ -562,6 +595,7 @@ def _process_answer_text(text, images=None, answer_lines=None):
                         </div>
                     </div>
                     ''')
+        
         else:
             result.append(part)
     
