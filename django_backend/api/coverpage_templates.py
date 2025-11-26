@@ -663,13 +663,25 @@ class MarkingSchemeCoverpage:
         .header {{
             text-align: center;
             margin-bottom: 20px;
+            position: relative;
         }}
         
         .logo-container {{
             display: flex;
             align-items: center;
-            justify-content: {logo_position};
             margin-bottom: 10px;
+        }}
+        
+        .logo-container.left {{
+            justify-content: flex-start;
+        }}
+        
+        .logo-container.center {{
+            justify-content: center;
+        }}
+        
+        .logo-container.right {{
+            justify-content: flex-end;
         }}
         
         .school-logo {{
@@ -717,11 +729,14 @@ class MarkingSchemeCoverpage:
             margin-bottom: 20px;
         }}
         
-        /* Instructions Section */
+        /* Instructions Section - positioned in middle */
         .instructions {{
             border: 2px solid #000;
             padding: 15px;
-            margin-bottom: 20px;
+            margin: 20px 0;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
         }}
         
         .instructions-title {{
@@ -729,36 +744,36 @@ class MarkingSchemeCoverpage:
             font-weight: bold;
             margin-bottom: 10px;
             text-decoration: underline;
+            text-align: center;
         }}
         
-        .instruction-list {{
-            list-style: none;
-            padding-left: 0;
-        }}
-        
-        .instruction-list li {{
-            margin-bottom: 8px;
-            padding-left: 20px;
-            position: relative;
+        .instructions ol {{
+            margin-left: 20px;
             font-size: 12px;
-            line-height: 1.4;
+            line-height: 1.6;
         }}
         
-        .instruction-list li:before {{
-            content: counter(item, lower-alpha) ')';
-            position: absolute;
-            left: 0;
+        .instructions li {{
+            margin-bottom: 8px;
         }}
         
-        .instruction-list {{
-            counter-reset: item;
+        /* Confidential Notice - positioned relative to header */
+        .confidential-notice {{
+            background: #fee2e2;
+            border: 2px solid #dc2626;
+            padding: 10px;
+            text-align: center;
+            margin-top: 10px;
+            position: relative;
         }}
         
-        .instruction-list li {{
-            counter-increment: item;
+        .confidential-text {{
+            font-weight: bold;
+            color: #991b1b;
+            font-size: 14px;
         }}
         
-         /* Marking Grid Section */
+        /* Marking Grid Section - at bottom */
         .marking-grid-container {{
             margin-top: auto;
             padding-top: 20px;
@@ -791,20 +806,61 @@ class MarkingSchemeCoverpage:
             width: 35px;
         }}
         
-        .confidential-notice {{
-            background: #fee2e2;
-            border: 2px solid #dc2626;
-            padding: 10px;
-            text-align: center;
-            margin-top: 10px;
+        /* Empty question cells (shown but no number) */
+        .empty-question-cell {{
+            min-width: 35px;
+            width: 35px;
+            background-color: white;
+            border: none !important;
         }}
         
-        .confidential-text {{
+        /* Add spacing before second row */
+        .row-with-spacing td {{
+            border-top: 2px solid black;
+            padding-top: 8px;
+        }}
+        
+        /* Override border-top for empty and gap cells in spacing row */
+        .row-with-spacing .empty-question-cell,
+        .row-with-spacing .gap-cell {{
+            border-top: none !important;
+        }}
+        
+        /* Gap cell between questions and Grand Total */
+        .gap-cell {{
+            border: none !important;
+            background-color: white;
+            min-width: 15px;
+            width: 15px;
+        }}
+        
+        .grand-total-cell {{
+            background-color: #f0f0f0;
+            font-size: 10px;
             font-weight: bold;
-            color: #991b1b;
-            font-size: 14px;
-            text-align:center;
-            opacity: 0.8;
+            border: 2px solid black;
+            padding: 5px 10px;
+            min-width: 80px;
+        }}
+        
+        .total-box {{
+            min-width: 60px;
+            width: 60px;
+            min-height: 60px;
+            border: 2px solid black;
+            background-color: white;
+        }}
+        
+        /* Print Styles */
+        @media print {{
+            body {{
+                margin: 0;
+                padding: 20mm;
+            }}
+            
+            .coverpage {{
+                page-break-after: always;
+            }}
         }}
     </style>
 </head>
@@ -812,30 +868,30 @@ class MarkingSchemeCoverpage:
     <div class="coverpage">
         <!-- Header -->
         <div class="header">
-            <div class="logo-container">
-                <img src="{school_logo}" alt="School Logo" class="school-logo" onerror="this.style.display='none'">
+            <div class="logo-container {logo_position}">
+                <img src="{school_logo}" alt="School Logo" class="school-logo" onerror="this.src='/exam.png'">
             </div>
             <div class="school-name">{school_name}</div>
             {f'<div class="class-title">{class_name}</div>' if class_name else ''}
             <div class="exam-title">{exam_title}</div>
             <div class="paper-title">{paper_name}</div>
             <div class="marking-scheme-label">*** MARKING SCHEME ***</div>
+            
+            <!-- Confidential Notice - positioned relative to header -->
+            <div class="confidential-notice">
+                <div class="confidential-text">CONFIDENTIAL - FOR EXAMINERS ONLY</div>
+            </div>
         </div>
         
-        <!-- Confidential Notice -->
-        <div class="confidential-notice">
-            <div class="confidential-text">CONFIDENTIAL - FOR EXAMINERS ONLY </div>
-        </div>
-        
-        <!-- Instructions -->
+        <!-- Instructions Section - positioned in middle -->
         <div class="instructions">
-            <div class="instructions-title">Instructions to Examiners</div>
-            <ol class="instruction-list">
+            <div class="instructions-title">INSTRUCTIONS TO EXAMINERS</div>
+            <ol>
                 {"".join([f"<li>{instruction}</li>" for instruction in instructions])}
             </ol>
         </div>
         
-         <!-- Marking Grid -->
+        <!-- Marking Grid Section - at bottom -->
         <div class="marking-grid-container">
             <div class="grid-title">For Examiner's Use Only</div>
             {marking_grid_html}
