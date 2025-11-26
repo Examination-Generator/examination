@@ -654,11 +654,11 @@ def generate_marking_table(total_questions):
     
     # Add answer boxes for actual questions
     for i in range(second_row_count):
-        second_row_boxes += '    <td style="min-width: 35px; width: 35px;  border-right: 2px solid black; padding: 5px;">&nbsp;</td>\n'
+        second_row_boxes += '    <td style="min-width: 35px; width: 35px;  border-right: 2px solid black; padding: 8px;">&nbsp;</td>\n'
     
     # Fill remaining answer boxes
     for i in range(remaining_cells):
-        second_row_boxes += '    <td class="empty-question-cell" style="min-width: 35px; width: 35px;background-color: white; border: none !important;">&nbsp;</td>\n'
+        second_row_boxes += '    <td class="empty-question-cell" style="min-width: 35px; width: 35px;background-color: white; padding: 8px; border: none !important;">&nbsp;</td>\n'
     
     # Add empty gap cell (matching the one above)
     second_row_boxes += '    <td class="gap-cell" style="border: none !important; background-color: white;min-width: 15px; width: 15px;">&nbsp;</td>\n'
