@@ -453,7 +453,7 @@ class BiologyPaper1Coverpage:
         
         # Always show second row (even if no questions)
         # Second row question numbers (with spacing)
-        second_row_html = '<tr class="row-with-spacing">\n'
+        second_row_html = '<tr class="row-with-spacing" >\n'
         
         # Add question numbers for second row (17 onwards)
         for i in range(17, 17 + second_row_count):
@@ -615,13 +615,13 @@ def generate_marking_table(total_questions):
     # Build first row (question numbers)
     first_row_html = '<tr>\n'
     for i in range(1, first_row_count + 1):
-        first_row_html += f'    <td class="question-number">{i}</td>\n'
+        first_row_html += f'    <td style="min-width: 35px; width: 35px;">{i}</td>\n'
     first_row_html += '</tr>\n'
     
     # Build first row (answer boxes)
     first_row_boxes = '<tr>\n'
     for i in range(first_row_count):
-        first_row_boxes += '    <td class="question-number">&nbsp;</td>\n'
+        first_row_boxes += '    <td style="min-width: 35px; width: 35px;">&nbsp;</td>\n'
     first_row_boxes += '</tr>\n'
     
     # Build second row if needed
@@ -630,19 +630,19 @@ def generate_marking_table(total_questions):
     
     # Always show second row (even if no questions)
     # Second row question numbers (with spacing)
-    second_row_html = '<tr class="row-with-spacing">\n'
+    second_row_html = '<tr class="row-with-spacing" style="border-top: 2px solid black; padding-top: 8px;">\n'
     
     # Add question numbers for second row (17 onwards)
     for i in range(17, 17 + second_row_count):
-        second_row_html += f'    <td class="question-number">{i}</td>\n'
+        second_row_html += f'    <td style="min-width: 35px; width: 35px;">{i}</td>\n'
     
     # Fill remaining cells in second row with empty cells (up to 16 total cells)
     remaining_cells = 16 - second_row_count
     for i in range(remaining_cells):
-        second_row_html += '    <td class="empty-question-cell">&nbsp;</td>\n'
+        second_row_html += '    <td class="empty-question-cell" style="min-width: 35px; width: 35px;background-color: white; border: none !important;">&nbsp;</td>\n'
     
     # Add empty gap cell before Grand Total
-    second_row_html += '    <td class="gap-cell">&nbsp;</td>\n'
+    second_row_html += '    <td class="gap-cell" style="border: none !important; background-color: white;min-width: 15px; width: 15px;">&nbsp;</td>\n'
     
     # Add Grand Total cell (spans 2 rows - question numbers and answer boxes)
     second_row_html += f'    <td rowspan="2" class="grand-total-cell">Grand Total</td>\n'
@@ -654,20 +654,20 @@ def generate_marking_table(total_questions):
     
     # Add answer boxes for actual questions
     for i in range(second_row_count):
-        second_row_boxes += '    <td class="question-number">&nbsp;</td>\n'
+        second_row_boxes += '    <td style="min-width: 35px; width: 35px;">&nbsp;</td>\n'
     
     # Fill remaining answer boxes
     for i in range(remaining_cells):
-        second_row_boxes += '    <td class="empty-question-cell">&nbsp;</td>\n'
+        second_row_boxes += '    <td class="empty-question-cell" style="min-width: 35px; width: 35px;background-color: white; border: none !important;">&nbsp;</td>\n'
     
     # Add empty gap cell (matching the one above)
-    second_row_boxes += '    <td class="gap-cell">&nbsp;</td>\n'
+    second_row_boxes += '    <td class="gap-cell" style="border: none !important; background-color: white;min-width: 15px; width: 15px;">&nbsp;</td>\n'
     # Grand Total cells already added with rowspan
     second_row_boxes += '</tr>\n'
     
     # Combine all rows into table
     grid_html = f"""
-    <table class="marking-grid">
+    <table class="marking-grid" style="width: 100%; border-collapse: collapse; border: 2px solid black;">
         {first_row_html}
         {first_row_boxes}
         {second_row_html}
@@ -981,7 +981,7 @@ class MarkingSchemeCoverpage:
         <!-- Marking Grid Section - at bottom -->
         <div class="marking-grid-container" style="margin-top: auto; padding-top: 40px;">
             <div class="grid-title" style="font-weight: bold;">For Examiner's Use Only</div>
-            
+            {marking_grid}
         </div>
     </div>
 </body>
