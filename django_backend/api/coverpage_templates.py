@@ -615,13 +615,13 @@ def generate_marking_table(total_questions):
     # Build first row (question numbers)
     first_row_html = '<tr>\n'
     for i in range(1, first_row_count + 1):
-        first_row_html += f'    <td style="min-width: 35px; width: 35px;">{i}</td>\n'
+        first_row_html += f'    <td style="min-width: 35px; width: 35px; border-right: 2px solid black; padding: 5px;">{i}</td>\n'
     first_row_html += '</tr>\n'
     
     # Build first row (answer boxes)
     first_row_boxes = '<tr>\n'
     for i in range(first_row_count):
-        first_row_boxes += '    <td style="min-width: 35px; width: 35px;">&nbsp;</td>\n'
+        first_row_boxes += '    <td style="min-width: 35px; width: 35px; border-right: 2px solid black; padding: 5px;">&nbsp;</td>\n'
     first_row_boxes += '</tr>\n'
     
     # Build second row if needed
@@ -645,8 +645,8 @@ def generate_marking_table(total_questions):
     second_row_html += '    <td class="gap-cell" style="border: none !important; background-color: white;min-width: 15px; width: 15px;">&nbsp;</td>\n'
     
     # Add Grand Total cell (spans 2 rows - question numbers and answer boxes)
-    second_row_html += f'    <td rowspan="2" class="grand-total-cell">Grand Total</td>\n'
-    second_row_html += f'    <td rowspan="2" class="total-box">&nbsp;</td>\n'
+    second_row_html += f'    <td rowspan="2" class="grand-total-cell" style="background-color: #f0f0f0; font-size: 10px; font-weight: bold; border: 2px solid black; padding: 5px 10px; min-width: 80px;">Grand Total</td>\n'
+    second_row_html += f'    <td rowspan="2" class="total-box" style="min-width: 60px; width: 60px; min-height: 60px; border: 2px solid black; background-color: white;">&nbsp;</td>\n'
     second_row_html += '</tr>\n'
     
     # Second row answer boxes
