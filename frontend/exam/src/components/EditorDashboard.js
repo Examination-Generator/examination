@@ -2260,22 +2260,23 @@ useEffect(() => {
     };
 
     // Edit Questions functions
-    const handleSearchQuestions = async (query) => {
-        if (!query || query.trim().length < 2) {
-            setSearchResults([]);
-            return;
-        }
-
+    const handleSearchQuestions = async (query = '') => {
         setIsSearchingQuestions(true);
         try {
-            // Search questions by text content
+            // Fetch all questions from database
             const allQuestions = await questionService.getAllQuestions();
-            let filtered = allQuestions.filter(q => 
-                q.question_text?.toLowerCase().includes(query.toLowerCase()) ||
-                q.answer_text?.toLowerCase().includes(query.toLowerCase()) ||
-                q.subject_name?.toLowerCase().includes(query.toLowerCase()) ||
-                q.topic_name?.toLowerCase().includes(query.toLowerCase())
-            );
+            let filtered = [...allQuestions];
+            
+            // Apply text search filter if query exists
+            if (query && query.trim().length >= 2) {
+                const searchTerm = query.toLowerCase();
+                filtered = filtered.filter(q => 
+                    q.question_text?.toLowerCase().includes(searchTerm) ||
+                    q.answer_text?.toLowerCase().includes(searchTerm) ||
+                    q.subject_name?.toLowerCase().includes(searchTerm) ||
+                    q.topic_name?.toLowerCase().includes(searchTerm)
+                );
+            }
             
             // Apply subject filter
             if (editFilterSubject) {
@@ -2291,7 +2292,6 @@ useEffect(() => {
             if (editFilterTopic) {
                 filtered = filtered.filter(q => q.topic_name === editFilterTopic);
             }
-
 
             // Apply status filter
             if (editFilterStatus === 'active') {
@@ -2873,11 +2873,36 @@ useEffect(() => {
         }
     }, [activeTab]);
 
+    // Trigger search when paper filter changes
     useEffect(() => {
-    if (activeTab === 'edit') {
-        fetchSubjects();
-    }
+        if (editFilterSubject && editFilterPaper && editAvailablePapers.length > 0) {
+            const paper = editAvailablePapers.find(p => p.name === editFilterPaper);
+            if (paper) {
+                setEditAvailableTopics(paper.topics || []);
+                setEditFilterTopic('');
+            }
+        } else {
+            setEditAvailableTopics([]);
+        }
+        
+        // Trigger search when filters change
+        handleSearchQuestions(searchQuery);
+    }, [editFilterPaper, editAvailablePapers, editFilterSubject]);
+
+    // Trigger search when other filters change
+    useEffect(() => {
+        handleSearchQuestions(searchQuery);
+    }, [editFilterTopic, editFilterStatus, editFilterType]);
+
+    // Load all questions when Edit tab becomes active
+    useEffect(() => {
+        if (activeTab === 'edit') {
+            handleSearchQuestions(searchQuery);
+        }
     }, [activeTab]);
+
+
+    
 
     const handleSubmitNewSubject = async (e) => {
         e.preventDefault();
@@ -6429,13 +6454,9 @@ useEffect(() => {
                                         value={searchQuery}
                                         onChange={(e) => {
                                             setSearchQuery(e.target.value);
-                                            if (e.target.value.length >= 2) {
-                                                handleSearchQuestions(e.target.value);
-                                            } else {
-                                                setSearchResults([]);
-                                            }
+                                            handleSearchQuestions(e.target.value);
                                         }}
-                                        placeholder="Search by question text, answer, subject, or topic..."
+                                        placeholder="Search by question text, answer, subject, or topic... "
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                                     />
                                 </div>
@@ -6507,17 +6528,16 @@ useEffect(() => {
                                             setEditFilterType('all');
                                             setEditAvailablePapers([]);
                                             setEditAvailableTopics([]);
-                                            // Re-run search if there's a query
-                                            if (searchQuery.length >= 2) {
-                                                handleSearchQuestions(searchQuery);
-                                            }
+                                            setSearchQuery('');
+                                            // Re-run search with no filters
+                                            handleSearchQuestions('');
                                         }}
                                         className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1"
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                         </svg>
-                                        Clear All
+                                        Clear All Filters
                                     </button>
                                 </div>
                                 
@@ -6536,9 +6556,9 @@ useEffect(() => {
                                             onChange={(e) => {
                                                 setEditFilterSubject(e.target.value);
                                                 // Re-run search if there's a query
-                                                if (searchQuery.length >= 2) {
-                                                    setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                }
+                                                // if (searchQuery.length >= 2) {
+                                                //     setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                // }
                                             }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
                                         >
@@ -6562,9 +6582,9 @@ useEffect(() => {
                                             onChange={(e) => {
                                                 setEditFilterPaper(e.target.value);
                                                 // Re-run search if there's a query
-                                                if (searchQuery.length >= 2) {
-                                                    setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                }
+                                                // if (searchQuery.length >= 2) {
+                                                //     setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                // }
                                             }}
                                             disabled={!editFilterSubject}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -6589,9 +6609,9 @@ useEffect(() => {
                                             onChange={(e) => {
                                                 setEditFilterTopic(e.target.value);
                                                 // Re-run search if there's a query
-                                                if (searchQuery.length >= 2) {
-                                                    setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                }
+                                                // if (searchQuery.length >= 2) {
+                                                //     setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                // }
                                             }}
                                             disabled={!editFilterPaper}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -6619,9 +6639,9 @@ useEffect(() => {
                                             onChange={(e) => {
                                                 setEditFilterStatus(e.target.value);
                                                 // Re-run search if there's a query
-                                                if (searchQuery.length >= 2) {
-                                                    setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                }
+                                                // if (searchQuery.length >= 2) {
+                                                //     setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                // }
                                             }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
                                         >
@@ -6644,9 +6664,9 @@ useEffect(() => {
                                             onChange={(e) => {
                                                 setEditFilterType(e.target.value);
                                                 // Re-run search if there's a query
-                                                if (searchQuery.length >= 2) {
-                                                    setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                }
+                                                // if (searchQuery.length >= 2) {
+                                                //     setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                // }
                                             }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
                                         >
