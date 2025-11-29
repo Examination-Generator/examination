@@ -6556,9 +6556,9 @@ useEffect(() => {
                                             onChange={(e) => {
                                                 setEditFilterSubject(e.target.value);
                                                 // Re-run search if there's a query
-                                                // if (searchQuery.length >= 2) {
-                                                //     setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                // }
+                                                if (searchQuery.length >= 2) {
+                                                    setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                }
                                             }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
                                         >
