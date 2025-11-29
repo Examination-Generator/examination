@@ -362,7 +362,7 @@ class BiologyPaper1Coverpage:
         <div class="candidate-info">
             <div class="info-grid">
                 {f'''
-                <div class="info-row">
+                <div class="info-row-full">
                     <div class="info-label">NAME:</div>
                     <div class="info-field"></div>
                 </div>
@@ -387,7 +387,7 @@ class BiologyPaper1Coverpage:
                 </div>
                 ''' if show_date else ''}
                 
-                <div class="info-row-full">
+                <div class="info-row">
                     <div class="info-label">SIGNATURE:</div>
                     <div class="info-field"></div>
                 </div>
@@ -397,7 +397,7 @@ class BiologyPaper1Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">INSTRUCTIONS TO CANDIDATES</div>
-            <ol>
+            <ol type="a" style="font-size: 12px; line-height: 1.6; font-style:italic;">
                 {''.join([f'<li class="{"bold" if idx >= 4 else ""}">{instruction}</li>' for idx, instruction in enumerate(instructions)])}
             </ol>
         </div>
@@ -408,7 +408,7 @@ class BiologyPaper1Coverpage:
             {marking_grid_html}
         </div>
     </div>
-</body>
+</body>a
 </html>
 """
         return html
