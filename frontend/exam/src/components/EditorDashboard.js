@@ -109,6 +109,42 @@ export default function EditorDashboard({ onLogout }) {
     const [editIsNested, setEditIsNested] = useState(false); // Question nested status
     const editQuestionTextareaRef = useRef(null);
     const editAnswerTextareaRef = useRef(null);
+
+    // Edit question drawing states
+    const [showEditQuestionDrawing, setShowEditQuestionDrawing] = useState(false);
+    const [showEditQuestionGraphPaper, setShowEditQuestionGraphPaper] = useState(false);
+    const [editQuestionDrawingTool, setEditQuestionDrawingTool] = useState('pen');
+    const [editQuestionDrawingColor, setEditQuestionDrawingColor] = useState('#000000');
+    const [editQuestionDrawingWidth, setEditQuestionDrawingWidth] = useState(2);
+    const editQuestionCanvasRef = useRef(null);
+    const [isEditQuestionDrawing, setIsEditQuestionDrawing] = useState(false);
+    const [editQuestionStartPos, setEditQuestionStartPos] = useState({ x: 0, y: 0 });
+
+    // Edit answer drawing states
+    const [showEditAnswerDrawing, setShowEditAnswerDrawing] = useState(false);
+    const [showEditAnswerGraphPaper, setShowEditAnswerGraphPaper] = useState(false);
+    const [editAnswerDrawingTool, setEditAnswerDrawingTool] = useState('pen');
+    const [editAnswerDrawingColor, setEditAnswerDrawingColor] = useState('#000000');
+    const [editAnswerDrawingWidth, setEditAnswerDrawingWidth] = useState(2);
+    const editAnswerCanvasRef = useRef(null);
+    const [isEditAnswerDrawing, setIsEditAnswerDrawing] = useState(false);
+    const [editAnswerStartPos, setEditAnswerStartPos] = useState({ x: 0, y: 0 });
+
+    // Edit voice recording states
+    const [isEditQuestionListening, setIsEditQuestionListening] = useState(false);
+    const [isEditAnswerListening, setIsEditAnswerListening] = useState(false);
+    const editQuestionRecognitionRef = useRef(null);
+    const editAnswerRecognitionRef = useRef(null);
+
+    // Edit answer lines modal state
+    const [showEditAnswerLinesModal, setShowEditAnswerLinesModal] = useState(false);
+    const [editAnswerLinesConfig, setEditAnswerLinesConfig] = useState({
+        numberOfLines: 5,
+        lineHeight: 30,
+        lineStyle: 'dotted',
+        opacity: 0.5,
+        targetSection: 'question'
+    });
     
     // Bulk entry states
     const [bulkText, setBulkText] = useState('');
@@ -777,6 +813,459 @@ export default function EditorDashboard({ onLogout }) {
             }
         }
     };
+
+    // ====== EDIT QUESTION DRAWING FUNCTIONS ======
+
+    // Initialize edit question canvas
+    useEffect(() => {
+        if (showEditQuestionDrawing && editQuestionCanvasRef.current) {
+            const canvas = editQuestionCanvasRef.current;
+            const ctx = canvas.getContext('2d');
+            
+            const scale = 2;
+            const displayWidth = 794;
+            const displayHeight = 1123;
+            
+            canvas.width = displayWidth * scale;
+            canvas.height = displayHeight * scale;
+            canvas.style.width = displayWidth + 'px';
+            canvas.style.height = displayHeight + 'px';
+            
+            ctx.scale(scale, scale);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, displayWidth, displayHeight);
+            
+            if (showEditQuestionGraphPaper) {
+                drawGraphPaper(ctx, displayWidth, displayHeight);
+            }
+        }
+    }, [showEditQuestionDrawing, showEditQuestionGraphPaper]);
+
+    const startEditQuestionDrawing = (e) => {
+        setIsEditQuestionDrawing(true);
+        const canvas = editQuestionCanvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        setEditQuestionStartPos({ x, y });
+        
+        const ctx = canvas.getContext('2d');
+        
+        if (editQuestionDrawingTool === 'pen' || editQuestionDrawingTool === 'eraser') {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.strokeStyle = editQuestionDrawingTool === 'eraser' ? 'white' : editQuestionDrawingColor;
+            ctx.lineWidth = editQuestionDrawingTool === 'eraser' ? 20 : editQuestionDrawingWidth;
+            ctx.lineCap = 'round';
+        }
+    };
+
+    const drawEditQuestion = (e) => {
+        if (!isEditQuestionDrawing) return;
+        const canvas = editQuestionCanvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const ctx = canvas.getContext('2d');
+        
+        if (editQuestionDrawingTool === 'pen') {
+            ctx.strokeStyle = editQuestionDrawingColor;
+            ctx.lineWidth = editQuestionDrawingWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        } else if (editQuestionDrawingTool === 'eraser') {
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 20;
+            ctx.lineCap = 'round';
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+    };
+
+    const stopEditQuestionDrawing = (e) => {
+        if (!isEditQuestionDrawing) return;
+        setIsEditQuestionDrawing(false);
+        
+        if (editQuestionDrawingTool === 'line' || editQuestionDrawingTool === 'rectangle' || editQuestionDrawingTool === 'circle') {
+            const canvas = editQuestionCanvasRef.current;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.strokeStyle = editQuestionDrawingColor;
+            ctx.lineWidth = editQuestionDrawingWidth;
+            ctx.lineCap = 'round';
+            
+            if (editQuestionDrawingTool === 'line') {
+                ctx.beginPath();
+                ctx.moveTo(editQuestionStartPos.x, editQuestionStartPos.y);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            } else if (editQuestionDrawingTool === 'rectangle') {
+                ctx.beginPath();
+                const width = x - editQuestionStartPos.x;
+                const height = y - editQuestionStartPos.y;
+                ctx.strokeRect(editQuestionStartPos.x, editQuestionStartPos.y, width, height);
+            } else if (editQuestionDrawingTool === 'circle') {
+                ctx.beginPath();
+                const radiusX = Math.abs(x - editQuestionStartPos.x) / 2;
+                const radiusY = Math.abs(y - editQuestionStartPos.y) / 2;
+                const centerX = editQuestionStartPos.x + (x - editQuestionStartPos.x) / 2;
+                const centerY = editQuestionStartPos.y + (y - editQuestionStartPos.y) / 2;
+                ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+                ctx.stroke();
+            }
+        }
+    };
+
+    const clearEditQuestionCanvas = () => {
+        const canvas = editQuestionCanvasRef.current;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (showEditQuestionGraphPaper) {
+            drawGraphPaper(ctx, canvas.width, canvas.height);
+        }
+    };
+
+    const saveEditQuestionDrawing = () => {
+        const canvas = editQuestionCanvasRef.current;
+        const imageUrl = canvas.toDataURL('image/png', 1.0);
+        const newImage = {
+            id: Date.now() + Math.random(),
+            url: imageUrl,
+            name: 'Edit_Drawing_' + new Date().getTime() + '.png',
+            width: 600,
+            height: 400,
+            position: editQuestionText.length
+        };
+        
+        setEditQuestionInlineImages(prev => [...prev, newImage]);
+        const imagePlaceholder = `\n[IMAGE:${newImage.id}:${newImage.width}x${newImage.height}px]\n`;
+        setEditQuestionText(prev => prev + imagePlaceholder);
+        
+        setShowEditQuestionDrawing(false);
+        alert('✅ Drawing inserted!');
+    };
+
+    // ====== EDIT ANSWER DRAWING FUNCTIONS ======
+
+    useEffect(() => {
+        if (showEditAnswerDrawing && editAnswerCanvasRef.current) {
+            const canvas = editAnswerCanvasRef.current;
+            const ctx = canvas.getContext('2d');
+            
+            const scale = 2;
+            const displayWidth = 794;
+            const displayHeight = 1123;
+            
+            canvas.width = displayWidth * scale;
+            canvas.height = displayHeight * scale;
+            canvas.style.width = displayWidth + 'px';
+            canvas.style.height = displayHeight + 'px';
+            
+            ctx.scale(scale, scale);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (showEditAnswerGraphPaper) {
+                drawGraphPaper(ctx, displayWidth, displayHeight);
+            }
+        }
+    }, [showEditAnswerDrawing, showEditAnswerGraphPaper]);
+
+    const startEditAnswerDrawing = (e) => {
+        setIsEditAnswerDrawing(true);
+        const canvas = editAnswerCanvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        setEditAnswerStartPos({ x, y });
+        
+        const ctx = canvas.getContext('2d');
+        ctx.strokeStyle = editAnswerDrawingColor;
+        ctx.lineWidth = editAnswerDrawingWidth;
+        ctx.lineCap = 'round';
+        
+        if (editAnswerDrawingTool === 'pen' || editAnswerDrawingTool === 'eraser') {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+    };
+
+    const drawEditAnswer = (e) => {
+        if (!isEditAnswerDrawing) return;
+        
+        const canvas = editAnswerCanvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const ctx = canvas.getContext('2d');
+        
+        if (editAnswerDrawingTool === 'pen') {
+            ctx.strokeStyle = editAnswerDrawingColor;
+            ctx.lineWidth = editAnswerDrawingWidth;
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        } else if (editAnswerDrawingTool === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.lineWidth = editAnswerDrawingWidth * 2;
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.globalCompositeOperation = 'source-over';
+        }
+    };
+
+    const stopEditAnswerDrawing = (e) => {
+        if (!isEditAnswerDrawing) return;
+        setIsEditAnswerDrawing(false);
+        
+        if (editAnswerDrawingTool === 'line' || editAnswerDrawingTool === 'rectangle' || editAnswerDrawingTool === 'circle') {
+            const canvas = editAnswerCanvasRef.current;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.strokeStyle = editAnswerDrawingColor;
+            ctx.lineWidth = editAnswerDrawingWidth;
+            ctx.lineCap = 'round';
+            
+            if (editAnswerDrawingTool === 'line') {
+                ctx.beginPath();
+                ctx.moveTo(editAnswerStartPos.x, editAnswerStartPos.y);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            } else if (editAnswerDrawingTool === 'rectangle') {
+                ctx.beginPath();
+                const width = x - editAnswerStartPos.x;
+                const height = y - editAnswerStartPos.y;
+                ctx.strokeRect(editAnswerStartPos.x, editAnswerStartPos.y, width, height);
+            } else if (editAnswerDrawingTool === 'circle') {
+                ctx.beginPath();
+                const radiusX = Math.abs(x - editAnswerStartPos.x) / 2;
+                const radiusY = Math.abs(y - editAnswerStartPos.y) / 2;
+                const centerX = editAnswerStartPos.x + (x - editAnswerStartPos.x) / 2;
+                const centerY = editAnswerStartPos.y + (y - editAnswerStartPos.y) / 2;
+                ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+                ctx.stroke();
+            }
+        }
+    };
+
+    const clearEditAnswerCanvas = () => {
+        const canvas = editAnswerCanvasRef.current;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (showEditAnswerGraphPaper) {
+            drawGraphPaper(ctx, canvas.width, canvas.height);
+        }
+    };
+
+    const saveEditAnswerDrawing = () => {
+        const canvas = editAnswerCanvasRef.current;
+        const imageUrl = canvas.toDataURL('image/png', 1.0);
+        const newImage = {
+            id: Date.now() + Math.random(),
+            url: imageUrl,
+            name: 'Edit_Answer_Drawing_' + new Date().getTime() + '.png',
+            width: 600,
+            height: 400,
+            position: editAnswerText.length
+        };
+        
+        setEditAnswerInlineImages(prev => [...prev, newImage]);
+        const imagePlaceholder = `\n[IMAGE:${newImage.id}:${newImage.width}x${newImage.height}px]\n`;
+        setEditAnswerText(prev => prev + imagePlaceholder);
+        
+        setShowEditAnswerDrawing(false);
+        alert('Answer drawing inserted!');
+    };
+
+    // ====== EDIT VOICE RECORDING FUNCTIONS ======
+
+    const toggleEditQuestionVoiceRecording = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+            return;
+        }
+
+        if (isEditQuestionListening) {
+            if (editQuestionRecognitionRef.current) {
+                editQuestionRecognitionRef.current.stop();
+            }
+            setIsEditQuestionListening(false);
+        } else {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            
+            recognition.onstart = () => {
+                setIsEditQuestionListening(true);
+            };
+            
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    }
+                }
+                
+                if (finalTranscript) {
+                    setEditQuestionText(prev => prev + finalTranscript);
+                }
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setIsEditQuestionListening(false);
+                if (event.error !== 'no-speech') {
+                    alert('Voice recognition error: ' + event.error);
+                }
+            };
+            
+            recognition.onend = () => {
+                setIsEditQuestionListening(false);
+            };
+            
+            editQuestionRecognitionRef.current = recognition;
+            recognition.start();
+        }
+    };
+
+    const toggleEditAnswerVoiceRecording = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+            return;
+        }
+
+        if (isEditAnswerListening) {
+            if (editAnswerRecognitionRef.current) {
+                editAnswerRecognitionRef.current.stop();
+            }
+            setIsEditAnswerListening(false);
+        } else {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            
+            recognition.onstart = () => {
+                setIsEditAnswerListening(true);
+            };
+            
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    }
+                }
+                
+                if (finalTranscript) {
+                    setEditAnswerText(prev => prev + finalTranscript);
+                }
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setIsEditAnswerListening(false);
+                if (event.error !== 'no-speech') {
+                    alert('Voice recognition error: ' + event.error);
+                }
+            };
+            
+            recognition.onend = () => {
+                setIsEditAnswerListening(false);
+            };
+            
+            editAnswerRecognitionRef.current = recognition;
+            recognition.start();
+        }
+    };
+
+    // File upload handlers for edit mode
+    const handleEditQuestionFileUpload = (e) => {
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const newImage = {
+                        id: Date.now() + Math.random(),
+                        url: event.target.result,
+                        name: file.name,
+                        width: 300,
+                        height: 200,
+                        position: editQuestionText.length
+                    };
+                    
+                    setEditQuestionInlineImages(prev => [...prev, newImage]);
+                    
+                    setTimeout(() => {
+                        const imagePlaceholder = `\n[IMAGE:${newImage.id}:${newImage.width}x${newImage.height}px]\n`;
+                        setEditQuestionText(prev => prev + imagePlaceholder);
+                    }, 100);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    };
+
+    const handleEditAnswerFileUpload = (e) => {
+        const files = Array.from(e.target.files);
+        files.forEach(file => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const newImage = {
+                        id: Date.now() + Math.random(),
+                        url: event.target.result,
+                        name: file.name,
+                        width: 300,
+                        height: 200,
+                        position: editAnswerText.length
+                    };
+                    
+                    setEditAnswerInlineImages(prev => [...prev, newImage]);
+                    
+                    setTimeout(() => {
+                        const imagePlaceholder = `\n[IMAGE:${newImage.id}:${newImage.width}x${newImage.height}px]\n`;
+                        setEditAnswerText(prev => prev + imagePlaceholder);
+                    }, 100);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    };
+
+// Cleanup speech recognition on unmount
+useEffect(() => {
+    return () => {
+        if (editQuestionRecognitionRef.current) {
+            editQuestionRecognitionRef.current.stop();
+        }
+        if (editAnswerRecognitionRef.current) {
+            editAnswerRecognitionRef.current.stop();
+        }
+    };
+}, []);
 
     // Handler for contentEditable input
     const handleSubmit = async (e) => {
@@ -6090,14 +6579,14 @@ export default function EditorDashboard({ onLogout }) {
                                 </div>
 
                                 {/* Question Content */}
-                                <div className="mb-6">
+                                {/* <div className="mb-6">
                                     <div className="flex items-center justify-between mb-2">
                                         <label className="block text-sm font-bold text-gray-700">
                                             Question Content *
                                         </label>
                                         
                                         {/* Text Formatting Buttons */}
-                                        <div className="flex items-center gap-1">
+                                        {/* <div className="flex items-center gap-1">
                                             <button
                                                 type="button"
                                                 onClick={() => applyEditQuestionFormatting('bold')}
@@ -6127,7 +6616,7 @@ export default function EditorDashboard({ onLogout }) {
                                     
                                     <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
                                         {/* Display Area */}
-                                        <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
+                                        {/* <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
                                             {editQuestionText.length > 0 ? (
                                                 renderTextWithImages(
                                                     editQuestionText,
@@ -6136,6 +6625,151 @@ export default function EditorDashboard({ onLogout }) {
                                                     editQuestionAnswerLines,
                                                     null,
                                                     null,
+                                                    'edit'
+                                                )
+                                            ) : (
+                                                <span className="text-gray-400">Question preview...</span>
+                                            )}
+                                        </div> */}
+                                         
+                                        {/* Editable Textarea */}
+                                        {/* <div className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300" style={{ height: '40%' }}>
+                                            <textarea
+                                                ref={editQuestionTextareaRef}
+                                                value={editQuestionText}
+                                                onChange={(e) => setEditQuestionText(e.target.value)}
+                                                className="w-full h-full px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition text-sm resize-none"
+                                                placeholder="Edit question text..."
+                                                style={{ fontFamily: 'monospace' }}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </div>  */}
+
+                                {/* Question Content */}
+                                <div className="mb-6">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-sm font-bold text-gray-700">
+                                            Question Content *
+                                        </label>
+                                        
+                                        {/* Inline Toolbar */}
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {/* Image Upload */}
+                                            <label className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg cursor-pointer transition text-xs flex items-center gap-1.5">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                                <span>Image</span>
+                                                <input type="file" accept="image/*" multiple onChange={handleEditQuestionFileUpload} className="hidden" />
+                                            </label>
+
+                                            {/* Drawing Tools */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowEditQuestionDrawing(!showEditQuestionDrawing)}
+                                                className={`${showEditQuestionDrawing ? 'bg-purple-600' : 'bg-gray-500'} hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5`}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                                <span>Draw</span>
+                                            </button>
+
+                                            {/* Graph Paper */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setShowEditQuestionGraphPaper(!showEditQuestionGraphPaper);
+                                                    if (!showEditQuestionDrawing) setShowEditQuestionDrawing(true);
+                                                }}
+                                                className={`${showEditQuestionGraphPaper ? 'bg-green-600' : 'bg-gray-500'} hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5`}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                </svg>
+                                                <span>Graph</span>
+                                            </button>
+
+                                            {/* Text Formatting Buttons */}
+                                            <div className="flex items-center gap-1 border-l border-gray-300 pl-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditQuestionFormatting('bold')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs font-bold"
+                                                    title="Bold"
+                                                >
+                                                    B
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditQuestionFormatting('italic')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs italic"
+                                                    title="Italic"
+                                                >
+                                                    I
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditQuestionFormatting('underline')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs underline"
+                                                    title="Underline"
+                                                >
+                                                    U
+                                                </button>
+                                            </div>
+
+                                            {/* Answer Lines Button */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditAnswerLinesConfig(prev => ({ ...prev, targetSection: 'question' }));
+                                                    setShowEditAnswerLinesModal(true);
+                                                }}
+                                                className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                                title="Add answer lines"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                                </svg>
+                                                <span>Lines</span>
+                                            </button>
+
+                                            {/* Voice Recording */}
+                                            <button
+                                                type="button"
+                                                onClick={toggleEditQuestionVoiceRecording}
+                                                className={`${isEditQuestionListening ? 'bg-red-600 animate-pulse' : 'bg-orange-500'} hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5`}
+                                                title={isEditQuestionListening ? "Stop recording" : "Start recording"}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                                </svg>
+                                                <span>{isEditQuestionListening ? 'Recording...' : 'Mic'}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
+                                        {/* Display Area */}
+                                        <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
+                                            {editQuestionText.length > 0 ? (
+                                                renderTextWithImages(
+                                                    editQuestionText,
+                                                    editQuestionInlineImages,
+                                                    editQuestionImagePositions,
+                                                    editQuestionAnswerLines,
+                                                    (imageId) => {
+                                                        setEditQuestionInlineImages(prev => prev.filter(img => img.id !== imageId));
+                                                        const regexOld = new RegExp(`\\[IMAGE:${imageId}:\\d+px\\]`, 'g');
+                                                        const regexNew = new RegExp(`\\[IMAGE:${imageId}:\\d+x\\d+px\\]`, 'g');
+                                                        setEditQuestionText(prev => prev.replace(regexOld, '').replace(regexNew, ''));
+                                                    },
+                                                    (lineId) => {
+                                                        setEditQuestionAnswerLines(prev => prev.filter(line => line.id !== lineId));
+                                                        setEditQuestionText(prev => prev.replace(`[LINES:${lineId}]`, ''));
+                                                    },
                                                     'edit'
                                                 )
                                             ) : (
@@ -6158,15 +6792,155 @@ export default function EditorDashboard({ onLogout }) {
                                     </div>
                                 </div>
 
+                                {/* Drawing Tool Panel for Edit Question */}
+                                {showEditQuestionDrawing && (
+                                    <div className="mb-6 border-2 border-purple-300 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-indigo-50">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                                Drawing Tools
+                                            </h3>
+                                           <button type="button" onClick={() => setShowEditQuestionDrawing(false)} className="text-gray-500 hover:text-gray-700">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        {/* Drawing Controls */}
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                                            {/* Tool Selection */}
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-700 mb-1 block">Tool</label>
+                                                <div className="flex gap-1">
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setEditQuestionDrawingTool('pen')} 
+                                                        className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${editQuestionDrawingTool === 'pen' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-300'}`}
+                                                    >
+                                                        ✏️ Pen
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setEditQuestionDrawingTool('line')} 
+                                                        className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${editQuestionDrawingTool === 'line' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-300'}`}
+                                                    >
+                                                        📏 Line
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Shapes */}
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-700 mb-1 block">Shapes</label>
+                                                <div className="flex gap-1">
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setEditQuestionDrawingTool('rectangle')} 
+                                                        className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${editQuestionDrawingTool === 'rectangle' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-300'}`}
+                                                    >
+                                                        ▭
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setEditQuestionDrawingTool('circle')} 
+                                                        className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${editQuestionDrawingTool === 'circle' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-300'}`}
+                                                    >
+                                                        ⭕
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setEditQuestionDrawingTool('eraser')} 
+                                                        className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${editQuestionDrawingTool === 'eraser' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-300'}`}
+                                                    >
+                                                        🧹
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Color Picker */}
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-700 mb-1 block">Color</label>
+                                                <div className="flex gap-2 items-center">
+                                                    <input 
+                                                        type="color" 
+                                                        value={editQuestionDrawingColor} 
+                                                        onChange={(e) => setEditQuestionDrawingColor(e.target.value)} 
+                                                        className="w-12 h-9 rounded cursor-pointer border-2 border-gray-300"
+                                                    />
+                                                    <select 
+                                                        value={editQuestionDrawingColor} 
+                                                        onChange={(e) => setEditQuestionDrawingColor(e.target.value)}
+                                                        className="flex-1 px-2 py-2 text-xs border border-gray-300 rounded"
+                                                    >
+                                                        <option value="#000000">Black</option>
+                                                        <option value="#FF0000">Red</option>
+                                                        <option value="#0000FF">Blue</option>
+                                                        <option value="#008000">Green</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Line Width */}
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-700 mb-1 block">
+                                                    Width: {editQuestionDrawingWidth}px
+                                                </label>
+                                                <input 
+                                                    type="range" 
+                                                    min="1" 
+                                                    max="20" 
+                                                    value={editQuestionDrawingWidth} 
+                                                    onChange={(e) => setEditQuestionDrawingWidth(e.target.value)} 
+                                                    className="w-full h-9"
+                                                />
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Action Buttons */}
+                                        <div className="flex gap-2 mb-3">
+                                            <button 
+                                                type="button" 
+                                                onClick={clearEditQuestionCanvas} 
+                                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold transition text-sm"
+                                            >
+                                                Clear Canvas
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={saveEditQuestionDrawing} 
+                                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition text-sm"
+                                            >
+                                                Save & Insert Drawing
+                                            </button>
+                                        </div>
+                                        
+                                        {/* Canvas */}
+                                        <div className="relative bg-white rounded-lg border-2 border-gray-300 overflow-auto">
+                                            <canvas
+                                                ref={editQuestionCanvasRef}
+                                                onMouseDown={startEditQuestionDrawing}
+                                                onMouseMove={drawEditQuestion}
+                                                onMouseUp={stopEditQuestionDrawing}
+                                                onMouseLeave={stopEditQuestionDrawing}
+                                                className="mx-auto cursor-crosshair"
+                                                style={{ width: '794px', height: '600px', maxWidth: '100%' }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                )}
+
                                 {/* Answer Content */}
-                                <div className="mb-6">
+                                {/* <div className="mb-6">
                                     <div className="flex items-center justify-between mb-2">
                                         <label className="block text-sm font-bold text-gray-700">
                                             Answer Content *
                                         </label>
                                         
                                         {/* Text Formatting Buttons */}
-                                        <div className="flex items-center gap-1">
+                                        {/* <div className="flex items-center gap-1">
                                             <button
                                                 type="button"
                                                 onClick={() => applyEditAnswerFormatting('bold')}
@@ -6195,8 +6969,8 @@ export default function EditorDashboard({ onLogout }) {
                                     </div>
                                     
                                     <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
-                                        {/* Display Area */}
-                                        <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
+                                        Display Area */}
+                                        {/* <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
                                             {editAnswerText.length > 0 ? (
                                                 renderTextWithImages(
                                                     editAnswerText,
@@ -6213,9 +6987,147 @@ export default function EditorDashboard({ onLogout }) {
                                             ) : (
                                                 <span className="text-gray-400">Answer preview...</span>
                                             )}
-                                        </div>
+                                        </div> */}
                                         
                                         {/* Editable Textarea */}
+                                        {/* <div className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300" style={{ height: '40%' }}>
+                                            <textarea
+                                                ref={editAnswerTextareaRef}
+                                                value={editAnswerText}
+                                                onChange={(e) => setEditAnswerText(e.target.value)}
+                                                className="w-full h-full px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition text-sm resize-none"
+                                                placeholder="Edit answer text..."
+                                                style={{ fontFamily: 'monospace' }}
+                                                required
+                                            />
+                                        </div>
+                                    </div> */}
+                                {/* </div> */} 
+
+                                {/* Answer Content */}
+                                <div className="mb-6">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-sm font-bold text-gray-700">
+                                            Answer Content *
+                                        </label>
+                                        
+                                        {/* Inline Toolbar */}
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {/* Image Upload */}
+                                            <label className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg cursor-pointer transition text-xs flex items-center gap-1.5">
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                                <span>Image</span>
+                                                <input type="file" accept="image/*" multiple onChange={handleEditAnswerFileUpload} className="hidden" />
+                                            </label>
+
+                                            {/* Drawing Tools */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowEditAnswerDrawing(!showEditAnswerDrawing)}
+                                                className={`${showEditAnswerDrawing ? 'bg-purple-600' : 'bg-gray-500'} hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5`}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                                <span>Draw</span>
+                                            </button>
+
+                                            {/* Graph Paper */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setShowEditAnswerGraphPaper(!showEditAnswerGraphPaper);
+                                                    if (!showEditAnswerDrawing) setShowEditAnswerDrawing(true);
+                                                }}
+                                                className={`${showEditAnswerGraphPaper ? 'bg-green-600' : 'bg-gray-500'} hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5`}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                </svg>
+                                                <span>Graph</span>
+                                            </button>
+
+                                            {/* Text Formatting */}
+                                            <div className="flex items-center gap-1 border-l border-gray-300 pl-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditAnswerFormatting('bold')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs font-bold"
+                                                >
+                                                    B
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditAnswerFormatting('italic')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs italic"
+                                                >
+                                                    I
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditAnswerFormatting('underline')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs underline"
+                                                >
+                                                    U
+                                                </button>
+                                            </div>
+
+                                            {/* Answer Lines */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditAnswerLinesConfig(prev => ({ ...prev, targetSection: 'answer' }));
+                                                    setShowEditAnswerLinesModal(true);
+                                                }}
+                                                className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                                </svg>
+                                                <span>Lines</span>
+                                            </button>
+
+                                            {/* Voice Recording */}
+                                            <button
+                                                type="button"
+                                                onClick={toggleEditAnswerVoiceRecording}
+                                                className={`${isEditAnswerListening ? 'bg-red-600 animate-pulse' : 'bg-orange-500'} hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5`}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                                </svg>
+                                                <span>{isEditAnswerListening ? 'Recording...' : 'Mic'}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
+                                        <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
+                                            {editAnswerText.length > 0 ? (
+                                                renderTextWithImages(
+                                                    editAnswerText,
+                                                    editAnswerInlineImages,
+                                                    editAnswerImagePositions,
+                                                    editAnswerAnswerLines,
+                                                    (imageId) => {
+                                                        setEditAnswerInlineImages(prev => prev.filter(img => img.id !== imageId));
+                                                        const regexOld = new RegExp(`\\[IMAGE:${imageId}:\\d+px\\]`, 'g');
+                                                        const regexNew = new RegExp(`\\[IMAGE:${imageId}:\\d+x\\d+px\\]`, 'g');
+                                                        setEditAnswerText(prev => prev.replace(regexOld, '').replace(regexNew, ''));
+                                                    },
+                                                    (lineId) => {
+                                                        setEditAnswerAnswerLines(prev => prev.filter(line => line.id !== lineId));
+                                                        setEditAnswerText(prev => prev.replace(`[LINES:${lineId}]`, ''));
+                                                    },
+                                                    'edit'
+                                                )
+                                            ) : (
+                                                <span className="text-gray-400">Answer preview...</span>
+                                            )}
+                                        </div>
+                                        
                                         <div className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300" style={{ height: '40%' }}>
                                             <textarea
                                                 ref={editAnswerTextareaRef}
@@ -6229,6 +7141,215 @@ export default function EditorDashboard({ onLogout }) {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Drawing Tool Panel for Edit Answer */}
+                                {showEditAnswerDrawing && (
+                                    <div className="mb-6 border-2 border-orange-400 rounded-lg p-4 bg-orange-50">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="text-lg font-bold text-orange-800">🎨 Answer Drawing Tool</h3>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowEditAnswerDrawing(false)}
+                                                className="text-orange-600 hover:text-orange-800 font-bold"
+                                            >
+                                                ✕ Close
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="mb-3 flex flex-wrap gap-3 items-center bg-white p-3 rounded-lg border border-orange-200">
+                                            <div className="flex gap-2">
+                                                <button type="button" onClick={() => setEditAnswerDrawingTool('pen')} className={`px-3 py-2 rounded ${editAnswerDrawingTool === 'pen' ? 'bg-orange-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>✏️ Pen</button>
+                                                <button type="button" onClick={() => setEditAnswerDrawingTool('eraser')} className={`px-3 py-2 rounded ${editAnswerDrawingTool === 'eraser' ? 'bg-orange-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>🧹 Eraser</button>
+                                                <button type="button" onClick={() => setEditAnswerDrawingTool('line')} className={`px-3 py-2 rounded ${editAnswerDrawingTool === 'line' ? 'bg-orange-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>📏 Line</button>
+                                                <button type="button" onClick={() => setEditAnswerDrawingTool('rectangle')} className={`px-3 py-2 rounded ${editAnswerDrawingTool === 'rectangle' ? 'bg-orange-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>▭</button>
+                                                <button type="button" onClick={() => setEditAnswerDrawingTool('circle')} className={`px-3 py-2 rounded ${editAnswerDrawingTool === 'circle' ? 'bg-orange-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>⭕</button>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-sm font-medium">Color:</label>
+                                                <input type="color" value={editAnswerDrawingColor} onChange={(e) => setEditAnswerDrawingColor(e.target.value)} className="w-10 h-10 rounded cursor-pointer"/>
+                                            </div>
+                                            
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-sm font-medium">Width:</label>
+                                                <input type="range" min="1" max="20" value={editAnswerDrawingWidth} onChange={(e) => setEditAnswerDrawingWidth(parseInt(e.target.value))} className="w-24"/>
+                                                <span className="text-sm font-bold w-8">{editAnswerDrawingWidth}px</span>
+                                            </div>
+                                            
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input type="checkbox" checked={showEditAnswerGraphPaper} onChange={(e) => setShowEditAnswerGraphPaper(e.target.checked)} className="w-4 h-4"/>
+                                                <span className="text-sm font-medium">Graph Paper</span>
+                                            </label>
+                                            
+                                            <button type="button" onClick={clearEditAnswerCanvas} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600">🗑️ Clear</button>
+                                        </div>
+                                        
+                                        <div className="bg-white rounded-lg border-2 border-orange-300 overflow-hidden">
+                                            <canvas
+                                                ref={editAnswerCanvasRef}
+                                                onMouseDown={startEditAnswerDrawing}
+                                                onMouseMove={drawEditAnswer}
+                                                onMouseUp={stopEditAnswerDrawing}
+                                                onMouseLeave={stopEditAnswerDrawing}
+                                                className="cursor-crosshair block"
+                                                style={{ width: '100%', maxWidth: '794px' }}
+                                            />
+                                        </div>
+                                        
+                                        <div className="mt-3 flex justify-end">
+                                            <button type="button" onClick={saveEditAnswerDrawing} className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-bold shadow-md">
+                                                💾 Save & Insert Drawing
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Edit Answer Lines Configuration Modal */}
+                                {showEditAnswerLinesModal && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-xl font-bold text-gray-800">Add Answer Lines</h3>
+                                                <button
+                                                    onClick={() => setShowEditAnswerLinesModal(false)}
+                                                    className="text-gray-500 hover:text-gray-700"
+                                                >
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2">Number of Lines *</label>
+                                                    <input
+                                                        type="text"
+                                                        inputMode="decimal"
+                                                        value={editAnswerLinesConfig.numberOfLines}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value;
+                                                            if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                                                                const numValue = parseFloat(value);
+                                                                if (value === '' || (!isNaN(numValue) && numValue >= 0.5 && numValue <= 400)) {
+                                                                    setEditAnswerLinesConfig(prev => ({ 
+                                                                        ...prev, 
+                                                                        numberOfLines: value === '' ? 0.5 : numValue
+                                                                    }));
+                                                                }
+                                                            }
+                                                        }}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                                        placeholder="e.g., 5 or 2.5"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2">Line Height *</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="range"
+                                                            min="20"
+                                                            max="80"
+                                                            value={editAnswerLinesConfig.lineHeight}
+                                                            onChange={(e) => setEditAnswerLinesConfig(prev => ({ 
+                                                                ...prev, 
+                                                                lineHeight: parseInt(e.target.value) 
+                                                            }))}
+                                                            className="flex-1"
+                                                        />
+                                                        <span className="text-sm font-semibold w-12">{editAnswerLinesConfig.lineHeight}px</span>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2">Line Style *</label>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setEditAnswerLinesConfig(prev => ({ ...prev, lineStyle: 'dotted' }))}
+                                                            className={`px-4 py-3 rounded-lg border-2 ${editAnswerLinesConfig.lineStyle === 'dotted' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300'}`}
+                                                        >
+                                                            Dotted
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setEditAnswerLinesConfig(prev => ({ ...prev, lineStyle: 'solid' }))}
+                                                            className={`px-4 py-3 rounded-lg border-2 ${editAnswerLinesConfig.lineStyle === 'solid' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-300'}`}
+                                                        >
+                                                            Solid
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2">Opacity *</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="range"
+                                                            min="0.1"
+                                                            max="1"
+                                                            step="0.1"
+                                                            value={editAnswerLinesConfig.opacity}
+                                                            onChange={(e) => setEditAnswerLinesConfig(prev => ({ 
+                                                                ...prev, 
+                                                                opacity: parseFloat(e.target.value) 
+                                                            }))}
+                                                            className="flex-1"
+                                                        />
+                                                        <span className="text-sm font-semibold w-12">{Math.round(editAnswerLinesConfig.opacity * 100)}%</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex space-x-3 mt-4">
+                                                <button
+                                                    onClick={() => {
+                                                        const lineBlock = {
+                                                            id: Date.now() + Math.random(),
+                                                            ...editAnswerLinesConfig
+                                                        };
+                                                        
+                                                        if (editAnswerLinesConfig.targetSection === 'question') {
+                                                            setEditQuestionAnswerLines(prev => [...prev, lineBlock]);
+                                                            const textarea = editQuestionTextareaRef.current;
+                                                            if (textarea) {
+                                                                const cursorPos = textarea.selectionStart;
+                                                                const textBefore = editQuestionText.substring(0, cursorPos);
+                                                                const textAfter = editQuestionText.substring(cursorPos);
+                                                                setEditQuestionText(textBefore + `\n[LINES:${lineBlock.id}]\n` + textAfter);
+                                                            } else {
+                                                                setEditQuestionText(prev => prev + `\n[LINES:${lineBlock.id}]\n`);
+                                                            }
+                                                        } else {
+                                                            setEditAnswerAnswerLines(prev => [...prev, lineBlock]);
+                                                            const textarea = editAnswerTextareaRef.current;
+                                                            if (textarea) {
+                                                                const cursorPos = textarea.selectionStart;
+                                                                const textBefore = editAnswerText.substring(0, cursorPos);
+                                                                const textAfter = editAnswerText.substring(cursorPos);
+                                                                setEditAnswerText(textBefore + `\n[LINES:${lineBlock.id}]\n` + textAfter);
+                                                            } else {
+                                                                setEditAnswerText(prev => prev + `\n[LINES:${lineBlock.id}]\n`);
+                                                            }
+                                                        }
+                                                        
+                                                        setShowEditAnswerLinesModal(false);
+                                                    }}
+                                                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg"
+                                                >
+                                                    Add Lines
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowEditAnswerLinesModal(false)}
+                                                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 px-6 rounded-lg"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Marks */}
                                 <div className="mb-6">
