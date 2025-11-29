@@ -145,6 +145,13 @@ export default function EditorDashboard({ onLogout }) {
         opacity: 0.5,
         targetSection: 'question'
     });
+
+    // Edit questions filter states
+    const [editFilterSubject, setEditFilterSubject] = useState('');
+    const [editFilterPaper, setEditFilterPaper] = useState('');
+    const [editFilterTopic, setEditFilterTopic] = useState('');
+    const [editAvailablePapers, setEditAvailablePapers] = useState([]);
+    const [editAvailableTopics, setEditAvailableTopics] = useState([]);
     
     // Bulk entry states
     const [bulkText, setBulkText] = useState('');
@@ -585,6 +592,36 @@ export default function EditorDashboard({ onLogout }) {
         
         return () => clearTimeout(timer);
     }, [questionText, selectedSubject]);
+
+    // Update available papers when subject filter changes in edit section
+    useEffect(() => {
+        if (editFilterSubject && existingSubjects.length > 0) {
+            const subject = existingSubjects.find(s => s.name === editFilterSubject);
+            if (subject) {
+                setEditAvailablePapers(subject.papers || []);
+                // Reset dependent filters
+                setEditFilterPaper('');
+                setEditFilterTopic('');
+                setEditAvailableTopics([]);
+            }
+        } else {
+            setEditAvailablePapers([]);
+            setEditAvailableTopics([]);
+        }
+    }, [editFilterSubject, existingSubjects]);
+
+    // Update available topics when paper filter changes in edit section
+    useEffect(() => {
+        if (editFilterSubject && editFilterPaper && editAvailablePapers.length > 0) {
+            const paper = editAvailablePapers.find(p => p.name === editFilterPaper);
+            if (paper) {
+                setEditAvailableTopics(paper.topics || []);
+                setEditFilterTopic('');
+            }
+        } else {
+            setEditAvailableTopics([]);
+        }
+    }, [editFilterPaper, editAvailablePapers, editFilterSubject]);
 
     // ====== HELPER FUNCTION: RENDER TEXT WITH IMAGES ======
     /**
@@ -2240,6 +2277,22 @@ useEffect(() => {
                 q.topic_name?.toLowerCase().includes(query.toLowerCase())
             );
             
+            // Apply subject filter
+            if (editFilterSubject) {
+                filtered = filtered.filter(q => q.subject_name === editFilterSubject);
+            }
+            
+            // Apply paper filter
+            if (editFilterPaper) {
+                filtered = filtered.filter(q => q.paper_name === editFilterPaper);
+            }
+            
+            // Apply topic filter
+            if (editFilterTopic) {
+                filtered = filtered.filter(q => q.topic_name === editFilterTopic);
+            }
+
+
             // Apply status filter
             if (editFilterStatus === 'active') {
                 filtered = filtered.filter(q => q.is_active !== false);
@@ -2818,6 +2871,12 @@ useEffect(() => {
             // Clean up interval when tab changes or component unmounts
             return () => clearInterval(refreshInterval);
         }
+    }, [activeTab]);
+
+    useEffect(() => {
+    if (activeTab === 'edit') {
+        fetchSubjects();
+    }
     }, [activeTab]);
 
     const handleSubmitNewSubject = async (e) => {
@@ -6393,7 +6452,7 @@ useEffect(() => {
                             </div>
                             
                             {/* Filter Options */}
-                            <div className="flex gap-3 mb-6">
+                            {/* <div className="flex gap-3 mb-6">
                                 <div className="flex-1">
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Status Filter</label>
                                     <select
@@ -6428,6 +6487,274 @@ useEffect(() => {
                                         <option value="standalone">Standalone Only</option>
                                     </select>
                                 </div>
+                            </div> */}
+
+                            {/* Enhanced Filter Options */}
+                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 mb-6 border-2 border-blue-200">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                        </svg>
+                                        Advanced Filters
+                                    </h3>
+                                    <button
+                                        onClick={() => {
+                                            setEditFilterSubject('');
+                                            setEditFilterPaper('');
+                                            setEditFilterTopic('');
+                                            setEditFilterStatus('all');
+                                            setEditFilterType('all');
+                                            setEditAvailablePapers([]);
+                                            setEditAvailableTopics([]);
+                                            // Re-run search if there's a query
+                                            if (searchQuery.length >= 2) {
+                                                handleSearchQuestions(searchQuery);
+                                            }
+                                        }}
+                                        className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Clear All
+                                    </button>
+                                </div>
+                                
+                                {/* First Row: Subject, Paper, Topic */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                                    {/* Subject Filter */}
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                                            </svg>
+                                            Subject
+                                        </label>
+                                        <select
+                                            value={editFilterSubject}
+                                            onChange={(e) => {
+                                                setEditFilterSubject(e.target.value);
+                                                // Re-run search if there's a query
+                                                if (searchQuery.length >= 2) {
+                                                    setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                }
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
+                                        >
+                                            <option value="">All Subjects</option>
+                                            {existingSubjects.map(s => (
+                                                <option key={s.id} value={s.name}>{s.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Paper Filter */}
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                                            </svg>
+                                            Paper
+                                        </label>
+                                        <select
+                                            value={editFilterPaper}
+                                            onChange={(e) => {
+                                                setEditFilterPaper(e.target.value);
+                                                // Re-run search if there's a query
+                                                if (searchQuery.length >= 2) {
+                                                    setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                }
+                                            }}
+                                            disabled={!editFilterSubject}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="">All Papers</option>
+                                            {editAvailablePapers.map(p => (
+                                                <option key={p.id} value={p.name}>{p.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Topic Filter */}
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                                            </svg>
+                                            Topic
+                                        </label>
+                                        <select
+                                            value={editFilterTopic}
+                                            onChange={(e) => {
+                                                setEditFilterTopic(e.target.value);
+                                                // Re-run search if there's a query
+                                                if (searchQuery.length >= 2) {
+                                                    setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                }
+                                            }}
+                                            disabled={!editFilterPaper}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="">All Topics</option>
+                                            {editAvailableTopics.map(t => (
+                                                <option key={t.id} value={t.name}>{t.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Second Row: Status and Type */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {/* Status Filter */}
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                            </svg>
+                                            Status
+                                        </label>
+                                        <select
+                                            value={editFilterStatus}
+                                            onChange={(e) => {
+                                                setEditFilterStatus(e.target.value);
+                                                // Re-run search if there's a query
+                                                if (searchQuery.length >= 2) {
+                                                    setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                }
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
+                                        >
+                                            <option value="all">All Status</option>
+                                            <option value="active">✓ Active Only</option>
+                                            <option value="inactive">✕ Inactive Only</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Type Filter */}
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                            </svg>
+                                            Type
+                                        </label>
+                                        <select
+                                            value={editFilterType}
+                                            onChange={(e) => {
+                                                setEditFilterType(e.target.value);
+                                                // Re-run search if there's a query
+                                                if (searchQuery.length >= 2) {
+                                                    setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                }
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
+                                        >
+                                            <option value="all">All Types</option>
+                                            <option value="nested">⊕ Nested Only</option>
+                                            <option value="standalone">◉ Standalone Only</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* Active Filters Summary */}
+                                {(editFilterSubject || editFilterPaper || editFilterTopic || editFilterStatus !== 'all' || editFilterType !== 'all') && (
+                                    <div className="mt-3 pt-3 border-t border-blue-200">
+                                        <div className="flex flex-wrap gap-2 items-center">
+                                            <span className="text-xs font-semibold text-gray-600">Active Filters:</span>
+                                            {editFilterSubject && (
+                                                <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                                                    📚 {editFilterSubject}
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditFilterSubject('');
+                                                            if (searchQuery.length >= 2) {
+                                                                setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                            }
+                                                        }}
+                                                        className="hover:bg-blue-200 rounded-full p-0.5"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </span>
+                                            )}
+                                            {editFilterPaper && (
+                                                <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
+                                                    📄 {editFilterPaper}
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditFilterPaper('');
+                                                            if (searchQuery.length >= 2) {
+                                                                setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                            }
+                                                        }}
+                                                        className="hover:bg-purple-200 rounded-full p-0.5"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </span>
+                                            )}
+                                            {editFilterTopic && (
+                                                <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                                                    📖 {editFilterTopic}
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditFilterTopic('');
+                                                            if (searchQuery.length >= 2) {
+                                                                setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                            }
+                                                        }}
+                                                        className="hover:bg-green-200 rounded-full p-0.5"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </span>
+                                            )}
+                                            {editFilterStatus !== 'all' && (
+                                                <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
+                                                    {editFilterStatus === 'active' ? '✓ Active' : '✕ Inactive'}
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditFilterStatus('all');
+                                                            if (searchQuery.length >= 2) {
+                                                                setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                            }
+                                                        }}
+                                                        className="hover:bg-yellow-200 rounded-full p-0.5"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </span>
+                                            )}
+                                            {editFilterType !== 'all' && (
+                                                <span className="inline-flex items-center gap-1 bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs">
+                                                    {editFilterType === 'nested' ? '⊕ Nested' : '◉ Standalone'}
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditFilterType('all');
+                                                            if (searchQuery.length >= 2) {
+                                                                setTimeout(() => handleSearchQuestions(searchQuery), 100);
+                                                            }
+                                                        }}
+                                                        className="hover:bg-indigo-200 rounded-full p-0.5"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Search Results */}
