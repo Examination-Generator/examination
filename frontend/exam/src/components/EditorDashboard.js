@@ -6562,7 +6562,7 @@ useEffect(() => {
                                             }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white mb-8"
                                         >
-                                            <option value="">All Subjects</option>
+                                            <option value=""></option>
                                             {existingSubjects.map(s => (
                                                 <option key={s.id} value={s.name}>{s.name}</option>
                                             ))}
