@@ -195,7 +195,7 @@ def list_questions(request):
     section_id = request.query_params.get('section')
     is_active = request.query_params.get('isActive')
     page = int(request.query_params.get('page', 1))
-    limit = int(request.query_params.get('limit', 50))
+    limit = int(request.query_params.get('limit', 10000))
     
     # Build query
     queryset = Question.objects.select_related(
