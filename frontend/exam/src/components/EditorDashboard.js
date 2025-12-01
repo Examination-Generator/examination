@@ -2771,18 +2771,34 @@ useEffect(() => {
 
     // Statistics calculations
     const getStatistics = () => {
+        // Start with all questions
+        let questions = Array.isArray(allQuestions) ? allQuestions : [];
+        
+        // Apply filters to questions
+        if (filterSubject) {
+            questions = questions.filter(q => q.subject_name === filterSubject);
+        }
+        if (filterPaper) {
+            questions = questions.filter(q => q.paper_name === filterPaper);
+        }
+        if (filterTopic) {
+            questions = questions.filter(q => q.topic_name === filterTopic);
+        }
+        if (filterStatus === 'active') {
+            questions = questions.filter(q => q.is_active !== false);
+        } else if (filterStatus === 'inactive') {
+            questions = questions.filter(q => q.is_active === false);
+        }
+        
         const stats = {
-            totalQuestions: questionStats.totalQuestions,
-            activeQuestions: questionStats.activeQuestions,
-            inactiveQuestions: questionStats.inactiveQuestions,
-            unknownTopics: questionStats.unknownTopics,
+            totalQuestions: questions.length,
+            activeQuestions: questions.filter(q => q.is_active !== false).length,
+            inactiveQuestions: questions.filter(q => q.is_active === false).length,
+            unknownTopics: questions.filter(q => !q.topic_name || q.topic_name === 'Unknown').length,
             bySubject: {},
             byPaper: {},
             byTopic: {}
         };
-
-        // Use ALL questions for statistics cards (not filtered)
-        const questions = Array.isArray(allQuestions) ? allQuestions : [];
         
         questions.forEach(q => {
             // By subject - use subject_name from API response
