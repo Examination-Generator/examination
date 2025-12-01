@@ -197,7 +197,7 @@ class BiologyPaper1Coverpage:
         
         .info-grid {{
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
             gap: 15px 20px;
         }}
         
@@ -232,14 +232,14 @@ class BiologyPaper1Coverpage:
         
         .instructions-title {{
             font-weight: bold;
-            font-size: 14px;
+            font-size: 1.8rem;
             margin-bottom: 10px;
             text-decoration: underline;
         }}
         
         .instructions ol {{
             margin-left: 20px;
-            font-size: 12px;
+            font-size: 1.5rem;
             line-height: 1.6;
         }}
         
