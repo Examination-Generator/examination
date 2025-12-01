@@ -100,9 +100,17 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # CORS configuration for production
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all in debug mode
+# Allow all origins for Vercel deployments (both frontend and backend are on .vercel.app)
+CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins for flexible Vercel deployments
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if origin.strip()]
-CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+] + CORS_ALLOWED_ORIGINS
+
+CORS_ALLOW_CREDENTIALS = True
 
 # Security settings - Vercel handles SSL, so we don't redirect
 SECURE_SSL_REDIRECT = False  # Vercel handles this
@@ -110,7 +118,7 @@ SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
+X_FRAME_OPTIONS = 'SAMEORIGIN'  # Allow iframes from same origin for previews
 
 # Logging for production
 LOGGING['handlers']['file'] = {
