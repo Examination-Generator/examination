@@ -369,25 +369,25 @@ class BiologyPaper1Coverpage:
                 ''' if show_name else ''}
                 
                 {f'''
-                <div class="info-row">
+                <div class="info-row w-[1/4]">
                     <div class="info-label">ADM NO:</div>
                     <div class="info-field"></div>
                 </div>
                 ''' if show_number else ''}
                 
-                <div class="info-row">
+                <div class="info-row w-[1/4]">
                     <div class="info-label">CLASS:</div>
                     <div class="info-field"></div>
                 </div>
                 
                 {f'''
-                <div class="info-row">
+                <div class="info-row w-[1/4]">
                     <div class="info-label">DATE:</div>
                     <div class="info-field"></div>
                 </div>
                 ''' if show_date else ''}
                 
-                <div class="info-row">
+                <div class="info-row w-[1/4]">
                     <div class="info-label">SIGNATURE:</div>
                     <div class="info-field"></div>
                 </div>
