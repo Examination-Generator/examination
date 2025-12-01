@@ -52,6 +52,8 @@ jobs:
           server: ${{ secrets.CPANEL_FTP_SERVER }}
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          protocol: ftps
+          port: 22
           local-dir: ./frontend/exam/build/
           server-dir: /public_html/
           dangerous-clean-slate: false
@@ -62,6 +64,8 @@ jobs:
           server: ${{ secrets.CPANEL_FTP_SERVER }}
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          protocol: ftps
+          port: 22
           local-dir: ./.github/cpanel-config/frontend/
           server-dir: /public_html/
           dangerous-clean-slate: false
@@ -81,6 +85,8 @@ jobs:
           server: ${{ secrets.CPANEL_FTP_SERVER }}
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          protocol: ftps
+          port: 22
           local-dir: ./django_backend/
           server-dir: /public_html/api/
           exclude: |
@@ -100,6 +106,8 @@ jobs:
           server: ${{ secrets.CPANEL_FTP_SERVER }}
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          protocol: ftps
+          port: 22
           local-dir: ./.github/cpanel-config/backend/
           server-dir: /public_html/api/
           dangerous-clean-slate: false
