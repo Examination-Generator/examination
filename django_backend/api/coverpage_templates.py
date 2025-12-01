@@ -232,7 +232,7 @@ class BiologyPaper1Coverpage:
         
         .instructions-title {{
             font-weight: bold;
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             margin-bottom: 10px;
             text-decoration: underline;
         }}
