@@ -52,7 +52,7 @@ class Command(BaseCommand):
         from django.db import connections
         from django.db.utils import ConnectionHandler
         
-        # Create a minimal database config
+        # Create a complete database config with all Django 4.2+ required settings
         vercel_db = {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': db_config['NAME'],
@@ -61,10 +61,17 @@ class Command(BaseCommand):
             'HOST': db_config['HOST'],
             'PORT': db_config['PORT'],
             'CONN_MAX_AGE': 0,
+            'CONN_HEALTH_CHECKS': False,
             'AUTOCOMMIT': True,
             'ATOMIC_REQUESTS': False,
             'TIME_ZONE': None,
             'OPTIONS': {},
+            'TEST': {
+                'CHARSET': None,
+                'COLLATION': None,
+                'NAME': None,
+                'MIRROR': None,
+            },
         }
         
         # Add to settings.DATABASES
