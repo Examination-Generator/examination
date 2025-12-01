@@ -46,24 +46,24 @@ jobs:
           REACT_APP_API_URL: https://speedstarexams.co.ke/api
         run: npm run build
       
-      - name: Install sshpass for password authentication
-        run: sudo apt-get update && sudo apt-get install -y sshpass rsync
+      - name: Install lftp for SFTP transfer
+        run: sudo apt-get update && sudo apt-get install -y lftp
       
       - name: Deploy to cPanel via SFTP
-        env:
-          SSHPASS: ${{ secrets.CPANEL_FTP_PASSWORD }}
         run: |
-          sshpass -e rsync -avz -e "ssh -p 1624 -o StrictHostKeyChecking=no" \
-            ./frontend/exam/build/ \
-            ${{ secrets.CPANEL_FTP_USERNAME }}@${{ secrets.CPANEL_FTP_SERVER }}:/public_html/
+          lftp -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} \
+            -e "set sftp:connect-program 'ssh -a -x -p 1624 -o StrictHostKeyChecking=no'; \
+                mirror -R --delete-first ./frontend/exam/build/ /public_html/; \
+                bye" \
+            sftp://${{ secrets.CPANEL_FTP_SERVER }}
       
       - name: Create .htaccess for React routing
-        env:
-          SSHPASS: ${{ secrets.CPANEL_FTP_PASSWORD }}
         run: |
-          sshpass -e rsync -avz -e "ssh -p 1624 -o StrictHostKeyChecking=no" \
-            ./.github/cpanel-config/frontend/ \
-            ${{ secrets.CPANEL_FTP_USERNAME }}@${{ secrets.CPANEL_FTP_SERVER }}:/public_html/
+          lftp -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} \
+            -e "set sftp:connect-program 'ssh -a -x -p 1624 -o StrictHostKeyChecking=no'; \
+                mirror -R ./.github/cpanel-config/frontend/ /public_html/; \
+                bye" \
+            sftp://${{ secrets.CPANEL_FTP_SERVER }}
 
   # Deploy backend to cPanel
   deploy-backend:
@@ -74,26 +74,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Install sshpass for password authentication
-        run: sudo apt-get update && sudo apt-get install -y sshpass rsync
+      - name: Install lftp for SFTP transfer
+        run: sudo apt-get update && sudo apt-get install -y lftp
       
       - name: Deploy Django backend via SFTP
-        env:
-          SSHPASS: ${{ secrets.CPANEL_FTP_PASSWORD }}
         run: |
-          sshpass -e rsync -avz -e "ssh -p 1624 -o StrictHostKeyChecking=no" \
-            --exclude='.git*' --exclude='__pycache__' --exclude='*.pyc' \
-            --exclude='.env' --exclude='venv' --exclude='.pytest_cache' \
-            ./django_backend/ \
-            ${{ secrets.CPANEL_FTP_USERNAME }}@${{ secrets.CPANEL_FTP_SERVER }}:/public_html/api/
+          lftp -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} \
+            -e "set sftp:connect-program 'ssh -a -x -p 1624 -o StrictHostKeyChecking=no'; \
+                mirror -R --delete-first --exclude .git --exclude __pycache__ --exclude '*.pyc' \
+                --exclude .env --exclude venv --exclude .pytest_cache \
+                ./django_backend/ /public_html/api/; \
+                bye" \
+            sftp://${{ secrets.CPANEL_FTP_SERVER }}
       
       - name: Deploy backend configuration
-        env:
-          SSHPASS: ${{ secrets.CPANEL_FTP_PASSWORD }}
         run: |
-          sshpass -e rsync -avz -e "ssh -p 1624 -o StrictHostKeyChecking=no" \
-            ./.github/cpanel-config/backend/ \
-            ${{ secrets.CPANEL_FTP_USERNAME }}@${{ secrets.CPANEL_FTP_SERVER }}:/public_html/api/
+          lftp -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} \
+            -e "set sftp:connect-program 'ssh -a -x -p 1624 -o StrictHostKeyChecking=no'; \
+                mirror -R ./.github/cpanel-config/backend/ /public_html/api/; \
+                bye" \
+            sftp://${{ secrets.CPANEL_FTP_SERVER }}
       
       - name: Deployment complete
         run: |
