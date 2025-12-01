@@ -44,17 +44,31 @@ class Command(BaseCommand):
         if dry_run:
             self.stdout.write(self.style.NOTICE('DRY RUN MODE - No changes will be made'))
         
-        # Setup Vercel database connection
+        # Setup Vercel database connection BEFORE any database operations
         self.stdout.write('\n📡 Setting up Vercel database connection...')
         db_config = self._parse_db_url(vercel_db_url)
-        settings.DATABASES['vercel'] = {
+        
+        # Add Vercel database to settings
+        from django.db import connections
+        from django.db.utils import ConnectionHandler
+        
+        # Create a minimal database config
+        vercel_db = {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': db_config['NAME'],
             'USER': db_config['USER'],
             'PASSWORD': db_config['PASSWORD'],
             'HOST': db_config['HOST'],
             'PORT': db_config['PORT'],
+            'CONN_MAX_AGE': 0,
+            'AUTOCOMMIT': True,
+            'ATOMIC_REQUESTS': False,
+            'TIME_ZONE': None,
+            'OPTIONS': {},
         }
+        
+        # Add to settings.DATABASES
+        settings.DATABASES['vercel'] = vercel_db
         
         # Test connections
         try:
