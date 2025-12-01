@@ -1264,14 +1264,14 @@ export default function PaperGenerationDashboard() {
                                                 />
                                                 <div className="ml-3 flex-1">
                                                     <p className="font-semibold text-gray-800">{topic?.name || 'Unknown Topic'}</p>
-                                                    <div className="mt-2">
+                                                    {/* <div className="mt-2">
                                                         <p className="text-xs text-gray-500">
-                                                            Total questions: {topic?.total_questions || 0}
+                                                            {topic?.total_questions || 0}
                                                         </p>
                                                         {topic?.total_questions === 0 && (
                                                             <span className="text-xs text-gray-400 italic">No questions available</span>
                                                         )}
-                                                    </div>
+                                                    </div> */}
                                                 </div>
                                             </label>
                                         ))
