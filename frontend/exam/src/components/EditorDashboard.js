@@ -2267,6 +2267,16 @@ useEffect(() => {
             const allQuestions = await questionService.getAllQuestions();
             let filtered = [...allQuestions];
             
+            console.log('🔍 Search filters applied:', {
+                query,
+                editFilterSubject,
+                editFilterPaper,
+                editFilterTopic,
+                editFilterStatus,
+                editFilterType,
+                totalQuestions: allQuestions.length
+            });
+            
             // Apply text search filter if query exists
             if (query && query.trim().length >= 2) {
                 const searchTerm = query.toLowerCase();
@@ -2276,37 +2286,61 @@ useEffect(() => {
                     q.subject_name?.toLowerCase().includes(searchTerm) ||
                     q.topic_name?.toLowerCase().includes(searchTerm)
                 );
+                console.log(`📝 After text search: ${filtered.length} questions`);
             }
             
             // Apply subject filter
             if (editFilterSubject) {
+                const beforeCount = filtered.length;
                 filtered = filtered.filter(q => q.subject_name === editFilterSubject);
+                console.log(`📚 Subject filter (${editFilterSubject}): ${beforeCount} → ${filtered.length} questions`);
             }
             
             // Apply paper filter
             if (editFilterPaper) {
+                const beforeCount = filtered.length;
                 filtered = filtered.filter(q => q.paper_name === editFilterPaper);
+                console.log(`📄 Paper filter (${editFilterPaper}): ${beforeCount} → ${filtered.length} questions`);
             }
             
             // Apply topic filter
             if (editFilterTopic) {
+                const beforeCount = filtered.length;
                 filtered = filtered.filter(q => q.topic_name === editFilterTopic);
+                console.log(`📖 Topic filter (${editFilterTopic}): ${beforeCount} → ${filtered.length} questions`);
+                // Log sample question to debug topic_name
+                if (filtered.length > 0) {
+                    console.log('✅ Sample question with topic:', {
+                        question_text: filtered[0].question_text?.substring(0, 50),
+                        topic_name: filtered[0].topic_name,
+                        subject_name: filtered[0].subject_name,
+                        paper_name: filtered[0].paper_name
+                    });
+                } else if (beforeCount > 0) {
+                    console.log('⚠️ No matches for topic filter. Sample question topic_name:', 
+                        allQuestions.find(q => q.paper_name === editFilterPaper)?.topic_name || 'Not found');
+                }
             }
 
             // Apply status filter
             if (editFilterStatus === 'active') {
                 filtered = filtered.filter(q => q.is_active !== false);
+                console.log(`✓ Active filter: ${filtered.length} questions`);
             } else if (editFilterStatus === 'inactive') {
                 filtered = filtered.filter(q => q.is_active === false);
+                console.log(`✕ Inactive filter: ${filtered.length} questions`);
             }
             
             // Apply type filter
             if (editFilterType === 'nested') {
                 filtered = filtered.filter(q => q.is_nested === true);
+                console.log(`⊕ Nested filter: ${filtered.length} questions`);
             } else if (editFilterType === 'standalone') {
                 filtered = filtered.filter(q => q.is_nested !== true);
+                console.log(`◉ Standalone filter: ${filtered.length} questions`);
             }
             
+            console.log(`✅ Final filtered results: ${filtered.length} questions`);
             setSearchResults(filtered);
         } catch (error) {
             console.error('Error searching questions:', error);
@@ -2892,7 +2926,7 @@ useEffect(() => {
     // Trigger search when other filters change
     useEffect(() => {
         handleSearchQuestions(searchQuery);
-    }, [editFilterTopic, editFilterStatus, editFilterType]);
+    }, [editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType]);
 
     // Load all questions when Edit tab becomes active
     useEffect(() => {
@@ -6556,10 +6590,6 @@ useEffect(() => {
                                             value={editFilterSubject}
                                             onChange={(e) => {
                                                 setEditFilterSubject(e.target.value);
-                                                // Re-run search if there's a query
-                                                if (searchQuery.length >= 2) {
-                                                    setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                }
                                             }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white mb-8"
                                         >
@@ -6582,10 +6612,6 @@ useEffect(() => {
                                             value={editFilterPaper}
                                             onChange={(e) => {
                                                 setEditFilterPaper(e.target.value);
-                                                // Re-run search if there's a query
-                                                // if (searchQuery.length >= 2) {
-                                                //     setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                // }
                                             }}
                                             disabled={!editFilterSubject}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -6609,10 +6635,6 @@ useEffect(() => {
                                             value={editFilterTopic}
                                             onChange={(e) => {
                                                 setEditFilterTopic(e.target.value);
-                                                // Re-run search if there's a query
-                                                // if (searchQuery.length >= 2) {
-                                                //     setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                // }
                                             }}
                                             disabled={!editFilterPaper}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -6639,10 +6661,6 @@ useEffect(() => {
                                             value={editFilterStatus}
                                             onChange={(e) => {
                                                 setEditFilterStatus(e.target.value);
-                                                // Re-run search if there's a query
-                                                // if (searchQuery.length >= 2) {
-                                                //     setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                // }
                                             }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
                                         >
@@ -6664,10 +6682,6 @@ useEffect(() => {
                                             value={editFilterType}
                                             onChange={(e) => {
                                                 setEditFilterType(e.target.value);
-                                                // Re-run search if there's a query
-                                                // if (searchQuery.length >= 2) {
-                                                //     setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                // }
                                             }}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm bg-white"
                                         >
@@ -6687,12 +6701,7 @@ useEffect(() => {
                                                 <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
                                                     📚 {editFilterSubject}
                                                     <button
-                                                        onClick={() => {
-                                                            setEditFilterSubject('');
-                                                            if (searchQuery.length >= 2) {
-                                                                setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                            }
-                                                        }}
+                                                        onClick={() => setEditFilterSubject('')}
                                                         className="hover:bg-blue-200 rounded-full p-0.5"
                                                     >
                                                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -6705,12 +6714,7 @@ useEffect(() => {
                                                 <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs">
                                                     📄 {editFilterPaper}
                                                     <button
-                                                        onClick={() => {
-                                                            setEditFilterPaper('');
-                                                            if (searchQuery.length >= 2) {
-                                                                setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                            }
-                                                        }}
+                                                        onClick={() => setEditFilterPaper('')}
                                                         className="hover:bg-purple-200 rounded-full p-0.5"
                                                     >
                                                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -6723,12 +6727,7 @@ useEffect(() => {
                                                 <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
                                                     📖 {editFilterTopic}
                                                     <button
-                                                        onClick={() => {
-                                                            setEditFilterTopic('');
-                                                            if (searchQuery.length >= 2) {
-                                                                setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                            }
-                                                        }}
+                                                        onClick={() => setEditFilterTopic('')}
                                                         className="hover:bg-green-200 rounded-full p-0.5"
                                                     >
                                                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -6741,12 +6740,7 @@ useEffect(() => {
                                                 <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
                                                     {editFilterStatus === 'active' ? '✓ Active' : '✕ Inactive'}
                                                     <button
-                                                        onClick={() => {
-                                                            setEditFilterStatus('all');
-                                                            if (searchQuery.length >= 2) {
-                                                                setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                            }
-                                                        }}
+                                                        onClick={() => setEditFilterStatus('all')}
                                                         className="hover:bg-yellow-200 rounded-full p-0.5"
                                                     >
                                                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -6759,12 +6753,7 @@ useEffect(() => {
                                                 <span className="inline-flex items-center gap-1 bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs">
                                                     {editFilterType === 'nested' ? '⊕ Nested' : '◉ Standalone'}
                                                     <button
-                                                        onClick={() => {
-                                                            setEditFilterType('all');
-                                                            if (searchQuery.length >= 2) {
-                                                                setTimeout(() => handleSearchQuestions(searchQuery), 100);
-                                                            }
-                                                        }}
+                                                        onClick={() => setEditFilterType('all')}
                                                         className="hover:bg-indigo-200 rounded-full p-0.5"
                                                     >
                                                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
