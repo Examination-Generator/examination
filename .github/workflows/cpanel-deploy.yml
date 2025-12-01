@@ -46,29 +46,27 @@ jobs:
           REACT_APP_API_URL: https://speedstarexams.co.ke/api
         run: npm run build
       
-      - name: Deploy to cPanel via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      - name: Deploy to cPanel via SFTP
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          host: ${{ secrets.CPANEL_FTP_SERVER }}
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          protocol: ftps
           port: 1624
-          local-dir: ./frontend/exam/build/
-          server-dir: /public_html/
-          dangerous-clean-slate: false
+          source: "./frontend/exam/build/*"
+          target: "/public_html/"
+          strip_components: 3
       
       - name: Create .htaccess for React routing
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          host: ${{ secrets.CPANEL_FTP_SERVER }}
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          protocol: ftps
           port: 1624
-          local-dir: ./.github/cpanel-config/frontend/
-          server-dir: /public_html/
-          dangerous-clean-slate: false
+          source: "./.github/cpanel-config/frontend/*"
+          target: "/public_html/"
+          strip_components: 3
 
   # Deploy backend to cPanel
   deploy-backend:
@@ -79,38 +77,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
-      - name: Deploy Django backend via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      - name: Deploy Django backend via SFTP
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          host: ${{ secrets.CPANEL_FTP_SERVER }}
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          protocol: ftps
           port: 1624
-          local-dir: ./django_backend/
-          server-dir: /public_html/api/
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/__pycache__/**
-            **/*.pyc
-            **/.env
-            **/venv/**
-            **/.pytest_cache/**
-          dangerous-clean-slate: false
+          source: "./django_backend/*"
+          target: "/public_html/api/"
+          strip_components: 1
       
       - name: Deploy backend configuration
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: appleboy/scp-action@v0.1.7
         with:
-          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          host: ${{ secrets.CPANEL_FTP_SERVER }}
           username: ${{ secrets.CPANEL_FTP_USERNAME }}
           password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          protocol: ftps
           port: 1624
-          local-dir: ./.github/cpanel-config/backend/
-          server-dir: /public_html/api/
-          dangerous-clean-slate: false
+          source: "./.github/cpanel-config/backend/*"
+          target: "/public_html/api/"
+          strip_components: 3
       
       - name: Deployment complete
         run: |
