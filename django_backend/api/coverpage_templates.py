@@ -215,7 +215,7 @@ class BiologyPaper1Coverpage:
         .info-label {{
             font-weight: bold;
             font-size: 12px;
-            min-width: 60px;
+            min-width: 40px;
         }}
         
         .info-field {{
