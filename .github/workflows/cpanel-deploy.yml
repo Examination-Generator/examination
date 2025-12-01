@@ -51,19 +51,21 @@ jobs:
       
       - name: Deploy to cPanel via SFTP
         run: |
-          lftp -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} \
-            -e "set sftp:connect-program 'ssh -a -x -p 1624 -o StrictHostKeyChecking=no'; \
-                mirror -R --delete-first ./frontend/exam/build/ /public_html/; \
-                bye" \
-            sftp://${{ secrets.CPANEL_FTP_SERVER }}
+          lftp -c "
+          set sftp:connect-program 'ssh -a -x -p 1624 -o StrictHostKeyChecking=no';
+          open -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} sftp://${{ secrets.CPANEL_FTP_SERVER }};
+          mirror -R --delete-first ./frontend/exam/build/ /public_html/;
+          bye
+          "
       
       - name: Create .htaccess for React routing
         run: |
-          lftp -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} \
-            -e "set sftp:connect-program 'ssh -a -x -p 1624 -o StrictHostKeyChecking=no'; \
-                mirror -R ./.github/cpanel-config/frontend/ /public_html/; \
-                bye" \
-            sftp://${{ secrets.CPANEL_FTP_SERVER }}
+          lftp -c "
+          set sftp:connect-program 'ssh -a -x -p 1624 -o StrictHostKeyChecking=no';
+          open -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} sftp://${{ secrets.CPANEL_FTP_SERVER }};
+          mirror -R ./.github/cpanel-config/frontend/ /public_html/;
+          bye
+          "
 
   # Deploy backend to cPanel
   deploy-backend:
@@ -79,21 +81,21 @@ jobs:
       
       - name: Deploy Django backend via SFTP
         run: |
-          lftp -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} \
-            -e "set sftp:connect-program 'ssh -a -x -p 1624 -o StrictHostKeyChecking=no'; \
-                mirror -R --delete-first --exclude .git --exclude __pycache__ --exclude '*.pyc' \
-                --exclude .env --exclude venv --exclude .pytest_cache \
-                ./django_backend/ /public_html/api/; \
-                bye" \
-            sftp://${{ secrets.CPANEL_FTP_SERVER }}
+          lftp -c "
+          set sftp:connect-program 'ssh -a -x -p 1624 -o StrictHostKeyChecking=no';
+          open -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} sftp://${{ secrets.CPANEL_FTP_SERVER }};
+          mirror -R --delete-first --exclude .git --exclude __pycache__ --exclude '*.pyc' --exclude .env --exclude venv --exclude .pytest_cache ./django_backend/ /public_html/api/;
+          bye
+          "
       
       - name: Deploy backend configuration
         run: |
-          lftp -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} \
-            -e "set sftp:connect-program 'ssh -a -x -p 1624 -o StrictHostKeyChecking=no'; \
-                mirror -R ./.github/cpanel-config/backend/ /public_html/api/; \
-                bye" \
-            sftp://${{ secrets.CPANEL_FTP_SERVER }}
+          lftp -c "
+          set sftp:connect-program 'ssh -a -x -p 1624 -o StrictHostKeyChecking=no';
+          open -u ${{ secrets.CPANEL_FTP_USERNAME }},${{ secrets.CPANEL_FTP_PASSWORD }} sftp://${{ secrets.CPANEL_FTP_SERVER }};
+          mirror -R ./.github/cpanel-config/backend/ /public_html/api/;
+          bye
+          "
       
       - name: Deployment complete
         run: |
