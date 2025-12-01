@@ -46,27 +46,24 @@ jobs:
           REACT_APP_API_URL: https://speedstarexams.co.ke/api
         run: npm run build
       
+      - name: Install sshpass for password authentication
+        run: sudo apt-get update && sudo apt-get install -y sshpass rsync
+      
       - name: Deploy to cPanel via SFTP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.CPANEL_FTP_SERVER }}
-          username: ${{ secrets.CPANEL_FTP_USERNAME }}
-          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          port: 1624
-          source: "./frontend/exam/build/*"
-          target: "/public_html/"
-          strip_components: 3
+        env:
+          SSHPASS: ${{ secrets.CPANEL_FTP_PASSWORD }}
+        run: |
+          sshpass -e rsync -avz -e "ssh -p 1624 -o StrictHostKeyChecking=no" \
+            ./frontend/exam/build/ \
+            ${{ secrets.CPANEL_FTP_USERNAME }}@${{ secrets.CPANEL_FTP_SERVER }}:/public_html/
       
       - name: Create .htaccess for React routing
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.CPANEL_FTP_SERVER }}
-          username: ${{ secrets.CPANEL_FTP_USERNAME }}
-          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          port: 1624
-          source: "./.github/cpanel-config/frontend/*"
-          target: "/public_html/"
-          strip_components: 3
+        env:
+          SSHPASS: ${{ secrets.CPANEL_FTP_PASSWORD }}
+        run: |
+          sshpass -e rsync -avz -e "ssh -p 1624 -o StrictHostKeyChecking=no" \
+            ./.github/cpanel-config/frontend/ \
+            ${{ secrets.CPANEL_FTP_USERNAME }}@${{ secrets.CPANEL_FTP_SERVER }}:/public_html/
 
   # Deploy backend to cPanel
   deploy-backend:
@@ -77,27 +74,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
+      - name: Install sshpass for password authentication
+        run: sudo apt-get update && sudo apt-get install -y sshpass rsync
+      
       - name: Deploy Django backend via SFTP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.CPANEL_FTP_SERVER }}
-          username: ${{ secrets.CPANEL_FTP_USERNAME }}
-          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          port: 1624
-          source: "./django_backend/*"
-          target: "/public_html/api/"
-          strip_components: 1
+        env:
+          SSHPASS: ${{ secrets.CPANEL_FTP_PASSWORD }}
+        run: |
+          sshpass -e rsync -avz -e "ssh -p 1624 -o StrictHostKeyChecking=no" \
+            --exclude='.git*' --exclude='__pycache__' --exclude='*.pyc' \
+            --exclude='.env' --exclude='venv' --exclude='.pytest_cache' \
+            ./django_backend/ \
+            ${{ secrets.CPANEL_FTP_USERNAME }}@${{ secrets.CPANEL_FTP_SERVER }}:/public_html/api/
       
       - name: Deploy backend configuration
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.CPANEL_FTP_SERVER }}
-          username: ${{ secrets.CPANEL_FTP_USERNAME }}
-          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
-          port: 1624
-          source: "./.github/cpanel-config/backend/*"
-          target: "/public_html/api/"
-          strip_components: 3
+        env:
+          SSHPASS: ${{ secrets.CPANEL_FTP_PASSWORD }}
+        run: |
+          sshpass -e rsync -avz -e "ssh -p 1624 -o StrictHostKeyChecking=no" \
+            ./.github/cpanel-config/backend/ \
+            ${{ secrets.CPANEL_FTP_USERNAME }}@${{ secrets.CPANEL_FTP_SERVER }}:/public_html/api/
       
       - name: Deployment complete
         run: |
