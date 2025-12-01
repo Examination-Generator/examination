@@ -120,6 +120,11 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'  # Allow iframes from same origin for previews
 
+# Internationalization (ensure TIME_ZONE is set for production)
+TIME_ZONE = 'Africa/Nairobi'
+USE_I18N = True
+USE_TZ = True
+
 # Logging for production
 LOGGING['handlers']['file'] = {
     'class': 'logging.StreamHandler',

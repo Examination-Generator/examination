@@ -46,13 +46,19 @@ class Command(BaseCommand):
         
         # Setup Vercel database connection
         self.stdout.write('\n📡 Setting up Vercel database connection...')
+        db_config = self._parse_db_url(vercel_db_url)
         settings.DATABASES['vercel'] = {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': self._parse_db_url(vercel_db_url)['NAME'],
-            'USER': self._parse_db_url(vercel_db_url)['USER'],
-            'PASSWORD': self._parse_db_url(vercel_db_url)['PASSWORD'],
-            'HOST': self._parse_db_url(vercel_db_url)['HOST'],
-            'PORT': self._parse_db_url(vercel_db_url)['PORT'],
+            'NAME': db_config['NAME'],
+            'USER': db_config['USER'],
+            'PASSWORD': db_config['PASSWORD'],
+            'HOST': db_config['HOST'],
+            'PORT': db_config['PORT'],
+            'TIME_ZONE': settings.TIME_ZONE,
+            'CONN_MAX_AGE': 0,
+            'OPTIONS': {},
+            'AUTOCOMMIT': True,
+            'ATOMIC_REQUESTS': False,
         }
         
         # Test connections
