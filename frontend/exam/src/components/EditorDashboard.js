@@ -2263,8 +2263,8 @@ useEffect(() => {
     const handleSearchQuestions = async (query = '') => {
         setIsSearchingQuestions(true);
         try {
-            // Fetch all questions from database
-            const allQuestions = await questionService.getAllQuestions();
+            // Fetch ALL questions from database (with high limit to ensure we get everything)
+            const allQuestions = await questionService.getAllQuestions({ limit: 10000 });
             let filtered = [...allQuestions];
             
             console.log('🔍 Search filters applied:', {
