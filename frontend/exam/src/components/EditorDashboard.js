@@ -2306,19 +2306,33 @@ useEffect(() => {
             // Apply topic filter
             if (editFilterTopic) {
                 const beforeCount = filtered.length;
+                
+                // Log all unique topics in current filtered set for debugging
+                const uniqueTopics = [...new Set(filtered.map(q => q.topic_name).filter(Boolean))];
+                console.log(`📖 Topic filter attempting to match: "${editFilterTopic}"`);
+                console.log(`   Available topics in filtered questions:`, uniqueTopics);
+                console.log(`   Total questions before filter: ${beforeCount}`);
+                
                 filtered = filtered.filter(q => q.topic_name === editFilterTopic);
-                console.log(`📖 Topic filter (${editFilterTopic}): ${beforeCount} → ${filtered.length} questions`);
+                console.log(`   Questions after topic filter: ${filtered.length}`);
+                
                 // Log sample question to debug topic_name
                 if (filtered.length > 0) {
-                    console.log('✅ Sample question with topic:', {
+                    console.log('✅ Sample matched question:', {
                         question_text: filtered[0].question_text?.substring(0, 50),
                         topic_name: filtered[0].topic_name,
                         subject_name: filtered[0].subject_name,
                         paper_name: filtered[0].paper_name
                     });
                 } else if (beforeCount > 0) {
-                    console.log('⚠️ No matches for topic filter. Sample question topic_name:', 
-                        allQuestions.find(q => q.paper_name === editFilterPaper)?.topic_name || 'Not found');
+                    // Show what topics exist in the questions for this paper
+                    const sampleQuestions = allQuestions.filter(q => q.paper_name === editFilterPaper).slice(0, 3);
+                    console.log('⚠️ No matches! Sample questions from this paper:', 
+                        sampleQuestions.map(q => ({
+                            topic_name: q.topic_name,
+                            question_preview: q.question_text?.substring(0, 30)
+                        }))
+                    );
                 }
             }
 

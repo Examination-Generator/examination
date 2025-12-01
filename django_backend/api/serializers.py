@@ -448,10 +448,28 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
 
 class QuestionListSerializer(serializers.ModelSerializer):
     """Serializer for listing questions (minimal fields)"""
-    subject_name = serializers.CharField(source='subject.name', read_only=True)
-    paper_name = serializers.CharField(source='paper.name', read_only=True)
-    topic_name = serializers.CharField(source='topic.name', read_only=True)
-    section_name = serializers.CharField(source='section.name', read_only=True)
+    subject_name = serializers.SerializerMethodField()
+    paper_name = serializers.SerializerMethodField()
+    topic_name = serializers.SerializerMethodField()
+    section_name = serializers.SerializerMethodField()
+    
+    def get_subject_name(self, obj):
+        return obj.subject.name if obj.subject else None
+    
+    def get_paper_name(self, obj):
+        return obj.paper.name if obj.paper else None
+    
+    def get_topic_name(self, obj):
+        if obj.topic:
+            return obj.topic.name
+        # Log if topic is missing
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Question {obj.id} has no topic! Paper: {obj.paper.name if obj.paper else 'None'}")
+        return None
+    
+    def get_section_name(self, obj):
+        return obj.section.name if obj.section else None
     
     class Meta:
         model = Question
@@ -468,11 +486,26 @@ class QuestionListSerializer(serializers.ModelSerializer):
 
 class QuestionDetailSerializer(serializers.ModelSerializer):
     """Serializer for question detail view"""
-    subject_name = serializers.CharField(source='subject.name', read_only=True)
-    paper_name = serializers.CharField(source='paper.name', read_only=True)
-    topic_name = serializers.CharField(source='topic.name', read_only=True)
-    section_name = serializers.CharField(source='section.name', read_only=True)
-    created_by_name = serializers.CharField(source='created_by.full_name', read_only=True)
+    subject_name = serializers.SerializerMethodField()
+    paper_name = serializers.SerializerMethodField()
+    topic_name = serializers.SerializerMethodField()
+    section_name = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
+    
+    def get_subject_name(self, obj):
+        return obj.subject.name if obj.subject else None
+    
+    def get_paper_name(self, obj):
+        return obj.paper.name if obj.paper else None
+    
+    def get_topic_name(self, obj):
+        return obj.topic.name if obj.topic else None
+    
+    def get_section_name(self, obj):
+        return obj.section.name if obj.section else None
+    
+    def get_created_by_name(self, obj):
+        return obj.created_by.full_name if obj.created_by else None
     
     class Meta:
         model = Question
