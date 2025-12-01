@@ -35,7 +35,11 @@ echo "📋 Step 1: Installing dependencies..."
 pip install -q psycopg2-binary
 
 echo ""
-echo "📋 Step 2: Checking database connections..."
+echo "📋 Step 2: Setting up Django environment..."
+export DJANGO_SETTINGS_MODULE=examination_system.settings
+
+echo ""
+echo "📋 Step 3: Checking database connections..."
 if [ "$DRY_RUN" = "--dry-run" ]; then
     python manage.py sync_vercel_to_cpanel --vercel-db-url="$VERCEL_DB_URL" --dry-run
 else

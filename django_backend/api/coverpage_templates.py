@@ -712,6 +712,9 @@ class MarkingSchemeCoverpage:
         # Generate marking grid (same as question paper)
         marking_grid = generate_marking_table(total_questions)
         
+        # Generate instruction items HTML (can't use list comprehension with backslash in f-string)
+        instruction_items = "".join([f'<li style="margin-bottom: 8px;">{instruction}</li>' for instruction in instructions])
+        
         html = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -974,7 +977,7 @@ class MarkingSchemeCoverpage:
         <div class="instructions">
             <div class="instructions-title"  style="border: 2px solid #000; padding: 15px; margin: 20px 0; flex-grow: 1; display: flex; flex-direction: column;">INSTRUCTIONS TO EXAMINERS</div>
             <ol style="margin-left: 20px; font-size: 12px; line-height: 1.6;">
-                {"".join([f"<li style=\"margin-bottom: 8px;\">{instruction}</li>" for instruction in instructions])}
+                {instruction_items}
             </ol>
         </div>
         
