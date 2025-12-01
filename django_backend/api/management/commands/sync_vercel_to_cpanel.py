@@ -54,11 +54,6 @@ class Command(BaseCommand):
             'PASSWORD': db_config['PASSWORD'],
             'HOST': db_config['HOST'],
             'PORT': db_config['PORT'],
-            'TIME_ZONE': settings.TIME_ZONE,
-            'CONN_MAX_AGE': 0,
-            'OPTIONS': {},
-            'AUTOCOMMIT': True,
-            'ATOMIC_REQUESTS': False,
         }
         
         # Test connections
