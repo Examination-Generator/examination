@@ -1,0 +1,111 @@
+name: Deploy to cPanel Production
+
+on:
+  # Automatic deployment: 10 minutes after push to main
+  push:
+    branches: [ main ]
+  
+  # Manual deployment option
+  workflow_dispatch:
+
+jobs:
+  # Wait 10 minutes to allow Vercel staging verification and rollback if needed
+  wait-for-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait 10 minutes for staging verification
+        run: |
+          echo "⏳ Waiting 10 minutes to verify Vercel staging deployment..."
+          echo "If you need to rollback, cancel this workflow now!"
+          sleep 600
+      
+      - name: Staging verification period complete
+        run: echo "✅ 10-minute staging verification complete. Proceeding to production deployment..."
+
+  # Deploy frontend to cPanel
+  deploy-frontend:
+    needs: wait-for-staging
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        working-directory: ./frontend/exam
+        run: npm ci
+      
+      - name: Build frontend
+        working-directory: ./frontend/exam
+        env:
+          REACT_APP_API_URL: https://speedstarexams.co.ke/api
+        run: npm run build
+      
+      - name: Deploy to cPanel via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          local-dir: ./frontend/exam/build/
+          server-dir: /public_html/
+          dangerous-clean-slate: false
+      
+      - name: Create .htaccess for React routing
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          local-dir: ./.github/cpanel-config/frontend/
+          server-dir: /public_html/
+          dangerous-clean-slate: false
+
+  # Deploy backend to cPanel
+  deploy-backend:
+    needs: wait-for-staging
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Deploy Django backend via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          local-dir: ./django_backend/
+          server-dir: /public_html/api/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/__pycache__/**
+            **/*.pyc
+            **/.env
+            **/venv/**
+            **/.pytest_cache/**
+          dangerous-clean-slate: false
+      
+      - name: Deploy backend configuration
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          local-dir: ./.github/cpanel-config/backend/
+          server-dir: /public_html/api/
+          dangerous-clean-slate: false
+      
+      - name: Deployment complete
+        run: |
+          echo "✅ Deployment to cPanel production complete!"
+          echo "🌐 Frontend: https://speedstarexams.co.ke"
+          echo "🔌 Backend API: https://speedstarexams.co.ke/api"

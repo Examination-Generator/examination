@@ -1,0 +1,134 @@
+name: Deploy to cPanel Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  wait-for-staging:
+    name: Wait for Vercel Staging (10 minutes)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Wait 10 minutes for staging verification
+        run: |
+          echo "⏳ Waiting 10 minutes for Vercel staging deployment verification..."
+          echo "If deployment is rolled back within this time, cancel this workflow manually."
+          sleep 600
+
+      - name: Staging period completed
+        run: |
+          echo "✅ 10-minute staging period completed without rollback"
+          echo "Proceeding with cPanel production deployment..."
+
+  deploy-backend:
+    name: Deploy Backend to cPanel
+    needs: wait-for-staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd django_backend
+          pip install -r requirements.txt
+
+      - name: Deploy to cPanel via FTP
+        uses: SamKirkland/FTP-Deploy-Action@4.3.0
+        with:
+          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          local-dir: ./django_backend/
+          server-dir: /home/${{ secrets.CPANEL_USERNAME }}/public_html/api/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.env
+            **/venv/**
+            **/__pycache__/**
+            **/*.pyc
+
+      - name: Setup database and run migrations
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.CPANEL_SSH_HOST }}
+          username: ${{ secrets.CPANEL_SSH_USERNAME }}
+          password: ${{ secrets.CPANEL_SSH_PASSWORD }}
+          port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
+          script: |
+            cd ~/public_html/api
+            source venv/bin/activate
+            python manage.py migrate --settings=examination_system.settings_production
+            python manage.py collectstatic --noinput --settings=examination_system.settings_production
+            echo "✅ Backend deployed and migrations completed"
+
+  deploy-frontend:
+    name: Deploy Frontend to cPanel
+    needs: wait-for-staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Build frontend
+        run: |
+          cd frontend/exam
+          npm ci
+          npm run build
+        env:
+          REACT_APP_API_URL: ${{ secrets.CPANEL_API_URL }}
+
+      - name: Deploy frontend to cPanel via FTP
+        uses: SamKirkland/FTP-Deploy-Action@4.3.0
+        with:
+          server: ${{ secrets.CPANEL_FTP_SERVER }}
+          username: ${{ secrets.CPANEL_FTP_USERNAME }}
+          password: ${{ secrets.CPANEL_FTP_PASSWORD }}
+          local-dir: ./frontend/exam/build/
+          server-dir: /home/${{ secrets.CPANEL_USERNAME }}/public_html/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+
+      - name: Verify deployment
+        run: |
+          echo "✅ Frontend deployed to cPanel"
+          echo "🌐 Production URL: https://${{ secrets.CPANEL_DOMAIN }}"
+
+  notify-deployment:
+    name: Notify Deployment Status
+    needs: [deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Deployment successful
+        if: ${{ needs.deploy-backend.result == 'success' && needs.deploy-frontend.result == 'success' }}
+        run: |
+          echo "🎉 Production deployment to cPanel completed successfully!"
+          echo "Backend: Deployed"
+          echo "Frontend: Deployed"
+
+      - name: Deployment failed
+        if: ${{ needs.deploy-backend.result == 'failure' || needs.deploy-frontend.result == 'failure' }}
+        run: |
+          echo "❌ Production deployment to cPanel failed!"
+          echo "Backend: ${{ needs.deploy-backend.result }}"
+          echo "Frontend: ${{ needs.deploy-frontend.result }}"
+          exit 1
