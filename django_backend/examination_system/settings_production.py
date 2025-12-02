@@ -1,25 +1,26 @@
 """
-Production settings for Vercel deployment
+Production settings - Environment-aware configuration
+Automatically detects and configures for: Vercel (staging) or cPanel (production)
 """
 import os
 import sys
 
+# Detect environment
+def get_environment():
+    """Detect if running on Vercel or cPanel"""
+    if os.getenv('VERCEL'):
+        return 'vercel'
+    elif os.path.exists('/home/zbhxqeap'):  # cPanel specific path
+        return 'cpanel'
+    return 'local'
+
+ENVIRONMENT = get_environment()
+
 # Print diagnostic info
 print("=" * 80, file=sys.stderr)
-print("DJANGO PRODUCTION SETTINGS LOADING", file=sys.stderr)
+print(f"DJANGO SETTINGS - ENVIRONMENT: {ENVIRONMENT}", file=sys.stderr)
 print(f"Python version: {sys.version}", file=sys.stderr)
-print(f"Environment variables:", file=sys.stderr)
-print(f"  POSTGRES_URL: {'set' if os.getenv('POSTGRES_URL') else 'NOT SET'}", file=sys.stderr)
-print(f"  SECRET_KEY: {'set' if os.getenv('SECRET_KEY') else 'NOT SET'}", file=sys.stderr)
-print(f"  DEBUG: {os.getenv('DEBUG', 'NOT SET')}", file=sys.stderr)
 print("=" * 80, file=sys.stderr)
-
-try:
-    import dj_database_url
-    print("✓ dj_database_url imported successfully", file=sys.stderr)
-except ImportError as e:
-    print(f"✗ Failed to import dj_database_url: {e}", file=sys.stderr)
-    raise
 
 try:
     from .settings import *
@@ -28,34 +29,30 @@ except Exception as e:
     print(f"✗ Failed to import base settings: {e}", file=sys.stderr)
     raise
 
-# Add auto-migration middleware at the beginning of MIDDLEWARE
-# This ensures database is automatically set up on first request
-MIDDLEWARE = [
-    'api.middleware.AutoMigrateMiddleware',  # AUTO-MIGRATE: Run migrations automatically
-] + MIDDLEWARE
-
-# Security settings for production
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
-SECRET_KEY = os.getenv('SECRET_KEY', 'temporary-secret-key-change-in-production')
-
-print(f"DEBUG mode: {DEBUG}", file=sys.stderr)
-
-# Vercel-specific hosts
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '.vercel.app').split(',')
-print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}", file=sys.stderr)
-
-# Database configuration for Vercel Postgres
-# CRITICAL: Check for Vercel Postgres environment variables
-postgres_url = (
-    os.getenv('POSTGRES_URL') or 
-    os.getenv('DATABASE_URL') or
-    os.getenv('POSTGRES_PRISMA_URL') or
-    os.getenv('POSTGRES_URL_NON_POOLING')
-)
-
-if postgres_url:
-    print(f"✓ Found database URL (length: {len(postgres_url)} chars)", file=sys.stderr)
+# Environment-specific configuration
+if ENVIRONMENT == 'vercel':
+    # Vercel staging environment
     try:
+        import dj_database_url
+        print("✓ dj_database_url imported (Vercel)", file=sys.stderr)
+    except ImportError as e:
+        print(f"✗ Failed to import dj_database_url: {e}", file=sys.stderr)
+        raise
+    
+    # Add auto-migration middleware for Vercel
+    MIDDLEWARE = ['api.middleware.AutoMigrateMiddleware'] + MIDDLEWARE
+    
+    ALLOWED_HOSTS = ['.vercel.app', 'examination-s3np.vercel.app']
+    
+    # Vercel Postgres database
+    postgres_url = (
+        os.getenv('POSTGRES_URL') or 
+        os.getenv('POSTGRES_URL_NON_POOLING') or
+        os.getenv('DATABASE_URL') or
+        os.getenv('POSTGRES_PRISMA_URL')
+    )
+    
+    if postgres_url:
         DATABASES = {
             'default': dj_database_url.config(
                 default=postgres_url,
@@ -63,76 +60,69 @@ if postgres_url:
                 conn_health_checks=True,
             )
         }
-        print(f"✓ Database configured successfully", file=sys.stderr)
-        print(f"  Host: {DATABASES['default'].get('HOST', 'unknown')}", file=sys.stderr)
-        print(f"  Port: {DATABASES['default'].get('PORT', 'unknown')}", file=sys.stderr)
-        print(f"  Database: {DATABASES['default'].get('NAME', 'unknown')}", file=sys.stderr)
-    except Exception as e:
-        print(f"✗ Database configuration failed: {e}", file=sys.stderr)
-        raise
-else:
-    # NO DATABASE URL FOUND - This is critical!
-    print("=" * 80, file=sys.stderr)
-    print("✗ CRITICAL ERROR: NO DATABASE URL ENVIRONMENT VARIABLE FOUND!", file=sys.stderr)
-    print("=" * 80, file=sys.stderr)
-    print("Please set one of these environment variables on Vercel:", file=sys.stderr)
-    print("  - POSTGRES_URL (recommended)", file=sys.stderr)
-    print("  - DATABASE_URL", file=sys.stderr)
-    print("  - POSTGRES_PRISMA_URL", file=sys.stderr)
-    print("  - POSTGRES_URL_NON_POOLING", file=sys.stderr)
-    print("=" * 80, file=sys.stderr)
+        print(f"✓ Vercel database configured", file=sys.stderr)
+    else:
+        print("✗ No Vercel database URL found!", file=sys.stderr)
     
-    # Use a dummy configuration that will fail gracefully
+    CORS_ALLOWED_ORIGINS = [
+        'https://examination-2hhl.vercel.app',
+        'https://examination-s3np.vercel.app'
+    ]
+    
+elif ENVIRONMENT == 'cpanel':
+    # cPanel production environment
+    
+    # Add auto-migration middleware for cPanel
+    MIDDLEWARE = ['api.middleware.AutoMigrateMiddleware'] + MIDDLEWARE
+    
+    ALLOWED_HOSTS = ['speedstarexams.co.ke', '51.91.24.182', 'www.speedstarexams.co.ke']
+    
+    # cPanel PostgreSQL database - reads from environment variables
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'NOT_CONFIGURED',
-            'USER': 'NOT_CONFIGURED',
-            'PASSWORD': 'NOT_CONFIGURED',
-            'HOST': 'NOT_CONFIGURED',
-            'PORT': '5432',
+            'NAME': os.getenv('DB_NAME', 'zbhxqeap_exam'),
+            'USER': os.getenv('DB_USER', 'zbhxqeap_editor'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'TesterK&700'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 600,
+            'CONN_HEALTH_CHECKS': True,
         }
     }
-    print("⚠ Using dummy database config - app will not work until POSTGRES_URL is set", file=sys.stderr)
+    
+    print(f"✓ cPanel database configured: {DATABASES['default']['NAME']}", file=sys.stderr)
+    
+    CORS_ALLOWED_ORIGINS = [
+        'https://speedstarexams.co.ke',
+        'https://www.speedstarexams.co.ke'
+    ]
+    
+    # Static files for cPanel
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATIC_URL = '/static/'
+    
+else:
+    # Local development
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+    CORS_ALLOWED_ORIGINS = ['http://localhost:3000']
+    print("✓ Local development mode", file=sys.stderr)
 
-# Static files configuration for Vercel
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# Common production settings
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+SECRET_KEY = os.getenv('SECRET_KEY', 'temporary-secret-key-change-in-production')
 
-# CORS configuration for production
-# Allow all origins for Vercel deployments (both frontend and backend are on .vercel.app)
-CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins for flexible Vercel deployments
-CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if origin.strip()]
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:3002',
-] + CORS_ALLOWED_ORIGINS
-
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all in debug mode
 CORS_ALLOW_CREDENTIALS = True
 
-# Security settings - Vercel handles SSL, so we don't redirect
-SECURE_SSL_REDIRECT = False  # Vercel handles this
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'SAMEORIGIN'  # Allow iframes from same origin for previews
+# Security settings (only in production)
+if not DEBUG:
+    SECURE_SSL_REDIRECT = False  # Handled by reverse proxy
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# Internationalization (ensure TIME_ZONE is set for production)
-TIME_ZONE = 'Africa/Nairobi'
-USE_I18N = True
-USE_TZ = True
-
-# Logging for production
-LOGGING['handlers']['file'] = {
-    'class': 'logging.StreamHandler',
-    'formatter': 'verbose',
-}
-LOGGING['root']['level'] = 'DEBUG' if DEBUG else 'INFO'
-LOGGING['loggers']['django']['level'] = 'DEBUG' if DEBUG else 'INFO'
-
-print("=" * 80, file=sys.stderr)
-print("DJANGO PRODUCTION SETTINGS LOADED SUCCESSFULLY", file=sys.stderr)
+print(f"✓ Configuration complete - DEBUG: {DEBUG}", file=sys.stderr)
 print("=" * 80, file=sys.stderr)

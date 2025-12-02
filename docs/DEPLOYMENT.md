@@ -1,12 +1,22 @@
 # Deployment Guide
 
-Deploy the Examination System to Vercel for production use.
+Deploy the Examination System to staging (Vercel) and production (cPanel).
+
+## 🌐 Deployment Environments
+
+- **Staging**: Vercel (automatic on every push)
+  - Frontend: https://examination-2hhl.vercel.app
+  - Backend: https://examination-s3np.vercel.app
+- **Production**: cPanel (automatic 10 minutes after push)
+  - Website: https://speedstarexams.co.ke
+  - API: https://speedstarexams.co.ke/api
 
 ## Prerequisites
 
 - GitHub account
 - Vercel account (free tier works)
 - Vercel Postgres database
+- cPanel hosting account (for production)
 
 ## 🚀 Quick Deployment
 
@@ -75,7 +85,7 @@ Visit your frontend URL and try logging in with:
 
 ## 🔄 Automatic Deployments
 
-Every push to `main` branch triggers automatic deployment:
+Every push to `main` branch triggers automatic deployment to **both** staging and production:
 
 ```bash
 git add .
@@ -83,11 +93,55 @@ git commit -m "Your changes"
 git push origin main
 ```
 
-Vercel will:
-1. ✅ Install dependencies
-2. ✅ Run database migrations
-3. ✅ Create default users
-4. ✅ Deploy to production
+### Deployment Flow:
+
+1. **Vercel Staging** (immediate):
+   - ✅ Install dependencies
+   - ✅ Run database migrations (auto)
+   - ✅ Deploy frontend & backend
+   - 🌐 Available at Vercel URLs
+
+2. **10-Minute Wait**:
+   - ⏳ Time to verify staging
+   - ⏳ Rollback window if needed
+   - Cancel workflow to prevent production deployment
+
+3. **cPanel Production** (after 10 minutes):
+   - ✅ Deploy frontend to public_html/
+   - ✅ Deploy backend to public_html/api/
+   - ✅ Auto-migration on first request
+   - 🌐 Available at speedstarexams.co.ke
+
+## 🎯 cPanel Production Setup
+
+**First-time setup required** (one-time manual process):
+
+See detailed guide: [`.github/cpanel-config/backend/CPANEL_SETUP_GUIDE.md`](../.github/cpanel-config/backend/CPANEL_SETUP_GUIDE.md)
+
+### Quick Setup Steps:
+
+1. Create Python App in cPanel (Python 3.13.5)
+2. Set environment variables (SECRET_KEY, DB credentials, etc.)
+3. Run `pip install` from requirements.txt
+4. Run initial migration manually
+5. Collect static files
+6. Restart application
+
+After this one-time setup, all future deployments are 100% automatic via GitHub Actions.
+
+### What's Automated:
+
+✅ Code deployment (frontend & backend)  
+✅ Database migrations (auto on first request)  
+✅ Dependency installation (manual trigger)  
+✅ Application restart (automatic)  
+
+### What's Preserved:
+
+🔒 Virtual environment (venv/)  
+🔒 Environment variables (.env)  
+🔒 Static files (staticfiles/)  
+🔒 Database data  
 
 ## 🔧 Configuration Files
 

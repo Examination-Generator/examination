@@ -1,20 +1,32 @@
 # cPanel Backend Setup Instructions
 
-## Important: The backend requires Python application setup in cPanel
+## ⚠️ CRITICAL: Application Root Path
 
-Since the backend is deployed to `public_html/api/` but needs to run as a Python application, follow these steps:
+**You MUST use `public_html/api` as the Application Root** - NOT just `api`
 
-### Option 1: Setup Python App via cPanel (Recommended)
+If you use just `api`, cPanel will create the app in `/home/zbhxqeap/api` instead of `/home/zbhxqeap/public_html/api`, and the deployed code won't work.
 
-1. **Login to cPanel** at your hosting control panel
-2. **Navigate to**: Software → Setup Python App (or "Python Selector")
-3. **Click "Create Application"**
-4. **Configure:**
-   - Python Version: `3.11` (or latest available)
-   - Application Root: `public_html/api`
-   - Application URL: `speedstarexams.co.ke/api`
-   - Application Startup File: `passenger_wsgi.py`
-   - Application Entry Point: `application`
+---
+
+## Setup Python App via cPanel
+
+### Step 1: Create Python Application
+
+1. **Login to cPanel** at https://speedstarexams.co.ke:2083
+2. **Navigate to**: Software → **Setup Python App**
+3. **Click "CREATE APPLICATION"**
+4. **Configure with EXACT values:**
+   ```
+   Python Version:           3.12.x (recommended) or 3.11.x
+   Application Root:         public_html/api
+   Application URL:          speedstarexams.co.ke/api
+   Application Startup File: passenger_wsgi.py
+   Application Entry Point:  application
+   ```
+
+⚠️ **Important**: 
+- Application Root must be `public_html/api` (full path)
+- This matches where GitHub deployment pushes the code
 
 5. **After creating**, the app will provide you with:
    - Virtual environment path (usually `public_html/api/venv`)
