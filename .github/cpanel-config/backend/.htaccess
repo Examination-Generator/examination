@@ -1,16 +1,15 @@
-# Disable directory listing
-Options -Indexes
+# LiteSpeed/cPanel Python App Configuration
+# Allow access but disable directory indexing
+Options -Indexes +ExecCGI
 
 # Enable rewrite engine
 RewriteEngine On
 RewriteBase /api/
 
-# Pass all requests to Passenger WSGI
+# Allow direct access to passenger_wsgi.py (required for LiteSpeed)
+RewriteRule ^$ passenger_wsgi.py [L]
+
+# Pass all other requests to passenger_wsgi.py
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ passenger_wsgi.py/$1 [QSA,L]
-
-# Set handler for passenger_wsgi.py
-<Files passenger_wsgi.py>
-    SetHandler passenger-python
-</Files>
