@@ -88,6 +88,9 @@ elif ENVIRONMENT == 'cpanel':
             'PORT': os.getenv('DB_PORT', '5432'),
             'CONN_MAX_AGE': 600,
             'CONN_HEALTH_CHECKS': True,
+            'OPTIONS': {
+                'sslmode': 'require',
+            },
         }
     }
     
