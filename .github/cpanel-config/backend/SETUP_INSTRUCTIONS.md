@@ -1,0 +1,84 @@
+# cPanel Backend Setup Instructions
+
+## Important: The backend requires Python application setup in cPanel
+
+Since the backend is deployed to `public_html/api/` but needs to run as a Python application, follow these steps:
+
+### Option 1: Setup Python App via cPanel (Recommended)
+
+1. **Login to cPanel** at your hosting control panel
+2. **Navigate to**: Software → Setup Python App (or "Python Selector")
+3. **Click "Create Application"**
+4. **Configure:**
+   - Python Version: `3.11` (or latest available)
+   - Application Root: `public_html/api`
+   - Application URL: `speedstarexams.co.ke/api`
+   - Application Startup File: `passenger_wsgi.py`
+   - Application Entry Point: `application`
+
+5. **After creating**, the app will provide you with:
+   - Virtual environment path (usually `public_html/api/venv`)
+   - Command to activate the venv
+
+6. **Click "Terminal" button** in the Python App interface and run:
+   ```bash
+   source /home/zbhxqeap/public_html/api/venv/bin/activate
+   pip install -r /home/zbhxqeap/public_html/api/requirements.txt
+   ```
+
+7. **Create `.env` file** in `/home/zbhxqeap/public_html/api/`:
+   ```bash
+   cd /home/zbhxqeap/public_html/api
+   cat > .env << 'EOF'
+   SECRET_KEY=your-secret-key-here
+   DEBUG=False
+   ALLOWED_HOSTS=speedstarexams.co.ke,51.91.24.182
+   DATABASE_URL=postgresql://zbhxqeap_editor:TesterK&700@localhost:5432/zbhxqeap_exam
+   CORS_ALLOWED_ORIGINS=https://speedstarexams.co.ke
+   EOF
+   ```
+
+8. **Run migrations**:
+   ```bash
+   cd /home/zbhxqeap/public_html/api
+   source venv/bin/activate
+   python manage.py migrate --settings=examination_system.settings_production
+   python manage.py collectstatic --noinput --settings=examination_system.settings_production
+   ```
+
+9. **Restart the application** in the Python App interface
+
+### Option 2: Manual .htaccess Configuration
+
+If cPanel doesn't have Python App interface, the `.htaccess` file is already configured. Just ensure:
+
+1. **Passenger is enabled** (contact hosting support if needed)
+2. **Python version is set** to 3.11 or higher
+3. **Virtual environment exists** at `public_html/api/venv/`
+4. **Dependencies are installed** in the venv
+
+### Verify Backend is Working
+
+After setup, test:
+```bash
+curl https://speedstarexams.co.ke/api/
+```
+
+Should return Django API response, not the React frontend.
+
+### Troubleshooting
+
+**If you still see React frontend:**
+- Passenger might not be loading `passenger_wsgi.py`
+- Check cPanel Error Logs (Metrics → Errors)
+- Ensure `passenger_wsgi.py` has correct permissions (755)
+- Contact hosting support about Passenger Python configuration
+
+**Database connection errors:**
+- Verify PostgreSQL credentials in `.env`
+- Test connection: `psql -U zbhxqeap_editor -d zbhxqeap_exam -h localhost`
+- Check if PostgreSQL allows local connections
+
+**Module import errors:**
+- Activate venv and reinstall: `pip install -r requirements.txt`
+- Check Python version matches requirements
