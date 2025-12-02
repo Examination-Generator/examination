@@ -3,9 +3,28 @@ URL Configuration for API app
 """
 
 from django.urls import path
+from django.http import JsonResponse
 from . import auth_views, subject_views, question_views, database_views, paper_generation_views
 
+def api_root(request):
+    """API root endpoint - returns available endpoints"""
+    return JsonResponse({
+        'status': 'online',
+        'message': 'Examination System API',
+        'version': '1.0',
+        'endpoints': {
+            'database': '/api/database/health',
+            'auth': '/api/login',
+            'subjects': '/api/subjects',
+            'questions': '/api/questions',
+            'papers': '/api/papers/generated'
+        }
+    })
+
 urlpatterns = [
+    # ==================== ROOT ENDPOINT ====================
+    path('', api_root, name='api-root'),
+    
     # ==================== DATABASE MANAGEMENT ROUTES ====================
     # These endpoints handle automatic database setup and migrations
     path('database/initialize', database_views.initialize_database, name='database-initialize'),

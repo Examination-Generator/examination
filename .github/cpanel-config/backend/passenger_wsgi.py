@@ -79,3 +79,6 @@ except Exception as e:
     logger.error(f"✗ FAILED to load Django application: {e}")
     logger.error("=" * 80)
     raise
+
+# Make sure application is available at module level for Passenger
+# (already imported above, this comment just documents the requirement)
