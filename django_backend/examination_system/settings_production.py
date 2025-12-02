@@ -78,19 +78,17 @@ elif ENVIRONMENT == 'cpanel':
     ALLOWED_HOSTS = ['speedstarexams.co.ke', '51.91.24.182', 'www.speedstarexams.co.ke']
     
     # cPanel PostgreSQL database - reads from environment variables
+    # Note: cPanel PostgreSQL typically runs locally without SSL
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.getenv('DB_NAME', 'zbhxqeap_exam'),
             'USER': os.getenv('DB_USER', 'zbhxqeap_editor'),
             'PASSWORD': os.getenv('DB_PASSWORD', 'TesterK&700'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'HOST': os.getenv('DB_HOST', '127.0.0.1'),  # Use IPv4 explicitly
             'PORT': os.getenv('DB_PORT', '5432'),
             'CONN_MAX_AGE': 600,
             'CONN_HEALTH_CHECKS': True,
-            'OPTIONS': {
-                'sslmode': 'require',
-            },
         }
     }
     
