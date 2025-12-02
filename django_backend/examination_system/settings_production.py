@@ -78,21 +78,26 @@ elif ENVIRONMENT == 'cpanel':
     ALLOWED_HOSTS = ['speedstarexams.co.ke', '51.91.24.182', 'www.speedstarexams.co.ke']
     
     # cPanel PostgreSQL database - reads from environment variables
-    # Note: cPanel PostgreSQL typically runs locally without SSL
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'zbhxqeap_exam'),
-            'USER': os.getenv('DB_USER', 'zbhxqeap_editor'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'TesterK&700'),
-            'HOST': os.getenv('DB_HOST', '127.0.0.1'),  # Use IPv4 explicitly
-            'PORT': os.getenv('DB_PORT', '5432'),
-            'CONN_MAX_AGE': 600,
-            'CONN_HEALTH_CHECKS': True,
-        }
+    # cPanel typically uses Unix socket (empty host) for local PostgreSQL
+    db_host = os.getenv('DB_HOST', '')  # Empty string = Unix socket
+    db_config = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', 'zbhxqeap_exam'),
+        'USER': os.getenv('DB_USER', 'zbhxqeap_editor'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'TesterK&700'),
+        'CONN_MAX_AGE': 600,
+        'CONN_HEALTH_CHECKS': True,
     }
     
+    # Only add HOST and PORT if specified (otherwise use Unix socket)
+    if db_host:
+        db_config['HOST'] = db_host
+        db_config['PORT'] = os.getenv('DB_PORT', '5432')
+    
+    DATABASES = {'default': db_config}
+    
     print(f"✓ cPanel database configured: {DATABASES['default']['NAME']}", file=sys.stderr)
+    print(f"  Connection method: {'Unix socket' if not db_host else f'TCP to {db_host}'}", file=sys.stderr)
     
     CORS_ALLOWED_ORIGINS = [
         'https://speedstarexams.co.ke',
