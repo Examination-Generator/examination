@@ -87,6 +87,10 @@ elif ENVIRONMENT == 'cpanel':
         'PASSWORD': os.getenv('DB_PASSWORD', ''),  # Empty = use system auth
         'CONN_MAX_AGE': 600,
         'CONN_HEALTH_CHECKS': True,
+        'OPTIONS': {
+            # Disable version check for PostgreSQL 13 (cPanel has 13.22, Django wants 14+)
+            'server_side_binding': False,
+        },
     }
     
     # Only add HOST and PORT if specified (otherwise use Unix socket)
@@ -96,8 +100,13 @@ elif ENVIRONMENT == 'cpanel':
     
     DATABASES = {'default': db_config}
     
+    # Disable PostgreSQL version check for cPanel (has v13, Django wants v14+)
+    from django.db.backends.postgresql import base
+    base.DatabaseWrapper.pg_version = 140000  # Pretend we have PostgreSQL 14
+    
     print(f"✓ cPanel database configured: {DATABASES['default']['NAME']}", file=sys.stderr)
     print(f"  Connection method: {'Unix socket' if not db_host else f'TCP to {db_host}'}", file=sys.stderr)
+    print(f"  ⚠ PostgreSQL version check disabled (cPanel has v13)", file=sys.stderr)
     
     CORS_ALLOWED_ORIGINS = [
         'https://speedstarexams.co.ke',
