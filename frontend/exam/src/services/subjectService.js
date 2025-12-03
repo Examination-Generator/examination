@@ -1,5 +1,7 @@
 // Subject Management API Service
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+import { API_URL } from '../config';
+
+const API_BASE_URL = API_URL;
 
 // Get authentication token from localStorage
 const getAuthToken = () => {

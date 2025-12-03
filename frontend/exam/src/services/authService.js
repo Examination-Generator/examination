@@ -1,5 +1,7 @@
 // Authentication API Service
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+import { API_URL } from '../config';
+
+const API_BASE_URL = API_URL;
 
 // Session configuration
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
