@@ -389,7 +389,7 @@ export default function Signup({ onSwitchToLogin }) {
                                 alt="Exam Logo" 
                                 className="w-64 h-64 object-contain mb-8"
                             />
-                            <h2 className="text-4xl font-bold text-green-700 text-center mb-4">Exam App</h2>
+                            <h2 className="text-4xl font-bold text-green-700 text-center mb-4">Speedstarexams App</h2>
                             <p className="text-green-600 text-center text-lg italic">
                                 Test your students with quality examinations
                             </p>

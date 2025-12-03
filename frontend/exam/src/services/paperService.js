@@ -1,11 +1,8 @@
 // Paper Generation API Service
 import { getAuthToken } from './authService';
+import { API_URL } from '../config';
 
-// import { API_URL } from '../config';
-
-// const API_BASE_URL = API_URL;
-
-const API_BASE_URL = 'https://speedstarexams.co.ke/api'; // Temporary hardcode to avoid circular dependency issue
+const API_BASE_URL = API_URL;
 
 // Helper function to get auth headers
 const getAuthHeaders = () => ({
