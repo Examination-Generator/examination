@@ -1,7 +1,8 @@
 // Authentication API Service
-import { API_URL } from '../config';
+// import { API_URL } from '../config';
 
-const API_BASE_URL = API_URL;
+// const API_BASE_URL = API_URL;
+const API_BASE_URL = 'https://speedstarexams.co.ke/api'; // Temporary hardcode to avoid circular dependency issue
 
 // Session configuration
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
