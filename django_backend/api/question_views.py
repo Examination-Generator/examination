@@ -300,7 +300,7 @@ def update_question(request, question_id):
 @permission_classes([IsAuthenticated])
 def delete_question(request, question_id):
     """
-    Delete question (soft delete)
+    Delete question (hard delete)
     DELETE /api/questions/:id
     """
     try:
@@ -311,9 +311,8 @@ def delete_question(request, question_id):
             status=status.HTTP_404_NOT_FOUND
         )
     
-    # Soft delete
-    question.is_active = False
-    question.save()
+    # Hard delete - permanently remove from database
+    question.delete()
     
     return success_response('Question deleted successfully')
 

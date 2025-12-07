@@ -2611,20 +2611,19 @@ useEffect(() => {
         }
 
         try {
+            console.log('🗑️ Deleting question:', selectedQuestion.id);
             await questionService.deleteQuestion(selectedQuestion.id);
             
             alert('Question deleted successfully!');
             
-            // Refresh search results
-            if (searchQuery) {
-                handleSearchQuestions(searchQuery);
-            }
-            
-            // Clear selection
+            // Clear selection first
+            const deletedQuestionId = selectedQuestion.id;
             setSelectedQuestion(null);
             setEditQuestionText('');
             setEditAnswerText('');
             setEditMarks('');
+            setEditTopic('');
+            setEditSection('');
             setEditQuestionInlineImages([]);
             setEditAnswerInlineImages([]);
             setEditQuestionImagePositions({}); // NEW: Clear positions
@@ -2633,6 +2632,11 @@ useEffect(() => {
             setEditAnswerAnswerLines([]); // NEW: Clear answer lines
             setEditIsActive(true); // Reset to active
             setEditIsNested(false); // Reset to standalone
+            
+            // Refresh search results - this will re-fetch questions
+            await handleSearchQuestions(searchQuery || '');
+            
+            console.log('✅ Question deleted and search results refreshed');
             
         } catch (error) {
             console.error('Error deleting question:', error);
