@@ -2536,10 +2536,13 @@ useEffect(() => {
         }
 
         try {
+            // Prepare section value - convert empty string to null
+            const sectionValue = editSection && editSection.trim() !== '' ? editSection : (selectedQuestion.section || null);
+            
             const updatedData = {
                 subject: selectedQuestion.subject, // Include subject for validation
                 paper: selectedQuestion.paper, // Include paper for validation
-                section: editSection || selectedQuestion.section, // Use editSection if changed, otherwise keep current
+                section: sectionValue, // Use processed section value
                 question_text: editQuestionText,
                 answer_text: editAnswerText,
                 marks: parseFloat(editMarks) || selectedQuestion.marks,
@@ -2556,6 +2559,7 @@ useEffect(() => {
                 is_nested: editIsNested // Use edited type
             };
 
+            console.log('🔄 Updating question - Section value:', sectionValue, '(editSection:', editSection, ', original:', selectedQuestion.section, ')');
             await questionService.updateQuestion(selectedQuestion.id, updatedData);
             
             alert('Question updated successfully!');
