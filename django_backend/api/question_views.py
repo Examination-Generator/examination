@@ -303,16 +303,33 @@ def delete_question(request, question_id):
     Delete question (hard delete)
     DELETE /api/questions/:id
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"🗑️ DELETE request received for question ID: {question_id}")
+    
     try:
         question = Question.objects.get(id=question_id)
+        logger.info(f"🗑️ Found question: {question.question_text[:50]}...")
     except Question.DoesNotExist:
+        logger.error(f"🗑️ Question not found: {question_id}")
         return error_response(
             'Question not found',
             status=status.HTTP_404_NOT_FOUND
         )
     
     # Hard delete - permanently remove from database
+    question_id_before = question.id
     question.delete()
+    
+    logger.info(f"🗑️ Question {question_id_before} deleted successfully from database")
+    
+    # Verify deletion
+    try:
+        Question.objects.get(id=question_id_before)
+        logger.error(f"🗑️ ERROR: Question still exists after delete!")
+    except Question.DoesNotExist:
+        logger.info(f"🗑️ Verified: Question {question_id_before} no longer exists in database")
     
     return success_response('Question deleted successfully')
 

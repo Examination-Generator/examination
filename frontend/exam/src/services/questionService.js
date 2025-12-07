@@ -137,16 +137,24 @@ export const updateQuestion = async (questionId, questionData) => {
 // Delete question
 export const deleteQuestion = async (questionId) => {
     try {
+        console.log('🗑️ DELETE request - Question ID:', questionId);
+        console.log('🗑️ DELETE URL:', `${API_BASE_URL}/questions/${questionId}`);
+        
         const response = await fetch(`${API_BASE_URL}/questions/${questionId}`, {
             method: 'DELETE',
             headers: getHeaders()
         });
         
+        console.log('🗑️ DELETE response status:', response.status, response.statusText);
+        
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('🗑️ DELETE failed:', errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const result = await response.json();
+        console.log('🗑️ DELETE result:', result);
         return result;
     } catch (error) {
         console.error('Error deleting question:', error);
