@@ -2373,6 +2373,7 @@ useEffect(() => {
         console.log('RAW question data received:', question);
         console.log('🔍 question_inline_images field:', question.question_inline_images);
         console.log('🔍 answer_inline_images field:', question.answer_inline_images);
+        console.log('🔍 SECTION field:', question.section, 'section_name:', question.section_name);
         
         setSelectedQuestion(question);
         setEditQuestionText(question.question_text || '');
@@ -2380,6 +2381,7 @@ useEffect(() => {
         setEditMarks(question.marks || '');
         setEditTopic(question.topic || ''); // Set the topic ID for editing
         setEditSection(question.section || ''); // Set the section ID for editing
+        console.log('✅ Set editSection to:', question.section || '');
         setEditIsActive(question.is_active !== false); // Load active status
         setEditIsNested(question.is_nested === true); // Load nested status
         
@@ -2559,31 +2561,38 @@ useEffect(() => {
                 is_nested: editIsNested // Use edited type
             };
 
-            console.log('🔄 Updating question - Section value:', sectionValue, '(editSection:', editSection, ', original:', selectedQuestion.section, ')');
-            await questionService.updateQuestion(selectedQuestion.id, updatedData);
+            console.log('🔄 Updating question - Full details:');
+            console.log('  - Question ID:', selectedQuestion.id);
+            console.log('  - editSection state:', editSection);
+            console.log('  - selectedQuestion.section:', selectedQuestion.section);
+            console.log('  - Computed sectionValue:', sectionValue);
+            console.log('  - Full updatedData:', JSON.stringify(updatedData, null, 2));
+            
+            const result = await questionService.updateQuestion(selectedQuestion.id, updatedData);
+            console.log('✅ Update result:', result);
             
             alert('Question updated successfully!');
             
-            // Refresh search results
-            if (searchQuery) {
-                handleSearchQuestions(searchQuery);
+            // Refresh search results and get updated question data
+            await handleSearchQuestions(searchQuery || '');
+            
+            // Fetch the updated question to refresh the form with latest data
+            try {
+                const updatedQuestion = await questionService.getQuestionById(selectedQuestion.id);
+                console.log('📥 Fetched updated question:', updatedQuestion);
+                
+                // Update the selected question with fresh data
+                if (updatedQuestion) {
+                    setSelectedQuestion(updatedQuestion);
+                    setEditSection(updatedQuestion.section || '');
+                    console.log('✅ Refreshed form with updated section:', updatedQuestion.section);
+                }
+            } catch (fetchError) {
+                console.error('Error fetching updated question:', fetchError);
             }
             
-            // Clear selection
-            setSelectedQuestion(null);
-            setEditQuestionText('');
-            setEditAnswerText('');
-            setEditMarks('');
-            setEditTopic(''); // Clear topic
-            setEditSection(''); // Clear section
-            setEditQuestionInlineImages([]);
-            setEditAnswerInlineImages([]);
-            setEditQuestionImagePositions({}); // NEW: Clear positions
-            setEditAnswerImagePositions({}); // NEW: Clear positions
-            setEditQuestionAnswerLines([]); // NEW: Clear answer lines
-            setEditAnswerAnswerLines([]); // NEW: Clear answer lines
-            setEditIsActive(true); // Reset to active
-            setEditIsNested(false); // Reset to standalone
+            // Don't clear the form - keep it open with updated data
+            // This allows user to verify the changes were saved correctly
             
         } catch (error) {
             console.error('Error updating question:', error);

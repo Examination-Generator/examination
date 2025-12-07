@@ -538,10 +538,19 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """Validate relationships between subject, paper, topic, section"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         subject = data.get('subject')
         paper = data.get('paper')
         topic = data.get('topic')
         section = data.get('section')
+        
+        logger.info(f"Validating question data:")
+        logger.info(f"  - subject: {subject}")
+        logger.info(f"  - paper: {paper}")
+        logger.info(f"  - topic: {topic}")
+        logger.info(f"  - section: {section}")
         
         # Verify paper belongs to subject
         if paper and paper.subject != subject:
@@ -557,10 +566,12 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
         
         # Verify section belongs to paper (if provided)
         if section and section.paper != paper:
+            logger.error(f"Section validation failed: section.paper={section.paper}, paper={paper}")
             raise serializers.ValidationError({
                 'section': 'Section does not belong to the selected paper'
             })
         
+        logger.info(f"Validation passed - section will be: {section}")
         return data
     
     def create(self, validated_data):
@@ -580,6 +591,25 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
         logger.info(f"Question created with ID: {question.id}, question_images_in_db={len(question.question_inline_images or [])}, answer_images_in_db={len(question.answer_inline_images or [])}")
         
         return question
+    
+    def update(self, instance, validated_data):
+        """Update question with proper section handling"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"Updating question {instance.id}")
+        logger.info(f"Current section: {instance.section_id}")
+        logger.info(f"New section from validated_data: {validated_data.get('section')}")
+        
+        # Update all fields from validated_data
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        instance.save()
+        
+        logger.info(f"After save - section_id: {instance.section_id}")
+        
+        return instance
 
 
 class QuestionBulkCreateSerializer(serializers.Serializer):
