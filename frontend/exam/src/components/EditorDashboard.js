@@ -99,6 +99,8 @@ export default function EditorDashboard({ onLogout }) {
     const [editMarks, setEditMarks] = useState('');
     const [editTopic, setEditTopic] = useState(''); // Topic ID for editing
     const [editQuestionTopics, setEditQuestionTopics] = useState([]); // Topics for the selected paper
+    const [editQuestionSections, setEditQuestionSections] = useState([]); // Sections for the selected paper
+    const [editSection, setEditSection] = useState(''); // Section ID for editing
     const [editQuestionInlineImages, setEditQuestionInlineImages] = useState([]);
     const [editAnswerInlineImages, setEditAnswerInlineImages] = useState([]);
     const [editQuestionImagePositions, setEditQuestionImagePositions] = useState({});
@@ -405,15 +407,18 @@ export default function EditorDashboard({ onLogout }) {
                     console.log('[fetchTopicsForPaper] FOUND matching paper!');
                     console.log('[fetchTopicsForPaper] Paper name:', paper.name);
                     console.log('[fetchTopicsForPaper] Topics:', paper.topics);
+                    console.log('[fetchTopicsForPaper] Sections:', paper.sections);
                     console.log('[fetchTopicsForPaper] Setting editQuestionTopics with', paper.topics?.length, 'topics');
                     setEditQuestionTopics(paper.topics || []);
+                    setEditQuestionSections(paper.sections || []); // Set sections too
                     return;
                 }
             }
             
             console.warn('[fetchTopicsForPaper] No paper found with ID:', paperId);
-            console.warn('[fetchTopicsForPaper] Setting editQuestionTopics to empty array');
+            console.warn('[fetchTopicsForPaper] Setting editQuestionTopics and sections to empty array');
             setEditQuestionTopics([]);
+            setEditQuestionSections([]);
         } catch (error) {
             console.error('[fetchTopicsForPaper] Error:', error);
             console.error('[fetchTopicsForPaper] Error stack:', error.stack);
@@ -2374,6 +2379,7 @@ useEffect(() => {
         setEditAnswerText(question.answer_text || '');
         setEditMarks(question.marks || '');
         setEditTopic(question.topic || ''); // Set the topic ID for editing
+        setEditSection(question.section || ''); // Set the section ID for editing
         setEditIsActive(question.is_active !== false); // Load active status
         setEditIsNested(question.is_nested === true); // Load nested status
         
@@ -2533,7 +2539,7 @@ useEffect(() => {
             const updatedData = {
                 subject: selectedQuestion.subject, // Include subject for validation
                 paper: selectedQuestion.paper, // Include paper for validation
-                section: selectedQuestion.section, // Include section
+                section: editSection || selectedQuestion.section, // Use editSection if changed, otherwise keep current
                 question_text: editQuestionText,
                 answer_text: editAnswerText,
                 marks: parseFloat(editMarks) || selectedQuestion.marks,
@@ -2565,6 +2571,7 @@ useEffect(() => {
             setEditAnswerText('');
             setEditMarks('');
             setEditTopic(''); // Clear topic
+            setEditSection(''); // Clear section
             setEditQuestionInlineImages([]);
             setEditAnswerInlineImages([]);
             setEditQuestionImagePositions({}); // NEW: Clear positions
@@ -6942,6 +6949,23 @@ useEffect(() => {
                                                 ))}
                                             </select>
                                         </div>
+                                        {editQuestionSections && editQuestionSections.length > 0 && (
+                                            <div>
+                                                <label className="font-semibold text-gray-700 block mb-1">Section:</label>
+                                                <select
+                                                    value={editSection}
+                                                    onChange={(e) => setEditSection(e.target.value)}
+                                                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                                                >
+                                                    <option value="">Select section...</option>
+                                                    {editQuestionSections.map(section => (
+                                                        <option key={section.id} value={section.id}>
+                                                            {section.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
