@@ -107,13 +107,17 @@ class BiologyPaper2Validator:
             issues.append("Section B not found in paper")
             recommendations.append("Create Section B for the paper")
         else:
-            if graph_questions < 5:
-                issues.append(f"Graph questions: {graph_questions} (need at least 5 questions with 20 marks containing 'graph')")
-                recommendations.append("Add more graph-based 20-mark questions to Section B")
+            # Total Section B questions (graph + essay)
+            if total_section_b < 10:
+                issues.append(f"Section B total: {total_section_b} questions (need at least 10 questions of 20 marks)")
+                recommendations.append("Add more 20-mark questions to Section B")
             
-            if essay_questions < 10:
-                issues.append(f"Essay questions: {essay_questions} (need at least 10 questions of 20 marks)")
-                recommendations.append("Add more essay-type 20-mark questions to Section B")
+            # Warning for graph questions (not critical)
+            if graph_questions < 3:
+                recommendations.append(f"Only {graph_questions} graph questions found. Consider adding more graph-based questions for Question 6. If unavailable, essay questions will be used.")
+            
+            if essay_questions < 8:
+                recommendations.append(f"Only {essay_questions} essay questions found. Consider adding more essay-type 20-mark questions.")
         
         return {
             'valid': len(issues) == 0,
@@ -270,14 +274,17 @@ class BiologyPaper2Generator:
                 f"(need at least {self.SECTION_A_QUESTIONS})"
             )
         
-        if len(self.graph_questions_pool) < 1:
-            raise ValueError("No graph questions found for Question 6 (Section B)")
-        
-        if len(self.essay_questions_pool) < 2:
+        # Check total Section B questions (graph + essay)
+        total_section_b = len(self.graph_questions_pool) + len(self.essay_questions_pool)
+        if total_section_b < self.SECTION_B_QUESTIONS:
             raise ValueError(
-                f"Insufficient essay questions: {len(self.essay_questions_pool)} "
-                f"(need at least 2 for Questions 7 & 8)"
+                f"Insufficient Section B questions: {total_section_b} "
+                f"(need at least {self.SECTION_B_QUESTIONS})"
             )
+        
+        # Warn if no graph questions (will use essay questions for Question 6)
+        if len(self.graph_questions_pool) < 1:
+            print(f"\n⚠ Warning: No graph questions found. Question 6 will be selected from essay questions.")
         
         print(f"\n✓ Data loaded successfully")
     
@@ -297,11 +304,25 @@ class BiologyPaper2Generator:
             print(f"  Question {i}: {question.topic.name} - {question.question_text[:60]}...")
         
         # Select 1 graph question for Question 6 (Section B)
-        print(f"\nSection B - Question 6: Selecting graph question (20 marks)")
-        self.selected_graph = random.choice(self.graph_questions_pool)
-        self.used_question_ids.add(str(self.selected_graph.id))
-        self.topic_distribution[self.selected_graph.topic.name] += 1
-        print(f"  Question 6: {self.selected_graph.topic.name} - {self.selected_graph.question_text[:60]}...")
+        # Prioritize graph questions, but use essay questions if unavailable
+        print(f"\nSection B - Question 6: Selecting question (20 marks)")
+        if len(self.graph_questions_pool) > 0:
+            # Graph questions available - prioritize these
+            self.selected_graph = random.choice(self.graph_questions_pool)
+            self.used_question_ids.add(str(self.selected_graph.id))
+            self.topic_distribution[self.selected_graph.topic.name] += 1
+            print(f"  Question 6 (GRAPH): {self.selected_graph.topic.name} - {self.selected_graph.question_text[:60]}...")
+        else:
+            # No graph questions available, fall back to essay pool
+            print(f"  ⚠ No graph questions available. Selecting from essay pool...")
+            if len(self.essay_questions_pool) < 3:
+                raise ValueError("Insufficient questions for Section B. Need at least 3 essay questions when no graph questions are available.")
+            self.selected_graph = random.choice(self.essay_questions_pool)
+            self.used_question_ids.add(str(self.selected_graph.id))
+            self.topic_distribution[self.selected_graph.topic.name] += 1
+            print(f"  Question 6 (ESSAY - fallback): {self.selected_graph.topic.name} - {self.selected_graph.question_text[:60]}...")
+            # Remove selected question from essay pool to avoid duplication
+            self.essay_questions_pool = [q for q in self.essay_questions_pool if str(q.id) != str(self.selected_graph.id)]
         
         # Select 2 essay questions for Questions 7 & 8 (Section B)
         print(f"\nSection B - Questions 7 & 8: Selecting {2} essay questions (20 marks each)")
@@ -331,6 +352,9 @@ class BiologyPaper2Generator:
                 self.selected_essays        # Questions 7-8
             )
             
+            # Check if Question 6 is actually a graph question
+            question_6_type = 'graph' if 'graph' in self.selected_graph.question_text.lower() else 'essay'
+            
             # Create GeneratedPaper
             generated_paper = GeneratedPaper.objects.create(
                 paper=self.paper,
@@ -344,6 +368,7 @@ class BiologyPaper2Generator:
                     'section_a_marks_per_question': self.SECTION_A_MARKS_PER_QUESTION,
                     'section_b_questions': self.SECTION_B_QUESTIONS,
                     'section_b_marks_per_question': self.SECTION_B_MARKS_PER_QUESTION,
+                    'question_6_type': question_6_type,
                     'topic_distribution': dict(self.topic_distribution),
                     'selected_topics': [str(t.id) for t in self.topics],
                     'question_order': [
@@ -351,7 +376,7 @@ class BiologyPaper2Generator:
                             'question_number': idx + 1,
                             'question_id': str(q.id),
                             'section': 'A' if idx < 5 else 'B',
-                            'type': 'graph' if idx == 5 else ('essay' if idx > 5 else 'structured'),
+                            'type': question_6_type if idx == 5 else ('essay' if idx > 5 else 'structured'),
                             'marks': q.marks,
                             'topic': q.topic.name
                         }
