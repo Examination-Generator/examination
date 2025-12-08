@@ -8,7 +8,7 @@ import re
 import base64
 
 
-def generate_full_exam_html(coverpage_data, questions):
+def generate_full_exam_html(coverpage_data, questions, coverpage_class=None):
     """
     Generate complete exam paper HTML with coverpage and all questions
     
@@ -16,13 +16,18 @@ def generate_full_exam_html(coverpage_data, questions):
         coverpage_data (dict): Coverpage information
         questions (list): List of question dictionaries with 'number', 'text', 'marks', 
                          'question_inline_images', 'question_answer_lines'
+        coverpage_class: Coverpage class to use (defaults to BiologyPaper1Coverpage)
     
     Returns:
         str: Complete HTML document
     """
     
+    # Use provided coverpage class or default
+    if coverpage_class is None:
+        coverpage_class = BiologyPaper1Coverpage
+    
     # Generate coverpage HTML (page 1)
-    coverpage_html = BiologyPaper1Coverpage.generate_html(coverpage_data)
+    coverpage_html = coverpage_class.generate_html(coverpage_data)
     
     # Extract coverpage content (remove html/body tags to combine later)
     coverpage_body = re.search(r'<body>(.*?)</body>', coverpage_html, re.DOTALL)

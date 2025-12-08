@@ -31,7 +31,13 @@ from .models import (
     Paper, Topic, PaperConfiguration, GeneratedPaper, Question
 )
 from .kcse_biology_paper1_generator import KCSEBiologyPaper1Generator
-from .coverpage_templates import BiologyPaper1Coverpage, BiologyPaper2Coverpage, MarkingSchemeCoverpage, format_time_allocation
+from .coverpage_templates import (
+    BiologyPaper1Coverpage, 
+    BiologyPaper2Coverpage, 
+    BiologyPaper2MarkingSchemeCoverpage,
+    MarkingSchemeCoverpage, 
+    format_time_allocation
+)
 
 logger = logging.getLogger(__name__)
 
@@ -977,10 +983,23 @@ def preview_full_exam(request, paper_id):
         
         if view_type == 'marking_scheme':
             # Generate marking scheme preview
-            marking_scheme_coverpage = MarkingSchemeCoverpage.generate_default_data(
-                generated_paper, 
-                generated_paper.paper
-            )
+            # Detect paper type for correct marking scheme coverpage
+            paper_type = generated_paper.metadata.get('paper_type', '')
+            
+            if 'Paper 2' in paper_type or 'Paper II' in paper_type:
+                # Use Biology Paper 2 marking scheme coverpage
+                marking_scheme_coverpage = BiologyPaper2MarkingSchemeCoverpage.generate_default_data(
+                    generated_paper, 
+                    generated_paper.paper
+                )
+                MarkingSchemeClass = BiologyPaper2MarkingSchemeCoverpage
+            else:
+                # Use standard marking scheme coverpage (Paper 1)
+                marking_scheme_coverpage = MarkingSchemeCoverpage.generate_default_data(
+                    generated_paper, 
+                    generated_paper.paper
+                )
+                MarkingSchemeClass = MarkingSchemeCoverpage
             
             # Get all questions in order with answers
             question_ids = generated_paper.question_ids
@@ -1009,7 +1028,11 @@ def preview_full_exam(request, paper_id):
             if output_format == 'html':
                 # Generate marking scheme HTML
                 from .marking_scheme_template import generate_marking_scheme_html
-                html_content = generate_marking_scheme_html(marking_scheme_coverpage, marking_scheme_items)
+                html_content = generate_marking_scheme_html(
+                    marking_scheme_coverpage, 
+                    marking_scheme_items,
+                    coverpage_class=MarkingSchemeClass
+                )
                 return HttpResponse(html_content, content_type='text/html')
             
             return Response({
@@ -1031,12 +1054,14 @@ def preview_full_exam(request, paper_id):
                     generated_paper, 
                     generated_paper.paper
                 )
+                CoverpageClass = BiologyPaper2Coverpage
             else:
                 # Use Biology Paper 1 coverpage (default)
                 default_coverpage = BiologyPaper1Coverpage.generate_default_coverpage_data(
                     generated_paper, 
                     generated_paper.paper
                 )
+                CoverpageClass = BiologyPaper1Coverpage
             
             coverpage_data = {**default_coverpage, **coverpage_data_dict}
             
@@ -1068,7 +1093,11 @@ def preview_full_exam(request, paper_id):
             if output_format == 'html':
                 # Generate complete exam HTML
                 from .exam_paper_template import generate_full_exam_html
-                html_content = generate_full_exam_html(coverpage_data, ordered_questions)
+                html_content = generate_full_exam_html(
+                    coverpage_data, 
+                    ordered_questions,
+                    coverpage_class=CoverpageClass
+                )
                 return HttpResponse(html_content, content_type='text/html')
         
         # Return JSON

@@ -1170,6 +1170,332 @@ class BiologyPaper2Coverpage:
         }
 
 
+class BiologyPaper2MarkingSchemeCoverpage:
+    """
+    Biology Paper 2 Marking Scheme Coverpage Template
+    Uses sectioned marking grid (Section A and Section B) - same as question paper
+    """
+    
+    @staticmethod
+    def generate_html(data):
+        """
+        Generate HTML for Biology Paper 2 Marking Scheme coverpage
+        """
+        school_name = data.get('school_name', 'EXAMINATION CENTRE')
+        school_logo = data.get('school_logo', '/exam.png')
+        logo_position = data.get('logo_position', 'center')
+        class_name = data.get('class_name', '')
+        exam_title = data.get('exam_title', 'END TERM EXAMINATION 2025')
+        paper_name = data.get('paper_name', 'BIOLOGY PAPER 2')
+        
+        # Section configuration
+        section_a_questions = data.get('section_a_questions', 5)
+        section_a_marks = data.get('section_a_marks', 8)
+        section_b_questions = data.get('section_b_questions', 3)
+        section_b_marks = data.get('section_b_marks', 20)
+        total_marks = data.get('total_marks', 80)
+        total_questions = section_a_questions + section_b_questions
+        
+        # Calculate total pages for marking scheme
+        total_pages = data.get('total_pages', 15)  # Marking scheme usually has more pages
+        
+        # Instructions for marking scheme
+        instructions = [
+            'This is a confidential document for authorized examiners only.',
+            'Do not distribute to candidates before or during examination.',
+            'Award marks strictly according to the marking points provided.',
+            'Accept any valid alternative answers that demonstrate understanding.',
+            'For Section A: Award marks for each of the 5 questions (8 marks each).',
+            'For Section B: Question 6 is compulsory (20 marks). For Questions 7 & 8, mark only the one attempted by the candidate.',
+            f'This marking scheme consists of {total_pages} printed pages.',
+            'Check that all pages are printed and no answers are missing.'
+        ]
+        
+        # Generate marking grid (same structure as question paper)
+        marking_grid_html = BiologyPaper2Coverpage._generate_marking_grid(
+            section_a_questions, section_a_marks,
+            section_b_questions, section_b_marks,
+            total_marks
+        )
+        
+        # Generate instruction items HTML
+        instruction_items = "".join([f'<li style="margin-bottom: 8px;">{instruction}</li>' for instruction in instructions])
+        
+        html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{paper_name} - MARKING SCHEME</title>
+    <style>
+        @page {{
+            size: A4;
+            margin: 0;
+        }}
+        
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Times New Roman', Times, serif;
+            width: 210mm;
+            height: 297mm;
+            padding: 20mm;
+            background: white;
+        }}
+        
+        .coverpage {{
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }}
+        
+        .header {{
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+        }}
+        
+        .logo-container {{
+            margin-bottom: 15px;
+        }}
+        
+        .logo-container.left {{
+            text-align: left;
+        }}
+        
+        .logo-container.center {{
+            text-align: center;
+        }}
+        
+        .logo-container.right {{
+            text-align: right;
+        }}
+        
+        .school-logo {{
+            max-width: 80px;
+            max-height: 80px;
+            object-fit: contain;
+        }}
+        
+        .school-name {{
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }}
+        
+        .class-title {{
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }}
+        
+        .exam-title {{
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }}
+        
+        .paper-title {{
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }}
+        
+        .marking-scheme-label {{
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #d32f2f;
+            margin: 10px 0;
+            padding: 8px;
+            border: 2px solid #d32f2f;
+            display: inline-block;
+        }}
+        
+        .confidential-notice {{
+            margin: 15px 0;
+            padding: 12px;
+            background-color: #fff3cd;
+            border: 2px solid #856404;
+            border-radius: 4px;
+        }}
+        
+        .confidential-text {{
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #856404;
+            text-align: center;
+        }}
+        
+        .instructions {{
+            border: 2px solid #000;
+            padding: 15px;
+            margin: 20px 0;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }}
+        
+        .instructions-title {{
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-decoration: underline;
+        }}
+        
+        .instructions ol {{
+            margin-left: 20px;
+            font-size: 12px;
+            line-height: 1.6;
+        }}
+        
+        .marking-grid-container {{
+            margin-top: auto;
+            padding-top: 40px;
+        }}
+        
+        .grid-title {{
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 10px;
+            text-align: center;
+        }}
+        
+        .marking-grid {{
+            width: 60%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            border: 2px solid black;
+        }}
+        
+        .marking-grid th,
+        .marking-grid td {{
+            border: 1px solid black;
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 8px;
+        }}
+        
+        .marking-grid th {{
+            background-color: #f0f0f0;
+        }}
+        
+        .section-label {{
+            font-size: 12px;
+            font-weight: bold;
+            vertical-align: middle;
+        }}
+        
+        .total-row {{
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }}
+        
+        @media print {{
+            body {{
+                margin: 0;
+                padding: 20mm;
+            }}
+            
+            .coverpage {{
+                page-break-after: always;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="coverpage">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-container {logo_position}">
+                <img src="{school_logo}" alt="School Logo" class="school-logo" onerror="this.src='/exam.png'">
+            </div>
+            <div class="school-name">{school_name}</div>
+            {f'<div class="class-title">{class_name}</div>' if class_name else ''}
+            <div class="exam-title">{exam_title}</div>
+            <div class="paper-title">{paper_name}</div>
+            <div class="marking-scheme-label">*** MARKING SCHEME ***</div>
+            
+            <!-- Confidential Notice -->
+            <div class="confidential-notice">
+                <div class="confidential-text">CONFIDENTIAL - FOR EXAMINERS ONLY</div>
+            </div>
+        </div>
+        
+        <!-- Instructions Section -->
+        <div class="instructions">
+            <div class="instructions-title">INSTRUCTIONS TO EXAMINERS</div>
+            <ol>
+                {instruction_items}
+            </ol>
+        </div>
+        
+        <!-- Marking Grid Section -->
+        <div class="marking-grid-container">
+            <div class="grid-title">For Examiner's Use Only</div>
+            {marking_grid_html}
+        </div>
+    </div>
+</body>
+</html>
+        """
+        
+        return html.strip()
+    
+    @staticmethod
+    def generate_default_data(generated_paper, paper):
+        """
+        Generate default marking scheme coverpage data for Biology Paper 2
+        
+        Args:
+            generated_paper: GeneratedPaper instance
+            paper: Paper instance
+        
+        Returns:
+            dict: Default marking scheme coverpage data
+        """
+        # Get coverpage data from generated paper if available
+        saved_coverpage = getattr(generated_paper, 'coverpage_data', None) or {}
+        
+        # Get metadata for section information
+        metadata = generated_paper.metadata or {}
+        
+        # Generate paper name
+        paper_name_upper = paper.name.upper()
+        subject_name_upper = paper.subject.name.upper()
+        
+        if subject_name_upper in paper_name_upper:
+            display_paper_name = paper_name_upper
+        else:
+            display_paper_name = f'{subject_name_upper} {paper_name_upper}'
+        
+        return {
+            'school_name': saved_coverpage.get('school_name', 'EXAMINATION CENTRE'),
+            'school_logo': saved_coverpage.get('school_logo', '/exam.png'),
+            'logo_position': saved_coverpage.get('logo_position', 'center'),
+            'class_name': saved_coverpage.get('class_name', ''),
+            'exam_title': saved_coverpage.get('exam_title', 'END TERM EXAMINATION 2025'),
+            'paper_name': display_paper_name,
+            'section_a_questions': metadata.get('section_a_questions', 5),
+            'section_a_marks': metadata.get('section_a_marks_per_question', 8),
+            'section_b_questions': metadata.get('section_b_questions', 3),
+            'section_b_marks': metadata.get('section_b_marks_per_question', 20),
+            'total_marks': generated_paper.total_marks,
+            'total_questions': generated_paper.total_questions,
+            'total_pages': 15,
+        }
+
+
 class MarkingSchemeCoverpage:
     """
     Marking Scheme Coverpage Template - matches question paper style
