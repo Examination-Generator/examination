@@ -22,11 +22,11 @@ const getEnvironment = () => {
 // Environment-specific configuration
 const environments = {
   local: {
-    API_URL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
+    API_URL: process.env.REACT_APP_API_URL || 'https://speedstarexams.co.ke/api',
     ENVIRONMENT: 'development'
   },
   staging: {
-    API_URL: process.env.REACT_APP_API_URL || 'https://examination-s3np.vercel.app',
+    API_URL: process.env.REACT_APP_API_URL || 'https://speedstarexams.co.ke/api',
     ENVIRONMENT: 'staging'
   },
   production: {

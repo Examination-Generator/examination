@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect, useRef } from 'react';
-import { getTopicStatistics, generatePaper, listGeneratedPapers, viewFullPaper, getCoverpageData, updateCoverpageData, getAllSubjects } from '../services/paperService';
+import { getTopicStatistics, generatePaper, validateBiologyPaper2Pool, listGeneratedPapers, viewFullPaper, getCoverpageData, updateCoverpageData, getAllSubjects } from '../services/paperService';
 import { getCurrentUser, getAuthToken } from '../services/authService';
 
 export default function PaperGenerationDashboard() {
@@ -11,6 +11,7 @@ export default function PaperGenerationDashboard() {
     const [selectedSubject, setSelectedSubject] = useState('');
     const [papers, setPapers] = useState([]);
     const [selectedPaperId, setSelectedPaperId] = useState('');
+    const [selectedPaperData, setSelectedPaperData] = useState(null); // Store full paper object
     const [subjectsLoading, setSubjectsLoading] = useState(false);
     
     // Generate tab states
@@ -196,6 +197,7 @@ export default function PaperGenerationDashboard() {
                 // Auto-select first paper if available
                 if (firstSubject.papers && firstSubject.papers.length > 0) {
                     setSelectedPaperId(firstSubject.papers[0].id);
+                    setSelectedPaperData(firstSubject.papers[0]);
                 }
             }
         } catch (err) {
@@ -253,12 +255,15 @@ export default function PaperGenerationDashboard() {
             // Auto-select first paper if available
             if (subject.papers && subject.papers.length > 0) {
                 setSelectedPaperId(subject.papers[0].id);
+                setSelectedPaperData(subject.papers[0]);
             } else {
                 setSelectedPaperId('');
+                setSelectedPaperData(null);
             }
         } else {
             setPapers([]);
             setSelectedPaperId('');
+            setSelectedPaperData(null);
         }
         
         // Reset selected topics
@@ -268,6 +273,11 @@ export default function PaperGenerationDashboard() {
     const handlePaperChange = (e) => {
         const paperId = e.target.value;
         setSelectedPaperId(paperId);
+        
+        // Store full paper object
+        const paper = papers.find(p => p.id === paperId);
+        setSelectedPaperData(paper || null);
+        
         setSelectedTopics([]); // Reset selected topics when paper changes
     };
 
@@ -291,6 +301,78 @@ export default function PaperGenerationDashboard() {
     topic?.name?.toLowerCase().includes(topicSearchQuery.toLowerCase())
     );
 
+    // Get paper-specific generation constraints
+    const getPaperConstraints = () => {
+        if (!selectedPaperData) {
+            return {
+                minTopics: 5,
+                paperType: 'standard',
+                description: 'Standard KCSE constraints',
+                recommendedTopics: '5-6 topics',
+                questionDistribution: 'Balanced distribution'
+            };
+        }
+
+        // Get paper and subject metadata
+        const paperName = selectedPaperData.name?.toLowerCase() || '';
+        const subjectName = selectedPaperData.subject?.name?.toLowerCase() || '';
+        
+        // Biology Paper 2 specific constraints
+        if ((paperName.includes('biology') || subjectName.includes('biology')) && 
+            (paperName.includes('paper 2') || paperName.includes('paper two'))) {
+            return {
+                minTopics: 4,
+                paperType: 'biology-paper2',
+                description: 'Biology Paper 2: KCSE Format - Section A (Short Answer) & Section B (Structured)',
+                recommendedTopics: 'at least 4 topics',
+                questionDistribution: 'Section A: 40 marks (short answer), Section B: 40 marks (structured)',
+                specialNote: '🧬 Uses dedicated Biology Paper 2 generation endpoint with KCSE-specific constraints'
+            };
+        }
+        
+        // General Paper 1 constraints
+        if (paperName.includes('paper 1') || paperName.includes('paper one')) {
+            return {
+                minTopics: 6,
+                paperType: 'paper1',
+                description: 'Paper 1: Theory-focused with wider topic coverage',
+                recommendedTopics: 'all topics',
+                questionDistribution: 'Balanced across all sections'
+            };
+        } 
+        
+        // General Paper 2 constraints (non-Biology)
+        if (paperName.includes('paper 2') || paperName.includes('paper two')) {
+            return {
+                minTopics: 4,
+                paperType: 'paper2',
+                description: 'Paper 2: Practical/Application-focused',
+                recommendedTopics: '4-5 main topics',
+                questionDistribution: 'Focused on practical applications'
+            };
+        } 
+        
+        // General Paper 3 constraints
+        if (paperName.includes('paper 3') || paperName.includes('paper three')) {
+            return {
+                minTopics: 3,
+                paperType: 'paper3',
+                description: 'Paper 3: Specialized/Alternative to practical',
+                recommendedTopics: '3-4 topics',
+                questionDistribution: 'In-depth coverage'
+            };
+        }
+
+        // Default constraints
+        return {
+            minTopics: 5,
+            paperType: 'standard',
+            description: 'Standard KCSE constraints',
+            recommendedTopics: '5-6 topics',
+            questionDistribution: 'Balanced distribution'
+        };
+    };
+
     const handleGeneratePaper = async () => {
         if (selectedTopics.length === 0) {
             setError('Please select at least one topic');
@@ -302,12 +384,17 @@ export default function PaperGenerationDashboard() {
             return;
         }
 
-        // Check if enough topics selected
-        if (selectedTopics.length < 5) {
+        // Get paper-specific constraints
+        const constraints = getPaperConstraints();
+        
+        // Check if enough topics selected based on paper type
+        if (selectedTopics.length < constraints.minTopics) {
             const confirmed = window.confirm(
-                `You have selected only ${selectedTopics.length} topic(s). ` +
-                `For best results and to meet best constraints, we recommend selecting at least 5 topics. ` +
-                `\n\nDo you want to continue anyway?`
+                `You have selected only ${selectedTopics.length} topic(s) for ${selectedPaperData?.name || 'this paper'}.\n\n` +
+                `${constraints.description}\n` +
+                `Recommended: ${constraints.recommendedTopics}\n` +
+                `Minimum recommended topics: ${constraints.minTopics}\n\n` +
+                `Do you want to continue anyway?`
             );
             if (!confirmed) {
                 return;
@@ -320,7 +407,38 @@ export default function PaperGenerationDashboard() {
             setSuccess(null);
             setGeneratedResult(null);
 
-            const result = await generatePaper(selectedPaperId, selectedTopics);
+            // Check if this is Biology Paper 2 and validate first
+            const paperName = selectedPaperData?.name?.toLowerCase() || '';
+            const isBiologyPaper2 = paperName.includes('biology') && 
+                                    (paperName.includes('paper 2') || paperName.includes('paper two'));
+            
+            if (isBiologyPaper2) {
+                console.log('🧬 Validating Biology Paper 2 question pool...');
+                try {
+                    const validation = await validateBiologyPaper2Pool(selectedPaperId, selectedTopics);
+                    console.log('✅ Validation result:', validation);
+                    
+                    // Show validation info to user
+                    if (validation.issues && validation.issues.length > 0) {
+                        const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
+                        const proceed = window.confirm(
+                            `⚠️ Biology Paper 2 Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
+                        );
+                        if (!proceed) {
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                } catch (validationErr) {
+                    console.error('❌ Validation failed:', validationErr);
+                    setError(`Validation failed: ${validationErr.message}`);
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // Pass paper data to determine correct endpoint
+            const result = await generatePaper(selectedPaperId, selectedTopics, selectedPaperData);
             
             console.log('Generation result:', result); // Debug log
             
@@ -339,8 +457,8 @@ export default function PaperGenerationDashboard() {
             if (errorMessage.includes('Failed to generate valid paper after')) {
                 setError(
                     'Unable to generate a valid paper with the selected topics. ' +
-                    'This usually means there aren\'t enough questions available to meet KCSE constraints. ' +
-                    '\n\nTry selecting MORE topics (recommend all 6 topics) or add more questions to the database.'
+                    'This usually means there aren\'t enough questions available to meet the constraints. ' +
+                    '\n\nTry selecting MORE topics or add more questions to the database.'
                 );
             } else {
                 setError(errorMessage);
@@ -1180,6 +1298,43 @@ export default function PaperGenerationDashboard() {
                 {/* Generate Tab */}
                 {activeTab === 'generate' && (
                     <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                        {/* Paper Information Card */}
+                        {selectedPaperData && (
+                            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg">
+                                <h3 className="text-lg font-bold text-gray-800 mb-2">📋 {selectedPaperData.name}</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <span className="font-semibold text-gray-700">Paper Type:</span>
+                                        <span className="ml-2 text-gray-600">{getPaperConstraints().paperType.toUpperCase()}</span>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold text-gray-700">Recommended Topics:</span>
+                                        <span className="ml-2 text-gray-600">{getPaperConstraints().recommendedTopics}</span>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <span className="font-semibold text-gray-700">Description:</span>
+                                        <span className="ml-2 text-gray-600">{getPaperConstraints().description}</span>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <span className="font-semibold text-gray-700">Question Distribution:</span>
+                                        <span className="ml-2 text-gray-600">{getPaperConstraints().questionDistribution}</span>
+                                    </div>
+                                    {getPaperConstraints().specialNote && (
+                                        <div className="md:col-span-2 mt-2 p-3 bg-blue-50 border border-blue-300 rounded">
+                                            <span className="text-blue-800 text-sm">
+                                                {getPaperConstraints().specialNote}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="md:col-span-2 mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                                        <span className="text-yellow-800 font-medium">
+                                            ⚠️ Minimum {getPaperConstraints().minTopics} topics recommended for valid paper generation
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                             <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Select Topics</h2>
                             <button

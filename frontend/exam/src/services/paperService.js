@@ -39,11 +39,28 @@ export const getTopicStatistics = async (paperId) => {
  * Generate a new paper
  * @param {string} paperId - UUID of the paper
  * @param {Array<string>} topicIds - Array of topic UUIDs to include
+ * @param {Object} paperData - Optional paper metadata (name, type, etc.)
  * @returns {Promise} Generated paper details
  */
-export const generatePaper = async (paperId, topicIds) => {
+export const generatePaper = async (paperId, topicIds, paperData = null) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/papers/generate`, {
+        // Determine endpoint based on paper type
+        let endpoint = `${API_BASE_URL}/papers/generate`;
+        
+        // Check if this is Biology Paper 2
+        if (paperData) {
+            const paperName = paperData.name?.toLowerCase() || '';
+            const subjectName = paperData.subject?.toLowerCase() || '';
+            
+            // Use Biology Paper 2 specific endpoint
+            if ((paperName.includes('biology') || subjectName.includes('biology')) && 
+                (paperName.includes('paper 2') || paperName.includes('paper two'))) {
+                endpoint = `${API_BASE_URL}/papers/biology-paper2/generate`;
+                console.log('🧬 Using Biology Paper 2 generation endpoint');
+            }
+        }
+        
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({
@@ -60,6 +77,35 @@ export const generatePaper = async (paperId, topicIds) => {
         return await response.json();
     } catch (error) {
         console.error('Error generating paper:', error);
+        throw error;
+    }
+};
+
+/**
+ * Validate Biology Paper 2 question pool
+ * @param {string} paperId - UUID of the paper
+ * @param {Array<string>} topicIds - Array of topic UUIDs to validate
+ * @returns {Promise} Validation results
+ */
+export const validateBiologyPaper2Pool = async (paperId, topicIds) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/papers/biology-paper2/validate`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                paper_id: paperId,
+                selected_topics: topicIds
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error validating Biology Paper 2 pool:', error);
         throw error;
     }
 };
