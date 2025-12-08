@@ -5,6 +5,7 @@ URL Configuration for API app
 from django.urls import path
 from django.http import JsonResponse
 from . import auth_views, subject_views, question_views, database_views, paper_generation_views
+from . import biology_paper2_generation
 
 def api_root(request):
     """API root endpoint - returns available endpoints"""
@@ -84,4 +85,9 @@ urlpatterns = [
     path('papers/<uuid:paper_id>/configuration', paper_generation_views.get_paper_configuration, name='get-paper-config'),
     path('papers/<uuid:paper_id>/configuration/update', paper_generation_views.update_paper_configuration, name='update-paper-config'),
     path('papers/<uuid:paper_id>/topics/statistics', paper_generation_views.get_topic_statistics, name='topic-statistics'),
+    
+    # ==================== BIOLOGY PAPER 2 GENERATION ROUTES ====================
+    # KCSE Biology Paper 2 specific generation endpoints
+    path('papers/biology-paper2/validate', biology_paper2_generation.validate_paper2_pool, name='validate-paper2-pool'),
+    path('papers/biology-paper2/generate', biology_paper2_generation.generate_biology_paper2, name='generate-biology-paper2'),
 ]

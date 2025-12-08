@@ -677,6 +677,499 @@ def generate_marking_table(total_questions):
     
     return grid_html
 
+class BiologyPaper2Coverpage:
+    """
+    Biology Paper 2 Coverpage Template
+    Includes sectioned marking grid (Section A and Section B)
+    """
+    
+    @staticmethod
+    def generate_html(data):
+        """
+        Generate HTML for Biology Paper 2 coverpage
+        
+        Args:
+            data (dict): Coverpage data with keys:
+                - school_name: Name of the school
+                - school_logo: Base64 encoded logo or URL
+                - exam_title: e.g., "END TERM 3 EXAMINATION 2025"
+                - paper_name: e.g., "BIOLOGY PAPER 2"
+                - section_a_questions: Number of questions in Section A (default: 5)
+                - section_a_marks: Marks per question in Section A (default: 8)
+                - section_b_questions: Number of questions in Section B (default: 3)
+                - section_b_marks: Marks per question in Section B (default: 20)
+                - total_marks: Total marks for the paper (default: 80)
+                - time_allocation: Time in minutes
+                - instructions: List of instruction strings
+                - date: Exam date (optional)
+                - candidate_name_field: Show name field (default: True)
+                - candidate_number_field: Show admission number field (default: True)
+                - date_field: Show date field (default: True)
+        
+        Returns:
+            str: HTML content for coverpage
+        """
+        
+        # Extract data with defaults
+        school_name = data.get('school_name', 'EXAMINATION CENTRE')
+        school_logo = data.get('school_logo', '/exam.png')
+        logo_position = data.get('logo_position', 'center')
+        class_name = data.get('class_name', '')
+        exam_title = data.get('exam_title', 'END TERM EXAMINATION 2025')
+        paper_name = data.get('paper_name', 'BIOLOGY PAPER 2')
+        
+        # Section configuration
+        section_a_questions = data.get('section_a_questions', 5)
+        section_a_marks = data.get('section_a_marks', 8)
+        section_b_questions = data.get('section_b_questions', 3)
+        section_b_marks = data.get('section_b_marks', 20)
+        total_marks = data.get('total_marks', 80)
+        time_allocation = data.get('time_allocation', '2 hours')
+        
+        # Calculate total questions and pages
+        total_questions = section_a_questions + section_b_questions
+        total_pages = data.get('total_pages', 12)  # Default 12 printed pages for Paper 2
+        
+        instructions = data.get('instructions', [
+            'Write your name and index number in the spaces provided above.',
+            'Sign and write the date of examination in the spaces provided above.',
+            f'This paper consists of two sections: A and B.',
+            f'Answer all questions in section A answer question 6 (compulsory) and either question 7 or 8 in the spaces provided after question 8.',
+            f'This paper consists of {total_pages} printed pages.',
+            'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
+            'Candidates should answer the questions in English.'
+        ])
+        
+        exam_date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        show_name = data.get('candidate_name_field', True)
+        show_number = data.get('candidate_number_field', True)
+        show_date = data.get('date_field', True)
+        
+        # Generate marking grid for Paper 2
+        marking_grid_html = BiologyPaper2Coverpage._generate_marking_grid(
+            section_a_questions, section_a_marks,
+            section_b_questions, section_b_marks,
+            total_marks
+        )
+        
+        # Build HTML
+        html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{paper_name} - Coverpage</title>
+    <style>
+        @page {{
+            size: A4;
+            margin: 20mm;
+        }}
+        
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: black;
+            background: white;
+        }}
+        
+        .coverpage {{
+            width: 100%;
+            min-height: 100vh;
+            padding: 15mm;
+            display: flex;
+            flex-direction: column;
+            page-break-after: always;
+        }}
+        
+        /* Header Section */
+        .header {{
+            text-align: center;
+            margin-bottom: 20px;
+        }}
+        
+        .logo-container {{
+            margin-bottom: 15px;
+        }}
+        
+        .logo-container.left {{
+            text-align: left;
+        }}
+        
+        .logo-container.center {{
+            text-align: center;
+        }}
+        
+        .logo-container.right {{
+            text-align: right;
+        }}
+        
+        .school-logo {{
+            max-width: 90px;
+            max-height: 90px;
+            object-fit: contain;
+        }}
+        
+        .school-name {{
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }}
+        
+        .class-name {{
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }}
+        
+        .exam-title {{
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }}
+        
+        .paper-details {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 5px;
+        }}
+        
+        .paper-name {{
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }}
+        
+        .paper-code {{
+            font-size: 1.2rem;
+            font-weight: normal;
+        }}
+        
+        .time-allocation {{
+            font-size: 1.3rem;
+            margin-top: 5px;
+        }}
+        
+        /* Candidate Info Section */
+        .candidate-info {{
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid black;
+        }}
+        
+        .candidate-info-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px 20px;
+        }}
+        
+        .info-row {{
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-row-full {{
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-label {{
+            font-weight: bold;
+            font-size: 12px;
+            min-width: 40px;
+        }}
+        
+        .info-field {{
+            flex: 1;
+            border-bottom: 1px dotted black;
+            min-height: 25px;
+            padding: 2px 5px;
+        }}
+        
+        /* Instructions Section */
+        .instructions {{
+            margin-bottom: 20px;
+        }}
+        
+        .instructions-title {{
+            font-weight: bold;
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+            text-decoration: underline;
+        }}
+        
+        .instructions ol {{
+            margin-left: 20px;
+            font-size: 1.5rem;
+            line-height: 1.6;
+        }}
+        
+        .instructions li {{
+            margin-bottom: 8px;
+        }}
+        
+        .instructions li.bold {{
+            font-weight: bold;
+        }}
+        
+        /* Marking Grid Section for Paper 2 */
+        .marking-grid-container {{
+            margin-top: auto;
+            padding-top: 20px;
+        }}
+        
+        .grid-title {{
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 10px;
+            text-align: center;
+        }}
+        
+        .marking-grid {{
+            width: 60%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            border: 2px solid black;
+        }}
+        
+        .marking-grid th,
+        .marking-grid td {{
+            border: 1px solid black;
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 8px;
+        }}
+        
+        .marking-grid th {{
+            background-color: #f0f0f0;
+        }}
+        
+        .section-label {{
+            font-size: 12px;
+            font-weight: bold;
+            vertical-align: middle;
+        }}
+        
+        .total-row {{
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }}
+        
+        /* Print Styles */
+        @media print {{
+            body {{
+                margin: 0;
+                padding: 20mm;
+            }}
+            
+            .coverpage {{
+                page-break-after: always;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="coverpage">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-container {logo_position}">
+                <img src="{school_logo}" alt="School Logo" class="school-logo" onerror="this.src='/exam.png'">
+            </div>
+            <div class="school-name">{school_name}</div>
+            {f'<div class="class-name">{class_name}</div>' if class_name else ''}
+            <div class="exam-title">{exam_title}</div>
+            
+            <div class="paper-details">
+                <span class="paper-name">{paper_name}</span>
+            </div>
+            
+            <div class="time-allocation">{time_allocation}</div>
+        </div>
+        
+        <!-- Candidate Information -->
+        <div class="candidate-info">
+            <div class="candidate-info-grid">
+                {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
+                {f'<div class="info-row-full"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
+                <div class="info-row"><span class="info-label">Sign:</span><div class="info-field"></div></div>
+            </div>
+        </div>
+        
+        <!-- Instructions -->
+        <div class="instructions">
+            <div class="instructions-title">Instructions to candidates</div>
+            <ol>
+"""
+        
+        # Add instructions
+        for idx, instruction in enumerate(instructions, 1):
+            # Make instruction (c) and (d) bold (typically sections and answer requirements)
+            is_bold = '(c)' in instruction.lower() or '(d)' in instruction.lower() or 'section' in instruction.lower()
+            class_attr = ' class="bold"' if is_bold else ''
+            html += f'                <li{class_attr}>{instruction}</li>\n'
+        
+        html += f"""
+            </ol>
+        </div>
+        
+        <!-- Marking Grid -->
+        <div class="marking-grid-container">
+            <div class="grid-title">For Examiner's Use Only</div>
+            {marking_grid_html}
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        return html
+    
+    @staticmethod
+    def _generate_marking_grid(section_a_questions, section_a_marks, 
+                               section_b_questions, section_b_marks, total_marks):
+        """
+        Generate marking grid HTML for Biology Paper 2
+        
+        Paper 2 has sectioned marking grid:
+        - Section A: Multiple questions with same marks each
+        - Section B: Multiple questions with same marks each
+        - Total Score row at bottom
+        
+        Args:
+            section_a_questions (int): Number of questions in Section A
+            section_a_marks (int): Marks per question in Section A
+            section_b_questions (int): Number of questions in Section B
+            section_b_marks (int): Marks per question in Section B
+            total_marks (int): Total marks for the paper
+        
+        Returns:
+            str: HTML for marking grid
+        """
+        
+        grid_html = '<table class="marking-grid">\n'
+        grid_html += '    <thead>\n'
+        grid_html += '        <tr>\n'
+        grid_html += '            <th>Section</th>\n'
+        grid_html += '            <th>Question</th>\n'
+        grid_html += '            <th>Maximum Score</th>\n'
+        grid_html += '            <th>Candidate\'s Score</th>\n'
+        grid_html += '        </tr>\n'
+        grid_html += '    </thead>\n'
+        grid_html += '    <tbody>\n'
+        
+        # Section A rows
+        for i in range(1, section_a_questions + 1):
+            if i == 1:
+                # First row of Section A with rowspan
+                grid_html += f'        <tr>\n'
+                grid_html += f'            <td rowspan="{section_a_questions}" class="section-label">A</td>\n'
+                grid_html += f'            <td>{i}</td>\n'
+                grid_html += f'            <td>{section_a_marks}</td>\n'
+                grid_html += f'            <td>&nbsp;</td>\n'
+                grid_html += f'        </tr>\n'
+            else:
+                grid_html += f'        <tr>\n'
+                grid_html += f'            <td>{i}</td>\n'
+                grid_html += f'            <td>{section_a_marks}</td>\n'
+                grid_html += f'            <td>&nbsp;</td>\n'
+                grid_html += f'        </tr>\n'
+        
+        # Section B rows
+        question_number = section_a_questions + 1
+        for i in range(section_b_questions):
+            if i == 0:
+                # First row of Section B with rowspan
+                grid_html += f'        <tr>\n'
+                grid_html += f'            <td rowspan="{section_b_questions}" class="section-label">B</td>\n'
+                grid_html += f'            <td>{question_number}</td>\n'
+                grid_html += f'            <td>{section_b_marks}</td>\n'
+                grid_html += f'            <td>&nbsp;</td>\n'
+                grid_html += f'        </tr>\n'
+            else:
+                grid_html += f'        <tr>\n'
+                grid_html += f'            <td>{question_number}</td>\n'
+                grid_html += f'            <td>{section_b_marks}</td>\n'
+                grid_html += f'            <td>&nbsp;</td>\n'
+                grid_html += f'        </tr>\n'
+            question_number += 1
+        
+        # Total Score row
+        grid_html += '        <tr class="total-row">\n'
+        grid_html += '            <td colspan="2">Total Score</td>\n'
+        grid_html += f'            <td>{total_marks}</td>\n'
+        grid_html += '            <td>&nbsp;</td>\n'
+        grid_html += '        </tr>\n'
+        
+        grid_html += '    </tbody>\n'
+        grid_html += '</table>\n'
+        
+        return grid_html
+    
+    @staticmethod
+    def generate_default_coverpage_data(generated_paper, paper):
+        """
+        Generate default coverpage data for Biology Paper 2
+        
+        Args:
+            generated_paper: GeneratedPaper instance
+            paper: Paper instance
+        
+        Returns:
+            dict: Default coverpage data for Paper 2
+        """
+        # Generate paper name
+        paper_name_upper = paper.name.upper()
+        subject_name_upper = paper.subject.name.upper()
+        
+        if subject_name_upper in paper_name_upper:
+            display_paper_name = paper_name_upper
+        else:
+            display_paper_name = f'{subject_name_upper} {paper_name_upper}'
+        
+        return {
+            'school_name': 'EXAMINATION CENTRE',
+            'school_logo': '/exam.png',
+            'logo_position': 'center',
+            'class_name': '',
+            'exam_title': 'END TERM EXAMINATION 2025',
+            'paper_name': display_paper_name,
+            'section_a_questions': 5,
+            'section_a_marks': 8,
+            'section_b_questions': 3,
+            'section_b_marks': 20,
+            'total_marks': generated_paper.total_marks or 80,
+            'time_allocation': format_time_allocation(paper.time_allocation),
+            'total_pages': 12,
+            'instructions': [
+                'Write your name and index number in the spaces provided above.',
+                'Sign and write the date of examination in the spaces provided above.',
+                'This paper consists of two sections: A and B.',
+                'Answer all questions in section A answer question 6 (compulsory) and either question 7 or 8 in the spaces provided after question 8.',
+                'This paper consists of 12 printed pages.',
+                'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
+                'Candidates should answer the questions in English.'
+            ],
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'candidate_name_field': True,
+            'candidate_number_field': True,
+            'date_field': True
+        }
+
+
 class MarkingSchemeCoverpage:
     """
     Marking Scheme Coverpage Template - matches question paper style

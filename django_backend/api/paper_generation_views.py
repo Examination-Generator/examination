@@ -31,7 +31,7 @@ from .models import (
     Paper, Topic, PaperConfiguration, GeneratedPaper, Question
 )
 from .kcse_biology_paper1_generator import KCSEBiologyPaper1Generator
-from .coverpage_templates import BiologyPaper1Coverpage, MarkingSchemeCoverpage, format_time_allocation
+from .coverpage_templates import BiologyPaper1Coverpage, BiologyPaper2Coverpage, MarkingSchemeCoverpage, format_time_allocation
 
 logger = logging.getLogger(__name__)
 
@@ -743,11 +743,23 @@ def coverpage_data(request, paper_id):
             # Get coverpage data (stored in generated_paper or use defaults)
             coverpage = getattr(generated_paper, 'coverpage_data', None) or {}
             
-            # Default coverpage data using BiologyPaper1Coverpage
-            default_coverpage = BiologyPaper1Coverpage.generate_default_coverpage_data(
-                generated_paper, 
-                generated_paper.paper
-            )
+            # Detect paper type and use appropriate coverpage template
+            paper_type = generated_paper.metadata.get('paper_type', '')
+            
+            if 'Paper 2' in paper_type or 'Paper II' in paper_type:
+                # Use Biology Paper 2 coverpage
+                default_coverpage = BiologyPaper2Coverpage.generate_default_coverpage_data(
+                    generated_paper, 
+                    generated_paper.paper
+                )
+                CoverpageClass = BiologyPaper2Coverpage
+            else:
+                # Use Biology Paper 1 coverpage (default)
+                default_coverpage = BiologyPaper1Coverpage.generate_default_coverpage_data(
+                    generated_paper, 
+                    generated_paper.paper
+                )
+                CoverpageClass = BiologyPaper1Coverpage
             
             # Merge with saved data
             coverpage_data = {**default_coverpage, **coverpage}
@@ -758,7 +770,7 @@ def coverpage_data(request, paper_id):
             
             if output_format == 'html':
                 # Generate HTML coverpage
-                html_content = BiologyPaper1Coverpage.generate_html(coverpage_data)
+                html_content = CoverpageClass.generate_html(coverpage_data)
                 
                 from django.http import HttpResponse
                 return HttpResponse(html_content, content_type='text/html')
@@ -1009,10 +1021,23 @@ def preview_full_exam(request, paper_id):
             # Generate questions preview (default)
             # Get coverpage data
             coverpage_data_dict = getattr(generated_paper, 'coverpage_data', None) or {}
-            default_coverpage = BiologyPaper1Coverpage.generate_default_coverpage_data(
-                generated_paper, 
-                generated_paper.paper
-            )
+            
+            # Detect paper type and use appropriate coverpage template
+            paper_type = generated_paper.metadata.get('paper_type', '')
+            
+            if 'Paper 2' in paper_type or 'Paper II' in paper_type:
+                # Use Biology Paper 2 coverpage
+                default_coverpage = BiologyPaper2Coverpage.generate_default_coverpage_data(
+                    generated_paper, 
+                    generated_paper.paper
+                )
+            else:
+                # Use Biology Paper 1 coverpage (default)
+                default_coverpage = BiologyPaper1Coverpage.generate_default_coverpage_data(
+                    generated_paper, 
+                    generated_paper.paper
+                )
+            
             coverpage_data = {**default_coverpage, **coverpage_data_dict}
             
             # Get all questions in order
