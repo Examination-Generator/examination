@@ -313,13 +313,16 @@ export default function PaperGenerationDashboard() {
             };
         }
 
-        // Get paper and subject metadata
+        // Get paper metadata from database object
+        const paperNumber = selectedPaperData.paper_number || selectedPaperData.number || null;
         const paperName = selectedPaperData.name?.toLowerCase() || '';
-        const subjectName = selectedPaperData.subject?.name?.toLowerCase() || '';
+        const subjectName = selectedPaperData.subject?.name?.toLowerCase() || 
+                          selectedPaperData.subject_name?.toLowerCase() || '';
         
-        // Biology Paper 2 specific constraints
-        if ((paperName.includes('biology') || subjectName.includes('biology')) && 
-            (paperName.includes('paper 2') || paperName.includes('paper two'))) {
+        const isBiology = paperName.includes('biology') || subjectName.includes('biology');
+        
+        // Biology Paper 2 specific constraints (using database paper_number field)
+        if (isBiology && (paperNumber === 2 || paperNumber === '2')) {
             return {
                 minTopics: 4,
                 paperType: 'biology-paper2',
@@ -330,8 +333,8 @@ export default function PaperGenerationDashboard() {
             };
         }
         
-        // General Paper 1 constraints
-        if (paperName.includes('paper 1') || paperName.includes('paper one')) {
+        // General constraints based on paper number
+        if (paperNumber === 1 || paperNumber === '1') {
             return {
                 minTopics: 6,
                 paperType: 'paper1',
@@ -341,8 +344,7 @@ export default function PaperGenerationDashboard() {
             };
         } 
         
-        // General Paper 2 constraints (non-Biology)
-        if (paperName.includes('paper 2') || paperName.includes('paper two')) {
+        if (paperNumber === 2 || paperNumber === '2') {
             return {
                 minTopics: 4,
                 paperType: 'paper2',
@@ -352,8 +354,7 @@ export default function PaperGenerationDashboard() {
             };
         } 
         
-        // General Paper 3 constraints
-        if (paperName.includes('paper 3') || paperName.includes('paper three')) {
+        if (paperNumber === 3 || paperNumber === '3') {
             return {
                 minTopics: 3,
                 paperType: 'paper3',
@@ -407,13 +408,36 @@ export default function PaperGenerationDashboard() {
             setSuccess(null);
             setGeneratedResult(null);
 
-            // Check if this is Biology Paper 2 and validate first
+            console.log('🚀 ========== STARTING PAPER GENERATION ==========');
+            console.log('📋 Selected Paper Data:', selectedPaperData);
+            console.log('🆔 Selected Paper ID:', selectedPaperId);
+            console.log('📚 Selected Topics:', selectedTopics);
+            console.log('🔢 Number of Topics:', selectedTopics.length);
+
+            // Check if this is Biology Paper 2 using database fields
+            const paperNumber = selectedPaperData?.paper_number || selectedPaperData?.number || null;
             const paperName = selectedPaperData?.name?.toLowerCase() || '';
-            const isBiologyPaper2 = paperName.includes('biology') && 
-                                    (paperName.includes('paper 2') || paperName.includes('paper two'));
+            const subjectName = selectedPaperData?.subject?.name?.toLowerCase() || 
+                              selectedPaperData?.subject_name?.toLowerCase() || '';
+            
+            const isBiology = paperName.includes('biology') || subjectName.includes('biology');
+            const isPaper2 = paperNumber === 2 || 
+                           paperNumber === '2' || 
+                           paperName.includes('paper 2') || 
+                           paperName.includes('paper two') || 
+                           paperName.includes('paper ii');
+            const isBiologyPaper2 = isBiology && isPaper2;
+            
+            console.log('🔍 Paper Detection (using DB fields):');
+            console.log('   Paper Number (from DB):', paperNumber);
+            console.log('   Paper Name:', paperName);
+            console.log('   Subject Name:', subjectName);
+            console.log('   Is Biology?', isBiology);
+            console.log('   Is Paper 2?', isPaper2);
+            console.log('   Is Biology Paper 2?', isBiologyPaper2);
             
             if (isBiologyPaper2) {
-                console.log('🧬 Validating Biology Paper 2 question pool...');
+                console.log('🧬 Biology Paper 2 detected - Starting validation...');
                 try {
                     const validation = await validateBiologyPaper2Pool(selectedPaperId, selectedTopics);
                     console.log('✅ Validation result:', validation);
@@ -425,9 +449,11 @@ export default function PaperGenerationDashboard() {
                             `⚠️ Biology Paper 2 Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
                         );
                         if (!proceed) {
+                            console.log('❌ User cancelled generation after validation warnings');
                             setLoading(false);
                             return;
                         }
+                        console.log('✅ User confirmed to proceed despite warnings');
                     }
                 } catch (validationErr) {
                     console.error('❌ Validation failed:', validationErr);
@@ -437,10 +463,15 @@ export default function PaperGenerationDashboard() {
                 }
             }
 
+            console.log('📤 Calling generatePaper with:');
+            console.log('   paperId:', selectedPaperId);
+            console.log('   topicIds:', selectedTopics);
+            console.log('   paperData:', selectedPaperData);
+
             // Pass paper data to determine correct endpoint
             const result = await generatePaper(selectedPaperId, selectedTopics, selectedPaperData);
             
-            console.log('Generation result:', result); // Debug log
+            console.log('✅ Generation successful! Result:', result);
             
             setGeneratedResult(result);
             
