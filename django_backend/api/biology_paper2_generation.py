@@ -538,14 +538,17 @@ def generate_biology_paper2(request):
         generator = BiologyPaper2Generator(paper_id, selected_topics)
         generated_paper = generator.generate()
         
-        # Return response
+        # Return response (matching frontend expectations)
         return Response(
             {
                 'success': True,
                 'message': 'Biology Paper 2 generated successfully',
+                'paper_id': str(generated_paper.id),
                 'generated_paper_id': str(generated_paper.id),
+                'unique_code': generated_paper.unique_code,
                 'total_questions': generated_paper.total_questions,
                 'total_marks': generated_paper.total_marks,
+                'status': generated_paper.status,
                 'metadata': generated_paper.metadata
             },
             status=status.HTTP_201_CREATED
