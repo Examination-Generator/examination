@@ -92,7 +92,7 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
         }
         
         const requestBody = {
-            paper_id: paper_id,
+            paper_id: paperId,
             selected_topics: topicIds
         };
         
@@ -145,7 +145,7 @@ export const validateBiologyPaper2Pool = async (paperId, topicIds) => {
     try {
         const endpoint = `${API_BASE_URL}/papers/biology-paper2/validate`;
         const requestBody = {
-            paper_id: paper_id,
+            paper_id: paperId,
             selected_topics: topicIds
         };
         

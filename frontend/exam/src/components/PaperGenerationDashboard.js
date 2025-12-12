@@ -475,8 +475,14 @@ export default function PaperGenerationDashboard() {
             
             setGeneratedResult(result);
             
-            // Extract the unique code from the result
-            const paperCode = result?.generated_paper?.unique_code || result?.unique_code || 'N/A';
+            // Extract the unique code and paper ID from the result
+            // Support both standard and Biology Paper 2 response formats
+            const paperCode = result?.unique_code || result?.generated_paper?.unique_code || 'N/A';
+            const generatedPaperId = result?.generated_paper_id || result?.paper_id || result?.generated_paper?.id || result?.id;
+            
+            console.log('📋 Paper Code:', paperCode);
+            console.log('🆔 Generated Paper ID:', generatedPaperId);
+            
             setSuccess(`Paper generated successfully! Code: ${paperCode}`);
             
             // Clear selections
