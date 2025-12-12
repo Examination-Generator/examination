@@ -22,6 +22,7 @@ import random
 from collections import defaultdict
 from typing import List, Dict, Optional
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -237,25 +238,27 @@ class BiologyPaper2Generator:
         ).select_related('topic', 'section'))
         
         # Load Section B questions (20 marks each)
-        # Graph questions (must contain 'graph' in question text)
+        # Graph questions (paper2_category='graph' or contains 'graph' in text)
         self.graph_questions_pool = list(Question.objects.filter(
             topic__in=self.topics,
             paper=self.paper,
             section=self.section_b,
             marks=self.SECTION_B_MARKS_PER_QUESTION,
-            is_active=True,
-            question_text__icontains='graph'
+            is_active=True
+        ).filter(
+            Q(paper2_category='graph') | Q(question_text__icontains='graph')
         ).select_related('topic', 'section'))
         
-        # Essay questions (20 marks, not graph questions)
+        # Essay questions (paper2_category='essay' or not graph questions)
         self.essay_questions_pool = list(Question.objects.filter(
             topic__in=self.topics,
             paper=self.paper,
             section=self.section_b,
             marks=self.SECTION_B_MARKS_PER_QUESTION,
             is_active=True
-        ).exclude(
-            question_text__icontains='graph'
+        ).filter(
+            Q(paper2_category='essay') | 
+            (Q(paper2_category__isnull=True) & ~Q(question_text__icontains='graph'))
         ).select_related('topic', 'section'))
         
         # Shuffle for randomness

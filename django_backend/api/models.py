@@ -314,6 +314,13 @@ class Question(models.Model):
         ('calculate', 'Calculate'),
     ]
     
+    # Paper 2 question categories (for Section B)
+    PAPER2_CATEGORY_CHOICES = [
+        ('graph', 'Graph Question'),
+        ('essay', 'Essay Question'),
+        ('structured', 'Structured Question'),
+    ]
+    
     DIFFICULTY_CHOICES = [
         ('easy', 'Easy'),
         ('medium', 'Medium'),
@@ -400,6 +407,13 @@ class Question(models.Model):
         null=True,
         blank=True,
         help_text='KCSE-specific question type for Biology Paper 1 generation'
+    )
+    paper2_category = models.CharField(
+        max_length=20,
+        choices=PAPER2_CATEGORY_CHOICES,
+        null=True,
+        blank=True,
+        help_text='Category for Paper 2 questions (graph/essay/structured). Used for Section B question selection.'
     )
     difficulty = models.CharField(
         max_length=20,
