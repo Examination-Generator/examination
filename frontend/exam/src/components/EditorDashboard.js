@@ -37,6 +37,8 @@ export default function EditorDashboard({ onLogout }) {
     // New features states
     const [isQuestionActive, setIsQuestionActive] = useState(true); // Changed from isQuestionComplete
     const [isNested, setIsNested] = useState(false); // Track if question is nested
+    const [isEssayQuestion, setIsEssayQuestion] = useState(false); // Track if question is an essay
+    const [isGraphQuestion, setIsGraphQuestion] = useState(false); // Track if question requires graphing
     const [uploadedImages, setUploadedImages] = useState([]);
     const [showDrawingTool, setShowDrawingTool] = useState(false);
     const [showGraphPaper, setShowGraphPaper] = useState(false);
@@ -109,6 +111,8 @@ export default function EditorDashboard({ onLogout }) {
     const [editAnswerAnswerLines, setEditAnswerAnswerLines] = useState([]);
     const [editIsActive, setEditIsActive] = useState(true); // Question active status
     const [editIsNested, setEditIsNested] = useState(false); // Question nested status
+    const [editIsEssayQuestion, setEditIsEssayQuestion] = useState(false); // Track if question is an essay
+    const [editIsGraphQuestion, setEditIsGraphQuestion] = useState(false); // Track if question requires graphing
     const editQuestionTextareaRef = useRef(null);
     const editAnswerTextareaRef = useRef(null);
 
@@ -1354,6 +1358,8 @@ useEffect(() => {
                 answer_text: answerText,
                 marks: parseInt(marks),
                 is_nested: isNested, // NEW: Nested question flag
+                is_essay_question: isEssayQuestion, // NEW: Essay question flag
+                is_graph_question: isGraphQuestion, // NEW: Graph question flag
                 question_inline_images: questionInlineImages,
                 answer_inline_images: answerInlineImages,
                 question_image_positions: questionImagePositions, // NEW: Image positions for question
@@ -1432,6 +1438,8 @@ useEffect(() => {
                 setAnswerAnswerLines([]); // NEW: Clear answer lines
                 setIsQuestionActive(true);
                 setIsNested(false); // NEW: Reset nested checkbox
+                setIsEssayQuestion(false); // NEW: Reset essay checkbox
+                setIsGraphQuestion(false); // NEW: Reset graph checkbox
                 setSimilarQuestions([]);
                 
                 alert('Question saved to database successfully!');
@@ -2384,6 +2392,8 @@ useEffect(() => {
         console.log('✅ Set editSection to:', question.section || '');
         setEditIsActive(question.is_active !== false); // Load active status
         setEditIsNested(question.is_nested === true); // Load nested status
+        setEditIsEssayQuestion(question.is_essay_question === true); // Load essay status
+        setEditIsGraphQuestion(question.is_graph_question === true); // Load graph status
         
         // Fetch topics for the selected paper
         console.log('🔄 About to fetch topics for paper:', question.paper);
@@ -2558,7 +2568,9 @@ useEffect(() => {
                 difficulty: selectedQuestion.difficulty, // Include difficulty
                 question_type: selectedQuestion.question_type, // Include question type
                 is_active: editIsActive, // Use edited status
-                is_nested: editIsNested // Use edited type
+                is_nested: editIsNested, // Use edited type
+                is_essay_question: editIsEssayQuestion, // Use edited essay status
+                is_graph_question: editIsGraphQuestion // Use edited graph status
             };
 
             console.log('🔄 Updating question - Full details:');
@@ -2632,6 +2644,8 @@ useEffect(() => {
             setEditAnswerAnswerLines([]); // NEW: Clear answer lines
             setEditIsActive(true); // Reset to active
             setEditIsNested(false); // Reset to standalone
+            setEditIsEssayQuestion(false); // Reset essay status
+            setEditIsGraphQuestion(false); // Reset graph status
             
             // Refresh search results - this will re-fetch questions
             await handleSearchQuestions(searchQuery || '');
@@ -5117,6 +5131,52 @@ useEffect(() => {
                                 )}
                             </div>
 
+                            {/* Essay Question Checkbox */}
+                            <div className="mb-4 border-2 rounded-lg p-4" style={{
+                                borderColor: isEssayQuestion ? '#f59e0b' : '#d1d5db',
+                                backgroundColor: isEssayQuestion ? '#fef3c7' : '#f9fafb'
+                            }}>
+                                <label className="flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={isEssayQuestion}
+                                        onChange={(e) => setIsEssayQuestion(e.target.checked)}
+                                        className="w-5 h-5 text-yellow-600 rounded focus:ring-2 focus:ring-yellow-500"
+                                    />
+                                    <span className="ml-3 text-sm font-bold text-gray-700">
+                                        This is an Essay Question
+                                    </span>
+                                </label>
+                                <p className="text-xs mt-2 ml-8" style={{color: isEssayQuestion ? '#b45309' : '#6b7280'}}>
+                                    {isEssayQuestion 
+                                        ? '✓ Essay question - requires extended written response' 
+                                        : 'Not an essay question'}
+                                </p>
+                            </div>
+
+                            {/* Graph Question Checkbox */}
+                            <div className="mb-4 border-2 rounded-lg p-4" style={{
+                                borderColor: isGraphQuestion ? '#06b6d4' : '#d1d5db',
+                                backgroundColor: isGraphQuestion ? '#cffafe' : '#f9fafb'
+                            }}>
+                                <label className="flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={isGraphQuestion}
+                                        onChange={(e) => setIsGraphQuestion(e.target.checked)}
+                                        className="w-5 h-5 text-cyan-600 rounded focus:ring-2 focus:ring-cyan-500"
+                                    />
+                                    <span className="ml-3 text-sm font-bold text-gray-700">
+                                        This is a Graph Question
+                                    </span>
+                                </label>
+                                <p className="text-xs mt-2 ml-8" style={{color: isGraphQuestion ? '#0e7490' : '#6b7280'}}>
+                                    {isGraphQuestion 
+                                        ? '✓ Graph question - requires drawing/plotting graphs' 
+                                        : 'Not a graph question'}
+                                </p>
+                            </div>
+
                             {/* Question Status */}
                             <div className="mb-6 border-2 rounded-lg p-4" style={{
                                 borderColor: isQuestionActive ? '#10b981' : '#ef4444',
@@ -6911,6 +6971,8 @@ useEffect(() => {
                                                 setEditQuestionTopics([]);
                                                 setEditIsActive(true);
                                                 setEditIsNested(false);
+                                                setEditIsEssayQuestion(false);
+                                                setEditIsGraphQuestion(false);
                                             }}
                                             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition"
                                         >
@@ -7862,6 +7924,82 @@ useEffect(() => {
                                                 {editIsNested 
                                                     ? '⊕ Question has multiple parts (a, b, c, etc.)' 
                                                     : '◉ Question is a single standalone item'}
+                                            </p>
+                                        </div>
+
+                                        {/* Essay Question Toggle */}
+                                        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-yellow-300 transition">
+                                            <label className="block text-sm font-bold text-gray-700 mb-3">
+                                                Essay Question
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditIsEssayQuestion(true)}
+                                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                                                        editIsEssayQuestion
+                                                            ? 'bg-yellow-600 text-white shadow-lg'
+                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                    }`}
+                                                >
+                                                    <span className="text-lg">📝</span>
+                                                    Essay
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditIsEssayQuestion(false)}
+                                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                                                        !editIsEssayQuestion
+                                                            ? 'bg-gray-600 text-white shadow-lg'
+                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                    }`}
+                                                >
+                                                    <span className="text-lg">📄</span>
+                                                    Regular
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                {editIsEssayQuestion 
+                                                    ? '📝 Requires extended written response' 
+                                                    : '📄 Standard question format'}
+                                            </p>
+                                        </div>
+
+                                        {/* Graph Question Toggle */}
+                                        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-cyan-300 transition">
+                                            <label className="block text-sm font-bold text-gray-700 mb-3">
+                                                Graph Question
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditIsGraphQuestion(true)}
+                                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                                                        editIsGraphQuestion
+                                                            ? 'bg-cyan-600 text-white shadow-lg'
+                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                    }`}
+                                                >
+                                                    <span className="text-lg">📊</span>
+                                                    Graph
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditIsGraphQuestion(false)}
+                                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                                                        !editIsGraphQuestion
+                                                            ? 'bg-gray-600 text-white shadow-lg'
+                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                    }`}
+                                                >
+                                                    <span className="text-lg">📄</span>
+                                                    Regular
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                {editIsGraphQuestion 
+                                                    ? '📊 Requires drawing/plotting graphs' 
+                                                    : '📄 No graphing required'}
                                             </p>
                                         </div>
                                     </div>
