@@ -384,22 +384,22 @@ export default function PaperGenerationDashboard() {
             return;
         }
 
-        // Get paper-specific constraints
-        const constraints = getPaperConstraints();
+        // // Get paper-specific constraints
+        // const constraints = getPaperConstraints();
         
-        // Check if enough topics selected based on paper type
-        if (selectedTopics.length < constraints.minTopics) {
-            const confirmed = window.confirm(
-                `You have selected only ${selectedTopics.length} topic(s) for ${selectedPaperData?.name || 'this paper'}.\n\n` +
-                `${constraints.description}\n` +
-                `Recommended: ${constraints.recommendedTopics}\n` +
-                `Minimum recommended topics: ${constraints.minTopics}\n\n` +
-                `Do you want to continue anyway?`
-            );
-            if (!confirmed) {
-                return;
-            }
-        }
+        // // Check if enough topics selected based on paper type
+        // if (selectedTopics.length < constraints.minTopics) {
+        //     const confirmed = window.confirm(
+        //         `You have selected only ${selectedTopics.length} topic(s) for ${selectedPaperData?.name || 'this paper'}.\n\n` +
+        //         `${constraints.description}\n` +
+        //         `Recommended: ${constraints.recommendedTopics}\n` +
+        //         `Minimum recommended topics: ${constraints.minTopics}\n\n` +
+        //         `Do you want to continue anyway?`
+        //     );
+        //     if (!confirmed) {
+        //         return;
+        //     }
+        // }
 
         try {
             setLoading(true);
