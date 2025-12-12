@@ -36,12 +36,26 @@ def generate_full_exam_html(coverpage_data, questions, coverpage_class=None):
     else:
         coverpage_content = coverpage_html
     
-    # Calculate total pages (coverpage + question pages)
-    # Assuming ~3-4 questions per page
-    total_pages = 1 + ((len(questions) + 2) // 3)
+    # Detect paper type from coverpage data
+    is_paper2 = coverpage_data.get('paper_type') == 'Paper 2'
     
-    # Generate question pages
-    questions_html = _generate_question_pages(questions, total_pages)
+    # Use total_pages from coverpage_data if available (Paper 2 has dynamic calculation)
+    total_pages = coverpage_data.get('total_pages')
+    
+    # Fallback to calculated pages if not provided
+    if total_pages is None:
+        if is_paper2:
+            # Paper 2: 1 coverpage + 3 Section A pages + 2 Section B pages + 4 answer pages
+            total_pages = 10
+        else:
+            # Paper 1: Assuming ~3-4 questions per page
+            total_pages = 1 + ((len(questions) + 2) // 3)
+    
+    # Generate question pages (use specialized function for Paper 2)
+    if is_paper2:
+        questions_html = _generate_paper2_question_pages(questions, total_pages)
+    else:
+        questions_html = _generate_question_pages(questions, total_pages)
     
     # Combine everything
     full_html = f"""
@@ -174,8 +188,10 @@ def generate_full_exam_html(coverpage_data, questions, coverpage_class=None):
         
         .answer-line {{
             width: 100%;
+            height: 25px;
             margin: 0;
             padding: 0;
+            border-bottom: 1px solid #333;
         }}
         
         .answer-line.dotted {{
@@ -190,6 +206,44 @@ def generate_full_exam_html(coverpage_data, questions, coverpage_class=None):
             margin-top: 10px;
             border-top: 1px dotted #999;
             min-height: 80px;
+        }}
+        
+        /* Section styling for Paper 2 */
+        .section-header {{
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid black;
+        }}
+        
+        .section-header h2 {{
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }}
+        
+        .section-instruction {{
+            font-size: 12px;
+            font-style: italic;
+            margin-top: 5px;
+        }}
+        
+        /* Answer section header */
+        .answer-section-header {{
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f5f5f5;
+            border: 2px solid #333;
+        }}
+        
+        .answer-section-header p {{
+            margin: 3px 0;
+        }}
+        
+        .answer-lines-container {{
+            margin: 20px 0;
         }}
         
         /* Formatting styles */
@@ -541,6 +595,253 @@ def _process_question_text(text, images=None, answer_lines=None):
             result.append(part)
     
     return ''.join(result)
+
+
+def _generate_paper2_question_pages(questions, total_pages):
+    """
+    Generate paginated question pages for Biology Paper 2
+    Split into Section A (Questions 1-5) and Section B (Questions 6-8)
+    Add 250 answer lines immediately after Section B (no page break)
+    
+    Args:
+        questions (list): List of questions with 'number', 'text', 'marks'
+        total_pages (int): Total number of pages in the exam
+    
+    Returns:
+        str: HTML for all question pages
+    """
+    
+    pages_html = []
+    current_page = 2  # Page 1 is coverpage
+    
+    # Section A: Questions 1-5
+    section_a_questions = [q for q in questions if q['number'] <= 5]
+    section_b_questions = [q for q in questions if q['number'] >= 6]
+    
+    # Generate Section A pages
+    section_a_html = _generate_section_pages(
+        section_a_questions, 
+        "SECTION A (40 MARKS)", 
+        "Answer ALL questions in this section",
+        current_page,
+        total_pages,
+        is_last_section=False
+    )
+    pages_html.append(section_a_html['html'])
+    current_page = section_a_html['next_page']
+    
+    # Generate Section B pages with answer lines immediately after
+    section_b_html = _generate_section_pages(
+        section_b_questions, 
+        "SECTION B (40 MARKS)", 
+        "Answer question 6 (compulsory) and EITHER question 7 or 8",
+        current_page,
+        total_pages,
+        is_last_section=True,
+        answer_lines=100
+    )
+    pages_html.append(section_b_html['html'])
+    
+    return '\n'.join(pages_html)
+
+
+def _generate_section_pages(questions, section_title, section_instruction, start_page, total_pages, is_last_section=False, answer_lines=0):
+    """
+    Generate pages for a specific section
+    
+    Args:
+        is_last_section (bool): If True, add answer lines on the same page as the last question
+        answer_lines (int): Number of answer lines to add after last section
+    
+    Returns:
+        dict: {'html': str, 'next_page': int}
+    """
+    pages_html = []
+    current_page = start_page
+    questions_per_page = 2  # Fewer questions per page for Paper 2
+    
+    # First page of section with title
+    first_page_questions = questions[:questions_per_page]
+    questions_html = ""
+    
+    for q in first_page_questions:
+        processed_text = _process_question_text(
+            q.get('text', ''),
+            q.get('question_inline_images', []),
+            q.get('question_answer_lines', [])
+        )
+        
+        questions_html += f"""
+        <div class="question">
+            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text} <span class="marks">({q.get('marks', 0)} marks)</span></div>
+        </div>
+"""
+    
+    page_html = f"""
+    <!-- Page {current_page} -->
+    <div class="exam-page page-break">
+        <div class="section-header">
+            <h2>{section_title}</h2>
+            <p class="section-instruction">{section_instruction}</p>
+        </div>
+        
+        {questions_html}
+        
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+"""
+    pages_html.append(page_html)
+    current_page += 1
+    
+    # Remaining questions
+    remaining_questions = questions[questions_per_page:]
+    for i in range(0, len(remaining_questions), questions_per_page):
+        page_questions = remaining_questions[i:i + questions_per_page]
+        is_last_page_of_questions = (i + questions_per_page >= len(remaining_questions))
+        
+        questions_html = ""
+        for q in page_questions:
+            processed_text = _process_question_text(
+                q.get('text', ''),
+                q.get('question_inline_images', []),
+                q.get('question_answer_lines', [])
+            )
+            
+            questions_html += f"""
+        <div class="question">
+            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text} <span class="marks">({q.get('marks', 0)} marks)</span></div>
+        </div>
+"""
+        
+        # If this is the last section and last page, add answer lines immediately
+        answer_section_html = ""
+        if is_last_section and is_last_page_of_questions and answer_lines > 0:
+            # Add answer section header and start lines on same page
+            answer_section_html = f"""
+        
+        <div class="answer-section-header" style="margin-top: 30px;">
+            <p><strong>ANSWER SECTION B HERE</strong></p>
+            <p style="font-size: 11px; color: #666;">Use these lines to write your answers for Section B questions (6, 7 or 8)</p>
+        </div>
+        
+        <div class="answer-lines-container">
+"""
+            # Add initial lines to fill this page (estimate remaining space)
+            initial_lines = 8  # Approximately 8 lines fit after a question on same page
+            for _ in range(initial_lines):
+                answer_section_html += '            <div class="answer-line"></div>\n'
+            
+            answer_section_html += "        </div>"
+        
+        page_html = f"""
+    <!-- Page {current_page} -->
+    <div class="exam-page page-break">
+        {questions_html}
+        {answer_section_html}
+        
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+"""
+        pages_html.append(page_html)
+        current_page += 1
+    
+    # If answer lines were added, generate remaining answer line pages
+    if is_last_section and answer_lines > 0:
+        initial_lines = 8
+        remaining_lines = answer_lines - initial_lines
+        answer_lines_html = _generate_answer_lines_continuation(remaining_lines, current_page, total_pages)
+        pages_html.append(answer_lines_html)
+    
+    return {'html': '\n'.join(pages_html), 'next_page': current_page}
+
+
+def _generate_answer_lines_continuation(num_lines, start_page, total_pages):
+    """
+    Generate continuation pages with answer lines (after initial lines on last question page)
+    
+    Args:
+        num_lines (int): Number of remaining answer lines
+        start_page (int): Starting page number
+        total_pages (int): Total pages in exam
+    
+    Returns:
+        str: HTML for answer line continuation pages
+    """
+    lines_per_page = 25
+    total_answer_pages = (num_lines + lines_per_page - 1) // lines_per_page
+    pages_html = []
+    current_page = start_page
+    
+    for page_num in range(total_answer_pages):
+        lines_on_this_page = min(lines_per_page, num_lines - (page_num * lines_per_page))
+        
+        lines_html = ""
+        for i in range(lines_on_this_page):
+            lines_html += '            <div class="answer-line"></div>\n'
+        
+        is_last_page = current_page >= total_pages
+        
+        page_html = f"""
+    <!-- Page {current_page} - Answer Lines (continued) -->
+    <div class="exam-page {'page-break' if not is_last_page else ''}">
+        <div class="answer-lines-container">
+            {lines_html}
+        </div>
+        
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+"""
+        pages_html.append(page_html)
+        current_page += 1
+    
+    return '\n'.join(pages_html)
+
+
+def _generate_answer_lines_pages(num_lines, start_page, total_pages):
+    """
+    Generate pages with answer lines for Section B
+    
+    Args:
+        num_lines (int): Number of answer lines (250 for Paper 2)
+        start_page (int): Starting page number
+        total_pages (int): Total pages in exam
+    
+    Returns:
+        str: HTML for answer line pages
+    """
+    lines_per_page = 25
+    total_answer_pages = (num_lines + lines_per_page - 1) // lines_per_page
+    pages_html = []
+    current_page = start_page
+    
+    for page_num in range(total_answer_pages):
+        lines_on_this_page = min(lines_per_page, num_lines - (page_num * lines_per_page))
+        
+        lines_html = ""
+        for i in range(lines_on_this_page):
+            lines_html += '<div class="answer-line"></div>\n'
+        
+        is_last_page = current_page >= total_pages
+        
+        page_html = f"""
+    <!-- Page {current_page} - Answer Lines -->
+    <div class="exam-page {'page-break' if not is_last_page else ''}">
+        <div class="answer-section-header">
+            <p><strong>ANSWER SECTION B HERE</strong></p>
+            <p style="font-size: 11px; color: #666;">Use these lines to write your answers for Section B questions (6, 7 or 8)</p>
+        </div>
+        
+        <div class="answer-lines-container">
+            {lines_html}
+        </div>
+        
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+"""
+        pages_html.append(page_html)
+        current_page += 1
+    
+    return '\n'.join(pages_html)
 
 
 def _generate_question_pages(questions, total_pages):

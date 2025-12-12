@@ -932,13 +932,14 @@ class BiologyPaper2Coverpage:
         
         .grid-title {{
             font-weight: bold;
-            font-size: 13px;
-            margin-bottom: 10px;
+            font-size: 14px;
+            margin-bottom: 12px;
             text-align: center;
+            text-transform: uppercase;
         }}
         
         .marking-grid {{
-            width: 60%;
+            width: 70%;
             margin: 0 auto;
             border-collapse: collapse;
             border: 2px solid black;
@@ -948,23 +949,31 @@ class BiologyPaper2Coverpage:
         .marking-grid td {{
             border: 1px solid black;
             text-align: center;
-            font-size: 11px;
-            font-weight: bold;
-            padding: 8px;
+            font-size: 12px;
+            font-weight: normal;
+            padding: 10px 8px;
         }}
         
         .marking-grid th {{
-            background-color: #f0f0f0;
+            background-color: #e8e8e8;
+            font-weight: bold;
+            font-size: 12px;
         }}
         
         .section-label {{
-            font-size: 12px;
+            font-size: 13px;
             font-weight: bold;
             vertical-align: middle;
+            background-color: #f5f5f5;
         }}
         
         .total-row {{
-            background-color: #f5f5f5;
+            background-color: #d9d9d9;
+            font-weight: bold;
+            font-size: 13px;
+        }}
+        
+        .total-row td {{
             font-weight: bold;
         }}
         
@@ -1012,7 +1021,7 @@ class BiologyPaper2Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to candidates</div>
-            <ol>
+            <ol type="i">
 """
         
         # Add instructions
@@ -1140,6 +1149,17 @@ class BiologyPaper2Coverpage:
         else:
             display_paper_name = f'{subject_name_upper} {paper_name_upper}'
         
+        # Calculate total pages dynamically
+        # 1 page: Coverpage
+        # Section A: 5 questions (approximately 2-3 pages, estimate 3 pages)
+        # Section B: 3 questions (only 2 pages since Q7 and Q8 have no answer spaces)
+        # Answer lines: 100 lines = approximately 4 pages (25 lines per page)
+        # Total: 1 + 3 + 2 + 4 = 10 pages
+        section_a_pages = 3
+        section_b_questions_pages = 2  # Q7 and Q8 don't have answer spaces
+        answer_lines_pages = 4  # 100 / 25 lines per page
+        total_pages = 1 + section_a_pages + section_b_questions_pages + answer_lines_pages
+        
         return {
             'school_name': 'EXAMINATION CENTRE',
             'school_logo': '/exam.png',
@@ -1153,13 +1173,13 @@ class BiologyPaper2Coverpage:
             'section_b_marks': 20,
             'total_marks': generated_paper.total_marks or 80,
             'time_allocation': format_time_allocation(paper.time_allocation),
-            'total_pages': 12,
+            'total_pages': total_pages,
             'instructions': [
                 'Write your name and index number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 'This paper consists of two sections: A and B.',
                 'Answer all questions in section A answer question 6 (compulsory) and either question 7 or 8 in the spaces provided after question 8.',
-                'This paper consists of 12 printed pages.',
+                f'This paper consists of {total_pages} printed pages.',
                 'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
                 'Candidates should answer the questions in English.'
             ],
