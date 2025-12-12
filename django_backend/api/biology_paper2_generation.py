@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 KCSE Biology Paper 2 Generation Algorithm
 Biology Paper 2 has a distinct structure with sections A and B
@@ -5,8 +6,8 @@ Biology Paper 2 has a distinct structure with sections A and B
 PAPER STRUCTURE:
 - 80 marks total
 - 8 questions total
-- Section A: 5 questions × 8 marks each = 40 marks
-- Section B: 3 questions × 20 marks each = 40 marks
+- Section A: 5 questions x 8 marks each = 40 marks
+- Section B: 3 questions x 20 marks each = 40 marks
   - Question 6: MUST be a graph question (compulsory, 20 marks)
   - Question 7 & 8: Essay questions (student chooses one, 20 marks each)
 - 4 pages of lines after question 8 for answers
@@ -301,7 +302,11 @@ class BiologyPaper2Generator:
         for i, question in enumerate(self.selected_section_a, 1):
             self.used_question_ids.add(str(question.id))
             self.topic_distribution[question.topic.name] += 1
-            print(f"  Question {i}: {question.topic.name} - {question.question_text[:60]}...")
+            try:
+                preview = question.question_text[:60].encode('ascii', 'ignore').decode('ascii')
+            except:
+                preview = "Question text contains special characters"
+            print(f"  Question {i}: {question.topic.name} - {preview}...")
         
         # Select 1 graph question for Question 6 (Section B)
         # Prioritize graph questions, but use essay questions if unavailable
@@ -311,7 +316,11 @@ class BiologyPaper2Generator:
             self.selected_graph = random.choice(self.graph_questions_pool)
             self.used_question_ids.add(str(self.selected_graph.id))
             self.topic_distribution[self.selected_graph.topic.name] += 1
-            print(f"  Question 6 (GRAPH): {self.selected_graph.topic.name} - {self.selected_graph.question_text[:60]}...")
+            try:
+                preview = self.selected_graph.question_text[:60].encode('ascii', 'ignore').decode('ascii')
+            except:
+                preview = "Question text contains special characters"
+            print(f"  Question 6 (GRAPH): {self.selected_graph.topic.name} - {preview}...")
         else:
             # No graph questions available, fall back to essay pool
             print(f"  Warning: No graph questions available. Selecting from essay pool...")
@@ -320,7 +329,11 @@ class BiologyPaper2Generator:
             self.selected_graph = random.choice(self.essay_questions_pool)
             self.used_question_ids.add(str(self.selected_graph.id))
             self.topic_distribution[self.selected_graph.topic.name] += 1
-            print(f"  Question 6 (ESSAY - fallback): {self.selected_graph.topic.name} - {self.selected_graph.question_text[:60]}...")
+            try:
+                preview = self.selected_graph.question_text[:60].encode('ascii', 'ignore').decode('ascii')
+            except:
+                preview = "Question text contains special characters"
+            print(f"  Question 6 (ESSAY - fallback): {self.selected_graph.topic.name} - {preview}...")
             # Remove selected question from essay pool to avoid duplication
             self.essay_questions_pool = [q for q in self.essay_questions_pool if str(q.id) != str(self.selected_graph.id)]
         
@@ -331,7 +344,11 @@ class BiologyPaper2Generator:
         for i, question in enumerate(self.selected_essays, 7):
             self.used_question_ids.add(str(question.id))
             self.topic_distribution[question.topic.name] += 1
-            print(f"  Question {i}: {question.topic.name} - {question.question_text[:60]}...")
+            try:
+                preview = question.question_text[:60].encode('ascii', 'ignore').decode('ascii')
+            except:
+                preview = "Question text contains special characters"
+            print(f"  Question {i}: {question.topic.name} - {preview}...")
         
         print(f"\nSelected {self.TOTAL_QUESTIONS} questions successfully")
         print(f"\nTopic Distribution:")

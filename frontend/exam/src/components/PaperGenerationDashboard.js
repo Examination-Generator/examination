@@ -1564,7 +1564,7 @@ export default function PaperGenerationDashboard() {
                                             </button>
                                         ) : (
                                             <div className="text-center text-red-600">
-                                                <p className="text-sm">⚠️ Paper ID not found in response</p>
+                                                <p className="text-sm">Paper ID not found in response</p>
                                                 <p className="text-xs mt-1">Please check the browser console for details</p>
                                             </div>
                                         )}
