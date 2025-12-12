@@ -346,11 +346,17 @@ def list_generated_papers(request):
         
         papers = []
         for gp in queryset[:100]:  # Limit to 100 recent papers (increased from 50)
+            # Get paper type from metadata
+            paper_type = None
+            if hasattr(gp, 'metadata') and gp.metadata:
+                paper_type = gp.metadata.get('paper_type')
+            
             papers.append({
                 'id': str(gp.id),
                 'unique_code': gp.unique_code,
                 'status': gp.status,
                 'paper_name': gp.paper.name,
+                'paper_type': paper_type,  # Add paper type to response
                 'subject_name': gp.paper.subject.name,
                 'total_marks': gp.total_marks,
                 'total_questions': gp.total_questions,
@@ -770,6 +776,10 @@ def coverpage_data(request, paper_id):
             # Merge with saved data
             coverpage_data = {**default_coverpage, **coverpage}
             
+            # Ensure paper_type is included in coverpage data
+            if 'paper_type' not in coverpage_data:
+                coverpage_data['paper_type'] = paper_type
+            
             # Ensure time_allocation is always formatted (in case old data has numeric value)
             if isinstance(coverpage_data.get('time_allocation'), int):
                 coverpage_data['time_allocation'] = format_time_allocation(coverpage_data['time_allocation'])
@@ -800,7 +810,8 @@ def coverpage_data(request, paper_id):
             allowed_fields = [
                 'school_name', 'school_logo', 'logo_position', 'class_name', 'exam_title', 'paper_name',
                 'instructions', 'time_allocation', 'total_marks',
-                'candidate_name_field', 'candidate_number_field', 'date_field'
+                'candidate_name_field', 'candidate_number_field', 'date_field',
+                'paper_type', 'section_a_questions', 'section_a_marks', 'section_b_questions', 'section_b_marks'
             ]
             
             for field in allowed_fields:

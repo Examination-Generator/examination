@@ -295,9 +295,14 @@ class BiologyPaper2Generator:
         print(f"SELECTING QUESTIONS FOR PAPER")
         print(f"{'='*70}")
         
-        # Select 5 questions for Section A (fully random)
+        # Select 5 questions for Section A (fully random, MUST be 8 marks each)
         print(f"\nSection A: Selecting {self.SECTION_A_QUESTIONS} questions (8 marks each)")
         self.selected_section_a = random.sample(self.section_a_pool, self.SECTION_A_QUESTIONS)
+        
+        # Validate Section A questions are all 8 marks
+        for q in self.selected_section_a:
+            if q.marks != self.SECTION_A_MARKS_PER_QUESTION:
+                raise ValueError(f"Section A question must be {self.SECTION_A_MARKS_PER_QUESTION} marks, found {q.marks} marks")
         
         for i, question in enumerate(self.selected_section_a, 1):
             self.used_question_ids.add(str(question.id))
@@ -340,6 +345,13 @@ class BiologyPaper2Generator:
         # Select 2 essay questions for Questions 7 & 8 (Section B)
         print(f"\nSection B - Questions 7 & 8: Selecting {2} essay questions (20 marks each)")
         self.selected_essays = random.sample(self.essay_questions_pool, 2)
+        
+        # Validate Section B questions are all 20 marks
+        if self.selected_graph.marks != self.SECTION_B_MARKS_PER_QUESTION:
+            raise ValueError(f"Section B question 6 must be {self.SECTION_B_MARKS_PER_QUESTION} marks, found {self.selected_graph.marks} marks")
+        for q in self.selected_essays:
+            if q.marks != self.SECTION_B_MARKS_PER_QUESTION:
+                raise ValueError(f"Section B questions must be {self.SECTION_B_MARKS_PER_QUESTION} marks, found {q.marks} marks")
         
         for i, question in enumerate(self.selected_essays, 7):
             self.used_question_ids.add(str(question.id))
