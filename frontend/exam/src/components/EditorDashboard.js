@@ -1370,6 +1370,15 @@ useEffect(() => {
             };
 
             console.log('💾 Submitting question to database:', questionData);
+            console.log('📋 Question Status Being Saved:', {
+                isActive: isQuestionActive,
+                isNested: isNested,
+                isEssayQuestion: isEssayQuestion,
+                isGraphQuestion: isGraphQuestion,
+                marks: parseInt(marks),
+                questionLength: questionText.length,
+                answerLength: answerText.length
+            });
             console.log('💾 Question images being saved:', {
                 count: questionInlineImages.length,
                 images: questionInlineImages,
@@ -2395,6 +2404,16 @@ useEffect(() => {
         setEditIsEssayQuestion(question.is_essay_question === true); // Load essay status
         setEditIsGraphQuestion(question.is_graph_question === true); // Load graph status
         
+        console.log('📋 Question Status Loaded for Editing:', {
+            questionId: question.id,
+            isActive: question.is_active !== false,
+            isNested: question.is_nested === true,
+            isEssayQuestion: question.is_essay_question === true,
+            isGraphQuestion: question.is_graph_question === true,
+            marks: question.marks,
+            topic: question.topic_name || 'Unknown'
+        });
+        
         // Fetch topics for the selected paper
         console.log('🔄 About to fetch topics for paper:', question.paper);
         if (question.paper) {
@@ -2576,6 +2595,14 @@ useEffect(() => {
             console.log('🔄 Updating question - Full details:');
             console.log('  - Question ID:', selectedQuestion.id);
             console.log('  - editSection state:', editSection);
+            console.log('📋 Question Status Being Updated:', {
+                isActive: editIsActive,
+                isNested: editIsNested,
+                isEssayQuestion: editIsEssayQuestion,
+                isGraphQuestion: editIsGraphQuestion,
+                marks: parseFloat(editMarks),
+                topic: editTopic
+            });
             console.log('  - selectedQuestion.section:', selectedQuestion.section);
             console.log('  - Computed sectionValue:', sectionValue);
             console.log('  - Full updatedData:', JSON.stringify(updatedData, null, 2));
