@@ -355,12 +355,42 @@ class BiologyPaper2Generator:
             # Check if Question 6 is actually a graph question
             question_6_type = 'graph' if 'graph' in self.selected_graph.question_text.lower() else 'essay'
             
+            # Calculate mark distribution
+            mark_distribution = {
+                '8': self.SECTION_A_QUESTIONS,  # 5 questions at 8 marks
+                '20': self.SECTION_B_QUESTIONS   # 3 questions at 20 marks
+            }
+            
+            # Calculate topic distribution (marks per topic)
+            topic_marks_distribution = {}
+            for question in all_questions:
+                topic_name = question.topic.name
+                if topic_name not in topic_marks_distribution:
+                    topic_marks_distribution[topic_name] = 0
+                topic_marks_distribution[topic_name] += question.marks
+            
+            # Calculate question type distribution
+            question_type_dist = {
+                'structured': self.SECTION_A_QUESTIONS,  # Section A questions
+                'graph': 1 if question_6_type == 'graph' else 0,
+                'essay': 2 if question_6_type == 'graph' else 3  # Questions 7 & 8, or 6, 7 & 8
+            }
+            
+            # Generate unique code
+            import time
+            unique_code = f"BP2-{int(time.time() * 1000) % 1000000}"
+            
             # Create GeneratedPaper
             generated_paper = GeneratedPaper.objects.create(
                 paper=self.paper,
+                unique_code=unique_code,
                 total_marks=self.TOTAL_MARKS,
                 total_questions=self.TOTAL_QUESTIONS,
                 question_ids=list(self.used_question_ids),
+                selected_topics=[str(t.id) for t in self.topics],
+                mark_distribution=mark_distribution,
+                topic_distribution=topic_marks_distribution,
+                question_type_distribution=question_type_dist,
                 metadata={
                     'paper_type': 'Biology Paper 2',
                     'generation_algorithm': 'BiologyPaper2Generator',
