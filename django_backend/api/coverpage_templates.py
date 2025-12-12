@@ -1012,7 +1012,7 @@ class BiologyPaper2Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row-full"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Sign:</span><div class="info-field"></div></div>
             </div>
