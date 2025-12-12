@@ -660,44 +660,11 @@ def _generate_section_pages(questions, section_title, section_instruction, start
     current_page = start_page
     questions_per_page = 2  # Fewer questions per page for Paper 2
     
-    # First page of section with title
-    first_page_questions = questions[:questions_per_page]
-    questions_html = ""
-    
-    for q in first_page_questions:
-        processed_text = _process_question_text(
-            q.get('text', ''),
-            q.get('question_inline_images', []),
-            q.get('question_answer_lines', [])
-        )
-        
-        questions_html += f"""
-        <div class="question">
-            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text} <span class="marks">({q.get('marks', 0)} marks)</span></div>
-        </div>
-"""
-    
-    page_html = f"""
-    <!-- Page {current_page} -->
-    <div class="exam-page page-break">
-        <div class="section-header">
-            <h2>{section_title}</h2>
-            <p class="section-instruction">{section_instruction}</p>
-        </div>
-        
-        {questions_html}
-        
-        <div class="page-number">Page {current_page} of {total_pages}</div>
-    </div>
-"""
-    pages_html.append(page_html)
-    current_page += 1
-    
-    # Remaining questions
-    remaining_questions = questions[questions_per_page:]
-    for i in range(0, len(remaining_questions), questions_per_page):
-        page_questions = remaining_questions[i:i + questions_per_page]
-        is_last_page_of_questions = (i + questions_per_page >= len(remaining_questions))
+    # Process all questions with section header on first page only
+    for i in range(0, len(questions), questions_per_page):
+        page_questions = questions[i:i + questions_per_page]
+        is_first_page = (i == 0)
+        is_last_page_of_questions = (i + questions_per_page >= len(questions))
         
         questions_html = ""
         for q in page_questions:
@@ -712,6 +679,16 @@ def _generate_section_pages(questions, section_title, section_instruction, start
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text} <span class="marks">({q.get('marks', 0)} marks)</span></div>
         </div>
 """
+        
+        # Add section header only on first page
+        section_header_html = ""
+        if is_first_page:
+            section_header_html = f"""
+        <div class="section-header">
+            <h2>{section_title}</h2>
+            <p class="section-instruction">{section_instruction}</p>
+        </div>
+        """
         
         # If this is the last section and last page, add answer lines immediately
         answer_section_html = ""
@@ -736,6 +713,7 @@ def _generate_section_pages(questions, section_title, section_instruction, start
         page_html = f"""
     <!-- Page {current_page} -->
     <div class="exam-page page-break">
+        {section_header_html}
         {questions_html}
         {answer_section_html}
         

@@ -330,12 +330,8 @@ def list_generated_papers(request):
         ).order_by('-created_at')
         
         # Filters
-        paper_id = request.query_params.get('paper_id')
         paper_status = request.query_params.get('status')
         user_only = request.query_params.get('user_only', 'false').lower() == 'true'
-        
-        if paper_id:
-            queryset = queryset.filter(paper_id=paper_id)
         
         if paper_status:
             queryset = queryset.filter(status=paper_status)

@@ -1167,6 +1167,7 @@ class BiologyPaper2Coverpage:
             'class_name': '',
             'exam_title': 'END TERM EXAMINATION 2025',
             'paper_name': display_paper_name,
+            'paper_type': 'Paper 2',
             'section_a_questions': 5,
             'section_a_marks': 8,
             'section_b_questions': 3,
