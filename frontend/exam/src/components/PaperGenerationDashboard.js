@@ -490,7 +490,7 @@ export default function PaperGenerationDashboard() {
         } catch (err) {
             const errorMessage = err?.message || 'Failed to generate paper';
             
-            console.error('❌ Generation Error:', err);
+            console.error('Generation Error:', err);
             
             // Provide helpful error message based on error type
             if (errorMessage.includes('Failed to generate valid paper after')) {
@@ -501,14 +501,14 @@ export default function PaperGenerationDashboard() {
                 );
             } else if (errorMessage.includes('ascii') || errorMessage.includes('codec')) {
                 setError(
-                    '⚠️ Backend Encoding Error\n\n' +
+                    'Backend Encoding Error\n\n' +
                     'The backend server has a Unicode encoding issue. This is a backend configuration problem.\n\n' +
                     'Technical Details: ' + errorMessage + '\n\n' +
                     'Please contact the system administrator to fix the backend encoding (add UTF-8 support to biology_paper2_generation.py).'
                 );
             } else if (errorMessage.includes('Section') || errorMessage.includes('Insufficient')) {
                 setError(
-                    '⚠️ Insufficient Questions\n\n' + errorMessage + '\n\n' +
+                    'Insufficient Questions\n\n' + errorMessage + '\n\n' +
                     'Please add more questions to the database for this paper type.'
                 );
             } else {
@@ -1550,9 +1550,14 @@ export default function PaperGenerationDashboard() {
                                                 </p>
                                             </div>
                                         </div>
-                                        {generatedResult?.generated_paper?.id || generatedResult?.id ? (
+                                        {generatedResult?.generated_paper_id || generatedResult?.paper_id || generatedResult?.generated_paper?.id || generatedResult?.id ? (
                                             <button
-                                                onClick={() => handleViewPaper(generatedResult?.generated_paper?.id || generatedResult?.id)}
+                                                onClick={() => handleViewPaper(
+                                                    generatedResult?.generated_paper_id || 
+                                                    generatedResult?.paper_id || 
+                                                    generatedResult?.generated_paper?.id || 
+                                                    generatedResult?.id
+                                                )}
                                                 className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition"
                                             >
                                                 📄 Continue to Coverpage
