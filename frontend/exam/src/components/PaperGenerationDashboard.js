@@ -484,15 +484,29 @@ export default function PaperGenerationDashboard() {
         } catch (err) {
             const errorMessage = err?.message || 'Failed to generate paper';
             
-            // Provide helpful error message
+            console.error('❌ Generation Error:', err);
+            
+            // Provide helpful error message based on error type
             if (errorMessage.includes('Failed to generate valid paper after')) {
                 setError(
                     'Unable to generate a valid paper with the selected topics. ' +
                     'This usually means there aren\'t enough questions available to meet the constraints. ' +
                     '\n\nTry selecting MORE topics or add more questions to the database.'
                 );
+            } else if (errorMessage.includes('ascii') || errorMessage.includes('codec')) {
+                setError(
+                    '⚠️ Backend Encoding Error\n\n' +
+                    'The backend server has a Unicode encoding issue. This is a backend configuration problem.\n\n' +
+                    'Technical Details: ' + errorMessage + '\n\n' +
+                    'Please contact the system administrator to fix the backend encoding (add UTF-8 support to biology_paper2_generation.py).'
+                );
+            } else if (errorMessage.includes('Section') || errorMessage.includes('Insufficient')) {
+                setError(
+                    '⚠️ Insufficient Questions\n\n' + errorMessage + '\n\n' +
+                    'Please add more questions to the database for this paper type.'
+                );
             } else {
-                setError(errorMessage);
+                setError('Paper generation failed: ' + errorMessage);
             }
         } finally {
             setLoading(false);

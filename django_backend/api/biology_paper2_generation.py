@@ -284,9 +284,9 @@ class BiologyPaper2Generator:
         
         # Warn if no graph questions (will use essay questions for Question 6)
         if len(self.graph_questions_pool) < 1:
-            print(f"\n⚠ Warning: No graph questions found. Question 6 will be selected from essay questions.")
+            print(f"\nWarning: No graph questions found. Question 6 will be selected from essay questions.")
         
-        print(f"\n✓ Data loaded successfully")
+        print(f"\nData loaded successfully")
     
     def select_questions(self):
         """Select questions for the paper"""
@@ -314,7 +314,7 @@ class BiologyPaper2Generator:
             print(f"  Question 6 (GRAPH): {self.selected_graph.topic.name} - {self.selected_graph.question_text[:60]}...")
         else:
             # No graph questions available, fall back to essay pool
-            print(f"  ⚠ No graph questions available. Selecting from essay pool...")
+            print(f"  Warning: No graph questions available. Selecting from essay pool...")
             if len(self.essay_questions_pool) < 3:
                 raise ValueError("Insufficient questions for Section B. Need at least 3 essay questions when no graph questions are available.")
             self.selected_graph = random.choice(self.essay_questions_pool)
@@ -333,7 +333,7 @@ class BiologyPaper2Generator:
             self.topic_distribution[question.topic.name] += 1
             print(f"  Question {i}: {question.topic.name} - {question.question_text[:60]}...")
         
-        print(f"\n✓ Selected {self.TOTAL_QUESTIONS} questions successfully")
+        print(f"\nSelected {self.TOTAL_QUESTIONS} questions successfully")
         print(f"\nTopic Distribution:")
         for topic, count in sorted(self.topic_distribution.items()):
             print(f"  {topic}: {count} questions")
@@ -391,7 +391,7 @@ class BiologyPaper2Generator:
                 question.last_used = timezone.now()
                 question.save(update_fields=['times_used', 'last_used'])
             
-            print(f"✓ Paper saved successfully")
+            print(f"Paper saved successfully")
             print(f"  Generated Paper ID: {generated_paper.id}")
             print(f"  Total Questions: {generated_paper.total_questions}")
             print(f"  Total Marks: {generated_paper.total_marks}")
