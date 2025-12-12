@@ -683,6 +683,14 @@ class GeneratedPaper(models.Model):
         help_text='Coverpage information (school name, logo, instructions, etc.)'
     )
     
+    # Additional metadata for paper generation
+    metadata = models.JSONField(
+        null=True,
+        blank=True,
+        default=dict,
+        help_text='Additional metadata about the paper (paper_type, generation_algorithm, sections, etc.)'
+    )
+    
     # User tracking
     generated_by = models.ForeignKey(
         User,
