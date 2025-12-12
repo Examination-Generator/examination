@@ -1299,7 +1299,7 @@ export default function PaperGenerationDashboard() {
                 {activeTab === 'generate' && (
                     <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
                         {/* Paper Information Card */}
-                        {selectedPaperData && (
+                        {/* {selectedPaperData && (
                             <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg">
                                 <h3 className="text-lg font-bold text-gray-800 mb-2">📋 {selectedPaperData.name}</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -1333,7 +1333,7 @@ export default function PaperGenerationDashboard() {
                                     </div>
                                 </div>
                             </div>
-                        )}
+                        )} */}
 
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                             <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Select Topics</h2>

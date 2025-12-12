@@ -54,7 +54,7 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
             
             // Use Biology Paper 2 specific endpoint
             if ((paperName.includes('biology') || subjectName.includes('biology')) && 
-                (paperName.includes('paper 2') || paperName.includes('paper two'))) {
+                (paperName.includes('paper 2') || paperName.includes('paper two' || paperName.includes('paper II')))) {
                 endpoint = `${API_BASE_URL}/papers/biology-paper2/generate`;
                 console.log('🧬 Using Biology Paper 2 generation endpoint');
             }
