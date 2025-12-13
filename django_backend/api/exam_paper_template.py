@@ -8,6 +8,8 @@ from .coverpage_templates import (
     BiologyPaper1Coverpage, 
     BiologyPaper2Coverpage, 
     PhysicsPaper1Coverpage,
+    ChemistryPaper1Coverpage,
+    ChemistryPaper2Coverpage,
     MarkingSchemeCoverpage,
     BiologyPaper2MarkingSchemeCoverpage
 )
@@ -26,29 +28,41 @@ def get_coverpage_class(paper_data, is_marking_scheme=False):
         class: Appropriate coverpage class
     """
     # Extract paper type information
-    paper_type = paper_data.get('paper_type', '').lower()
-    paper_name = paper_data.get('paper_name', '').lower()
-    subject_name = paper_data.get('subject_name', '').lower()
+    paper_type = paper_data.get('paper_type', '').upper()
+    paper_name = paper_data.get('paper_name', '').upper()
+    subject_name = paper_data.get('subject_name', '').upper()
     
     # Detect Biology Paper 2
-    is_biology = 'biology' in paper_name or 'biology' in subject_name
-    is_paper2 = 'paper 2' in paper_type or 'paper 2' in paper_name or 'paper ii' in paper_name
+    is_biology_paper2 = ('BIOLOGY' in paper_name or 'BIOLOGY' in subject_name) and \
+                       ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PAPER II' in paper_name)
     
     # Detect Physics Paper 1
-    is_physics = 'physics' in paper_name or 'physics' in subject_name
-    is_paper1 = 'paper 1' in paper_type or 'paper 1' in paper_name or 'paper i' in paper_name
+    is_physics_paper1 = ('PHYSICS' in paper_name or 'PHYSICS' in subject_name) and \
+                       ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'PAPER I' in paper_name)
+    
+    # Detect Chemistry Paper 1
+    is_chemistry_paper1 = ('CHEMISTRY' in paper_name or 'CHEMISTRY' in subject_name) and \
+                         ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'PAPER I' in paper_name)
+    
+    # Detect Chemistry Paper 2
+    is_chemistry_paper2 = ('CHEMISTRY' in paper_name or 'CHEMISTRY' in subject_name) and \
+                         ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PAPER II' in paper_name)
     
     # Return appropriate coverpage class
     if is_marking_scheme:
-        if is_biology and is_paper2:
+        if is_biology_paper2 or is_chemistry_paper2:
             return BiologyPaper2MarkingSchemeCoverpage
         else:
             return MarkingSchemeCoverpage
     else:
-        if is_biology and is_paper2:
+        if is_biology_paper2:
             return BiologyPaper2Coverpage
-        elif is_physics and is_paper1:
+        elif is_physics_paper1:
             return PhysicsPaper1Coverpage
+        elif is_chemistry_paper1:
+            return ChemistryPaper1Coverpage
+        elif is_chemistry_paper2:
+            return ChemistryPaper2Coverpage
         else:
             # Default to Biology Paper 1 for standard papers
             return BiologyPaper1Coverpage

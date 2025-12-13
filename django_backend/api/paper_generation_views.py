@@ -35,7 +35,10 @@ from .coverpage_templates import (
     BiologyPaper1Coverpage, 
     BiologyPaper2Coverpage, 
     BiologyPaper2MarkingSchemeCoverpage,
+    BiologyPaper3Coverpage,
     PhysicsPaper1Coverpage,
+    ChemistryPaper1Coverpage,
+    ChemistryPaper2Coverpage,
     MarkingSchemeCoverpage, 
     format_time_allocation
 )
@@ -46,6 +49,71 @@ logger = logging.getLogger(__name__)
 class PaperGenerationException(Exception):
     """Exception raised when paper generation fails"""
     pass
+
+
+def _select_coverpage_class_and_default(generated_paper, paper, is_marking_scheme=False):
+    """
+    Select the most appropriate coverpage/marking-scheme class and default data
+    for a given generated paper. This centralizes logic and makes the selection
+    robust (case-insensitive, checks both metadata and paper name).
+
+    Returns: (CoverpageClass, default_data_dict)
+    """
+    metadata = getattr(generated_paper, 'metadata', {}) or {}
+    paper_type = (metadata.get('paper_type') or '').upper()
+    subject_name = (paper.subject.name or '').upper()
+    paper_name = (paper.name or '').upper()
+
+    def is_paper1():
+        return any(k in paper_type or k in paper_name for k in ('PAPER 1', 'PAPER I'))
+
+    def is_paper2():
+        return any(k in paper_type or k in paper_name for k in ('PAPER 2', 'PAPER II'))
+
+    def is_paper3():
+        return any(k in paper_type or k in paper_name for k in ('PAPER 3', 'PAPER III'))
+
+    # Prefer subject-specific classes first
+    try:
+        if is_marking_scheme:
+            # Marking scheme selection
+            if subject_name == 'BIOLOGY' and is_paper2():
+                return BiologyPaper2MarkingSchemeCoverpage, BiologyPaper2MarkingSchemeCoverpage.generate_default_data(generated_paper, paper)
+            if subject_name == 'BIOLOGY' and is_paper3():
+                # No separate Paper 3 marking scheme class exists; reuse Paper 2 marking scheme structure
+                return BiologyPaper2MarkingSchemeCoverpage, BiologyPaper2MarkingSchemeCoverpage.generate_default_data(generated_paper, paper)
+            # Generic marking scheme class fallback
+            return MarkingSchemeCoverpage, MarkingSchemeCoverpage.generate_default_data(generated_paper, paper)
+
+        # Question paper coverpage selection
+        if subject_name == 'PHYSICS' and is_paper1():
+            return PhysicsPaper1Coverpage, PhysicsPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+
+        if subject_name == 'CHEMISTRY':
+            if is_paper2():
+                return ChemistryPaper2Coverpage, ChemistryPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
+            # default to paper1 if not explicit
+            return ChemistryPaper1Coverpage, ChemistryPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+
+        # If it's explicitly a Paper 3 (and subject biology), prefer Biology Paper3
+        if subject_name == 'BIOLOGY' and is_paper3():
+            return BiologyPaper3Coverpage, BiologyPaper3Coverpage.generate_default_coverpage_data(generated_paper, paper)
+
+        # If it's explicitly a Paper 2 (and not chemistry/physics), prefer Biology Paper2
+        if is_paper2():
+            return BiologyPaper2Coverpage, BiologyPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
+
+        # Fallback: if subject is biology use Biology Paper 1, otherwise fallback below
+        if subject_name == 'BIOLOGY':
+            return BiologyPaper1Coverpage, BiologyPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+
+    except Exception:
+        # If any class doesn't expose expected helper, fallback to a safe default
+        try:
+            return BiologyPaper1Coverpage, BiologyPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+        except Exception:
+            # Last resort: return MarkingSchemeCoverpage default
+            return MarkingSchemeCoverpage, MarkingSchemeCoverpage.generate_default_data(generated_paper, paper)
 
 
 @api_view(['POST'])
@@ -752,32 +820,8 @@ def coverpage_data(request, paper_id):
             # Get coverpage data (stored in generated_paper or use defaults)
             coverpage = getattr(generated_paper, 'coverpage_data', None) or {}
             
-            # Detect paper type and use appropriate coverpage template
-            paper_type = generated_paper.metadata.get('paper_type', '')
-            subject_name = generated_paper.paper.subject.name.upper()
-            
-            # Determine coverpage class based on subject and paper type
-            if 'PHYSICS' in subject_name and 'Paper 1' in paper_type:
-                # Use Physics Paper 1 coverpage
-                default_coverpage = PhysicsPaper1Coverpage.generate_default_coverpage_data(
-                    generated_paper, 
-                    generated_paper.paper
-                )
-                CoverpageClass = PhysicsPaper1Coverpage
-            elif 'Paper 2' in paper_type or 'Paper II' in paper_type:
-                # Use Biology Paper 2 coverpage
-                default_coverpage = BiologyPaper2Coverpage.generate_default_coverpage_data(
-                    generated_paper, 
-                    generated_paper.paper
-                )
-                CoverpageClass = BiologyPaper2Coverpage
-            else:
-                # Use Biology Paper 1 coverpage (default)
-                default_coverpage = BiologyPaper1Coverpage.generate_default_coverpage_data(
-                    generated_paper, 
-                    generated_paper.paper
-                )
-                CoverpageClass = BiologyPaper1Coverpage
+            # Select Coverpage class and default data robustly
+            CoverpageClass, default_coverpage = _select_coverpage_class_and_default(generated_paper, generated_paper.paper, is_marking_scheme=False)
             
             # Merge with saved data
             coverpage_data = {**default_coverpage, **coverpage}
@@ -1003,29 +1047,10 @@ def preview_full_exam(request, paper_id):
             # Detect paper type for correct marking scheme coverpage
             paper_type = generated_paper.metadata.get('paper_type', '')
             subject_name = generated_paper.paper.subject.name.upper()
+            paper_name = generated_paper.paper.name.upper()
             
-            # Determine marking scheme class based on subject and paper type
-            if 'PHYSICS' in subject_name and 'Paper 1' in paper_type:
-                # Use Physics Paper 1 marking scheme coverpage (if exists, else use default)
-                marking_scheme_coverpage = MarkingSchemeCoverpage.generate_default_data(
-                    generated_paper, 
-                    generated_paper.paper
-                )
-                MarkingSchemeClass = MarkingSchemeCoverpage
-            elif 'Paper 2' in paper_type or 'Paper II' in paper_type:
-                # Use Biology Paper 2 marking scheme coverpage
-                marking_scheme_coverpage = BiologyPaper2MarkingSchemeCoverpage.generate_default_data(
-                    generated_paper, 
-                    generated_paper.paper
-                )
-                MarkingSchemeClass = BiologyPaper2MarkingSchemeCoverpage
-            else:
-                # Use standard marking scheme coverpage (Paper 1)
-                marking_scheme_coverpage = MarkingSchemeCoverpage.generate_default_data(
-                    generated_paper, 
-                    generated_paper.paper
-                )
-                MarkingSchemeClass = MarkingSchemeCoverpage
+            # Select Marking Scheme class and default data robustly
+            MarkingSchemeClass, marking_scheme_coverpage = _select_coverpage_class_and_default(generated_paper, generated_paper.paper, is_marking_scheme=True)
             
             # Get all questions in order with answers
             question_ids = generated_paper.question_ids
@@ -1073,22 +1098,12 @@ def preview_full_exam(request, paper_id):
             
             # Detect paper type and use appropriate coverpage template
             paper_type = generated_paper.metadata.get('paper_type', '')
+            subject_name = generated_paper.paper.subject.name.upper()
+            paper_name = generated_paper.paper.name.upper()
             
-            if 'Paper 2' in paper_type or 'Paper II' in paper_type:
-                # Use Biology Paper 2 coverpage
-                default_coverpage = BiologyPaper2Coverpage.generate_default_coverpage_data(
-                    generated_paper, 
-                    generated_paper.paper
-                )
-                CoverpageClass = BiologyPaper2Coverpage
-            else:
-                # Use Biology Paper 1 coverpage (default)
-                default_coverpage = BiologyPaper1Coverpage.generate_default_coverpage_data(
-                    generated_paper, 
-                    generated_paper.paper
-                )
-                CoverpageClass = BiologyPaper1Coverpage
-            
+            # Select Coverpage class and default data robustly
+            CoverpageClass, default_coverpage = _select_coverpage_class_and_default(generated_paper, generated_paper.paper, is_marking_scheme=False)
+
             coverpage_data = {**default_coverpage, **coverpage_data_dict}
             
             # Get all questions in order

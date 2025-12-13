@@ -1191,6 +1191,33 @@ class BiologyPaper2Coverpage:
         }
 
 
+class BiologyPaper3Coverpage:
+    """
+    Biology Paper 3 Coverpage Template
+    For papers that require a Paper 3 layout. Uses the same styles as Paper 2
+    by default but allows separate defaults so the UI can select Paper III.
+    """
+
+    @staticmethod
+    def generate_html(data):
+        # Reuse BiologyPaper2Coverpage HTML structure but force the paper name
+        data = dict(data)
+        data['paper_name'] = data.get('paper_name', 'BIOLOGY PAPER 3')
+        # Use BiologyPaper2Coverpage renderer for consistent styling
+        return BiologyPaper2Coverpage.generate_html(data)
+
+    @staticmethod
+    def generate_default_coverpage_data(generated_paper, paper):
+        # Start from Paper 2 defaults then adjust for Paper 3
+        base = BiologyPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
+        base = dict(base)
+        base['paper_name'] = base.get('paper_name', '').replace('PAPER 2', 'PAPER 3') if 'PAPER 2' in base.get('paper_name', '') else f"{paper.subject.name.upper()} {paper.name.upper()}"
+        base['paper_type'] = 'Paper 3'
+        # Adjust total_pages conservatively if needed
+        base['total_pages'] = base.get('total_pages', 10)
+        return base
+
+
 class BiologyPaper2MarkingSchemeCoverpage:
     """
     Biology Paper 2 Marking Scheme Coverpage Template
@@ -2342,4 +2369,18 @@ class PhysicsPaper1Coverpage:
             'candidate_number_field': True,
             'date_field': True
         }
+        
+class ChemistryPaper2Coverpage:
+    """
+    Chemistry Paper 2 Coverpage Template
+    (To be implemented similarly to BiologyPaper2Coverpage)
+    """
+    pass
+
+class ChemistryPaper1Coverpage:
+    """
+    Chemistry Paper 1 Coverpage Template
+    (To be implemented similarly to BiologyPaper1Coverpage)
+    """
+    pass
         
