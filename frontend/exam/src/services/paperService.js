@@ -176,16 +176,21 @@ export const validateBiologyPaper2Pool = async (paperId, topicIds) => {
         console.log('📡 Validation Response Status:', response.status, response.statusText);
         
         if (!response.ok) {
-            let errorData;
+            // Read the response body as text first (can only read once!)
+            const errorText = await response.text();
+            console.error('Validation Error Response:', errorText);
+            
+            // Try to parse as JSON
+            let errorMessage;
             try {
-                errorData = await response.json();
-                console.error('❌ Validation Error Data:', errorData);
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
             } catch (e) {
-                const errorText = await response.text();
-                console.error('❌ Validation Error Text:', errorText);
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // If not JSON, use the text directly
+                errorMessage = errorText || `HTTP error! status: ${response.status}`;
             }
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            
+            throw new Error(errorMessage);
         }
         
         const result = await response.json();
@@ -225,23 +230,28 @@ export const validatePhysicsPaper1Pool = async (paperId, topicIds) => {
         console.log('📡 Validation Response Status:', response.status, response.statusText);
         
         if (!response.ok) {
-            let errorData;
+            // Read the response body as text first (can only read once!)
+            const errorText = await response.text();
+            console.error('Validation Error Response:', errorText);
+            
+            // Try to parse as JSON
+            let errorMessage;
             try {
-                errorData = await response.json();
-                console.error('❌ Validation Error Data:', errorData);
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
             } catch (e) {
-                const errorText = await response.text();
-                console.error('❌ Validation Error Text:', errorText);
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // If not JSON, use the text directly
+                errorMessage = errorText || `HTTP error! status: ${response.status}`;
             }
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            
+            throw new Error(errorMessage);
         }
         
         const result = await response.json();
-        console.log('✅ Validation Result:', result);
+        console.log('Validation Result:', result);
         return result;
     } catch (error) {
-        console.error('❌ Validation Error:', error);
+        console.error('Validation Error:', error);
         throw error;
     }
 };
