@@ -2308,8 +2308,9 @@ class PhysicsPaper1Coverpage:
                     
                     <!-- Total -->
                     <tr class="total-row">
-                        <td colspan="2" style="background-color: white;">Total Score</td>
+                        <td style="background-color: white;">Total Score</td>
                         <td style="background-color: white;">{total_marks}</td>
+                        <td style="background-color: white;"></td>
                     </tr>
                 </tbody>
             </table>
