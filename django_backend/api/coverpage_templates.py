@@ -2300,9 +2300,9 @@ class PhysicsPaper1Coverpage:
                         <td></td>
                     </tr>
                     <tr>
-                        <td>19</td>
                         <td></td>
                         <td></td>
+                        <td>55</td>
                     </tr>
                     <tr>
                         <td colspan="3"></td>
