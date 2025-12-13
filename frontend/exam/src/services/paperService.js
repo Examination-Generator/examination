@@ -213,12 +213,12 @@ export const validatePhysicsPaper1Pool = async (paperId, topicIds) => {
         const endpoint = `${API_BASE_URL}/papers/physics-paper1/validate`;
         const requestBody = {
             paper_id: paperId,
-            selected_topics: topicIds
+            topic_ids: topicIds  
         };
         
-        console.log('🔍 ========== PHYSICS PAPER 1 VALIDATION ==========');
-        console.log('🎯 Endpoint:', endpoint);
-        console.log('📦 Request Body:', JSON.stringify(requestBody, null, 2));
+        console.log(' ========== PHYSICS PAPER 1 VALIDATION ==========');
+        console.log('Endpoint:', endpoint);
+        console.log('Request Body:', JSON.stringify(requestBody, null, 2));
         console.log('==================================================');
         
         const response = await fetch(endpoint, {
@@ -238,6 +238,7 @@ export const validatePhysicsPaper1Pool = async (paperId, topicIds) => {
             let errorMessage;
             try {
                 const errorData = JSON.parse(errorText);
+                console.error('Validation Error Data:', errorData);
                 errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
             } catch (e) {
                 // If not JSON, use the text directly
@@ -251,7 +252,7 @@ export const validatePhysicsPaper1Pool = async (paperId, topicIds) => {
         console.log('Validation Result:', result);
         return result;
     } catch (error) {
-        console.error('Validation Error:', error);
+        console.error(' Validation Error:', error);
         throw error;
     }
 };
