@@ -2268,6 +2268,9 @@ class PhysicsPaper1Coverpage:
                         <td>{section_a_marks}</td>
                         <td></td>
                     </tr>
+                    <tr>
+                        <td colspan="3" style="border-top: none; border-right: 1px solid black; "></td>
+                    </tr>
                     
                     <!-- Section B -->
                     <tr>
