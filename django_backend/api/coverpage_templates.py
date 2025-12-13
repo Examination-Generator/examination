@@ -267,7 +267,6 @@ class BiologyPaper1Coverpage:
         .marking-grid {{
             width: 100%;
             border-collapse: collapse;
-            border: 2px solid black;
         }}
         
         .marking-grid td {{
