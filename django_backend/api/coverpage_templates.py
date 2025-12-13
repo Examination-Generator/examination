@@ -2254,13 +2254,13 @@ class PhysicsPaper1Coverpage:
         """
         
         html = f"""
-            <table class="marking-grid">
+            <table class="marking-grid" style="border: none; border-collapse: collapse;">
                 <thead>
                     <tr>
-                        <th>Section</th>
-                        <th>Question</th>
-                        <th>Maximum Score</th>
-                        <th>Candidate's Score</th>
+                        <th style="background-color: white;">Section</th>
+                        <th style="background-color: white;">Question</th>
+                        <th style="background-color: white;">Maximum Score</th>
+                        <th style="background-color: white;">Candidate's Score</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2308,9 +2308,8 @@ class PhysicsPaper1Coverpage:
                     
                     <!-- Total -->
                     <tr class="total-row">
-                        <td colspan="2">Total Score</td>
-                        <td>{total_marks}</td>
-                        <td></td>
+                        <td colspan="2" style="background-color: white;">Total Score</td>
+                        <td style="background-color: white;">{total_marks}</td>
                     </tr>
                 </tbody>
             </table>
