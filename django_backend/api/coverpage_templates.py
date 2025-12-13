@@ -1947,6 +1947,7 @@ class PhysicsPaper1Coverpage:
         show_name = data.get('candidate_name_field', True)
         show_number = data.get('candidate_number_field', True)
         show_date = data.get('date_field', True)
+        show_class = data.get('class_field', True)
         
         # Generate marking grid for Physics Paper 1
         marking_grid_html = PhysicsPaper1Coverpage._generate_marking_grid(
@@ -2063,7 +2064,6 @@ class PhysicsPaper1Coverpage:
         .candidate-info {{
             margin: 20px 0;
             padding: 15px;
-            border: 2px solid black;
         }}
         
         .candidate-info-grid {{
@@ -2126,6 +2126,7 @@ class PhysicsPaper1Coverpage:
         .marking-grid-container {{
             margin-top: auto;
             padding-top: 20px;
+            border:none;
         }}
         
         .grid-title {{
@@ -2140,7 +2141,6 @@ class PhysicsPaper1Coverpage:
             width: 70%;
             margin: 0 auto;
             border-collapse: collapse;
-            border: 2px solid black;
         }}
         
         .marking-grid th,
@@ -2210,7 +2210,8 @@ class PhysicsPaper1Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row-full"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>' if show_class else ''}
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Sign:</span><div class="info-field"></div></div>
             </div>
@@ -2219,7 +2220,7 @@ class PhysicsPaper1Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to candidates</div>
-            <ol type="i">
+            <ol type="a" style="font-style: italic; font-size: 1.5rem; line-height: 1.6;">
 """
         
         # Add instructions
