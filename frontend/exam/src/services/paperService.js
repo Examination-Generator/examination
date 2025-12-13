@@ -104,10 +104,26 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
             }
         }
         
-        // Use correct field for topics depending on endpoint or Biology paper
+        // Use correct field for topics depending on endpoint or Biology Paper I
         let requestBody;
-        // If Biology (any paper), use selected_topics
-        if ((paperData && ((paperData.name && paperData.name.toLowerCase().includes('biology')) || (paperData.subject_name && paperData.subject_name.toLowerCase().includes('biology')))) || endpoint.includes('/biology-paper2/')) {
+        // Detect Biology Paper I
+        let isBiologyPaper1 = false;
+        if (paperData) {
+            const paperName = paperData.name?.toLowerCase() || '';
+            const subjectName = paperData.subject_name?.toLowerCase() || paperData.subject?.name?.toLowerCase() || '';
+            const isBiology = paperName.includes('biology') || subjectName.includes('biology');
+            // Paper 1 detection: number === 1 or name includes 'paper 1', 'paper one', or 'paper i' (but not 'paper 2', 'paper two', 'paper ii')
+            const paperNumber = paperData.paper_number || paperData.number || null;
+            const isPaper1 = paperNumber === 1 || paperNumber === '1' || paperName.includes('paper 1') || paperName.includes('paper one') || (paperName.includes('paper i') && !paperName.includes('paper ii'));
+            const isPaper2 = paperNumber === 2 || paperNumber === '2' || paperName.includes('paper 2') || paperName.includes('paper two') || paperName.includes('paper ii');
+            isBiologyPaper1 = isBiology && isPaper1 && !isPaper2;
+        }
+        if (isBiologyPaper1) {
+            requestBody = {
+                paper_id: paperId,
+                selected_topics: topicIds
+            };
+        } else if (endpoint.includes('/biology-paper2/')) {
             requestBody = {
                 paper_id: paperId,
                 selected_topics: topicIds

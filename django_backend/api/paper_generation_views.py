@@ -827,6 +827,7 @@ def coverpage_data(request, paper_id):
             coverpage_data = {**default_coverpage, **coverpage}
             
             # Ensure paper_type is included in coverpage data
+            paper_type = getattr(generated_paper, 'metadata', {}).get('paper_type', '')
             if 'paper_type' not in coverpage_data:
                 coverpage_data['paper_type'] = paper_type
             
