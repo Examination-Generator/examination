@@ -306,7 +306,9 @@ class BiologyPaper1Coverpage:
         
         /* Gap cell between questions and Grand Total */
         .gap-cell {{
-            border: none !important;
+            border-right: none !important;
+            border-left: none !important;
+            border-bottom: none !important;
             background-color: white;
             min-width: 15px;
             width: 15px;
@@ -464,8 +466,8 @@ class BiologyPaper1Coverpage:
         for i in range(remaining_cells):
             second_row_html += '    <td class="empty-question-cell">&nbsp;</td>\n'
         
-        # Add empty gap cell before Grand Total
-        second_row_html += '    <td class="gap-cell">&nbsp;</td>\n'
+        # # Add empty gap cell before Grand Total
+        # second_row_html += '    <td class="gap-cell">&nbsp;</td>\n'
         
         # Add Grand Total cell (spans 2 rows - question numbers and answer boxes)
         second_row_html += f'    <td rowspan="2" class="grand-total-cell">Grand Total</td>\n'
