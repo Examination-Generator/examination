@@ -106,12 +106,12 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
         
         const requestBody = {
             paper_id: paperId,
-            selected_topics: topicIds
+            topic_ids: topicIds
         };
         
-        console.log('🎯 Target Endpoint:', endpoint);
-        console.log('📦 Request Body:', JSON.stringify(requestBody, null, 2));
-        console.log('🔑 Headers:', getAuthHeaders());
+        console.log('Target Endpoint:', endpoint);
+        console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+        console.log('Headers:', getAuthHeaders());
         console.log('=================================================');
         
         const response = await fetch(endpoint, {
@@ -159,12 +159,12 @@ export const validateBiologyPaper2Pool = async (paperId, topicIds) => {
         const endpoint = `${API_BASE_URL}/papers/biology-paper2/validate`;
         const requestBody = {
             paper_id: paperId,
-            selected_topics: topicIds
+            topic_ids: topicIds
         };
         
-        console.log('🔍 ========== BIOLOGY PAPER 2 VALIDATION ==========');
-        console.log('🎯 Endpoint:', endpoint);
-        console.log('📦 Request Body:', JSON.stringify(requestBody, null, 2));
+        console.log(' ========== BIOLOGY PAPER 2 VALIDATION ==========');
+        console.log('Endpoint:', endpoint);
+        console.log('Request Body:', JSON.stringify(requestBody, null, 2));
         console.log('==================================================');
         
         const response = await fetch(endpoint, {
@@ -194,10 +194,10 @@ export const validateBiologyPaper2Pool = async (paperId, topicIds) => {
         }
         
         const result = await response.json();
-        console.log('✅ Validation Result:', result);
+        console.log(' Validation Result:', result);
         return result;
     } catch (error) {
-        console.error('❌ Validation Error:', error);
+        console.error(' Validation Error:', error);
         throw error;
     }
 };
@@ -227,7 +227,7 @@ export const validatePhysicsPaper1Pool = async (paperId, topicIds) => {
             body: JSON.stringify(requestBody)
         });
         
-        console.log('📡 Validation Response Status:', response.status, response.statusText);
+        console.log('Validation Response Status:', response.status, response.statusText);
         
         if (!response.ok) {
             // Read the response body as text first (can only read once!)
