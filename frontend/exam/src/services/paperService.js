@@ -104,16 +104,26 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
             }
         }
         
-        const requestBody = {
-            paper_id: paperId,
-            topic_ids: topicIds
-        };
-        
+        // Use correct field for topics depending on endpoint or Biology paper
+        let requestBody;
+        // If Biology (any paper), use selected_topics
+        if ((paperData && ((paperData.name && paperData.name.toLowerCase().includes('biology')) || (paperData.subject_name && paperData.subject_name.toLowerCase().includes('biology')))) || endpoint.includes('/biology-paper2/')) {
+            requestBody = {
+                paper_id: paperId,
+                selected_topics: topicIds
+            };
+        } else {
+            requestBody = {
+                paper_id: paperId,
+                topic_ids: topicIds
+            };
+        }
+
         console.log('Target Endpoint:', endpoint);
         console.log('Request Body:', JSON.stringify(requestBody, null, 2));
         console.log('Headers:', getAuthHeaders());
         console.log('=================================================');
-        
+
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: getAuthHeaders(),
@@ -164,7 +174,7 @@ export const validateBiologyPaper2Pool = async (paperId, topicIds) => {
         const endpoint = `${API_BASE_URL}/papers/biology-paper2/validate`;
         const requestBody = {
             paper_id: paperId,
-            selected_topics: topicIds
+            topic_ids: topicIds
         };
         
         console.log(' ========== BIOLOGY PAPER 2 VALIDATION ==========');
