@@ -70,8 +70,7 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
             console.log('   Subject ID:', subjectId);
             console.log('   Subject Name:', subjectName);
             
-            // Use Biology Paper 2 specific endpoint
-            // Check if subject is Biology AND paper number is 2
+            // Check for Biology Paper 2
             const isBiology = paperName.includes('biology') || subjectName.includes('biology');
             const isPaper2 = paperNumber === 2 || 
                            paperNumber === '2' || 
@@ -79,13 +78,27 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
                            paperName.includes('paper two') || 
                            paperName.includes('paper ii');
             
+            // Check for Physics Paper 1
+            const isPhysics = paperName.includes('physics') || subjectName.includes('physics');
+            const isPaper1 = paperNumber === 1 || 
+                           paperNumber === '1' || 
+                           paperName.includes('paper 1') || 
+                           paperName.includes('paper one') || 
+                           paperName.includes('paper i');
+            
             console.log('   Is Biology?', isBiology);
             console.log('   Is Paper 2?', isPaper2);
+            console.log('   Is Physics?', isPhysics);
+            console.log('   Is Paper 1?', isPaper1);
             
             if (isBiology && isPaper2) {
                 endpoint = `${API_BASE_URL}/papers/biology-paper2/generate`;
                 paperType = 'biology-paper2';
                 console.log('🧬 ✅ DETECTED: Biology Paper 2 (using dedicated endpoint)');
+            } else if (isPhysics && isPaper1) {
+                endpoint = `${API_BASE_URL}/papers/physics-paper1/generate`;
+                paperType = 'physics-paper1';
+                console.log('⚛️ ✅ DETECTED: Physics Paper 1 (using dedicated endpoint)');
             } else {
                 console.log('📝 DETECTED: Standard Paper (using general endpoint)');
             }
@@ -150,6 +163,55 @@ export const validateBiologyPaper2Pool = async (paperId, topicIds) => {
         };
         
         console.log('🔍 ========== BIOLOGY PAPER 2 VALIDATION ==========');
+        console.log('🎯 Endpoint:', endpoint);
+        console.log('📦 Request Body:', JSON.stringify(requestBody, null, 2));
+        console.log('==================================================');
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        
+        console.log('📡 Validation Response Status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            let errorData;
+            try {
+                errorData = await response.json();
+                console.error('❌ Validation Error Data:', errorData);
+            } catch (e) {
+                const errorText = await response.text();
+                console.error('❌ Validation Error Text:', errorText);
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Validation Result:', result);
+        return result;
+    } catch (error) {
+        console.error('❌ Validation Error:', error);
+        throw error;
+    }
+};
+
+/**
+ * Validate Physics Paper 1 question pool
+ * @param {string} paperId - UUID of the paper
+ * @param {Array<string>} topicIds - Array of topic UUIDs to validate
+ * @returns {Promise} Validation results
+ */
+export const validatePhysicsPaper1Pool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/physics-paper1/validate`;
+        const requestBody = {
+            paper_id: paperId,
+            selected_topics: topicIds
+        };
+        
+        console.log('🔍 ========== PHYSICS PAPER 1 VALIDATION ==========');
         console.log('🎯 Endpoint:', endpoint);
         console.log('📦 Request Body:', JSON.stringify(requestBody, null, 2));
         console.log('==================================================');
