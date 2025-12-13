@@ -541,10 +541,24 @@ def generate_physics_paper1(request):
     """
     Generate Physics Paper 1
     POST /api/papers/physics-paper1/generate
+    
     """
+    import traceback
+    
+    print("=" * 70)
+    print("PHYSICS PAPER 1 GENERATION ENDPOINT HIT")
+    print("=" * 70)
+    print(f"Request method: {request.method}")
+    print(f"Request data: {request.data}")
+    print(f"Request user: {request.user}")
+    
+    
     try:
         paper_id = request.data.get('paper_id')
         selected_topic_ids = request.data.get('topic_ids', [])
+        
+        print(f"Extracted paper_id: {paper_id}")
+        print(f"Extracted topic_ids: {selected_topic_ids}")
         
         if not paper_id:
             return Response(
