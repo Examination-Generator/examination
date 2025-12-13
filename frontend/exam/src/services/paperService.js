@@ -190,7 +190,7 @@ export const validateBiologyPaper2Pool = async (paperId, topicIds) => {
         const endpoint = `${API_BASE_URL}/papers/biology-paper2/validate`;
         const requestBody = {
             paper_id: paperId,
-            topic_ids: topicIds
+            selected_topics: topicIds
         };
         
         console.log(' ========== BIOLOGY PAPER 2 VALIDATION ==========');
