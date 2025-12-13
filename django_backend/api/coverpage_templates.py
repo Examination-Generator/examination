@@ -2268,9 +2268,6 @@ class PhysicsPaper1Coverpage:
                         <td>{section_a_marks}</td>
                         <td></td>
                     </tr>
-                    <tr>
-                        <td colspan="3"></td>
-                    </tr>
                     
                     <!-- Section B -->
                     <tr>
@@ -2298,11 +2295,6 @@ class PhysicsPaper1Coverpage:
                         <td>18</td>
                         <td>12</td>
                         <td></td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td>55</td>
                     </tr>
                     <tr>
                         <td colspan="3"></td>
