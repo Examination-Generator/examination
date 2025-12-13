@@ -484,8 +484,8 @@ class BiologyPaper1Coverpage:
         for i in range(remaining_cells):
             second_row_boxes += '    <td class="empty-question-cell">&nbsp;</td>\n'
         
-        # Add empty gap cell (matching the one above)
-        second_row_boxes += '    <td class="gap-cell">&nbsp;</td>\n'
+        # # Add empty gap cell (matching the one above)
+        # second_row_boxes += '    <td class="gap-cell">&nbsp;</td>\n'
         # Grand Total cells already added with rowspan
         second_row_boxes += '</tr>\n'
         
