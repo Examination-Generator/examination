@@ -152,7 +152,7 @@ class PhysicsPaper1Generator:
     SECTION_A_TOTAL_MARKS = 25
     SECTION_B_TOTAL_MARKS = 55
     SECTION_B_MIN_QUESTIONS = 5
-    SECTION_B_MAX_QUESTIONS = 6
+    SECTION_B_MAX_QUESTIONS = 5
     
     # Section A breakdown
     SECTION_A_1MARK_COUNT = 4

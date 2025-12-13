@@ -791,12 +791,28 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
     except Exception:
         section_a_count = 0
 
+    page_last_section = None
     for i in range(0, len(questions), questions_per_page):
         page_questions = questions[i:i + questions_per_page]
         
+        # Determine first and last question sections for this page
+        first_qnum = int(page_questions[0].get('number', 0)) if page_questions else 0
+        first_section = 'A' if (section_a_count and first_qnum <= section_a_count) else 'B'
+        last_qnum = int(page_questions[-1].get('number', 0)) if page_questions else 0
+        last_section_on_page = 'A' if (section_a_count and last_qnum <= section_a_count) else 'B'
+
+        # If this page continues the same section from previous page, show a small continue header
+        page_header_html = ''
+        if page_last_section is not None and page_last_section == first_section:
+            page_header_html = f"""
+        <div class=\"question-page-header\"> 
+            <h2>Continue answering ALL questions in this section</h2>
+        </div>
+"""
+
         questions_html = ""
-        # Track last section to insert headers when section changes
-        last_section = None
+        # Track last section to insert headers when section changes within the page
+        last_section = page_last_section
         for q in page_questions:
             processed_text = _process_question_text(
                 q.get('text', ''),
@@ -835,9 +851,7 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
         
         page_html = f"""
     <div class="exam-page {'page-break' if current_page < total_pages else ''}">
-        <div class="question-page-header">
-            <h2>Continue answering all questions</h2>
-        </div>
+        {page_header_html}
         
         {questions_html}
         
@@ -847,5 +861,7 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
         
         pages_html.append(page_html)
         current_page += 1
+        # remember section for next page
+        page_last_section = last_section_on_page
     
     return '\n'.join(pages_html)
