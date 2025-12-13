@@ -5,7 +5,7 @@ URL Configuration for API app
 from django.urls import path
 from django.http import JsonResponse
 from . import auth_views, subject_views, question_views, database_views, paper_generation_views
-from . import biology_paper2_generation
+from . import biology_paper2_generation, physics_paper1_generation
 
 def api_root(request):
     """API root endpoint - returns available endpoints"""
@@ -90,4 +90,9 @@ urlpatterns = [
     # KCSE Biology Paper 2 specific generation endpoints
     path('papers/biology-paper2/validate', biology_paper2_generation.validate_paper2_pool, name='validate-paper2-pool'),
     path('papers/biology-paper2/generate', biology_paper2_generation.generate_biology_paper2, name='generate-biology-paper2'),
+    
+    # ==================== PHYSICS PAPER 1 GENERATION ROUTES ====================
+    # KCSE Physics Paper 1 specific generation endpoints
+    path('papers/physics-paper1/validate', physics_paper1_generation.validate_physics_paper1, name='validate-physics-paper1'),
+    path('papers/physics-paper1/generate', physics_paper1_generation.generate_physics_paper1, name='generate-physics-paper1'),
 ]

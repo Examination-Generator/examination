@@ -35,6 +35,7 @@ from .coverpage_templates import (
     BiologyPaper1Coverpage, 
     BiologyPaper2Coverpage, 
     BiologyPaper2MarkingSchemeCoverpage,
+    PhysicsPaper1Coverpage,
     MarkingSchemeCoverpage, 
     format_time_allocation
 )
@@ -753,8 +754,17 @@ def coverpage_data(request, paper_id):
             
             # Detect paper type and use appropriate coverpage template
             paper_type = generated_paper.metadata.get('paper_type', '')
+            subject_name = generated_paper.paper.subject.name.upper()
             
-            if 'Paper 2' in paper_type or 'Paper II' in paper_type:
+            # Determine coverpage class based on subject and paper type
+            if 'PHYSICS' in subject_name and 'Paper 1' in paper_type:
+                # Use Physics Paper 1 coverpage
+                default_coverpage = PhysicsPaper1Coverpage.generate_default_coverpage_data(
+                    generated_paper, 
+                    generated_paper.paper
+                )
+                CoverpageClass = PhysicsPaper1Coverpage
+            elif 'Paper 2' in paper_type or 'Paper II' in paper_type:
                 # Use Biology Paper 2 coverpage
                 default_coverpage = BiologyPaper2Coverpage.generate_default_coverpage_data(
                     generated_paper, 
@@ -992,8 +1002,17 @@ def preview_full_exam(request, paper_id):
             # Generate marking scheme preview
             # Detect paper type for correct marking scheme coverpage
             paper_type = generated_paper.metadata.get('paper_type', '')
+            subject_name = generated_paper.paper.subject.name.upper()
             
-            if 'Paper 2' in paper_type or 'Paper II' in paper_type:
+            # Determine marking scheme class based on subject and paper type
+            if 'PHYSICS' in subject_name and 'Paper 1' in paper_type:
+                # Use Physics Paper 1 marking scheme coverpage (if exists, else use default)
+                marking_scheme_coverpage = MarkingSchemeCoverpage.generate_default_data(
+                    generated_paper, 
+                    generated_paper.paper
+                )
+                MarkingSchemeClass = MarkingSchemeCoverpage
+            elif 'Paper 2' in paper_type or 'Paper II' in paper_type:
                 # Use Biology Paper 2 marking scheme coverpage
                 marking_scheme_coverpage = BiologyPaper2MarkingSchemeCoverpage.generate_default_data(
                     generated_paper, 

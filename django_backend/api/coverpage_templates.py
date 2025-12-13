@@ -1866,4 +1866,480 @@ class MarkingSchemeCoverpage:
             'paper_name': display_paper_name,
             'total_questions': generated_paper.total_questions,
             'total_marks': generated_paper.total_marks,
+            'time_allocation': format_time_allocation(paper.time_allocation),
+            'instructions': saved_coverpage.get('instructions', []),
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'candidate_name_field': saved_coverpage.get('candidate_name_field', True),
+            'candidate_number_field': saved_coverpage.get('candidate_number_field', True),
+            'date_field': saved_coverpage.get('date_field', True)
         }
+
+
+class PhysicsPaper1Coverpage:
+    """
+    Physics Paper 1 Coverpage Template
+    Includes sectioned marking grid (Section A and Section B)
+    """
+    
+    @staticmethod
+    def generate_html(data):
+        """
+        Generate HTML for Physics Paper 1 coverpage
+        """
+        school_name = data.get('school_name', 'EXAMINATION CENTRE')
+        school_logo = data.get('school_logo', '/exam.png')
+        logo_position = data.get('logo_position', 'center')
+        class_name = data.get('class_name', '')
+        exam_title = data.get('exam_title', 'END TERM EXAMINATION 2025')
+        paper_name = data.get('paper_name', 'PHYSICS PAPER 1')
+        
+        section_a_questions = data.get('section_a_questions', 13)
+        section_a_marks = data.get('section_a_marks', 25)
+        section_b_questions = data.get('section_b_questions', 5)
+        section_b_marks = data.get('section_b_marks', 55)
+        total_marks = data.get('total_marks', 80)
+        total_questions = section_a_questions + section_b_questions
+        total_pages = data.get('total_pages', 12)
+        time_allocation = data.get('time_allocation', '2 HOURS 30 MINUTES')
+        
+        instructions = data.get('instructions', [
+            'Write your name and index number in the spaces provided above.',
+            'Sign and write the date of examination in the spaces provided above.',
+            'This paper consists of two sections: A and B.',
+            'Answer ALL questions in section A and ANY FIVE questions in section B.',
+            f'Show all the steps in your calculations, giving your answers at each stage in the spaces provided below each question.',
+            'Marks may be given for correct working even if the answer is wrong.',
+            'Non-programmable silent electronic calculators and KNEC Mathematical tables may be used, except where stated otherwise.',
+            f'This paper consists of {total_pages} printed pages.',
+            'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.'
+        ])
+        
+        exam_date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        show_name = data.get('candidate_name_field', True)
+        show_number = data.get('candidate_number_field', True)
+        show_date = data.get('date_field', True)
+        
+        # Generate marking grid for Physics Paper 1
+        marking_grid_html = PhysicsPaper1Coverpage._generate_marking_grid(
+            section_a_questions, section_a_marks,
+            section_b_questions, section_b_marks,
+            total_marks
+        )
+        
+        # Build HTML (reusing Biology Paper 2 styles)
+        html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{paper_name} - Coverpage</title>
+    <style>
+        @page {{
+            size: A4;
+            margin: 20mm;
+        }}
+        
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: black;
+            background: white;
+        }}
+        
+        .coverpage {{
+            width: 100%;
+            min-height: 100vh;
+            padding: 15mm;
+            display: flex;
+            flex-direction: column;
+            page-break-after: always;
+        }}
+        
+        /* Header Section */
+        .header {{
+            text-align: center;
+            margin-bottom: 20px;
+        }}
+        
+        .logo-container {{
+            margin-bottom: 15px;
+        }}
+        
+        .logo-container.left {{
+            text-align: left;
+        }}
+        
+        .logo-container.center {{
+            text-align: center;
+        }}
+        
+        .logo-container.right {{
+            text-align: right;
+        }}
+        
+        .school-logo {{
+            max-width: 90px;
+            max-height: 90px;
+            object-fit: contain;
+        }}
+        
+        .school-name {{
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }}
+        
+        .class-name {{
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }}
+        
+        .exam-title {{
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }}
+        
+        .paper-details {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 5px;
+        }}
+        
+        .paper-name {{
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }}
+        
+        .time-allocation {{
+            font-size: 1.3rem;
+            margin-top: 5px;
+        }}
+        
+        /* Candidate Info Section */
+        .candidate-info {{
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid black;
+        }}
+        
+        .candidate-info-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px 20px;
+        }}
+        
+        .info-row {{
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-row-full {{
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-label {{
+            font-weight: bold;
+            font-size: 12px;
+            min-width: 40px;
+        }}
+        
+        .info-field {{
+            flex: 1;
+            border-bottom: 1px dotted black;
+            min-height: 25px;
+            padding: 2px 5px;
+        }}
+        
+        /* Instructions Section */
+        .instructions {{
+            margin-bottom: 20px;
+        }}
+        
+        .instructions-title {{
+            font-weight: bold;
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+            text-decoration: underline;
+        }}
+        
+        .instructions ol {{
+            margin-left: 20px;
+            font-size: 1.5rem;
+            line-height: 1.6;
+        }}
+        
+        .instructions li {{
+            margin-bottom: 8px;
+        }}
+        
+        .instructions li.bold {{
+            font-weight: bold;
+        }}
+        
+        /* Marking Grid Section */
+        .marking-grid-container {{
+            margin-top: auto;
+            padding-top: 20px;
+        }}
+        
+        .grid-title {{
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 12px;
+            text-align: center;
+            text-transform: uppercase;
+        }}
+        
+        .marking-grid {{
+            width: 70%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            border: 2px solid black;
+        }}
+        
+        .marking-grid th,
+        .marking-grid td {{
+            border: 1px solid black;
+            text-align: center;
+            font-size: 12px;
+            font-weight: normal;
+            padding: 10px 8px;
+        }}
+        
+        .marking-grid th {{
+            background-color: #e8e8e8;
+            font-weight: bold;
+            font-size: 12px;
+        }}
+        
+        .section-label {{
+            font-size: 13px;
+            font-weight: bold;
+            vertical-align: middle;
+            background-color: #f5f5f5;
+        }}
+        
+        .total-row {{
+            background-color: #d9d9d9;
+            font-weight: bold;
+            font-size: 13px;
+        }}
+        
+        .total-row td {{
+            font-weight: bold;
+        }}
+        
+        /* Print Styles */
+        @media print {{
+            body {{
+                margin: 0;
+                padding: 20mm;
+            }}
+            
+            .coverpage {{
+                page-break-after: always;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="coverpage">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-container {logo_position}">
+                <img src="{school_logo}" alt="School Logo" class="school-logo" onerror="this.src='/exam.png'">
+            </div>
+            <div class="school-name">{school_name}</div>
+            {f'<div class="class-name">{class_name}</div>' if class_name else ''}
+            <div class="exam-title">{exam_title}</div>
+            
+            <div class="paper-details">
+                <span class="paper-name">{paper_name}</span>
+            </div>
+            
+            <div class="time-allocation">{time_allocation}</div>
+        </div>
+        
+        <!-- Candidate Information -->
+        <div class="candidate-info">
+            <div class="candidate-info-grid">
+                {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
+                {f'<div class="info-row-full"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
+                <div class="info-row"><span class="info-label">Sign:</span><div class="info-field"></div></div>
+            </div>
+        </div>
+        
+        <!-- Instructions -->
+        <div class="instructions">
+            <div class="instructions-title">Instructions to candidates</div>
+            <ol type="i">
+"""
+        
+        # Add instructions
+        for idx, instruction in enumerate(instructions, 1):
+            is_bold = 'section' in instruction.lower() or 'ALL' in instruction or 'ANY FIVE' in instruction
+            class_attr = ' class="bold"' if is_bold else ''
+            html += f'                <li{class_attr}>{instruction}</li>\n'
+        
+        html += f"""
+            </ol>
+        </div>
+        
+        <!-- Marking Grid -->
+        <div class="marking-grid-container">
+            <div class="grid-title">For Examiner's Use Only</div>
+            {marking_grid_html}
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        return html
+    
+    @staticmethod
+    def _generate_marking_grid(section_a_questions, section_a_marks, 
+                               section_b_questions, section_b_marks, total_marks):
+        """
+        Generate marking grid HTML for Physics Paper 1
+        Similar to Biology Paper 2 grid structure
+        """
+        
+        html = f"""
+            <table class="marking-grid">
+                <thead>
+                    <tr>
+                        <th>Section</th>
+                        <th>Question</th>
+                        <th>Maximum Score</th>
+                        <th>Candidate's Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Section A -->
+                    <tr>
+                        <td class="section-label" rowspan="2">A</td>
+                        <td>1-{section_a_questions}</td>
+                        <td>{section_a_marks}</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3"></td>
+                    </tr>
+                    
+                    <!-- Section B -->
+                    <tr>
+                        <td class="section-label" rowspan="7">B</td>
+                        <td>14</td>
+                        <td>11</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>15</td>
+                        <td>10</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>16</td>
+                        <td>10</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>17</td>
+                        <td>12</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>18</td>
+                        <td>12</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>19</td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3"></td>
+                    </tr>
+                    
+                    <!-- Total -->
+                    <tr class="total-row">
+                        <td colspan="2">Total Score</td>
+                        <td>{total_marks}</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+"""
+        
+        return html
+    
+    @staticmethod
+    def generate_default_coverpage_data(generated_paper, paper):
+        """
+        Generate default coverpage data for Physics Paper 1
+        """
+        # Generate paper name
+        paper_name_upper = paper.name.upper()
+        subject_name_upper = paper.subject.name.upper()
+        
+        if subject_name_upper in paper_name_upper:
+            display_paper_name = paper_name_upper
+        else:
+            display_paper_name = f'{subject_name_upper} {paper_name_upper}'
+        
+        # Get section details from metadata
+        section_a_questions = generated_paper.metadata.get('section_a_questions', 13)
+        section_b_questions = generated_paper.metadata.get('section_b_questions', 5)
+        
+        return {
+            'school_name': 'EXAMINATION CENTRE',
+            'school_logo': '/exam.png',
+            'logo_position': 'center',
+            'class_name': '',
+            'exam_title': 'END TERM EXAMINATION 2025',
+            'paper_name': display_paper_name,
+            'paper_type': 'Paper 1',
+            'section_a_questions': section_a_questions,
+            'section_a_marks': 25,
+            'section_b_questions': section_b_questions,
+            'section_b_marks': 55,
+            'total_marks': generated_paper.total_marks or 80,
+            'time_allocation': format_time_allocation(paper.time_allocation),
+            'total_pages': 12,
+            'instructions': [
+                'Write your name and index number in the spaces provided above.',
+                'Sign and write the date of examination in the spaces provided above.',
+                'This paper consists of two sections: A and B.',
+                'Answer ALL questions in section A and ANY FIVE questions in section B.',
+                'Show all the steps in your calculations, giving your answers at each stage in the spaces provided below each question.',
+                'Marks may be given for correct working even if the answer is wrong.',
+                'Non-programmable silent electronic calculators and KNEC Mathematical tables may be used, except where stated otherwise.',
+                'This paper consists of 12 printed pages.',
+                'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.'
+            ],
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'candidate_name_field': True,
+            'candidate_number_field': True,
+            'date_field': True
+        }
+        
