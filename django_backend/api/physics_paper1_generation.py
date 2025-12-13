@@ -1,20 +1,9 @@
-# -*- coding: utf-8 -*-
 """
-KCSE Physics Paper 1 Generation Algorithm
-Physics Paper 1 has a distinct structure with sections A and B
-
-PAPER STRUCTURE:
-- 80 marks total
-- Section A: 13 questions = 25 marks
-  - 4 questions × 1 mark = 4 marks
-  - 6 questions × 2 marks = 12 marks
-  - 3 questions × 3 marks = 9 marks
-- Section B: 5-6 questions = 55 marks (questions 14-18 or 14-19)
-  - Questions are selected to total exactly 55 marks
-  - Common marks: 8, 10, 11, 12 marks per question
+KCSE Physics Paper 1 Generation Algorithm with Proper Logging
 """
 
 import random
+import logging
 from collections import defaultdict
 from typing import List, Dict, Optional
 from django.db import transaction
@@ -26,6 +15,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Paper, Topic, Section, Question, GeneratedPaper
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 
 class PhysicsPaper1Validator:
@@ -39,6 +31,9 @@ class PhysicsPaper1Validator:
         Returns:
             Dict with validation results and recommendations
         """
+        logger.info(f"[VALIDATE] Starting validation for paper_id={paper_id}")
+        logger.info(f"[VALIDATE] Selected topics: {len(selected_topic_ids)} topics")
+        
         # Get sections
         section_a = Section.objects.filter(
             paper_id=paper_id,
@@ -51,6 +46,9 @@ class PhysicsPaper1Validator:
             name__icontains='B',
             is_active=True
         ).first()
+        
+        logger.info(f"[VALIDATE] Section A found: {section_a is not None}")
+        logger.info(f"[VALIDATE] Section B found: {section_b is not None}")
         
         # Section A questions
         one_mark_questions = 0
@@ -94,6 +92,12 @@ class PhysicsPaper1Validator:
                 is_active=True
             ).count()
         
+        logger.info(f"[VALIDATE] Question counts:")
+        logger.info(f"  - 1-mark: {one_mark_questions} (need 4)")
+        logger.info(f"  - 2-mark: {two_mark_questions} (need 6)")
+        logger.info(f"  - 3-mark: {three_mark_questions} (need 3)")
+        logger.info(f"  - Section B (8-12 marks): {section_b_questions} (need 10)")
+        
         # Validation
         issues = []
         recommendations = []
@@ -121,8 +125,13 @@ class PhysicsPaper1Validator:
             issues.append(f"Section B: {section_b_questions} questions (need at least 10 questions of 8-12 marks)")
             recommendations.append("Add more 8-12 mark questions to Section B")
         
+        is_valid = len(issues) == 0
+        logger.info(f"[VALIDATE] Validation result: {'PASSED' if is_valid else 'FAILED'}")
+        if not is_valid:
+            logger.warning(f"[VALIDATE] Issues found: {issues}")
+        
         return {
-            'valid': len(issues) == 0,
+            'valid': is_valid,
             'statistics': {
                 'section_a_1mark': one_mark_questions,
                 'section_a_2mark': two_mark_questions,
@@ -135,17 +144,7 @@ class PhysicsPaper1Validator:
 
 
 class PhysicsPaper1Generator:
-    """
-    KCSE Physics Paper 1 Generation Algorithm
-    
-    Paper Structure:
-    - Section A: 13 questions = 25 marks (1-13)
-      - 4 × 1 mark = 4 marks
-      - 6 × 2 marks = 12 marks
-      - 3 × 3 marks = 9 marks
-    - Section B: 5-6 questions = 55 marks (14-18 or 14-19)
-      - Dynamic selection to total exactly 55 marks
-    """
+    """KCSE Physics Paper 1 Generation Algorithm"""
     
     # Paper constraints
     TOTAL_MARKS = 80
@@ -175,8 +174,8 @@ class PhysicsPaper1Generator:
         self.section_b_pool = []
         
         # Selected questions
-        self.selected_section_a = []  # 13 questions
-        self.selected_section_b = []  # 5-6 questions
+        self.selected_section_a = []
+        self.selected_section_b = []
         
         # Tracking
         self.used_question_ids = set()
@@ -184,16 +183,20 @@ class PhysicsPaper1Generator:
         
     def load_data(self):
         """Load paper, sections, topics, and questions"""
-        print(f"\n{'='*70}")
-        print(f"LOADING DATA FOR PHYSICS PAPER 1 GENERATION")
-        print(f"{'='*70}")
+        logger.info("="*70)
+        logger.info("LOADING DATA FOR PHYSICS PAPER 1 GENERATION")
+        logger.info("="*70)
         
         # Load paper
-        self.paper = Paper.objects.select_related('subject').get(
-            id=self.paper_id,
-            is_active=True
-        )
-        print(f"Paper: {self.paper.name} ({self.paper.subject.name})")
+        try:
+            self.paper = Paper.objects.select_related('subject').get(
+                id=self.paper_id,
+                is_active=True
+            )
+            logger.info(f"✓ Paper loaded: {self.paper.name} ({self.paper.subject.name})")
+        except Paper.DoesNotExist:
+            logger.error(f"✗ Paper not found: {self.paper_id}")
+            raise ValueError(f"Paper with id {self.paper_id} not found")
         
         # Load sections
         self.section_a = Section.objects.filter(
@@ -209,12 +212,14 @@ class PhysicsPaper1Generator:
         ).first()
         
         if not self.section_a:
+            logger.error("✗ Section A not found")
             raise ValueError("Section A not found for this paper")
         if not self.section_b:
+            logger.error("✗ Section B not found")
             raise ValueError("Section B not found for this paper")
         
-        print(f"Section A: {self.section_a.name}")
-        print(f"Section B: {self.section_b.name}")
+        logger.info(f"✓ Section A: {self.section_a.name}")
+        logger.info(f"✓ Section B: {self.section_b.name}")
         
         # Load topics
         self.topics = list(Topic.objects.filter(
@@ -224,11 +229,12 @@ class PhysicsPaper1Generator:
         ))
         
         if not self.topics:
+            logger.error("✗ No valid topics found")
             raise ValueError("No valid topics found for the selected IDs")
         
-        print(f"\nSelected Topics ({len(self.topics)}):")
+        logger.info(f"✓ Loaded {len(self.topics)} topics")
         for i, topic in enumerate(self.topics, 1):
-            print(f"  {i}. {topic.name}")
+            logger.info(f"  {i}. {topic.name}")
         
         # Load Section A questions
         self.one_mark_pool = list(Question.objects.filter(
@@ -271,64 +277,54 @@ class PhysicsPaper1Generator:
         random.shuffle(self.three_mark_pool)
         random.shuffle(self.section_b_pool)
         
-        print(f"\nQuestion Pools:")
-        print(f"  Section A (1 mark): {len(self.one_mark_pool)} questions")
-        print(f"  Section A (2 marks): {len(self.two_mark_pool)} questions")
-        print(f"  Section A (3 marks): {len(self.three_mark_pool)} questions")
-        print(f"  Section B (8-12 marks): {len(self.section_b_pool)} questions")
+        logger.info("Question pools loaded:")
+        logger.info(f"  - 1-mark: {len(self.one_mark_pool)} questions")
+        logger.info(f"  - 2-mark: {len(self.two_mark_pool)} questions")
+        logger.info(f"  - 3-mark: {len(self.three_mark_pool)} questions")
+        logger.info(f"  - Section B (8-12 marks): {len(self.section_b_pool)} questions")
         
         # Validation
         if len(self.one_mark_pool) < self.SECTION_A_1MARK_COUNT:
-            raise ValueError(
-                f"Insufficient 1-mark questions: {len(self.one_mark_pool)} "
-                f"(need at least {self.SECTION_A_1MARK_COUNT})"
-            )
+            error_msg = f"Insufficient 1-mark questions: {len(self.one_mark_pool)} (need {self.SECTION_A_1MARK_COUNT})"
+            logger.error(f"✗ {error_msg}")
+            raise ValueError(error_msg)
         
         if len(self.two_mark_pool) < self.SECTION_A_2MARK_COUNT:
-            raise ValueError(
-                f"Insufficient 2-mark questions: {len(self.two_mark_pool)} "
-                f"(need at least {self.SECTION_A_2MARK_COUNT})"
-            )
+            error_msg = f"Insufficient 2-mark questions: {len(self.two_mark_pool)} (need {self.SECTION_A_2MARK_COUNT})"
+            logger.error(f"✗ {error_msg}")
+            raise ValueError(error_msg)
         
         if len(self.three_mark_pool) < self.SECTION_A_3MARK_COUNT:
-            raise ValueError(
-                f"Insufficient 3-mark questions: {len(self.three_mark_pool)} "
-                f"(need at least {self.SECTION_A_3MARK_COUNT})"
-            )
+            error_msg = f"Insufficient 3-mark questions: {len(self.three_mark_pool)} (need {self.SECTION_A_3MARK_COUNT})"
+            logger.error(f"✗ {error_msg}")
+            raise ValueError(error_msg)
         
         if len(self.section_b_pool) < 10:
-            raise ValueError(
-                f"Insufficient Section B questions: {len(self.section_b_pool)} "
-                f"(need at least 10)"
-            )
+            error_msg = f"Insufficient Section B questions: {len(self.section_b_pool)} (need 10)"
+            logger.error(f"✗ {error_msg}")
+            raise ValueError(error_msg)
         
-        print(f"\nData loaded successfully")
+        logger.info("✓ Data loaded successfully")
     
     def select_questions(self):
         """Select questions for the paper"""
-        print(f"\n{'='*70}")
-        print(f"SELECTING QUESTIONS FOR PAPER")
-        print(f"{'='*70}")
+        logger.info("="*70)
+        logger.info("SELECTING QUESTIONS FOR PAPER")
+        logger.info("="*70)
         
         # Select Section A questions
-        print(f"\nSection A: Selecting {self.SECTION_A_QUESTIONS} questions (25 marks total)")
+        logger.info(f"Section A: Selecting {self.SECTION_A_QUESTIONS} questions (25 marks total)")
         
-        # Select 4 one-mark questions
-        print(f"  Selecting {self.SECTION_A_1MARK_COUNT} × 1 mark = {self.SECTION_A_1MARK_COUNT} marks")
+        # Select questions
         selected_1mark = random.sample(self.one_mark_pool, self.SECTION_A_1MARK_COUNT)
-        self.selected_section_a.extend(selected_1mark)
-        
-        # Select 6 two-mark questions
-        print(f"  Selecting {self.SECTION_A_2MARK_COUNT} × 2 marks = {self.SECTION_A_2MARK_COUNT * 2} marks")
         selected_2mark = random.sample(self.two_mark_pool, self.SECTION_A_2MARK_COUNT)
-        self.selected_section_a.extend(selected_2mark)
-        
-        # Select 3 three-mark questions
-        print(f"  Selecting {self.SECTION_A_3MARK_COUNT} × 3 marks = {self.SECTION_A_3MARK_COUNT * 3} marks")
         selected_3mark = random.sample(self.three_mark_pool, self.SECTION_A_3MARK_COUNT)
+        
+        self.selected_section_a.extend(selected_1mark)
+        self.selected_section_a.extend(selected_2mark)
         self.selected_section_a.extend(selected_3mark)
         
-        # Shuffle Section A questions to mix marks
+        # Shuffle Section A questions
         random.shuffle(self.selected_section_a)
         
         # Track used questions
@@ -336,63 +332,43 @@ class PhysicsPaper1Generator:
             self.used_question_ids.add(str(q.id))
             self.topic_distribution[q.topic.name] += 1
         
-        # Display Section A selection
         section_a_marks = sum(q.marks for q in self.selected_section_a)
-        print(f"\n  Selected {len(self.selected_section_a)} questions for Section A (Total: {section_a_marks} marks)")
-        for i, question in enumerate(self.selected_section_a, 1):
-            try:
-                preview = question.question_text[:60].encode('ascii', 'ignore').decode('ascii')
-            except:
-                preview = "Question text contains special characters"
-            print(f"    Q{i} ({question.marks}m): {question.topic.name} - {preview}...")
+        logger.info(f"✓ Section A: {len(self.selected_section_a)} questions ({section_a_marks} marks)")
         
-        # Select Section B questions (must total exactly 55 marks)
-        print(f"\nSection B: Selecting questions to total {self.SECTION_B_TOTAL_MARKS} marks")
+        # Select Section B questions
+        logger.info(f"Section B: Selecting questions to total {self.SECTION_B_TOTAL_MARKS} marks")
         self.selected_section_b = self._select_section_b_questions()
         
-        # Display Section B selection
-        section_b_marks = sum(q.marks for q in self.selected_section_b)
-        print(f"\n  Selected {len(self.selected_section_b)} questions for Section B (Total: {section_b_marks} marks)")
-        for i, question in enumerate(self.selected_section_b, 14):
+        # Track Section B questions
+        for question in self.selected_section_b:
             self.used_question_ids.add(str(question.id))
             self.topic_distribution[question.topic.name] += 1
-            try:
-                preview = question.question_text[:60].encode('ascii', 'ignore').decode('ascii')
-            except:
-                preview = "Question text contains special characters"
-            print(f"    Q{i} ({question.marks}m): {question.topic.name} - {preview}...")
+        
+        section_b_marks = sum(q.marks for q in self.selected_section_b)
+        logger.info(f"✓ Section B: {len(self.selected_section_b)} questions ({section_b_marks} marks)")
         
         total_questions = len(self.selected_section_a) + len(self.selected_section_b)
         total_marks = section_a_marks + section_b_marks
-        print(f"\nTotal: {total_questions} questions, {total_marks} marks")
-        print(f"\nTopic Distribution:")
-        for topic, count in sorted(self.topic_distribution.items()):
-            print(f"  {topic}: {count} questions")
+        logger.info(f"✓ Total: {total_questions} questions, {total_marks} marks")
     
     def _select_section_b_questions(self) -> List[Question]:
-        """
-        Select Section B questions to total exactly 55 marks
-        Uses dynamic programming approach
-        """
+        """Select Section B questions to total exactly 55 marks"""
         target_marks = self.SECTION_B_TOTAL_MARKS
         max_questions = self.SECTION_B_MAX_QUESTIONS
         
         # Try to find combination that totals exactly 55 marks
-        # Start with 5 questions, then try 6 if needed
         for num_questions in range(self.SECTION_B_MIN_QUESTIONS, max_questions + 1):
             result = self._find_combination(self.section_b_pool, target_marks, num_questions)
             if result:
-                print(f"  Found combination: {num_questions} questions totaling {target_marks} marks")
+                logger.info(f"  Found exact combination: {num_questions} questions = {target_marks} marks")
                 return result
         
-        # If exact match not found, get as close as possible with 5-6 questions
-        print(f"  Warning: Could not find exact 55 marks. Finding closest match...")
+        # If exact match not found, get closest
+        logger.warning(f"  Could not find exact {target_marks} marks. Finding closest match...")
         return self._find_closest_combination(self.section_b_pool, target_marks, max_questions)
     
     def _find_combination(self, questions: List[Question], target: int, num_q: int) -> Optional[List[Question]]:
-        """
-        Find combination of exactly num_q questions that total target marks
-        """
+        """Find combination of exactly num_q questions that total target marks"""
         from itertools import combinations
         
         for combo in combinations(questions, num_q):
@@ -402,9 +378,7 @@ class PhysicsPaper1Generator:
         return None
     
     def _find_closest_combination(self, questions: List[Question], target: int, max_q: int) -> List[Question]:
-        """
-        Find combination of questions (5-6) that gets closest to target marks
-        """
+        """Find combination of questions (5-6) that gets closest to target marks"""
         from itertools import combinations
         
         best_combo = None
@@ -422,29 +396,28 @@ class PhysicsPaper1Generator:
                 if diff == 0:
                     return list(combo)
         
+        actual_marks = sum(q.marks for q in best_combo) if best_combo else 0
+        logger.warning(f"  Closest match: {len(best_combo)} questions = {actual_marks} marks (diff: {best_diff})")
+        
         return list(best_combo) if best_combo else questions[:self.SECTION_B_MIN_QUESTIONS]
     
     def save_generated_paper(self) -> GeneratedPaper:
         """Save the generated paper to database"""
-        print(f"\n{'='*70}")
-        print(f"SAVING GENERATED PAPER")
-        print(f"{'='*70}")
+        logger.info("="*70)
+        logger.info("SAVING GENERATED PAPER")
+        logger.info("="*70)
         
         with transaction.atomic():
-            # Combine all selected questions in order
             all_questions = self.selected_section_a + self.selected_section_b
-            
-            # Calculate total marks
             total_marks = sum(q.marks for q in all_questions)
             section_a_marks = sum(q.marks for q in self.selected_section_a)
             section_b_marks = sum(q.marks for q in self.selected_section_b)
             
-            # Calculate mark distribution
+            # Calculate distributions
             mark_counts = defaultdict(int)
             for q in all_questions:
                 mark_counts[str(q.marks)] += 1
             
-            # Calculate topic distribution (marks per topic)
             topic_marks_distribution = {}
             for question in all_questions:
                 topic_name = question.topic.name
@@ -481,12 +454,12 @@ class PhysicsPaper1Generator:
                 }
             )
             
-            print(f"✓ Generated Paper saved: {unique_code}")
-            print(f"  - ID: {generated_paper.id}")
-            print(f"  - Total Questions: {len(all_questions)}")
-            print(f"  - Total Marks: {total_marks}")
-            print(f"  - Section A: {len(self.selected_section_a)} questions ({section_a_marks} marks)")
-            print(f"  - Section B: {len(self.selected_section_b)} questions ({section_b_marks} marks)")
+            logger.info(f"✓ Paper saved: {unique_code}")
+            logger.info(f"  - ID: {generated_paper.id}")
+            logger.info(f"  - Questions: {len(all_questions)}")
+            logger.info(f"  - Total Marks: {total_marks}")
+            logger.info(f"  - Section A: {len(self.selected_section_a)} questions ({section_a_marks}m)")
+            logger.info(f"  - Section B: {len(self.selected_section_b)} questions ({section_b_marks}m)")
             
             return generated_paper
     
@@ -503,21 +476,29 @@ class PhysicsPaper1Generator:
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def validate_physics_paper1(request):
-    """
-    Validate Physics Paper 1 generation prerequisites
-    POST /api/papers/physics-paper1/validate
-    """
+    """Validate Physics Paper 1 generation prerequisites"""
+    logger.info("="*70)
+    logger.info("[VALIDATE] Physics Paper 1 Validation Request")
+    logger.info("="*70)
+    logger.info(f"[VALIDATE] User: {request.user}")
+    logger.info(f"[VALIDATE] Request data: {request.data}")
+    
     try:
         paper_id = request.data.get('paper_id')
         selected_topic_ids = request.data.get('topic_ids', [])
         
+        logger.info(f"[VALIDATE] paper_id: {paper_id}")
+        logger.info(f"[VALIDATE] topic_ids count: {len(selected_topic_ids)}")
+        
         if not paper_id:
+            logger.warning("[VALIDATE] Missing paper_id")
             return Response(
                 {'error': 'paper_id is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         if not selected_topic_ids:
+            logger.warning("[VALIDATE] Missing topic_ids")
             return Response(
                 {'error': 'topic_ids is required'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -526,9 +507,12 @@ def validate_physics_paper1(request):
         # Validate
         validation_result = PhysicsPaper1Validator.validate(paper_id, selected_topic_ids)
         
+        logger.info(f"[VALIDATE] Validation complete: {validation_result['valid']}")
         return Response(validation_result)
         
     except Exception as e:
+        logger.error(f"[VALIDATE] Error: {str(e)}")
+        logger.error(f"[VALIDATE] Traceback:", exc_info=True)
         return Response(
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -538,43 +522,45 @@ def validate_physics_paper1(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def generate_physics_paper1(request):
-    """
-    Generate Physics Paper 1
-    POST /api/papers/physics-paper1/generate
-    
-    """
-    import traceback
-    
-    print("=" * 70)
-    print("PHYSICS PAPER 1 GENERATION ENDPOINT HIT")
-    print("=" * 70)
-    print(f"Request method: {request.method}")
-    print(f"Request data: {request.data}")
-    print(f"Request user: {request.user}")
-    
+    """Generate Physics Paper 1"""
+    logger.info("="*70)
+    logger.info("[GENERATE] Physics Paper 1 Generation Request")
+    logger.info("="*70)
+    logger.info(f"[GENERATE] User: {request.user}")
+    logger.info(f"[GENERATE] Request method: {request.method}")
+    logger.info(f"[GENERATE] Request data: {request.data}")
     
     try:
         paper_id = request.data.get('paper_id')
         selected_topic_ids = request.data.get('topic_ids', [])
         
-        print(f"Extracted paper_id: {paper_id}")
-        print(f"Extracted topic_ids: {selected_topic_ids}")
+        logger.info(f"[GENERATE] Extracted paper_id: {paper_id}")
+        logger.info(f"[GENERATE] Extracted topic_ids: {selected_topic_ids}")
+        logger.info(f"[GENERATE] Topic count: {len(selected_topic_ids)}")
         
         if not paper_id:
+            logger.warning("[GENERATE] Missing paper_id")
             return Response(
                 {'error': 'paper_id is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         if not selected_topic_ids:
+            logger.warning("[GENERATE] Missing or empty topic_ids")
             return Response(
                 {'error': 'topic_ids is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        logger.info("[GENERATE] Starting paper generation...")
+        
         # Generate paper
         generator = PhysicsPaper1Generator(paper_id, selected_topic_ids)
         generated_paper = generator.generate()
+        
+        logger.info("[GENERATE] ✓ Paper generation completed successfully")
+        logger.info(f"[GENERATE] Generated paper ID: {generated_paper.id}")
+        logger.info(f"[GENERATE] Unique code: {generated_paper.unique_code}")
         
         return Response({
             'success': True,
@@ -589,8 +575,8 @@ def generate_physics_paper1(request):
         }, status=status.HTTP_201_CREATED)
         
     except Exception as e:
-        import traceback
-        print(traceback.format_exc())
+        logger.error(f"[GENERATE] ✗ Generation failed: {str(e)}")
+        logger.error("[GENERATE] Full traceback:", exc_info=True)
         return Response(
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
