@@ -2334,10 +2334,26 @@ class PhysicsPaper1Coverpage:
         else:
             display_paper_name = f'{subject_name_upper} {paper_name_upper}'
         
-        # Get section details from metadata
-        section_a_questions = generated_paper.metadata.get('section_a_questions', 13)
-        section_b_questions = generated_paper.metadata.get('section_b_questions', 5)
-        
+        # Get section details from metadata (safe defaults)
+        metadata = getattr(generated_paper, 'metadata', {}) or {}
+        section_a_questions = int(metadata.get('section_a_questions', 13))
+        section_b_questions = int(metadata.get('section_b_questions', 5))
+
+        # Compute total pages dynamically: coverpage + question pages
+        total_questions = getattr(generated_paper, 'total_questions', None) or (section_a_questions + section_b_questions)
+        try:
+            total_questions = int(total_questions)
+        except Exception:
+            total_questions = section_a_questions + section_b_questions
+
+        # Assume ~3 questions per page for Paper 1
+        questions_per_page = 3
+        question_pages = 0
+        if total_questions > 0:
+            question_pages = (total_questions + questions_per_page - 1) // questions_per_page
+
+        total_pages = 1 + question_pages
+
         return {
             'school_name': 'EXAMINATION CENTRE',
             'school_logo': '/exam.png',
@@ -2352,12 +2368,12 @@ class PhysicsPaper1Coverpage:
             'section_b_marks': 55,
             'total_marks': generated_paper.total_marks or 80,
             'time_allocation': format_time_allocation(paper.time_allocation),
-            'total_pages': 12,
+            'total_pages': total_pages,
             'instructions': [
                 'Write your name and index number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 'This paper consists of two sections: A and B.',
-                'Answer ALL questions in section A and ANY FIVE questions in section B.',
+                'Answer ALL questions in Section A and ALL questions in Section B.',
                 'Show all the steps in your calculations, giving your answers at each stage in the spaces provided below each question.',
                 'Marks may be given for correct working even if the answer is wrong.',
                 'Non-programmable silent electronic calculators and KNEC Mathematical tables may be used, except where stated otherwise.',

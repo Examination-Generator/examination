@@ -123,9 +123,9 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     
     # Generate question pages (use specialized function for Paper 2)
     if is_paper2:
-        questions_html = _generate_paper2_question_pages(questions, total_pages)
+        questions_html = _generate_paper2_question_pages(questions, total_pages, coverpage_data)
     else:
-        questions_html = _generate_question_pages(questions, total_pages)
+        questions_html = _generate_question_pages(questions, total_pages, coverpage_data)
     
     # Combine everything
     full_html = f"""
@@ -610,7 +610,7 @@ def _process_question_text(text, images=None, answer_lines=None):
     return ''.join(result)
 
 
-def _generate_paper2_question_pages(questions, total_pages):
+def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None):
     """
     Generate paginated question pages for Biology Paper 2
     (Same implementation as before)
@@ -618,13 +618,26 @@ def _generate_paper2_question_pages(questions, total_pages):
     pages_html = []
     current_page = 2
     
-    section_a_questions = [q for q in questions if q['number'] <= 5]
-    section_b_questions = [q for q in questions if q['number'] >= 6]
+    # Determine section boundaries from coverpage_data if provided
+    metadata = coverpage_data or {}
+    section_a_count = metadata.get('section_a_questions', 5)
+    try:
+        section_a_count = int(section_a_count)
+    except Exception:
+        section_a_count = 5
+
+    section_a_questions = [q for q in questions if q['number'] <= section_a_count]
+    section_b_questions = [q for q in questions if q['number'] > section_a_count]
     
+    # Section A title and instruction - get marks/instruction from metadata if present
+    section_a_marks = metadata.get('section_a_marks', None)
+    section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
+    section_a_instruction = metadata.get('section_a_instruction', 'Answer ALL questions in this section')
+
     section_a_html = _generate_section_pages(
-        section_a_questions, 
-        "SECTION A (40 MARKS)", 
-        "Answer ALL questions in this section",
+        section_a_questions,
+        section_a_title,
+        section_a_instruction,
         current_page,
         total_pages,
         is_last_section=False
@@ -632,10 +645,15 @@ def _generate_paper2_question_pages(questions, total_pages):
     pages_html.append(section_a_html['html'])
     current_page = section_a_html['next_page']
     
+    # Section B title and instruction - prefer metadata; default to answer ALL questions similar to Section A
+    section_b_marks = metadata.get('section_b_marks', None)
+    section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
+    section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
+
     section_b_html = _generate_section_pages(
-        section_b_questions, 
-        "SECTION B (40 MARKS)", 
-        "Answer question 6 (compulsory) and EITHER question 7 or 8",
+        section_b_questions,
+        section_b_title,
+        section_b_instruction,
         current_page,
         total_pages,
         is_last_section=True,
@@ -756,7 +774,7 @@ def _generate_answer_lines_continuation(num_lines, start_page, total_pages):
     return '\n'.join(pages_html)
 
 
-def _generate_question_pages(questions, total_pages):
+def _generate_question_pages(questions, total_pages, coverpage_data=None):
     """
     Generate paginated question pages for standard papers
     (Same implementation as before)
@@ -765,17 +783,50 @@ def _generate_question_pages(questions, total_pages):
     pages_html = []
     current_page = 2
     
+    # Determine section boundaries from coverpage_data if available
+    metadata = coverpage_data or {}
+    section_a_count = metadata.get('section_a_questions') or metadata.get('section_a_questions', 0)
+    try:
+        section_a_count = int(section_a_count)
+    except Exception:
+        section_a_count = 0
+
     for i in range(0, len(questions), questions_per_page):
         page_questions = questions[i:i + questions_per_page]
         
         questions_html = ""
+        # Track last section to insert headers when section changes
+        last_section = None
         for q in page_questions:
             processed_text = _process_question_text(
                 q.get('text', ''),
                 q.get('question_inline_images', []),
                 q.get('question_answer_lines', [])
             )
-            
+            # Determine section by question number and available section count
+            qnum = int(q.get('number', 0))
+            current_section = 'A' if (section_a_count and qnum <= section_a_count) else 'B'
+
+            # If section changed (or starting), insert section header
+            if last_section != current_section:
+                # Get marks for section from coverpage_data if present
+                if current_section == 'A':
+                    s_marks = metadata.get('section_a_marks', None)
+                else:
+                    s_marks = metadata.get('section_b_marks', None)
+
+                s_marks_text = f" ({s_marks} MARKS)" if s_marks else ''
+                # Instruction text: by default we show 'Answer ALL questions in this section.'
+                instruction_text = metadata.get(f'section_{current_section.lower()}_instruction', 'Answer ALL questions in this section.')
+
+                questions_html += f"""
+        <div class=\"section-header\"> 
+            <h2>Section {current_section}{s_marks_text}</h2>
+            <div class=\"section-instruction\">{instruction_text}</div>
+        </div>
+"""
+                last_section = current_section
+
             questions_html += f"""
         <div class="question">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>

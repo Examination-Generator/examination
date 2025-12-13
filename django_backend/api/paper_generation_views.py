@@ -1128,7 +1128,12 @@ def preview_full_exam(request, paper_id):
                         'marks': question.marks,
                         'is_nested': question.is_nested,
                         'nested_parts': question.nested_parts if question.is_nested else None,
-                        'topic': question.topic.name
+                        'topic': question.topic.name,
+                        'section': {
+                            'id': str(question.section.id),
+                            'name': question.section.name,
+                            'order': question.section.order
+                        } if question.section else None
                     })
             
             if output_format == 'html':
