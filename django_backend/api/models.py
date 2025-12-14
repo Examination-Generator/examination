@@ -294,6 +294,7 @@ class Section(models.Model):
 # ==================== QUESTION MODEL ====================
 
 class Question(models.Model):
+        
     """Question bank"""
     
     QUESTION_TYPE_CHOICES = [
@@ -433,7 +434,14 @@ class Question(models.Model):
         null=True,
         help_text='OPTIONAL: Can store part breakdowns if needed, but not required for paper generation.'
     )
-    
+    is_graph = models.BooleanField(
+            default=False,
+            help_text='True if this question requires a graph as part of the answer.'
+        )
+    is_essay = models.BooleanField(
+            default=False,
+            help_text='True if this question is an essay type.'
+        )
     # MCQ options (for multiple choice questions)
     options = models.JSONField(null=True, blank=True)
     correct_answer = models.TextField(null=True, blank=True)

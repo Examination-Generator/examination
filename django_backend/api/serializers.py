@@ -525,6 +525,9 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
 class QuestionCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating questions"""
     
+    is_graph = serializers.BooleanField(required=False, allow_null=True, default=False)
+    is_essay = serializers.BooleanField(required=False, allow_null=True, default=False)
+
     class Meta:
         model = Question
         fields = ['subject', 'paper', 'topic', 'section',
@@ -534,7 +537,7 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
                   'question_answer_lines', 'answer_answer_lines',
                   'question_type', 'kcse_question_type', 'paper2_category', 'difficulty', 'marks',
                   'options', 'correct_answer', 'answer_explanation',
-                  'is_nested', 'is_active']
+                  'is_nested', 'is_active', 'is_graph', 'is_essay']
     
     def validate(self, data):
         """Validate relationships between subject, paper, topic, section"""

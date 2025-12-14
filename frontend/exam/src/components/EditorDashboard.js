@@ -1358,8 +1358,8 @@ useEffect(() => {
                 answer_text: answerText,
                 marks: parseInt(marks),
                 is_nested: isNested, // NEW: Nested question flag
-                is_essay_question: isEssayQuestion, // NEW: Essay question flag
-                is_graph_question: isGraphQuestion, // NEW: Graph question flag
+                is_essay: isEssayQuestion, // NEW: Essay question flag
+                is_graph: isGraphQuestion, // NEW: Graph question flag
                 question_inline_images: questionInlineImages,
                 answer_inline_images: answerInlineImages,
                 question_image_positions: questionImagePositions, // NEW: Image positions for question
