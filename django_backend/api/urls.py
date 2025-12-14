@@ -34,7 +34,7 @@ urlpatterns = [
     path('database/create-defaults', database_views.create_default_users, name='create-defaults'),
     
     # specific question delete (hard delete)
-    path('api/questions/hard-delete/<str:question_id>/', question_views.hard_delete_question),
+    path('questions/hard-delete/<uuid:question_id>/', question_views.hard_delete_question),
     
     # ==================== AUTHENTICATION ROUTES ====================
     # Auth endpoints without 'auth/' prefix to match frontend expectations
