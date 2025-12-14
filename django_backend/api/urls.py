@@ -33,6 +33,9 @@ urlpatterns = [
     path('database/create-admin', database_views.create_superuser, name='create-admin'),
     path('database/create-defaults', database_views.create_default_users, name='create-defaults'),
     
+    # specific question delete (hard delete)
+    path('api/questions/hard-delete/<str:question_id>/', question_views.hard_delete_question),
+    
     # ==================== AUTHENTICATION ROUTES ====================
     # Auth endpoints without 'auth/' prefix to match frontend expectations
     path('send-otp', auth_views.send_otp, name='send-otp'),

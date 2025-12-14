@@ -1,3 +1,4 @@
+
 """
 Question Management Views for Examination System
 Equivalent to Node.js questions routes
@@ -578,4 +579,35 @@ def get_question_stats(request):
                 for item in by_subject
             ]
         }
+    )
+
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def hard_delete_question(request, question_id):
+    """
+    Hard delete a question from the database
+    DELETE /api/questions/hard-delete/<id>
+    """
+    try:
+        question = Question.objects.get(id=question_id)
+    except Question.DoesNotExist:
+        return error_response(
+            'Question not found',
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    question.delete()
+    
+    response_data = {
+        'message': 'Question permanently deleted',
+        'status': status.HTTP_200_OK,
+        'statusText': 'OK'
+    }
+    
+    return success_response(
+        response_data.get('message'),
+        data=response_data,
+        status=response_data.get('status')
     )

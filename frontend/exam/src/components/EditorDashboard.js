@@ -6648,44 +6648,7 @@ useEffect(() => {
                                 </button>
                             </div>
                             
-                            {/* Filter Options */}
-                            {/* <div className="flex gap-3 mb-6">
-                                <div className="flex-1">
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Status Filter</label>
-                                    <select
-                                        value={editFilterStatus}
-                                        onChange={(e) => {
-                                            setEditFilterStatus(e.target.value);
-                                            if (searchQuery.length >= 2) {
-                                                handleSearchQuestions(searchQuery);
-                                            }
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-                                    >
-                                        <option value="all">All Questions</option>
-                                        <option value="active">Active Only</option>
-                                        <option value="inactive">Inactive Only</option>
-                                    </select>
-                                </div>
-                                <div className="flex-1">
-                                    <label className="block text-xs font-semibold text-gray-600 mb-1">Type Filter</label>
-                                    <select
-                                        value={editFilterType}
-                                        onChange={(e) => {
-                                            setEditFilterType(e.target.value);
-                                            if (searchQuery.length >= 2) {
-                                                handleSearchQuestions(searchQuery);
-                                            }
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
-                                    >
-                                        <option value="all">All Types</option>
-                                        <option value="nested">Nested Only</option>
-                                        <option value="standalone">Standalone Only</option>
-                                    </select>
-                                </div>
-                            </div> */}
-
+                            
                             {/* Enhanced Filter Options */}
                             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 mb-6 border-2 border-blue-200">
                                 <div className="flex items-center justify-between mb-3">
