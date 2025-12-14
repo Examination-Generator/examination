@@ -2588,8 +2588,8 @@ useEffect(() => {
                 question_type: selectedQuestion.question_type, // Include question type
                 is_active: editIsActive, // Use edited status
                 is_nested: editIsNested, // Use edited type
-                is_essay_question: editIsEssayQuestion, // Use edited essay status
-                is_graph_question: editIsGraphQuestion // Use edited graph status
+                is_essay: editIsEssayQuestion, // Use edited essay status
+                is_graph: editIsGraphQuestion // Use edited graph status
             };
 
             console.log('🔄 Updating question - Full details:');
