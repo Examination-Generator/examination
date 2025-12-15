@@ -7891,7 +7891,7 @@ useEffect(() => {
                                                     type="button"
                                                     onClick={() => setQuestionMode('essay')}
                                                     className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                                                        questionMode === 'essay'
+                                                        editIsEssayQuestion
                                                             ? 'bg-yellow-600 text-white shadow-lg'
                                                             : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                                                     }`}
@@ -7903,7 +7903,7 @@ useEffect(() => {
                                                     type="button"
                                                     onClick={() => setQuestionMode('regular1')}
                                                     className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                                                        questionMode === 'regular1'
+                                                        !editIsEssayQuestion
                                                             ? 'bg-gray-600 text-white shadow-lg'
                                                             : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                                                     }`}
@@ -7913,7 +7913,7 @@ useEffect(() => {
                                                 </button>
                                             </div>
                                             <p className="text-xs text-gray-500 mt-2">
-                                                {questionMode === 'essay' 
+                                                {editIsEssayQuestion 
                                                     ? 'Requires extended written response' 
                                                     : 'Standard question format'}
                                             </p>
@@ -7929,7 +7929,7 @@ useEffect(() => {
                                                     type="button"
                                                     onClick={() => setQuestionMode('graph')}
                                                     className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                                                        questionMode === 'graph'
+                                                        editIsGraphQuestion
                                                             ? 'bg-cyan-600 text-white shadow-lg'
                                                             : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                                                     }`}
@@ -7941,7 +7941,7 @@ useEffect(() => {
                                                     type="button"
                                                     onClick={() => setQuestionMode('regular2')}
                                                     className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                                                        questionMode === 'regular2'
+                                                        !editIsGraphQuestion
                                                             ? 'bg-gray-600 text-white shadow-lg'
                                                             : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                                                     }`}
@@ -7951,7 +7951,7 @@ useEffect(() => {
                                                 </button>
                                             </div>
                                             <p className="text-xs text-gray-500 mt-2">
-                                                {questionMode === 'graph' 
+                                                {editIsGraphQuestion 
                                                     ? '📊 Requires drawing/plotting graphs' 
                                                     : '📄 No graphing required'}
                                             </p>
