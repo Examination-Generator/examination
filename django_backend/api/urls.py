@@ -36,6 +36,9 @@ urlpatterns = [
     # specific question delete (hard delete)
     path('questions/hard-delete/<uuid:question_id>/', question_views.hard_delete_question),
     
+    # setting question mode 
+    path('questions/set-mode/<uuid:question_id>/', question_views.set_question_mode),
+    
     # ==================== AUTHENTICATION ROUTES ====================
     # Auth endpoints without 'auth/' prefix to match frontend expectations
     path('send-otp', auth_views.send_otp, name='send-otp'),

@@ -990,13 +990,46 @@ export default function EditorDashboard({ onLogout }) {
             height: 400,
             position: editQuestionText.length
         };
-        
         setEditQuestionInlineImages(prev => [...prev, newImage]);
         const imagePlaceholder = `\n[IMAGE:${newImage.id}:${newImage.width}x${newImage.height}px]\n`;
         setEditQuestionText(prev => prev + imagePlaceholder);
-        
         setShowEditQuestionDrawing(false);
         alert('✅ Drawing inserted!');
+    };
+
+    // ====== SET QUESTION MODE (ESSAY/GRAPH/REGULAR) ======
+    // Call backend to update is_essay and is_graph fields for a question
+    const setQuestionMode = async (mode) => {
+        if (!selectedQuestion) {
+            alert('No question selected.');
+            return;
+        }
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert('You must be logged in.');
+            return;
+        }
+        try {
+            const response = await fetch(`${API_URL}/questions/set-mode/${selectedQuestion.id}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ mode })
+            });
+            const result = await response.json();
+            if (response.ok && result.success) {
+                alert('Question mode updated!');
+                // Update local state for UI
+                setEditIsEssayQuestion(result.data.is_essay);
+                setEditIsGraphQuestion(result.data.is_graph);
+            } else {
+                alert(result.message || 'Failed to update question mode.');
+            }
+        } catch (error) {
+            alert('Error updating question mode.');
+        }
     };
 
     // ====== EDIT ANSWER DRAWING FUNCTIONS ======
@@ -2606,6 +2639,9 @@ useEffect(() => {
             console.log('  - selectedQuestion.section:', selectedQuestion.section);
             console.log('  - Computed sectionValue:', sectionValue);
             console.log('  - Full updatedData:', JSON.stringify(updatedData, null, 2));
+
+            console.log('information sent to update')
+            console.log(updatedData);
             
             const result = await questionService.updateQuestion(selectedQuestion.id, updatedData);
             console.log('✅ Update result:', result);
@@ -5410,7 +5446,7 @@ useEffect(() => {
                 {activeTab === 'subjects' && (
                     <div className="space-y-8">
                         {/* Existing Subjects List */}
-                        <div className="bg-white rounded-xl shadow-lg p-8">
+                        <div className="bg-white rounded-xl shadow-lg p-8 h-96 overflow-y-auto">
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-2xl font-bold text-gray-800">Manage Subjects</h2>
                                 <button
@@ -7393,78 +7429,6 @@ useEffect(() => {
                                 )}
 
                                 {/* Answer Content */}
-                                {/* <div className="mb-6">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <label className="block text-sm font-bold text-gray-700">
-                                            Answer Content *
-                                        </label>
-                                        
-                                        {/* Text Formatting Buttons */}
-                                        {/* <div className="flex items-center gap-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => applyEditAnswerFormatting('bold')}
-                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs font-bold"
-                                                title="Bold"
-                                            >
-                                                B
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => applyEditAnswerFormatting('italic')}
-                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs italic"
-                                                title="Italic"
-                                            >
-                                                I
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => applyEditAnswerFormatting('underline')}
-                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs underline"
-                                                title="Underline"
-                                            >
-                                                U
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
-                                        Display Area */}
-                                        {/* <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
-                                            {editAnswerText.length > 0 ? (
-                                                renderTextWithImages(
-                                                    editAnswerText,
-                                                    editAnswerInlineImages,
-                                                    editAnswerImagePositions,
-                                                    editAnswerAnswerLines,
-                                                    null,
-                                                    (lineId) => {
-                                                        setEditAnswerAnswerLines(prev => prev.filter(line => line.id !== lineId));
-                                                        setEditAnswerText(prev => prev.replace(`[LINES:${lineId}]`, ''));
-                                                    },
-                                                    'edit'
-                                                )
-                                            ) : (
-                                                <span className="text-gray-400">Answer preview...</span>
-                                            )}
-                                        </div> */}
-                                        
-                                        {/* Editable Textarea */}
-                                        {/* <div className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300" style={{ height: '40%' }}>
-                                            <textarea
-                                                ref={editAnswerTextareaRef}
-                                                value={editAnswerText}
-                                                onChange={(e) => setEditAnswerText(e.target.value)}
-                                                className="w-full h-full px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition text-sm resize-none"
-                                                placeholder="Edit answer text..."
-                                                style={{ fontFamily: 'monospace' }}
-                                                required
-                                            />
-                                        </div>
-                                    </div> */}
-                                {/* </div> */} 
-
-                                {/* Answer Content */}
                                 <div className="mb-6">
                                     <div className="flex items-center justify-between mb-2">
                                         <label className="block text-sm font-bold text-gray-700">
@@ -7925,9 +7889,9 @@ useEffect(() => {
                                             <div className="flex gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => setEditIsEssayQuestion(true)}
+                                                    onClick={() => setQuestionMode('essay')}
                                                     className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                                                        editIsEssayQuestion
+                                                        questionMode === 'essay'
                                                             ? 'bg-yellow-600 text-white shadow-lg'
                                                             : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                                                     }`}
@@ -7937,9 +7901,9 @@ useEffect(() => {
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setEditIsEssayQuestion(false)}
+                                                    onClick={() => setQuestionMode('regular1')}
                                                     className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                                                        !editIsEssayQuestion
+                                                        questionMode === 'regular1'
                                                             ? 'bg-gray-600 text-white shadow-lg'
                                                             : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                                                     }`}
@@ -7949,9 +7913,9 @@ useEffect(() => {
                                                 </button>
                                             </div>
                                             <p className="text-xs text-gray-500 mt-2">
-                                                {editIsEssayQuestion 
-                                                    ? '📝 Requires extended written response' 
-                                                    : '📄 Standard question format'}
+                                                {questionMode === 'essay' 
+                                                    ? 'Requires extended written response' 
+                                                    : 'Standard question format'}
                                             </p>
                                         </div>
 
@@ -7963,9 +7927,9 @@ useEffect(() => {
                                             <div className="flex gap-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => setEditIsGraphQuestion(true)}
+                                                    onClick={() => setQuestionMode('graph')}
                                                     className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                                                        editIsGraphQuestion
+                                                        questionMode === 'graph'
                                                             ? 'bg-cyan-600 text-white shadow-lg'
                                                             : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                                                     }`}
@@ -7975,9 +7939,9 @@ useEffect(() => {
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setEditIsGraphQuestion(false)}
+                                                    onClick={() => setQuestionMode('regular2')}
                                                     className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-                                                        !editIsGraphQuestion
+                                                        questionMode === 'regular2'
                                                             ? 'bg-gray-600 text-white shadow-lg'
                                                             : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                                                     }`}
@@ -7987,7 +7951,7 @@ useEffect(() => {
                                                 </button>
                                             </div>
                                             <p className="text-xs text-gray-500 mt-2">
-                                                {editIsGraphQuestion 
+                                                {questionMode === 'graph' 
                                                     ? '📊 Requires drawing/plotting graphs' 
                                                     : '📄 No graphing required'}
                                             </p>
@@ -8286,7 +8250,7 @@ useEffect(() => {
                                                             </span>
                                                             {topicName === 'Unknown' && (
                                                                 <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
-                                                                    ⚠️ Unknown Topic
+                                                                    Unknown Topic
                                                                 </span>
                                                             )}
                                                         </div>

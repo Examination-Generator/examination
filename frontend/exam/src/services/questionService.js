@@ -120,6 +120,8 @@ export const updateQuestion = async (questionId, questionData) => {
             headers: getHeaders(),
             body: JSON.stringify(questionData)
         });
+
+        console.log('Updating question with data:', questionData);
         
         if (!response.ok) {
             const errorData = await response.json();
