@@ -630,7 +630,7 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None)
     section_b_questions = [q for q in questions if q['number'] > section_a_count]
     
     # Section A title and instruction - get marks/instruction from metadata if present
-    section_a_marks = metadata.get('section_a_marks', None)
+    section_a_marks = 40
     section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
     section_a_instruction = metadata.get('section_a_instruction', 'Answer ALL questions in this section')
 
@@ -646,7 +646,7 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None)
     current_page = section_a_html['next_page']
     
     # Section B title and instruction - prefer metadata; default to answer ALL questions similar to Section A
-    section_b_marks = metadata.get('section_b_marks', None)
+    section_b_marks = 40
     section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
     section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
 
@@ -701,17 +701,17 @@ def _generate_section_pages(questions, section_title, section_instruction, start
         </div>
         """
         
-        answer_section_html = ""
-        if is_last_section and is_last_page_of_questions and answer_lines > 0:
-            answer_section_html = f"""
+#         answer_section_html = ""
+#         if is_last_section and is_last_page_of_questions and answer_lines > 0:
+#             answer_section_html = f"""
         
-        <div class="answer-section-header" style="margin-top: 30px;">
-            <p><strong>ANSWER SECTION B HERE</strong></p>
-            <p style="font-size: 11px; color: #666;">Use these lines to write your answers for Section B questions (6, 7 or 8)</p>
-        </div>
+#         <div class="answer-section-header" style="margin-top: 30px;">
+#             <p><strong>ANSWER SECTION B HERE</strong></p>
+#             <p style="font-size: 11px; color: #666;">Use these lines to write your answers for Section B questions (6, 7 or 8)</p>
+#         </div>
         
-        <div class="answer-lines-container">
-"""
+#         <div class="answer-lines-container">
+# """
             initial_lines = 8
             for _ in range(initial_lines):
                 answer_section_html += '            <div class="answer-line"></div>\n'
@@ -837,7 +837,7 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
 
                 questions_html += f"""
         <div class=\"section-header\"> 
-            <h2>Section {current_section}{s_marks_text}</h2>
+            <h2>Section {current_section}</h2>
             <div class=\"section-instruction\">{instruction_text}</div>
         </div>
 """
