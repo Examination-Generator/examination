@@ -429,7 +429,7 @@ export default function PaperGenerationDashboard() {
             // Extract the unique code and paper ID from the result
             // Support both standard and Biology Paper 2 response formats
             const paperCode = result?.unique_code || result?.generated_paper?.unique_code || 'N/A';
-            const generatedPaperId = result?.generated_paper_id || result?.paper_id || result?.generated_paper?.id || result?.id;
+            const generatedPaperId = result?.generated_paper_id || result?.paper_id || result?.generated_paper?.id || result?.id || result?.paper?.id;
             
             console.log('📋 Paper Code:', paperCode);
             console.log('🆔 Generated Paper ID:', generatedPaperId);

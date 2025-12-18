@@ -533,8 +533,20 @@ def generate_biology_paper2(request):
         # Load data and generate
         generator.load_data()
         result = generator.generate()
-        
-        return JsonResponse(result, json_dumps_params={'ensure_ascii': False})
+        # Add expected fields for frontend compatibility
+        response = {
+            'paper': result.get('paper', {}),
+            'questions': result.get('questions', []),
+            'question_ids': result.get('question_ids', []),
+            'statistics': result.get('statistics', {}),
+            # Add these fields for frontend compatibility
+            'unique_code': result.get('paper', {}).get('code', 'N/A'),
+            'total_marks': result.get('statistics', {}).get('total_marks', 0),
+            'num_questions': len(result.get('questions', [])),
+            'status': 'DRAFT',
+            'paper_id': result.get('paper', {}).get('id', None),
+        }
+        return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
         
     except Exception as e:
         return JsonResponse({
