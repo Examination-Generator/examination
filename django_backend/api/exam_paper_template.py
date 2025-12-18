@@ -712,19 +712,17 @@ def _generate_section_pages(questions, section_title, section_instruction, start
         
 #         <div class="answer-lines-container">
 # """
-            initial_lines = 8
-            for _ in range(initial_lines):
-                answer_section_html += '            <div class="answer-line"></div>\n'
+            # initial_lines = 8
+            # for _ in range(initial_lines):
+            #     answer_section_html += '            <div class="answer-line"></div>\n'
             
-            answer_section_html += "        </div>"
+            # answer_section_html += "        </div>"
         
         page_html = f"""
     <!-- Page {current_page} -->
     <div class="exam-page page-break">
         {section_header_html}
-        {questions_html}
-        {answer_section_html}
-        
+        {questions_html}        
         <div class="page-number">Page {current_page} of {total_pages}</div>
     </div>
 """
