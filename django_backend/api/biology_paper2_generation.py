@@ -196,20 +196,18 @@ class KCSEBiologyPaper2Generator:
         selected = []
         
         # Strategy: Try to get 1 graph question first, then 2 essays
-        
         # Step 1: Try to get 1 graph question (for Question 6)
-        if len(available_graph) >= 1:
-            # Use 1 graph question as the first Section B question
+        if len(available_graph) >= 1 and len(available_essay) >= 2:
+            # Use 1 graph question as the first Section B question (Question 6)
             selected.append(available_graph[0])
-            # Need 2 more essays
-            if len(available_essay) < 2:
-                return False
+            # Add 2 essay questions (Questions 7-8)
             selected.extend(available_essay[:2])
-        else:
-            # No graph available, use 3 essay questions
-            if len(available_essay) < 3:
-                return False
+        # Strategy 2: No graph available, use 3 essays
+        elif len(available_essay) >= 3:
+            # Use 3 essay questions for all of Section B
             selected.extend(available_essay[:3])
+        else:
+            return False
         
         # Verify total
         total_marks = sum(q.marks for q in selected)

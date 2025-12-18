@@ -575,7 +575,7 @@ def generate_physics_paper1(request):
         }, status=status.HTTP_201_CREATED)
         
     except Exception as e:
-        logger.error(f"[GENERATE] ✗ Generation failed: {str(e)}")
+        logger.error(f"[GENERATE]  Generation failed: {str(e)}")
         logger.error("[GENERATE] Full traceback:", exc_info=True)
         return Response(
             {'error': str(e)},

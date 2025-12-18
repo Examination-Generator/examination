@@ -10,7 +10,7 @@ PAPER 1 (Section A) - 80 marks, 2 hours:
 PAPER 2 (Section B) - 80 marks, 2 hours:
 - EXACTLY 7 questions, all nested
 - Each question: 10-13 marks (flexible combinations to reach 80)
-- Common patterns: 2×10mk + 2×11mk + 2×13mk + 1×12mk = 80
+- Common patterns: 2X10mk + 2X11mk + 2X13mk + 1X12mk = 80
 - Minimum 6 questions, Maximum 8 questions allowed
 - MUST total exactly 80 marks
 """
@@ -475,7 +475,7 @@ class KCSEChemistryPaper2Generator:
     KCSE Chemistry Paper 2 Generator
     EXACTLY 7 questions (flexible: 6-8), all nested, totaling EXACTLY 80 marks
     Each question: 10-13 marks
-    Common pattern: 2×10 + 2×11 + 2×13 + 1×12 = 80
+    Common pattern: 2X10 + 2X11 + 2X13 + 1X12 = 80
     """
     
     TOTAL_MARKS = 80
