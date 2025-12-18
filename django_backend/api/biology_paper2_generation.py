@@ -1,25 +1,10 @@
 """
-KCSE Biology Paper 2 Generator
-Fixed to reach exactly 80 marks with proper section ordering
+KCSE Biology Paper 2 Generator - CORRECTED FORMAT
+Section A: 5 questions x 8 marks = 40 marks (ALL COMPULSORY)
+Section B: 3 questions x 20 marks = 60 marks (STUDENT CHOOSES 2, answers 40 marks)
+Paper Total: 8 questions, 100 marks available, 80 marks answered
 
-REQUIREMENTS:
-- Section A: 5 questions X 8 marks = 40 marks (Questions 1-5)
-- Section B: 3 questions X 20 marks = 40 marks (Questions 6-8)
-  * Question 6: Graph question (priority), fallback to Essay if no graph
-  * Questions 7-8: Essay questions (always)
-- Total: 8 questions, exactly 80 marks
-- Strict ordering: Section A first (1-5), then Section B (6-8)
-
-ISSUE FIXED:
-The previous generator was stopping at 73 marks because:
-1. It was trying to select from a pool of 3-mark, 4-mark, 5-mark questions
-2. No combination of these marks could reach exactly 80
-3. The algorithm needs to target EXACTLY 8-mark and 20-mark questions
-
-SOLUTION:
-- Section A: Select exactly 5 X 8-mark questions
-- Section B: Select exactly 3 X 20-mark questions
-- Prioritize graph questions in Section B before falling back to essays
+IMPORTANT: The paper must have 100 marks, but students only answer 80 marks
 """
 
 import random
@@ -35,25 +20,27 @@ from .models import Paper, Topic, Question, Subject
 
 class KCSEBiologyPaper2Generator:
     """
-    KCSE Biology Paper 2 Generator
-    Section A: 5 X 8-mark questions = 40 marks
-    Section B: 3 X 20-mark questions = 40 marks (graph priority, then essay)
-    Total: 8 questions, 80 marks, strictly ordered
+    KCSE Biology Paper 2 Generator - Correct Format
+    Section A: 5 x 8-mark questions = 40 marks (all compulsory)
+    Section B: 3 x 20-mark questions = 60 marks (choose 2, answer 40 marks)
+    Paper Total: 100 marks available, 80 marks to be answered
     """
     
-    # Section A Requirements
-    SECTION_A_8MARK_COUNT = 5
-    SECTION_A_TOTAL = 5
-    SECTION_A_MARKS = 40
+    # Section A Requirements (ALL COMPULSORY)
+    SECTION_A_QUESTIONS = 5
+    SECTION_A_MARKS_EACH = 8
+    SECTION_A_TOTAL_MARKS = 40
     
-    # Section B Requirements
-    SECTION_B_20MARK_COUNT = 3
-    SECTION_B_TOTAL = 3
-    SECTION_B_MARKS = 40
+    # Section B Requirements (CHOOSE 2 OUT OF 3)
+    SECTION_B_QUESTIONS = 3
+    SECTION_B_MARKS_EACH = 20
+    SECTION_B_AVAILABLE_MARKS = 60  # Total marks available in Section B
+    SECTION_B_ANSWERED_MARKS = 40   # Marks student will answer (2 × 20)
     
-    # Total
+    # Paper Totals
     TOTAL_QUESTIONS = 8
-    TOTAL_MARKS = 80
+    PAPER_TOTAL_MARKS = 100  # Total marks on paper
+    STUDENT_ANSWERS_MARKS = 80  # Total marks student answers
     
     def __init__(self, paper_id: str, selected_topic_ids: List[str]):
         """
@@ -121,6 +108,7 @@ class KCSEBiologyPaper2Generator:
             section_name = q.section.name.upper() if q.section else ""
             # Use is_graph field for graph questions
             is_graph = getattr(q, 'is_graph', False)
+            
             # Section A: 8-mark questions
             if ("SECTION A" in section_name or "SECTION 1" in section_name) and q.marks == 8:
                 self.section_a_8mark.append(q)
@@ -137,34 +125,39 @@ class KCSEBiologyPaper2Generator:
         random.shuffle(self.section_b_20mark_essay)
         
         print(f"\n[DATA LOADED - BIOLOGY PAPER 2]")
-        print(f"  Section A:")
-        print(f"    8-mark: {len(self.section_a_8mark)} (need {self.SECTION_A_8MARK_COUNT})")
-        print(f"  Section B:")
+        print(f"  Section A (All Compulsory):")
+        print(f"    8-mark: {len(self.section_a_8mark)} available (need {self.SECTION_A_QUESTIONS})")
+        print(f"  Section B (Choose 2 out of 3):")
         print(f"    20-mark (Graph): {len(self.section_b_20mark_graph)}")
         print(f"    20-mark (Essay): {len(self.section_b_20mark_essay)}")
-        print(f"    Total 20-mark: {len(self.section_b_20mark_graph) + len(self.section_b_20mark_essay)} (need {self.SECTION_B_20MARK_COUNT})")
+        print(f"    Total 20-mark: {len(self.section_b_20mark_graph) + len(self.section_b_20mark_essay)} (need {self.SECTION_B_QUESTIONS})")
         
         # Check if we have enough questions
         total_20mark = len(self.section_b_20mark_graph) + len(self.section_b_20mark_essay)
-        if len(self.section_a_8mark) < self.SECTION_A_8MARK_COUNT:
-            print(f"\nWARNING: Not enough 8-mark questions for Section A!")
-        if total_20mark < self.SECTION_B_20MARK_COUNT:
-            print(f"\nWARNING: Not enough 20-mark questions for Section B!")
+        if len(self.section_a_8mark) < self.SECTION_A_QUESTIONS:
+            raise ValueError(
+                f"Insufficient Section A questions: have {len(self.section_a_8mark)}, need {self.SECTION_A_QUESTIONS}"
+            )
+        if total_20mark < self.SECTION_B_QUESTIONS:
+            raise ValueError(
+                f"Insufficient Section B questions: have {total_20mark}, need {self.SECTION_B_QUESTIONS}"
+            )
     
     def _select_section_a(self) -> bool:
-        """Select Section A questions: 5 X 8-mark"""
+        """Select Section A questions: 5 x 8-mark (all compulsory)"""
         # Check availability
         available = [q for q in self.section_a_8mark if q.id not in self.used_ids]
         
-        if len(available) < self.SECTION_A_8MARK_COUNT:
+        if len(available) < self.SECTION_A_QUESTIONS:
             return False
         
         # Select exactly 5 questions
-        selected = available[:self.SECTION_A_8MARK_COUNT]
+        selected = available[:self.SECTION_A_QUESTIONS]
         
         # Verify total
         total_marks = sum(q.marks for q in selected)
-        if len(selected) != self.SECTION_A_TOTAL or total_marks != self.SECTION_A_MARKS:
+        if len(selected) != self.SECTION_A_QUESTIONS or total_marks != self.SECTION_A_TOTAL_MARKS:
+            print(f"  Section A validation failed: {len(selected)} questions, {total_marks} marks")
             return False
         
         # Accept selection
@@ -173,14 +166,14 @@ class KCSEBiologyPaper2Generator:
             self.used_ids.add(q.id)
         
         print(f"\n[SECTION A SELECTED]")
-        print(f"  Questions: {len(selected)}")
+        print(f"  Questions: {len(selected)} (all compulsory)")
         print(f"  Total marks: {total_marks}")
         
         return True
     
     def _select_section_b(self) -> bool:
         """
-        Select Section B questions: 3 X 20-mark
+        Select Section B questions: 3 x 20-mark (student chooses 2)
         Structure: Prefer 1 Graph (Question 6) + 2 Essays (Questions 7-8)
         Fallback: Use 3 Essays if no graph available
         """
@@ -190,32 +183,31 @@ class KCSEBiologyPaper2Generator:
         
         selected = []
         
-        # Strategy 1: Try to get 1 graph question + 2 essays (PREFERRED)
+        # Strategy 1: Try to get 1 graph + 2 essays (PREFERRED)
         if len(available_graph) >= 1 and len(available_essay) >= 2:
-            # Use 1 graph question as the first Section B question (Question 6)
             selected.append(available_graph[0])
-            # Add 2 essay questions (Questions 7-8)
             selected.extend(available_essay[:2])
-            print(f"  Section B Strategy: 1 Graph + 2 Essays")
+            print(f"  Section B Strategy: 1 Graph (Q6) + 2 Essays (Q7, Q8)")
         
-        # Strategy 2: No graph available OR not enough essays, use 3 essays (FALLBACK)
+        # Strategy 2: Use 3 essays if no graph available (FALLBACK)
         elif len(available_essay) >= 3:
-            # Use 3 essay questions for all of Section B
             selected.extend(available_essay[:3])
-            print(f"  Section B Strategy: 3 Essays (no graph available)")
-            print(f"    Essay question marks: {[q.marks for q in selected]}")
+            print(f"  Section B Strategy: 3 Essays (Q6, Q7, Q8) - no graph available")
         
-        # Strategy 3: Not enough questions at all
+        # Strategy 3: Not enough questions
         else:
             print(f"  Section B FAILED: Need 3 questions, have {len(available_graph)} graphs + {len(available_essay)} essays")
             return False
         
-        # Verify total
+        # Verify: must have exactly 3 questions, each worth 20 marks (total 60 marks)
         total_marks = sum(q.marks for q in selected)
-        if len(selected) != self.SECTION_B_TOTAL or total_marks != self.SECTION_B_MARKS:
-            print(f"  Section B FAILED: Got {len(selected)} questions with {total_marks} marks")
-            print(f"    Selected question marks: {[q.marks for q in selected]}")
-            print(f"    Selected question IDs: {[q.id for q in selected]}")
+        if len(selected) != self.SECTION_B_QUESTIONS:
+            print(f"  Section B FAILED: Got {len(selected)} questions, need {self.SECTION_B_QUESTIONS}")
+            return False
+        
+        if total_marks != self.SECTION_B_AVAILABLE_MARKS:
+            print(f"  Section B FAILED: Got {total_marks} marks, need {self.SECTION_B_AVAILABLE_MARKS}")
+            print(f"    Individual question marks: {[q.marks for q in selected]}")
             return False
         
         # Accept selection
@@ -228,11 +220,11 @@ class KCSEBiologyPaper2Generator:
         essay_count = sum(1 for q in selected if q in self.section_b_20mark_essay)
         
         print(f"\n[SECTION B SELECTED]")
-        print(f"  Questions: {len(selected)}")
+        print(f"  Questions: {len(selected)} (student chooses 2)")
         print(f"    Question 6: {'Graph' if graph_count > 0 else 'Essay'}")
         print(f"    Questions 7-8: Essays")
-        print(f"  Total: {graph_count} Graph + {essay_count} Essays")
-        print(f"  Total marks: {total_marks}")
+        print(f"  Total marks available: {total_marks}")
+        print(f"  Marks to be answered: {self.SECTION_B_ANSWERED_MARKS} (2 out of 3 questions)")
         
         return True
     
@@ -244,8 +236,10 @@ class KCSEBiologyPaper2Generator:
         print(f"\n{'='*70}")
         print(f"KCSE BIOLOGY PAPER 2 GENERATION")
         print(f"{'='*70}")
-        print(f"Target: Section A (5 X 8mk) + Section B (3 X 20mk) = 80 marks")
-        print(f"Section B Structure: Q6=Graph (or Essay if no graph), Q7-8=Essays")
+        print(f"Structure:")
+        print(f"  Section A: 5 x 8 marks = 40 marks (ALL COMPULSORY)")
+        print(f"  Section B: 3 x 20 marks = 60 marks (CHOOSE 2, ANSWER 40 marks)")
+        print(f"  Paper Total: 100 marks available, 80 marks to be answered")
         
         for attempt in range(1, max_attempts + 1):
             self.attempts = attempt
@@ -256,13 +250,13 @@ class KCSEBiologyPaper2Generator:
             self.selected_question_ids = []
             self.used_ids = set()
             
-            # Select Section A (5 X 8-mark)
+            # Select Section A (5 × 8-mark, all compulsory)
             if not self._select_section_a():
                 if attempt % 10 == 0:
                     print(f"[ATTEMPT {attempt}] Failed at Section A selection")
                 continue
             
-            # Select Section B (3 X 20-mark, graph priority)
+            # Select Section B (3 × 20-mark, choose 2)
             if not self._select_section_b():
                 if attempt % 10 == 0:
                     print(f"[ATTEMPT {attempt}] Failed at Section B selection")
@@ -273,16 +267,27 @@ class KCSEBiologyPaper2Generator:
             
             # Calculate final totals
             total_questions = len(self.selected_section_a) + len(self.selected_section_b)
-            total_marks = sum(q.marks for q in self.selected_section_a) + sum(q.marks for q in self.selected_section_b)
+            section_a_marks = sum(q.marks for q in self.selected_section_a)
+            section_b_marks = sum(q.marks for q in self.selected_section_b)
+            paper_total_marks = section_a_marks + section_b_marks
             
             print(f"\n{'='*70}")
             print(f"SUCCESS! Generated in {attempt} attempts ({generation_time:.2f}s)")
             print(f"{'='*70}")
-            print(f"Total Questions: {total_questions}")
-            print(f"Total Marks: {total_marks}")
+            print(f"Paper Structure:")
+            print(f"  Total Questions: {total_questions}")
+            print(f"  Section A: {len(self.selected_section_a)} questions × 8 marks = {section_a_marks} marks")
+            print(f"  Section B: {len(self.selected_section_b)} questions × 20 marks = {section_b_marks} marks")
+            print(f"  Paper Total: {paper_total_marks} marks available")
+            print(f"  Student Answers: {section_a_marks + self.SECTION_B_ANSWERED_MARKS} marks")
             
-            if total_marks != self.TOTAL_MARKS:
-                print(f"\nERROR: Total marks is {total_marks}, expected {self.TOTAL_MARKS}")
+            # Validate paper structure
+            if total_questions != self.TOTAL_QUESTIONS:
+                print(f"\nERROR: Total questions is {total_questions}, expected {self.TOTAL_QUESTIONS}")
+                continue
+            
+            if paper_total_marks != self.PAPER_TOTAL_MARKS:
+                print(f"\nERROR: Paper total is {paper_total_marks} marks, expected {self.PAPER_TOTAL_MARKS}")
                 continue
             
             return self._build_result(generation_time)
@@ -298,7 +303,7 @@ class KCSEBiologyPaper2Generator:
     def _build_result(self, generation_time: float) -> Dict:
         """Build result with strictly ordered sections"""
         
-        # Combine sections in strict order: Section A first (1-5), then Section B (6-8)
+        # Combine sections in strict order: Section A (1-5), then Section B (6-8)
         all_questions = self.selected_section_a + self.selected_section_b
         
         # Build questions data with proper numbering
@@ -306,13 +311,16 @@ class KCSEBiologyPaper2Generator:
         for idx, question in enumerate(all_questions, start=1):
             self.selected_question_ids.append(str(question.id))
             
-            # Determine which section this question belongs to
+            # Determine section
             section_letter = "A" if idx <= 5 else "B"
+            is_compulsory = idx <= 5  # Section A is all compulsory
             
             questions_data.append({
                 'id': str(question.id),
                 'question_number': idx,
                 'section_letter': section_letter,
+                'is_compulsory': is_compulsory,
+                'instruction': 'Compulsory' if is_compulsory else 'Choose ANY TWO questions from this section',
                 'question_text': question.question_text,
                 'answer_text': question.answer_text,
                 'marks': question.marks,
@@ -335,9 +343,13 @@ class KCSEBiologyPaper2Generator:
         section_b_essay_count = sum(1 for q in self.selected_section_b 
                                      if q in self.section_b_20mark_essay)
         
-        # Identify which question is the graph (should be first in Section B = Question 6)
+        # Check if Question 6 is a graph
         has_graph_at_q6 = (len(self.selected_section_b) > 0 and 
                           self.selected_section_b[0] in self.section_b_20mark_graph)
+        
+        # Calculate marks
+        section_a_marks = sum(q.marks for q in self.selected_section_a)
+        section_b_marks = sum(q.marks for q in self.selected_section_b)
         
         return {
             'paper': {
@@ -348,16 +360,26 @@ class KCSEBiologyPaper2Generator:
                     'name': self.subject.name
                 }
             },
+            'instructions': {
+                'section_a': 'Answer ALL questions in this section',
+                'section_b': 'Answer ANY TWO questions from this section'
+            },
             'questions': questions_data,
             'question_ids': self.selected_question_ids,
             'statistics': {
                 'total_questions': len(all_questions),
-                'total_marks': sum(q.marks for q in all_questions),
-                'section_a_questions': len(self.selected_section_a),
-                'section_a_marks': sum(q.marks for q in self.selected_section_a),
-                'section_b_questions': len(self.selected_section_b),
-                'section_b_marks': sum(q.marks for q in self.selected_section_b),
-                'section_b_breakdown': {
+                'paper_total_marks': section_a_marks + section_b_marks,
+                'student_answers_marks': section_a_marks + self.SECTION_B_ANSWERED_MARKS,
+                'section_a': {
+                    'questions': len(self.selected_section_a),
+                    'marks': section_a_marks,
+                    'instruction': 'All compulsory'
+                },
+                'section_b': {
+                    'questions': len(self.selected_section_b),
+                    'available_marks': section_b_marks,
+                    'answered_marks': self.SECTION_B_ANSWERED_MARKS,
+                    'instruction': 'Choose 2 out of 3',
                     'graph_questions': section_b_graph_count,
                     'essay_questions': section_b_essay_count,
                     'question_6_is_graph': has_graph_at_q6,
@@ -365,48 +387,24 @@ class KCSEBiologyPaper2Generator:
                 'generation_attempts': self.attempts,
                 'generation_time_seconds': round(generation_time, 2),
                 'validation': {
-                    'section_a_count_ok': len(self.selected_section_a) == 5,
-                    'section_a_marks_ok': sum(q.marks for q in self.selected_section_a) == 40,
-                    'section_b_count_ok': len(self.selected_section_b) == 3,
-                    'section_b_marks_ok': sum(q.marks for q in self.selected_section_b) == 40,
+                    'section_a_ok': len(self.selected_section_a) == 5 and section_a_marks == 40,
+                    'section_b_ok': len(self.selected_section_b) == 3 and section_b_marks == 60,
                     'total_questions_ok': len(all_questions) == 8,
-                    'total_marks_ok': sum(q.marks for q in all_questions) == 80,
+                    'paper_total_marks_ok': (section_a_marks + section_b_marks) == 100,
+                    'student_answers_marks_ok': (section_a_marks + self.SECTION_B_ANSWERED_MARKS) == 80,
                 }
             }
         }
-        
-        
-        
+
+
 @require_http_methods(["POST"])
 def validate_paper2_pool(request):
     """
     Validate if there are enough questions in the pool to generate Paper 2
     
-    Expected POST data:
-    {
-        "paper_id": "uuid-string",
-        "selected_topic_ids": ["uuid1", "uuid2", ...]
-    }
-    
-    Returns:
-    {
-        "can_generate": true/false,
-        "available_counts": {
-            "section_a_8mark": int,
-            "section_b_20mark_graph": int,
-            "section_b_20mark_essay": int,
-            "section_b_20mark_total": int
-        },
-        "required_counts": {
-            "section_a_8mark": 5,
-            "section_b_20mark": 3
-        },
-        "validation": {
-            "section_a_ok": true/false,
-            "section_b_ok": true/false
-        },
-        "message": "Success/Error message"
-    }
+    Returns validation for correct KCSE format:
+    - Section A: 5 x 8 marks (all compulsory)
+    - Section B: 3 x 20 marks (choose 2)
     """
     try:
         import json
@@ -439,7 +437,7 @@ def validate_paper2_pool(request):
                 'message': 'No valid topics found'
             }, status=404)
         
-        # Load all questions for selected topics
+        # Load all questions
         all_questions = list(Question.objects.filter(
             subject=paper.subject,
             paper=paper,
@@ -454,22 +452,18 @@ def validate_paper2_pool(request):
         
         for q in all_questions:
             section_name = q.section.name.upper() if q.section else ""
-            question_type = q.kcse_question_type.upper() if q.kcse_question_type else ""
+            is_graph = getattr(q, 'is_graph', False)
             
-            # Section A: 8-mark questions
             if ("SECTION A" in section_name or "SECTION 1" in section_name) and q.marks == 8:
                 section_a_8mark_count += 1
-            
-            # Section B: 20-mark questions (separate by type)
             elif ("SECTION B" in section_name or "SECTION 2" in section_name) and q.marks == 20:
-                if "GRAPH" in question_type or "PLOT" in question_type or "CHART" in question_type:
+                if is_graph:
                     section_b_20mark_graph_count += 1
                 else:
                     section_b_20mark_essay_count += 1
         
-        # Check if we have enough
+        # Validate
         section_b_20mark_total = section_b_20mark_graph_count + section_b_20mark_essay_count
-        
         section_a_ok = section_a_8mark_count >= 5
         section_b_ok = section_b_20mark_total >= 3
         can_generate = section_a_ok and section_b_ok
@@ -477,14 +471,11 @@ def validate_paper2_pool(request):
         # Build message
         issues = []
         if not section_a_ok:
-            issues.append(f"Section A: Need 5 X 8-mark, have {section_a_8mark_count}")
+            issues.append(f"Section A: Need 5 x 8-mark, have {section_a_8mark_count}")
         if not section_b_ok:
-            issues.append(f"Section B: Need 3 X 20-mark, have {section_b_20mark_total}")
+            issues.append(f"Section B: Need 3 x 20-mark, have {section_b_20mark_total}")
         
-        if can_generate:
-            message = "Pool validation successful! Ready to generate Paper 2."
-        else:
-            message = "Insufficient questions. " + "; ".join(issues)
+        message = "Ready to generate Paper 2" if can_generate else "Insufficient questions: " + "; ".join(issues)
         
         return JsonResponse({
             'can_generate': can_generate,
@@ -498,44 +489,29 @@ def validate_paper2_pool(request):
                 'section_a_8mark': 5,
                 'section_b_20mark': 3,
             },
+            'paper_structure': {
+                'section_a': '5 questions x 8 marks = 40 marks (ALL COMPULSORY)',
+                'section_b': '3 questions x 20 marks = 60 marks (CHOOSE 2, ANSWER 40 marks)',
+                'paper_total': '100 marks available',
+                'student_answers': '80 marks'
+            },
             'validation': {
                 'section_a_ok': section_a_ok,
                 'section_b_ok': section_b_ok,
             },
             'message': message
-        }, json_dumps_params={'ensure_ascii': False})
+        })
         
-    except Paper.DoesNotExist:
-        return JsonResponse({
-            'can_generate': False,
-            'message': 'Paper not found'
-        }, status=404, json_dumps_params={'ensure_ascii': False})
     except Exception as e:
         return JsonResponse({
             'can_generate': False,
             'message': f'Validation error: {str(e)}'
-        }, status=500, json_dumps_params={'ensure_ascii': False})
-        
-        
+        }, status=500)
+
+
 @require_http_methods(["POST"])
 def generate_biology_paper2(request):
-    """
-    Generate KCSE Biology Paper 2
-    
-    Expected POST data:
-    {
-        "paper_id": "uuid-string",
-        "selected_topic_ids": ["uuid1", "uuid2", ...]
-    }
-    
-    Returns:
-    {
-        "paper": { ... },
-        "questions": [ ... ],
-        "question_ids": [ ... ],
-        "statistics": { ... }
-    }
-    """
+    """Generate KCSE Biology Paper 2"""
     try:
         import json
         data = json.loads(request.body)
@@ -554,10 +530,8 @@ def generate_biology_paper2(request):
             selected_topic_ids=selected_topic_ids
         )
         
-        # Load data
+        # Load data and generate
         generator.load_data()
-        
-        # Generate paper
         result = generator.generate()
         
         return JsonResponse(result, json_dumps_params={'ensure_ascii': False})
@@ -565,4 +539,4 @@ def generate_biology_paper2(request):
     except Exception as e:
         return JsonResponse({
             'message': f'Generation error: {str(e)}'
-        }, status=500, json_dumps_params={'ensure_ascii': False})
+        }, status=500)
