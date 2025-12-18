@@ -688,7 +688,7 @@ def _generate_section_pages(questions, section_title, section_instruction, start
             
             questions_html += f"""
         <div class="question">
-            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text} <span class="marks">({q.get('marks', 0)} marks)</span></div>
+            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
         
@@ -749,7 +749,7 @@ def _generate_answer_lines_continuation(num_lines, start_page, total_pages):
     total_answer_pages = (num_lines + lines_per_page - 1) // lines_per_page
     pages_html = []
     current_page = start_page
-    
+
     for page_num in range(total_answer_pages):
         lines_on_this_page = min(lines_per_page, num_lines - (page_num * lines_per_page))
         
