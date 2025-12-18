@@ -127,7 +127,7 @@ class KCSEBiologyPaper1Generator:
         # Check if we have nested questions - if not, we'll use standalone only
         self.use_standalone_only = len(self.nested_questions) < self.MIN_NESTED_QUESTIONS
         if self.use_standalone_only:
-            print(f"\n⚠️  WARNING: Not enough nested questions ({len(self.nested_questions)} < {self.MIN_NESTED_QUESTIONS})")
+            print(f"\nWARNING: Not enough nested questions ({len(self.nested_questions)} < {self.MIN_NESTED_QUESTIONS})")
             print(f"  → Using STANDALONE-ONLY mode with priority for 4-6 mark questions")
     
     def _select_nested_questions(self) -> bool:
