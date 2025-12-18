@@ -500,18 +500,18 @@ def validate_paper2_pool(request):
                 'section_b_ok': section_b_ok,
             },
             'message': message
-        })
+        }, json_dumps_params={'ensure_ascii': False})
         
     except Paper.DoesNotExist:
         return JsonResponse({
             'can_generate': False,
             'message': 'Paper not found'
-        }, status=404)
+        }, status=404, json_dumps_params={'ensure_ascii': False})
     except Exception as e:
         return JsonResponse({
             'can_generate': False,
             'message': f'Validation error: {str(e)}'
-        }, status=500)
+        }, status=500, json_dumps_params={'ensure_ascii': False})
         
         
 @require_http_methods(["POST"])
@@ -557,9 +557,9 @@ def generate_biology_paper2(request):
         # Generate paper
         result = generator.generate()
         
-        return JsonResponse(result)
+        return JsonResponse(result, json_dumps_params={'ensure_ascii': False})
         
     except Exception as e:
         return JsonResponse({
             'message': f'Generation error: {str(e)}'
-        }, status=500)
+        }, status=500, json_dumps_params={'ensure_ascii': False})
