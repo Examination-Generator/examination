@@ -538,7 +538,7 @@ def generate_biology_paper2(request):
         data = json.loads(request.body)
         
         paper_id = data.get('paper_id')
-        selected_topic_ids = data.get('selected_topic_ids', [])
+        selected_topic_ids = data.get('topic_ids', [])
         
         if not paper_id or not selected_topic_ids:
             return JsonResponse({
