@@ -21,8 +21,8 @@ from .models import Paper, Topic, Question, Subject
 class KCSEBiologyPaper2Generator:
     """
     KCSE Biology Paper 2 Generator - Correct Format
-    Section A: 5 x 8-mark questions = 40 marks (all compulsory)
-    Section B: 3 x 20-mark questions = 60 marks (choose 2, answer 40 marks)
+    Section A: 5 X 8-mark questions = 40 marks (all compulsory)
+    Section B: 3 X 20-mark questions = 60 marks (choose 2, answer 40 marks)
     Paper Total: 100 marks available, 80 marks to be answered
     """
     
@@ -144,7 +144,7 @@ class KCSEBiologyPaper2Generator:
             )
     
     def _select_section_a(self) -> bool:
-        """Select Section A questions: 5 x 8-mark (all compulsory)"""
+        """Select Section A questions: 5 X 8-mark (all compulsory)"""
         # Check availability
         available = [q for q in self.section_a_8mark if q.id not in self.used_ids]
         
@@ -173,7 +173,7 @@ class KCSEBiologyPaper2Generator:
     
     def _select_section_b(self) -> bool:
         """
-        Select Section B questions: 3 x 20-mark (student chooses 2)
+        Select Section B questions: 3 X 20-mark (student chooses 2)
         Structure: Prefer 1 Graph (Question 6) + 2 Essays (Questions 7-8)
         Fallback: Use 3 Essays if no graph available
         """
@@ -237,8 +237,8 @@ class KCSEBiologyPaper2Generator:
         print(f"KCSE BIOLOGY PAPER 2 GENERATION")
         print(f"{'='*70}")
         print(f"Structure:")
-        print(f"  Section A: 5 x 8 marks = 40 marks (ALL COMPULSORY)")
-        print(f"  Section B: 3 x 20 marks = 60 marks (CHOOSE 2, ANSWER 40 marks)")
+        print(f"  Section A: 5  X  8 marks = 40 marks (ALL COMPULSORY)")
+        print(f"  Section B: 3 X 20 marks = 60 marks (CHOOSE 2, ANSWER 40 marks)")
         print(f"  Paper Total: 100 marks available, 80 marks to be answered")
         
         for attempt in range(1, max_attempts + 1):
@@ -276,8 +276,8 @@ class KCSEBiologyPaper2Generator:
             print(f"{'='*70}")
             print(f"Paper Structure:")
             print(f"  Total Questions: {total_questions}")
-            print(f"  Section A: {len(self.selected_section_a)} questions × 8 marks = {section_a_marks} marks")
-            print(f"  Section B: {len(self.selected_section_b)} questions × 20 marks = {section_b_marks} marks")
+            print(f"  Section A: {len(self.selected_section_a)} questions X 8 marks = {section_a_marks} marks")
+            print(f"  Section B: {len(self.selected_section_b)} questions X 20 marks = {section_b_marks} marks")
             print(f"  Paper Total: {paper_total_marks} marks available")
             print(f"  Student Answers: {section_a_marks + self.SECTION_B_ANSWERED_MARKS} marks")
             
@@ -403,8 +403,8 @@ def validate_paper2_pool(request):
     Validate if there are enough questions in the pool to generate Paper 2
     
     Returns validation for correct KCSE format:
-    - Section A: 5 x 8 marks (all compulsory)
-    - Section B: 3 x 20 marks (choose 2)
+    - Section A: 5 X 8 marks (all compulsory)
+    - Section B: 3 X 20 marks (choose 2)
     """
     try:
         import json
@@ -471,9 +471,9 @@ def validate_paper2_pool(request):
         # Build message
         issues = []
         if not section_a_ok:
-            issues.append(f"Section A: Need 5 x 8-mark, have {section_a_8mark_count}")
+            issues.append(f"Section A: Need 5 X 8-mark, have {section_a_8mark_count}")
         if not section_b_ok:
-            issues.append(f"Section B: Need 3 x 20-mark, have {section_b_20mark_total}")
+            issues.append(f"Section B: Need 3 X 20-mark, have {section_b_20mark_total}")
         
         message = "Ready to generate Paper 2" if can_generate else "Insufficient questions: " + "; ".join(issues)
         
@@ -490,8 +490,8 @@ def validate_paper2_pool(request):
                 'section_b_20mark': 3,
             },
             'paper_structure': {
-                'section_a': '5 questions x 8 marks = 40 marks (ALL COMPULSORY)',
-                'section_b': '3 questions x 20 marks = 60 marks (CHOOSE 2, ANSWER 40 marks)',
+                'section_a': '5 questions X 8 marks = 40 marks (ALL COMPULSORY)',
+                'section_b': '3 questions X 20 marks = 60 marks (CHOOSE 2, ANSWER 40 marks)',
                 'paper_total': '100 marks available',
                 'student_answers': '80 marks'
             },
