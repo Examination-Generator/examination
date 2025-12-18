@@ -562,9 +562,10 @@ def generate_biology_paper2(request):
         # Get user from request if available
         user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
         
-        # Generate unique code
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        unique_code = f"KCSE-BIO-P2-{timestamp}"
+        # Generate unique code (max 20 chars)
+        # Format: BIO2-YYMMDDHHMMSS (17 chars)
+        timestamp = datetime.now().strftime('%y%m%d%H%M%S')
+        unique_code = f"BIO2-{timestamp}"
         
         # Initialize generator
         generator = KCSEBiologyPaper2Generator(
@@ -585,7 +586,7 @@ def generate_biology_paper2(request):
             question_ids=result['question_ids'],
             selected_topics=selected_topic_ids,
             topic_adjustments={},  # No adjustments in Paper 2
-            total_marks=result['statistics']['student_answers_marks'],
+            total_marks=result['statistics']['paper_total_marks'],
             total_questions=result['statistics']['total_questions'],
             mark_distribution=result['mark_distribution'],
             topic_distribution=result['topic_distribution'],
@@ -610,7 +611,6 @@ def generate_biology_paper2(request):
             'question_ids': result['question_ids'],
             'instructions': result['instructions'],
             'statistics': result['statistics'],
-            # Additional fields for frontend compatibility
             'unique_code': unique_code,
             'generated_paper_id': str(generated_paper.id),
             'total_marks': result['statistics']['paper_total_marks'],
