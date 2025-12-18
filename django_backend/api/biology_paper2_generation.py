@@ -410,7 +410,7 @@ def validate_paper2_pool(request):
         data = json.loads(request.body)
         
         paper_id = data.get('paper_id')
-        selected_topic_ids = data.get('selected_topic_ids', [])
+        selected_topic_ids = data.get('selected_topics', [])
         
         if not paper_id or not selected_topic_ids:
             return JsonResponse({
