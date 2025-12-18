@@ -119,18 +119,15 @@ class KCSEBiologyPaper2Generator:
         # Separate questions by section, marks, and type
         for q in self.all_questions:
             section_name = q.section.name.upper() if q.section else ""
-            question_type = q.kcse_question_type.upper() if q.kcse_question_type else ""
-            
+            # Use is_graph field for graph questions
+            is_graph = getattr(q, 'is_graph', False)
             # Section A: 8-mark questions
             if ("SECTION A" in section_name or "SECTION 1" in section_name) and q.marks == 8:
                 self.section_a_8mark.append(q)
-            
-            # Section B: 20-mark questions (separate by type)
+            # Section B: 20-mark questions (separate by is_graph field)
             elif ("SECTION B" in section_name or "SECTION 2" in section_name) and q.marks == 20:
-                # Check if it's a graph question
-                if "GRAPH" in question_type or "PLOT" in question_type or "CHART" in question_type:
+                if is_graph:
                     self.section_b_20mark_graph.append(q)
-                # Otherwise it's an essay
                 else:
                     self.section_b_20mark_essay.append(q)
         
@@ -206,6 +203,7 @@ class KCSEBiologyPaper2Generator:
             # Use 3 essay questions for all of Section B
             selected.extend(available_essay[:3])
             print(f"  Section B Strategy: 3 Essays (no graph available)")
+            print(f"    Essay question marks: {[q.marks for q in selected]}")
         
         # Strategy 3: Not enough questions at all
         else:
@@ -216,6 +214,8 @@ class KCSEBiologyPaper2Generator:
         total_marks = sum(q.marks for q in selected)
         if len(selected) != self.SECTION_B_TOTAL or total_marks != self.SECTION_B_MARKS:
             print(f"  Section B FAILED: Got {len(selected)} questions with {total_marks} marks")
+            print(f"    Selected question marks: {[q.marks for q in selected]}")
+            print(f"    Selected question IDs: {[q.id for q in selected]}")
             return False
         
         # Accept selection
