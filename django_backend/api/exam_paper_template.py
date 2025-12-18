@@ -731,9 +731,9 @@ def _generate_section_pages(questions, section_title, section_instruction, start
     
     if is_last_section and answer_lines > 0:
         initial_lines = 8
-        remaining_lines = answer_lines - initial_lines
-        answer_lines_html = _generate_answer_lines_continuation(remaining_lines, current_page, total_pages)
-        pages_html.append(answer_lines_html)
+        # remaining_lines = answer_lines - initial_lines
+        # answer_lines_html = _generate_answer_lines_continuation(remaining_lines, current_page, total_pages)
+        # pages_html.append(answer_lines_html)
     
     return {'html': '\n'.join(pages_html), 'next_page': current_page}
 
