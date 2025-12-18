@@ -11,11 +11,12 @@ import random
 import time
 from collections import defaultdict
 from typing import List, Dict, Optional
+from datetime import datetime
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
-from .models import Paper, Topic, Question, Subject
+from .models import Paper, Topic, Question, Subject, GeneratedPaper
 
 
 class KCSEBiologyPaper2Generator:
@@ -42,16 +43,18 @@ class KCSEBiologyPaper2Generator:
     PAPER_TOTAL_MARKS = 100  # Total marks on paper
     STUDENT_ANSWERS_MARKS = 80  # Total marks student answers
     
-    def __init__(self, paper_id: str, selected_topic_ids: List[str]):
+    def __init__(self, paper_id: str, selected_topic_ids: List[str], user=None):
         """
         Initialize generator
         
         Args:
             paper_id: UUID of Biology Paper 2
             selected_topic_ids: List of topic UUIDs
+            user: User object (optional)
         """
         self.paper_id = paper_id
         self.selected_topic_ids = selected_topic_ids
+        self.user = user
         
         # Data storage
         self.paper = None
@@ -72,6 +75,7 @@ class KCSEBiologyPaper2Generator:
         
         # Statistics
         self.attempts = 0
+        self.generation_start_time = None
     
     def load_data(self):
         """Load all questions from database for selected topics"""
@@ -231,13 +235,13 @@ class KCSEBiologyPaper2Generator:
     def generate(self) -> Dict:
         """Generate Biology Paper 2"""
         max_attempts = 100
-        start_time = time.time()
+        self.generation_start_time = time.time()
         
         print(f"\n{'='*70}")
         print(f"KCSE BIOLOGY PAPER 2 GENERATION")
         print(f"{'='*70}")
         print(f"Structure:")
-        print(f"  Section A: 5  X  8 marks = 40 marks (ALL COMPULSORY)")
+        print(f"  Section A: 5 X 8 marks = 40 marks (ALL COMPULSORY)")
         print(f"  Section B: 3 X 20 marks = 60 marks (CHOOSE 2, ANSWER 40 marks)")
         print(f"  Paper Total: 100 marks available, 80 marks to be answered")
         
@@ -263,7 +267,7 @@ class KCSEBiologyPaper2Generator:
                 continue
             
             # Success!
-            generation_time = time.time() - start_time
+            generation_time = time.time() - self.generation_start_time
             
             # Calculate final totals
             total_questions = len(self.selected_section_a) + len(self.selected_section_b)
@@ -351,6 +355,37 @@ class KCSEBiologyPaper2Generator:
         section_a_marks = sum(q.marks for q in self.selected_section_a)
         section_b_marks = sum(q.marks for q in self.selected_section_b)
         
+        # Build mark distribution
+        mark_distribution = {
+            '8': len(self.selected_section_a),
+            '20': len(self.selected_section_b)
+        }
+        
+        # Build topic distribution
+        topic_distribution = defaultdict(int)
+        for q in all_questions:
+            topic_distribution[str(q.topic.id)] += 1
+        
+        # Build question type distribution
+        question_type_distribution = defaultdict(int)
+        for q in all_questions:
+            qtype = q.kcse_question_type or 'Unknown'
+            question_type_distribution[qtype] += 1
+        
+        # Build validation report
+        validation_report = {
+            'all_passed': True,
+            'checks': {
+                'section_a_count': len(self.selected_section_a) == 5,
+                'section_a_marks': section_a_marks == 40,
+                'section_b_count': len(self.selected_section_b) == 3,
+                'section_b_marks': section_b_marks == 60,
+                'total_questions': len(all_questions) == 8,
+                'paper_total_marks': (section_a_marks + section_b_marks) == 100,
+            }
+        }
+        validation_report['all_passed'] = all(validation_report['checks'].values())
+        
         return {
             'paper': {
                 'id': str(self.paper.id),
@@ -366,6 +401,12 @@ class KCSEBiologyPaper2Generator:
             },
             'questions': questions_data,
             'question_ids': self.selected_question_ids,
+            'all_questions': all_questions,  # Keep actual question objects for DB storage
+            'mark_distribution': dict(mark_distribution),
+            'topic_distribution': dict(topic_distribution),
+            'question_type_distribution': dict(question_type_distribution),
+            'validation_report': validation_report,
+            'generation_time': generation_time,
             'statistics': {
                 'total_questions': len(all_questions),
                 'paper_total_marks': section_a_marks + section_b_marks,
@@ -386,13 +427,7 @@ class KCSEBiologyPaper2Generator:
                 },
                 'generation_attempts': self.attempts,
                 'generation_time_seconds': round(generation_time, 2),
-                'validation': {
-                    'section_a_ok': len(self.selected_section_a) == 5 and section_a_marks == 40,
-                    'section_b_ok': len(self.selected_section_b) == 3 and section_b_marks == 60,
-                    'total_questions_ok': len(all_questions) == 8,
-                    'paper_total_marks_ok': (section_a_marks + section_b_marks) == 100,
-                    'student_answers_marks_ok': (section_a_marks + self.SECTION_B_ANSWERED_MARKS) == 80,
-                }
+                'validation': validation_report['checks']
             }
         }
 
@@ -524,31 +559,75 @@ def generate_biology_paper2(request):
                 'message': 'Missing paper_id or selected_topic_ids'
             }, status=400)
         
+        # Get user from request if available
+        user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
+        
+        # Generate unique code
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        unique_code = f"KCSE-BIO-P2-{timestamp}"
+        
         # Initialize generator
         generator = KCSEBiologyPaper2Generator(
             paper_id=paper_id,
-            selected_topic_ids=selected_topic_ids
+            selected_topic_ids=selected_topic_ids,
+            user=user
         )
         
         # Load data and generate
         generator.load_data()
         result = generator.generate()
-        # Add expected fields for frontend compatibility
+        
+        # Create GeneratedPaper record
+        generated_paper = GeneratedPaper.objects.create(
+            paper=generator.paper,
+            unique_code=unique_code,
+            status='validated',
+            question_ids=result['question_ids'],
+            selected_topics=selected_topic_ids,
+            topic_adjustments={},  # No adjustments in Paper 2
+            total_marks=result['statistics']['student_answers_marks'],
+            total_questions=result['statistics']['total_questions'],
+            mark_distribution=result['mark_distribution'],
+            topic_distribution=result['topic_distribution'],
+            question_type_distribution=result['question_type_distribution'],
+            validation_passed=result['validation_report']['all_passed'],
+            validation_report=result['validation_report'],
+            generation_attempts=generator.attempts,
+            backtracking_count=0,  # No backtracking in Paper 2
+            generation_time_seconds=result['generation_time'],
+            generated_by=user,
+        )
+        
+        print(f"\n[DATABASE RECORD CREATED]")
+        print(f"  Unique Code: {unique_code}")
+        print(f"  Record ID: {generated_paper.id}")
+        print(f"  Status: {generated_paper.status}")
+        
+        # Build response with all required fields
         response = {
-            'paper': result.get('paper', {}),
-            'questions': result.get('questions', []),
-            'question_ids': result.get('question_ids', []),
-            'statistics': result.get('statistics', {}),
-            # Add these fields for frontend compatibility
-            'unique_code': result.get('paper', {}).get('code', 'N/A'),
-            'total_marks': result.get('statistics', {}).get('total_marks', 0),
-            'num_questions': len(result.get('questions', [])),
-            'status': 'DRAFT',
-            'paper_id': result.get('paper', {}).get('id', None),
+            'paper': result['paper'],
+            'questions': result['questions'],
+            'question_ids': result['question_ids'],
+            'instructions': result['instructions'],
+            'statistics': result['statistics'],
+            # Additional fields for frontend compatibility
+            'unique_code': unique_code,
+            'generated_paper_id': str(generated_paper.id),
+            'total_marks': result['statistics']['paper_total_marks'],
+            'student_answers_marks': result['statistics']['student_answers_marks'],
+            'num_questions': result['statistics']['total_questions'],
+            'status': generated_paper.status,
+            'paper_id': str(generator.paper.id),
+            'created_at': generated_paper.created_at.isoformat() if hasattr(generated_paper, 'created_at') else None,
         }
+        
         return JsonResponse(response, json_dumps_params={'ensure_ascii': False})
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"\n[GENERATION ERROR]")
+        print(error_details)
         return JsonResponse({
             'message': f'Generation error: {str(e)}'
         }, status=500)
