@@ -184,34 +184,38 @@ class KCSEBiologyPaper2Generator:
     def _select_section_b(self) -> bool:
         """
         Select Section B questions: 3 X 20-mark
-        Structure: 1 Graph (Question 6) + 2 Essays (Questions 7-8)
+        Structure: Prefer 1 Graph (Question 6) + 2 Essays (Questions 7-8)
+        Fallback: Use 3 Essays if no graph available
         """
         # Get available questions
         available_graph = [q for q in self.section_b_20mark_graph if q.id not in self.used_ids]
         available_essay = [q for q in self.section_b_20mark_essay if q.id not in self.used_ids]
         
-        # We need: 1 graph + 2 essays = 3 questions
-        # If no graph available, use 3 essays
-        
         selected = []
         
-        # Strategy: Try to get 1 graph question first, then 2 essays
-        # Step 1: Try to get 1 graph question (for Question 6)
+        # Strategy 1: Try to get 1 graph question + 2 essays (PREFERRED)
         if len(available_graph) >= 1 and len(available_essay) >= 2:
             # Use 1 graph question as the first Section B question (Question 6)
             selected.append(available_graph[0])
             # Add 2 essay questions (Questions 7-8)
             selected.extend(available_essay[:2])
-        # Strategy 2: No graph available, use 3 essays
+            print(f"  Section B Strategy: 1 Graph + 2 Essays")
+        
+        # Strategy 2: No graph available OR not enough essays, use 3 essays (FALLBACK)
         elif len(available_essay) >= 3:
             # Use 3 essay questions for all of Section B
             selected.extend(available_essay[:3])
+            print(f"  Section B Strategy: 3 Essays (no graph available)")
+        
+        # Strategy 3: Not enough questions at all
         else:
+            print(f"  Section B FAILED: Need 3 questions, have {len(available_graph)} graphs + {len(available_essay)} essays")
             return False
         
         # Verify total
         total_marks = sum(q.marks for q in selected)
         if len(selected) != self.SECTION_B_TOTAL or total_marks != self.SECTION_B_MARKS:
+            print(f"  Section B FAILED: Got {len(selected)} questions with {total_marks} marks")
             return False
         
         # Accept selection
@@ -225,8 +229,9 @@ class KCSEBiologyPaper2Generator:
         
         print(f"\n[SECTION B SELECTED]")
         print(f"  Questions: {len(selected)}")
-        print(f"    Question 6 (Graph): {graph_count}")
-        print(f"    Questions 7-8 (Essays): {essay_count}")
+        print(f"    Question 6: {'Graph' if graph_count > 0 else 'Essay'}")
+        print(f"    Questions 7-8: Essays")
+        print(f"  Total: {graph_count} Graph + {essay_count} Essays")
         print(f"  Total marks: {total_marks}")
         
         return True
