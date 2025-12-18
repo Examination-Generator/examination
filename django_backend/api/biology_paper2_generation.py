@@ -512,3 +512,54 @@ def validate_paper2_pool(request):
             'can_generate': False,
             'message': f'Validation error: {str(e)}'
         }, status=500)
+        
+        
+@require_http_methods(["POST"])
+def generate_biology_paper2(request):
+    """
+    Generate KCSE Biology Paper 2
+    
+    Expected POST data:
+    {
+        "paper_id": "uuid-string",
+        "selected_topic_ids": ["uuid1", "uuid2", ...]
+    }
+    
+    Returns:
+    {
+        "paper": { ... },
+        "questions": [ ... ],
+        "question_ids": [ ... ],
+        "statistics": { ... }
+    }
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+        
+        paper_id = data.get('paper_id')
+        selected_topic_ids = data.get('selected_topic_ids', [])
+        
+        if not paper_id or not selected_topic_ids:
+            return JsonResponse({
+                'message': 'Missing paper_id or selected_topic_ids'
+            }, status=400)
+        
+        # Initialize generator
+        generator = KCSEBiologyPaper2Generator(
+            paper_id=paper_id,
+            selected_topic_ids=selected_topic_ids
+        )
+        
+        # Load data
+        generator.load_data()
+        
+        # Generate paper
+        result = generator.generate()
+        
+        return JsonResponse(result)
+        
+    except Exception as e:
+        return JsonResponse({
+            'message': f'Generation error: {str(e)}'
+        }, status=500)
