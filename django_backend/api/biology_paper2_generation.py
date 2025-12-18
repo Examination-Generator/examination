@@ -3,8 +3,8 @@ KCSE Biology Paper 2 Generator
 Fixed to reach exactly 80 marks with proper section ordering
 
 REQUIREMENTS:
-- Section A: 5 questions × 8 marks = 40 marks (Questions 1-5)
-- Section B: 3 questions × 20 marks = 40 marks (Questions 6-8)
+- Section A: 5 questions X 8 marks = 40 marks (Questions 1-5)
+- Section B: 3 questions X 20 marks = 40 marks (Questions 6-8)
   * Question 6: Graph question (priority), fallback to Essay if no graph
   * Questions 7-8: Essay questions (always)
 - Total: 8 questions, exactly 80 marks
@@ -17,8 +17,8 @@ The previous generator was stopping at 73 marks because:
 3. The algorithm needs to target EXACTLY 8-mark and 20-mark questions
 
 SOLUTION:
-- Section A: Select exactly 5 × 8-mark questions
-- Section B: Select exactly 3 × 20-mark questions
+- Section A: Select exactly 5 X 8-mark questions
+- Section B: Select exactly 3 X 20-mark questions
 - Prioritize graph questions in Section B before falling back to essays
 """
 
@@ -36,8 +36,8 @@ from .models import Paper, Topic, Question, Subject
 class KCSEBiologyPaper2Generator:
     """
     KCSE Biology Paper 2 Generator
-    Section A: 5 × 8-mark questions = 40 marks
-    Section B: 3 × 20-mark questions = 40 marks (graph priority, then essay)
+    Section A: 5 X 8-mark questions = 40 marks
+    Section B: 3 X 20-mark questions = 40 marks (graph priority, then essay)
     Total: 8 questions, 80 marks, strictly ordered
     """
     
@@ -155,7 +155,7 @@ class KCSEBiologyPaper2Generator:
             print(f"\nWARNING: Not enough 20-mark questions for Section B!")
     
     def _select_section_a(self) -> bool:
-        """Select Section A questions: 5 × 8-mark"""
+        """Select Section A questions: 5 X 8-mark"""
         # Check availability
         available = [q for q in self.section_a_8mark if q.id not in self.used_ids]
         
@@ -183,7 +183,7 @@ class KCSEBiologyPaper2Generator:
     
     def _select_section_b(self) -> bool:
         """
-        Select Section B questions: 3 × 20-mark
+        Select Section B questions: 3 X 20-mark
         Structure: 1 Graph (Question 6) + 2 Essays (Questions 7-8)
         """
         # Get available questions
@@ -241,7 +241,7 @@ class KCSEBiologyPaper2Generator:
         print(f"\n{'='*70}")
         print(f"KCSE BIOLOGY PAPER 2 GENERATION")
         print(f"{'='*70}")
-        print(f"Target: Section A (5×8mk) + Section B (3×20mk) = 80 marks")
+        print(f"Target: Section A (5 X 8mk) + Section B (3 X 20mk) = 80 marks")
         print(f"Section B Structure: Q6=Graph (or Essay if no graph), Q7-8=Essays")
         
         for attempt in range(1, max_attempts + 1):
@@ -253,13 +253,13 @@ class KCSEBiologyPaper2Generator:
             self.selected_question_ids = []
             self.used_ids = set()
             
-            # Select Section A (5 × 8-mark)
+            # Select Section A (5 X 8-mark)
             if not self._select_section_a():
                 if attempt % 10 == 0:
                     print(f"[ATTEMPT {attempt}] Failed at Section A selection")
                 continue
             
-            # Select Section B (3 × 20-mark, graph priority)
+            # Select Section B (3 X 20-mark, graph priority)
             if not self._select_section_b():
                 if attempt % 10 == 0:
                     print(f"[ATTEMPT {attempt}] Failed at Section B selection")
@@ -474,9 +474,9 @@ def validate_paper2_pool(request):
         # Build message
         issues = []
         if not section_a_ok:
-            issues.append(f"Section A: Need 5 × 8-mark, have {section_a_8mark_count}")
+            issues.append(f"Section A: Need 5 X 8-mark, have {section_a_8mark_count}")
         if not section_b_ok:
-            issues.append(f"Section B: Need 3 × 20-mark, have {section_b_20mark_total}")
+            issues.append(f"Section B: Need 3 X 20-mark, have {section_b_20mark_total}")
         
         if can_generate:
             message = "Pool validation successful! Ready to generate Paper 2."
