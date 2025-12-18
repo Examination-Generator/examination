@@ -27,6 +27,9 @@ import time
 from collections import defaultdict
 from typing import List, Dict, Optional
 
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+
 from .models import Paper, Topic, Question, Subject
 
 
@@ -368,3 +371,144 @@ class KCSEBiologyPaper2Generator:
                 }
             }
         }
+        
+        
+        
+@require_http_methods(["POST"])
+def validate_paper2_pool(request):
+    """
+    Validate if there are enough questions in the pool to generate Paper 2
+    
+    Expected POST data:
+    {
+        "paper_id": "uuid-string",
+        "selected_topic_ids": ["uuid1", "uuid2", ...]
+    }
+    
+    Returns:
+    {
+        "can_generate": true/false,
+        "available_counts": {
+            "section_a_8mark": int,
+            "section_b_20mark_graph": int,
+            "section_b_20mark_essay": int,
+            "section_b_20mark_total": int
+        },
+        "required_counts": {
+            "section_a_8mark": 5,
+            "section_b_20mark": 3
+        },
+        "validation": {
+            "section_a_ok": true/false,
+            "section_b_ok": true/false
+        },
+        "message": "Success/Error message"
+    }
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+        
+        paper_id = data.get('paper_id')
+        selected_topic_ids = data.get('selected_topic_ids', [])
+        
+        if not paper_id or not selected_topic_ids:
+            return JsonResponse({
+                'can_generate': False,
+                'message': 'Missing paper_id or selected_topic_ids'
+            }, status=400)
+        
+        # Load paper and topics
+        paper = Paper.objects.select_related('subject').get(
+            id=paper_id,
+            is_active=True
+        )
+        
+        topics = list(Topic.objects.filter(
+            id__in=selected_topic_ids,
+            paper=paper,
+            is_active=True
+        ))
+        
+        if not topics:
+            return JsonResponse({
+                'can_generate': False,
+                'message': 'No valid topics found'
+            }, status=404)
+        
+        # Load all questions for selected topics
+        all_questions = list(Question.objects.filter(
+            subject=paper.subject,
+            paper=paper,
+            topic__in=topics,
+            is_active=True
+        ).select_related('topic', 'section'))
+        
+        # Count questions by type
+        section_a_8mark_count = 0
+        section_b_20mark_graph_count = 0
+        section_b_20mark_essay_count = 0
+        
+        for q in all_questions:
+            section_name = q.section.name.upper() if q.section else ""
+            question_type = q.kcse_question_type.upper() if q.kcse_question_type else ""
+            
+            # Section A: 8-mark questions
+            if ("SECTION A" in section_name or "SECTION 1" in section_name) and q.marks == 8:
+                section_a_8mark_count += 1
+            
+            # Section B: 20-mark questions (separate by type)
+            elif ("SECTION B" in section_name or "SECTION 2" in section_name) and q.marks == 20:
+                if "GRAPH" in question_type or "PLOT" in question_type or "CHART" in question_type:
+                    section_b_20mark_graph_count += 1
+                else:
+                    section_b_20mark_essay_count += 1
+        
+        # Check if we have enough
+        section_b_20mark_total = section_b_20mark_graph_count + section_b_20mark_essay_count
+        
+        section_a_ok = section_a_8mark_count >= 5
+        section_b_ok = section_b_20mark_total >= 3
+        can_generate = section_a_ok and section_b_ok
+        
+        # Build message
+        issues = []
+        if not section_a_ok:
+            issues.append(f"Section A: Need 5 × 8-mark, have {section_a_8mark_count}")
+        if not section_b_ok:
+            issues.append(f"Section B: Need 3 × 20-mark, have {section_b_20mark_total}")
+        
+        if can_generate:
+            message = "Pool validation successful! Ready to generate Paper 2."
+        else:
+            message = "Insufficient questions. " + "; ".join(issues)
+        
+        return JsonResponse({
+            'can_generate': can_generate,
+            'available_counts': {
+                'section_a_8mark': section_a_8mark_count,
+                'section_b_20mark_graph': section_b_20mark_graph_count,
+                'section_b_20mark_essay': section_b_20mark_essay_count,
+                'section_b_20mark_total': section_b_20mark_total,
+            },
+            'required_counts': {
+                'section_a_8mark': 5,
+                'section_b_20mark': 3,
+            },
+            'validation': {
+                'section_a_ok': section_a_ok,
+                'section_b_ok': section_b_ok,
+            },
+            'message': message
+        })
+        
+    except Paper.DoesNotExist:
+        return JsonResponse({
+            'can_generate': False,
+            'message': 'Paper not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'can_generate': False,
+            'message': f'Validation error: {str(e)}'
+        }, status=500)
