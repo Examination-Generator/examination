@@ -464,7 +464,7 @@ class BiologyPaper1Coverpage:
         # Fill remaining cells in second row with empty cells (up to 16 total cells)
         remaining_cells = 16 - second_row_count
         for i in range(remaining_cells):
-            second_row_html += '    <td class="empty-question-cell">&nbsp;</td>\n'
+            second_row_html += '    <td class="empty-question-cell" style="border: none;">&nbsp;</td>\n'
         
         # # Add empty gap cell before Grand Total
         # second_row_html += '    <td class="gap-cell">&nbsp;</td>\n'
@@ -483,7 +483,7 @@ class BiologyPaper1Coverpage:
         
         # Fill remaining answer boxes
         for i in range(remaining_cells):
-            second_row_boxes += '    <td class="empty-question-cell">&nbsp;</td>\n'
+            second_row_boxes += '    <td class="empty-question-cell" style="border: none;">&nbsp;</td>\n'
         
         # # Add empty gap cell (matching the one above)
         # second_row_boxes += '    <td class="gap-cell">&nbsp;</td>\n'
