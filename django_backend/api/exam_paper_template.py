@@ -116,7 +116,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     if total_pages is None:
         if is_paper2:
             # Paper 2: 1 coverpage + 3 Section A pages + 2 Section B pages + 4 answer pages
-            total_pages = 10
+            total_pages = 6
         else:
             # Paper 1: Assuming ~3-4 questions per page
             total_pages = 1 + ((len(questions) + 2) // 3)
@@ -835,8 +835,8 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
 
                 questions_html += f"""
         <div class=\"section-header\"> 
-            <h2>Section {current_section}</h2>
-            <div class=\"section-instruction\">{instruction_text}</div>
+           <!-- <h2>Section {current_section}</h2> -->
+            <div class=\"section-instruction\" style=\"font-style: italic;\">{instruction_text}</div>
         </div>
 """
                 last_section = current_section
