@@ -2343,14 +2343,40 @@ useEffect(() => {
             
             // Apply text search filter if query exists
             if (query && query.trim().length >= 2) {
-                const searchTerm = query.toLowerCase();
-                filtered = filtered.filter(q => 
-                    q.question_text?.toLowerCase().includes(searchTerm) ||
-                    q.answer_text?.toLowerCase().includes(searchTerm) ||
-                    q.subject_name?.toLowerCase().includes(searchTerm) ||
-                    q.topic_name?.toLowerCase().includes(searchTerm)
-                );
-                console.log(`📝 After text search: ${filtered.length} questions`);
+
+                const searchTerm = query
+                                .replace(/…/g, '') 
+                                .replace(/\s+/g, ' ') 
+                                .trim()
+                                .toLowerCase();
+
+                if (searchTerm.length < 2) {
+                    console.log('Search term too short after cleaning');
+                    return;
+                }
+
+                filtered = filtered.filter(q => {
+                    const searchableText = [
+                        q.question_text || '',
+                        q.answer_text || '',
+                        q.subject_name || '',
+                        q.topic_name || ''
+                    ].join(' ').toLowerCase();
+                    
+                    return searchableText.includes(searchTerm);
+                });
+
+                console.log(`After text search for "${searchTerm}": ${filtered.length} questions`);
+                // const searchTerm = query.toLowerCase();
+                // filtered = filtered.filter(q => 
+                //     q.question_text?.toLowerCase().includes(searchTerm) ||
+                //     q.answer_text?.toLowerCase().includes(searchTerm) ||
+                //     q.subject_name?.toLowerCase().includes(searchTerm) ||
+                //     q.topic_name?.toLowerCase().includes(searchTerm)
+                // );
+
+
+                // console.log(`📝 After text search: ${filtered.length} questions`);
             }
             
             // Apply subject filter
