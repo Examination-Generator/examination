@@ -2322,7 +2322,7 @@ useEffect(() => {
             const allQuestions = await questionService.getAllQuestions({ limit: 10000 });
             let filtered = [...allQuestions];
             
-            console.log('🔍 Search filters applied:', {
+            console.log('Search filters applied:', {
                 query,
                 editFilterSubject,
                 editFilterPaper,
@@ -2331,6 +2331,15 @@ useEffect(() => {
                 editFilterType,
                 totalQuestions: allQuestions.length
             });
+
+            console.log('Sample question structure:', allQuestions[0]);
+            console.log('Field check for first 5 questions:', allQuestions.slice(0, 5).map(q => ({
+                has_question_text: !!q.question_text,
+                has_answer_text: !!q.answer_text,
+                has_subject_name: !!q.subject_name,
+                has_topic_name: !!q.topic_name,
+                actual_keys: Object.keys(q)
+            })));
             
             // Apply text search filter if query exists
             if (query && query.trim().length >= 2) {
