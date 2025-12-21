@@ -277,16 +277,36 @@ export default function EditorDashboard({ onLogout }) {
     useEffect(() => {
         if (activeTab !== 'edit') return;
 
+        // Helper to apply edit filters to an in-memory list
+        const applyEditFiltersToList = (list) => {
+            if (!Array.isArray(list)) return [];
+            let filtered = [...list];
+            if (editFilterSubject) filtered = filtered.filter(q => q.subject_name === editFilterSubject);
+            if (editFilterPaper) filtered = filtered.filter(q => q.paper_name === editFilterPaper);
+            if (editFilterTopic) filtered = filtered.filter(q => q.topic_name === editFilterTopic);
+            if (editFilterStatus && editFilterStatus !== 'all') {
+                filtered = filtered.filter(q => editFilterStatus === 'active' ? q.is_active !== false : q.is_active === false);
+            }
+            if (editFilterType && editFilterType !== 'all') {
+                if (editFilterType === 'nested') filtered = filtered.filter(q => q.is_nested === true);
+                if (editFilterType === 'standalone') filtered = filtered.filter(q => q.is_nested !== true);
+                if (editFilterType === 'essay') filtered = filtered.filter(q => q.is_essay_question === true || q.is_essay === true);
+                if (editFilterType === 'graph') filtered = filtered.filter(q => q.is_graph_question === true || q.is_graph === true);
+            }
+            return filtered;
+        };
+
         if (!searchQuery || searchQuery.length < 2) {
-            // Show cached/shared questions
-            setSearchResults(Array.isArray(savedQuestions) ? savedQuestions : []);
+            // Show cached/shared questions filtered by advanced filters
+            const filtered = applyEditFiltersToList(savedQuestions);
+            setSearchResults(filtered);
             setIsSearchingQuestions(false);
         } else {
-            // For meaningful queries, delegate to react-query refetch
+            // For meaningful queries, delegate to react-query refetch (server-side-like filtering)
             refetchQuestions();
             setIsSearchingQuestions(true);
         }
-    }, [activeTab, searchQuery, savedQuestions, refetchQuestions]);
+    }, [activeTab, searchQuery, savedQuestions, refetchQuestions, editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType]);
     
     // Bulk entry states
     const [bulkText, setBulkText] = useState('');
