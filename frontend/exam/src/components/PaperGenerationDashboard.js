@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect, useRef } from 'react';
-import { getTopicStatistics, generatePaper, listGeneratedPapers, viewFullPaper, getCoverpageData, updateCoverpageData, getAllSubjects } from '../services/paperService';
+import { getTopicStatistics, generatePaper, validateBiologyPaper2Pool, validatePhysicsPaper1Pool, listGeneratedPapers, viewFullPaper, getCoverpageData, updateCoverpageData, getAllSubjects } from '../services/paperService';
 import { getCurrentUser, getAuthToken } from '../services/authService';
 
 export default function PaperGenerationDashboard() {
@@ -11,6 +11,7 @@ export default function PaperGenerationDashboard() {
     const [selectedSubject, setSelectedSubject] = useState('');
     const [papers, setPapers] = useState([]);
     const [selectedPaperId, setSelectedPaperId] = useState('');
+    const [selectedPaperData, setSelectedPaperData] = useState(null); // Store full paper object
     const [subjectsLoading, setSubjectsLoading] = useState(false);
     
     // Generate tab states
@@ -196,6 +197,7 @@ export default function PaperGenerationDashboard() {
                 // Auto-select first paper if available
                 if (firstSubject.papers && firstSubject.papers.length > 0) {
                     setSelectedPaperId(firstSubject.papers[0].id);
+                    setSelectedPaperData(firstSubject.papers[0]);
                 }
             }
         } catch (err) {
@@ -253,12 +255,15 @@ export default function PaperGenerationDashboard() {
             // Auto-select first paper if available
             if (subject.papers && subject.papers.length > 0) {
                 setSelectedPaperId(subject.papers[0].id);
+                setSelectedPaperData(subject.papers[0]);
             } else {
                 setSelectedPaperId('');
+                setSelectedPaperData(null);
             }
         } else {
             setPapers([]);
             setSelectedPaperId('');
+            setSelectedPaperData(null);
         }
         
         // Reset selected topics
@@ -268,6 +273,11 @@ export default function PaperGenerationDashboard() {
     const handlePaperChange = (e) => {
         const paperId = e.target.value;
         setSelectedPaperId(paperId);
+        
+        // Store full paper object
+        const paper = papers.find(p => p.id === paperId);
+        setSelectedPaperData(paper || null);
+        
         setSelectedTopics([]); // Reset selected topics when paper changes
     };
 
@@ -291,6 +301,7 @@ export default function PaperGenerationDashboard() {
     topic?.name?.toLowerCase().includes(topicSearchQuery.toLowerCase())
     );
 
+
     const handleGeneratePaper = async () => {
         if (selectedTopics.length === 0) {
             setError('Please select at least one topic');
@@ -302,32 +313,127 @@ export default function PaperGenerationDashboard() {
             return;
         }
 
-        // Check if enough topics selected
-        if (selectedTopics.length < 5) {
-            const confirmed = window.confirm(
-                `You have selected only ${selectedTopics.length} topic(s). ` +
-                `For best results and to meet best constraints, we recommend selecting at least 5 topics. ` +
-                `\n\nDo you want to continue anyway?`
-            );
-            if (!confirmed) {
-                return;
-            }
-        }
-
         try {
             setLoading(true);
             setError(null);
             setSuccess(null);
             setGeneratedResult(null);
 
-            const result = await generatePaper(selectedPaperId, selectedTopics);
+            console.log('🚀 ========== STARTING PAPER GENERATION ==========');
+            console.log('📋 Selected Paper Data:', selectedPaperData);
+            console.log('🆔 Selected Paper ID:', selectedPaperId);
+            console.log('📚 Selected Topics:', selectedTopics);
+            console.log('🔢 Number of Topics:', selectedTopics.length);
+
+            // Check paper type using database fields
+            const paperNumber = selectedPaperData?.paper_number || selectedPaperData?.number || null;
+            const paperName = selectedPaperData?.name?.toLowerCase() || '';
+            const subjectName = selectedPaperData?.subject?.name?.toLowerCase() || 
+                              selectedPaperData?.subject_name?.toLowerCase() || '';
             
-            console.log('Generation result:', result); // Debug log
+            const isBiology = paperName.includes('biology') || subjectName.includes('biology');
+            const isPhysics = paperName.includes('physics') || subjectName.includes('physics');
+            const isPaper1 = paperNumber === 1 || 
+                           paperNumber === '1' || 
+                           paperName.includes('paper 1') || 
+                           paperName.includes('paper one') || 
+                           paperName.includes('paper i');
+            const isPaper2 = paperNumber === 2 || 
+                           paperNumber === '2' || 
+                           paperName.includes('paper 2') || 
+                           paperName.includes('paper two') || 
+                           paperName.includes('paper ii');
+            
+            const isBiologyPaper2 = isBiology && isPaper2;
+            const isPhysicsPaper1 = isPhysics && isPaper1;
+            
+            console.log('🔍 Paper Detection (using DB fields):');
+            console.log('   Paper Number (from DB):', paperNumber);
+            console.log('   Paper Name:', paperName);
+            console.log('   Subject Name:', subjectName);
+            console.log('   Is Biology?', isBiology);
+            console.log('   Is Physics?', isPhysics);
+            console.log('   Is Paper 1?', isPaper1);
+            console.log('   Is Paper 2?', isPaper2);
+            console.log('   Is Biology Paper 2?', isBiologyPaper2);
+            console.log('   Is Physics Paper 1?', isPhysicsPaper1);
+            
+            // Validate Biology Paper 2
+            if (isBiologyPaper2) {
+                console.log('🧬 Biology Paper 2 detected - Starting validation...');
+                try {
+                    const validation = await validateBiologyPaper2Pool(selectedPaperId, selectedTopics);
+                    console.log('Validation result:', validation);
+                    
+                    // Show validation info to user
+                    if (validation.issues && validation.issues.length > 0) {
+                        const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
+                        const proceed = window.confirm(
+                            `Biology Paper 2 Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
+                        );
+                        if (!proceed) {
+                            console.log('User cancelled generation after validation warnings');
+                            setLoading(false);
+                            return;
+                        }
+                        console.log('User confirmed to proceed despite warnings');
+                    }
+                } catch (validationErr) {
+                    console.error('Validation failed:', validationErr);
+                    setError(`Validation failed: ${validationErr.message}`);
+                    setLoading(false);
+                    return;
+                }
+            }
+            
+            // Validate Physics Paper 1
+            if (isPhysicsPaper1) {
+                console.log('⚛️ Physics Paper 1 detected - Starting validation...');
+                try {
+                    const validation = await validatePhysicsPaper1Pool(selectedPaperId, selectedTopics);
+                    console.log('Validation result:', validation);
+                    
+                    // Show validation info to user
+                    if (validation.issues && validation.issues.length > 0) {
+                        const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
+                        const proceed = window.confirm(
+                            `Physics Paper 1 Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
+                        );
+                        if (!proceed) {
+                            console.log('User cancelled generation after validation warnings');
+                            setLoading(false);
+                            return;
+                        }
+                        console.log('User confirmed to proceed despite warnings');
+                    }
+                } catch (validationErr) {
+                    console.error('Validation failed:', validationErr);
+                    setError(`Validation failed: ${validationErr.message}`);
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            console.log('📤 Calling generatePaper with:');
+            console.log('   paperId:', selectedPaperId);
+            console.log('   topicIds:', selectedTopics);
+            console.log('   paperData:', selectedPaperData);
+
+            // Pass paper data to determine correct endpoint
+            const result = await generatePaper(selectedPaperId, selectedTopics, selectedPaperData);
+            
+            console.log('✅ Generation successful! Result:', result);
             
             setGeneratedResult(result);
             
-            // Extract the unique code from the result
-            const paperCode = result?.generated_paper?.unique_code || result?.unique_code || 'N/A';
+            // Extract the unique code and paper ID from the result
+            // Support both standard and Biology Paper 2 response formats
+            const paperCode = result?.unique_code || result?.generated_paper?.unique_code || 'N/A';
+            const generatedPaperId = result?.generated_paper_id || result?.paper_id || result?.generated_paper?.id || result?.id || result?.paper?.id;
+            
+            console.log('📋 Paper Code:', paperCode);
+            console.log('🆔 Generated Paper ID:', generatedPaperId);
+            
             setSuccess(`Paper generated successfully! Code: ${paperCode}`);
             
             // Clear selections
@@ -335,15 +441,29 @@ export default function PaperGenerationDashboard() {
         } catch (err) {
             const errorMessage = err?.message || 'Failed to generate paper';
             
-            // Provide helpful error message
+            console.error('Generation Error:', err);
+            
+            // Provide helpful error message based on error type
             if (errorMessage.includes('Failed to generate valid paper after')) {
                 setError(
                     'Unable to generate a valid paper with the selected topics. ' +
-                    'This usually means there aren\'t enough questions available to meet KCSE constraints. ' +
-                    '\n\nTry selecting MORE topics (recommend all 6 topics) or add more questions to the database.'
+                    'This usually means there aren\'t enough questions available to meet the constraints. ' +
+                    '\n\nTry selecting MORE topics or add more questions to the database.'
+                );
+            } else if (errorMessage.includes('ascii') || errorMessage.includes('codec')) {
+                setError(
+                    'Backend Encoding Error\n\n' +
+                    'The backend server has a Unicode encoding issue. This is a backend configuration problem.\n\n' +
+                    'Technical Details: ' + errorMessage + '\n\n' +
+                    'Please contact the system administrator to fix the backend encoding (add UTF-8 support to biology_paper2_generation.py).'
+                );
+            } else if (errorMessage.includes('Section') || errorMessage.includes('Insufficient')) {
+                setError(
+                    'Insufficient Questions\n\n' + errorMessage + '\n\n' +
+                    'Please add more questions to the database for this paper type.'
                 );
             } else {
-                setError(errorMessage);
+                setError('Paper generation failed: ' + errorMessage);
             }
         } finally {
             setLoading(false);
@@ -1344,16 +1464,21 @@ export default function PaperGenerationDashboard() {
                                                 </p>
                                             </div>
                                         </div>
-                                        {generatedResult?.generated_paper?.id || generatedResult?.id ? (
+                                        {generatedResult?.generated_paper_id || generatedResult?.paper_id || generatedResult?.generated_paper?.id || generatedResult?.id ? (
                                             <button
-                                                onClick={() => handleViewPaper(generatedResult?.generated_paper?.id || generatedResult?.id)}
+                                                onClick={() => handleViewPaper(
+                                                    generatedResult?.generated_paper_id || 
+                                                    generatedResult?.paper_id || 
+                                                    generatedResult?.generated_paper?.id || 
+                                                    generatedResult?.id
+                                                )}
                                                 className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition"
                                             >
                                                 📄 Continue to Coverpage
                                             </button>
                                         ) : (
                                             <div className="text-center text-red-600">
-                                                <p className="text-sm">⚠️ Paper ID not found in response</p>
+                                                <p className="text-sm">Paper ID not found in response</p>
                                                 <p className="text-xs mt-1">Please check the browser console for details</p>
                                             </div>
                                         )}

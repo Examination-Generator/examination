@@ -7,20 +7,25 @@ import re
 from .coverpage_templates import MarkingSchemeCoverpage
 
 
-def generate_marking_scheme_html(coverpage_data, marking_scheme_items):
+def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage_class=None):
     """
     Generate complete marking scheme HTML with coverpage, answers, and page numbers
     
     Args:
         coverpage_data (dict): Coverpage information
         marking_scheme_items (list): List of marking scheme items with answers
+        coverpage_class: Coverpage class to use (defaults to MarkingSchemeCoverpage)
     
     Returns:
         str: Complete HTML for marking scheme
     """
     
+    # Use provided coverpage class or default
+    if coverpage_class is None:
+        coverpage_class = MarkingSchemeCoverpage
+    
     # Generate coverpage HTML (page 1)
-    coverpage_html = MarkingSchemeCoverpage.generate_html(coverpage_data)
+    coverpage_html = coverpage_class.generate_html(coverpage_data)
     
     # Extract coverpage content (remove html/body tags to combine later)
     coverpage_body = re.search(r'<body>(.*?)</body>', coverpage_html, re.DOTALL)

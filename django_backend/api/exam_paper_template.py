@@ -1,14 +1,74 @@
 """
 Full Exam Paper Template Generator
 Generates complete exam papers with coverpage and paginated questions
+Updated to dynamically select the correct coverpage class based on paper type
 """
 
-from .coverpage_templates import BiologyPaper1Coverpage
+from .coverpage_templates import (
+    BiologyPaper1Coverpage, 
+    BiologyPaper2Coverpage, 
+    PhysicsPaper1Coverpage,
+    ChemistryPaper1Coverpage,
+    ChemistryPaper2Coverpage,
+    MarkingSchemeCoverpage,
+    BiologyPaper2MarkingSchemeCoverpage
+)
 import re
-import base64
 
 
-def generate_full_exam_html(coverpage_data, questions):
+def get_coverpage_class(paper_data, is_marking_scheme=False):
+    """
+    Determine the appropriate coverpage class based on paper data
+    
+    Args:
+        paper_data (dict): Paper information containing paper_type, subject, etc.
+        is_marking_scheme (bool): Whether this is for a marking scheme
+    
+    Returns:
+        class: Appropriate coverpage class
+    """
+    # Extract paper type information
+    paper_type = paper_data.get('paper_type', '').upper()
+    paper_name = paper_data.get('paper_name', '').upper()
+    subject_name = paper_data.get('subject_name', '').upper()
+    
+    # Detect Biology Paper 2
+    is_biology_paper2 = ('BIOLOGY' in paper_name or 'BIOLOGY' in subject_name) and \
+                       ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PAPER II' in paper_name)
+    
+    # Detect Physics Paper 1
+    is_physics_paper1 = ('PHYSICS' in paper_name or 'PHYSICS' in subject_name) and \
+                       ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'PAPER I' in paper_name)
+    
+    # Detect Chemistry Paper 1
+    is_chemistry_paper1 = ('CHEMISTRY' in paper_name or 'CHEMISTRY' in subject_name) and \
+                         ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'PAPER I' in paper_name)
+    
+    # Detect Chemistry Paper 2
+    is_chemistry_paper2 = ('CHEMISTRY' in paper_name or 'CHEMISTRY' in subject_name) and \
+                         ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PAPER II' in paper_name)
+    
+    # Return appropriate coverpage class
+    if is_marking_scheme:
+        if is_biology_paper2 or is_chemistry_paper2:
+            return BiologyPaper2MarkingSchemeCoverpage
+        else:
+            return MarkingSchemeCoverpage
+    else:
+        if is_biology_paper2:
+            return BiologyPaper2Coverpage
+        elif is_physics_paper1:
+            return PhysicsPaper1Coverpage
+        elif is_chemistry_paper1:
+            return ChemistryPaper1Coverpage
+        elif is_chemistry_paper2:
+            return ChemistryPaper2Coverpage
+        else:
+            # Default to Biology Paper 1 for standard papers
+            return BiologyPaper1Coverpage
+
+
+def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpage_class=None):
     """
     Generate complete exam paper HTML with coverpage and all questions
     
@@ -16,13 +76,28 @@ def generate_full_exam_html(coverpage_data, questions):
         coverpage_data (dict): Coverpage information
         questions (list): List of question dictionaries with 'number', 'text', 'marks', 
                          'question_inline_images', 'question_answer_lines'
+        paper_data (dict): Paper metadata (subject, paper_type, etc.) - used to auto-detect coverpage
+        coverpage_class: Coverpage class to use (overrides auto-detection)
     
     Returns:
         str: Complete HTML document
     """
     
+    # Auto-detect coverpage class if not provided
+    if coverpage_class is None:
+        if paper_data is None:
+            # Fallback: try to extract paper data from coverpage_data
+            paper_data = {
+                'paper_type': coverpage_data.get('paper_type', ''),
+                'paper_name': coverpage_data.get('paper_name', ''),
+                'subject_name': ''
+            }
+        
+        coverpage_class = get_coverpage_class(paper_data, is_marking_scheme=False)
+        print(f"🎯 Auto-detected coverpage class: {coverpage_class.__name__}")
+    
     # Generate coverpage HTML (page 1)
-    coverpage_html = BiologyPaper1Coverpage.generate_html(coverpage_data)
+    coverpage_html = coverpage_class.generate_html(coverpage_data)
     
     # Extract coverpage content (remove html/body tags to combine later)
     coverpage_body = re.search(r'<body>(.*?)</body>', coverpage_html, re.DOTALL)
@@ -31,12 +106,26 @@ def generate_full_exam_html(coverpage_data, questions):
     else:
         coverpage_content = coverpage_html
     
-    # Calculate total pages (coverpage + question pages)
-    # Assuming ~3-4 questions per page
-    total_pages = 1 + ((len(questions) + 2) // 3)
+    # Detect paper type from coverpage data
+    is_paper2 = coverpage_data.get('paper_type') == 'Paper 2'
     
-    # Generate question pages
-    questions_html = _generate_question_pages(questions, total_pages)
+    # Use total_pages from coverpage_data if available (Paper 2 has dynamic calculation)
+    total_pages = coverpage_data.get('total_pages')
+    
+    # Fallback to calculated pages if not provided
+    if total_pages is None:
+        if is_paper2:
+            # Paper 2: 1 coverpage + 3 Section A pages + 2 Section B pages + 4 answer pages
+            total_pages = 6
+        else:
+            # Paper 1: Assuming ~3-4 questions per page
+            total_pages = 1 + ((len(questions) + 2) // 3)
+    
+    # Generate question pages (use specialized function for Paper 2)
+    if is_paper2:
+        questions_html = _generate_paper2_question_pages(questions, total_pages, coverpage_data)
+    else:
+        questions_html = _generate_question_pages(questions, total_pages, coverpage_data)
     
     # Combine everything
     full_html = f"""
@@ -146,6 +235,11 @@ def generate_full_exam_html(coverpage_data, questions):
             white-space: pre-wrap;
         }}
         
+        .marks {{
+            font-weight: bold;
+            margin-left: 10px;
+        }}
+        
         /* Image styling */
         .question-image {{
             display: block;
@@ -169,8 +263,10 @@ def generate_full_exam_html(coverpage_data, questions):
         
         .answer-line {{
             width: 100%;
+            height: 25px;
             margin: 0;
             padding: 0;
+            border-bottom: 1px solid #333;
         }}
         
         .answer-line.dotted {{
@@ -185,6 +281,44 @@ def generate_full_exam_html(coverpage_data, questions):
             margin-top: 10px;
             border-top: 1px dotted #999;
             min-height: 80px;
+        }}
+        
+        /* Section styling for Paper 2 */
+        .section-header {{
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid black;
+        }}
+        
+        .section-header h2 {{
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }}
+        
+        .section-instruction {{
+            font-size: 12px;
+            font-style: italic;
+            margin-top: 5px;
+        }}
+        
+        /* Answer section header */
+        .answer-section-header {{
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f5f5f5;
+            border: 2px solid #333;
+        }}
+        
+        .answer-section-header p {{
+            margin: 3px 0;
+        }}
+        
+        .answer-lines-container {{
+            margin: 20px 0;
         }}
         
         /* Formatting styles */
@@ -342,56 +476,6 @@ def generate_full_exam_html(coverpage_data, questions):
             padding: 8px 4px;
             height: 30px;
         }}
-        
-        .question-number {{
-            min-width: 35px;
-            width: 35px;
-        }}
-        
-        /* Empty question cells (shown but no number) */
-        .empty-question-cell {{
-            min-width: 35px;
-            width: 35px;
-            background-color: white;
-            border: none !important;
-        }}
-        
-        /* Add spacing before second row */
-        .row-with-spacing td {{
-            border-top: 2px solid black;
-            padding-top: 8px;
-        }}
-        
-        /* Override border-top for empty and gap cells in spacing row */
-        .row-with-spacing .empty-question-cell,
-        .row-with-spacing .gap-cell {{
-            border-top: none !important;
-        }}
-        
-        /* Gap cell between questions and Grand Total */
-        .gap-cell {{
-            border: none !important;
-            background-color: white;
-            min-width: 15px;
-            width: 15px;
-        }}
-        
-        .grand-total-cell {{
-            background-color: #f0f0f0;
-            font-size: 10px;
-            font-weight: bold;
-            border: 2px solid black;
-            padding: 5px 10px;
-            min-width: 80px;
-        }}
-        
-        .total-box {{
-            min-width: 60px;
-            width: 60px;
-            min-height: 60px;
-            border: 2px solid black;
-            background-color: white;
-        }}
     </style>
 </head>
 <body>
@@ -412,14 +496,7 @@ def generate_full_exam_html(coverpage_data, questions):
 def _process_question_text(text, images=None, answer_lines=None):
     """
     Process question text to render images and answer lines
-    
-    Args:
-        text (str): Question text with placeholders
-        images (list): List of image objects with id, url, width, height
-        answer_lines (list): List of answer line configurations
-    
-    Returns:
-        str: Processed HTML with images and lines rendered
+    (Same implementation as before)
     """
     if not text:
         return ""
@@ -495,14 +572,11 @@ def _process_question_text(text, images=None, answer_lines=None):
                     lines_html += '</div>'
                     result.append(lines_html)
                 else:
-                    # Line config not found - show placeholder
                     result.append(f'<div style="margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 11px;">⚠️ Answer Lines (ID: {int(line_id)})</div>')
         
         # Images: [IMAGE:id:WxH] or [IMAGE:id:Wpx]
         elif part.startswith('[IMAGE:') and part.endswith('px]'):
-            # New format: [IMAGE:id:300x200px]
             image_match_new = re.match(r'\[IMAGE:([\d.]+):(\d+)x(\d+)px\]', part)
-            # Old format: [IMAGE:id:300px]
             image_match_old = re.match(r'\[IMAGE:([\d.]+):(\d+)px\]', part)
             
             if image_match_new or image_match_old:
@@ -521,15 +595,13 @@ def _process_question_text(text, images=None, answer_lines=None):
                     img_url = image['url']
                     img_alt = image.get('name', 'Question image')
                     
-                    # Determine if image should be inline or block
                     style = f"width: {image_width}px;"
                     if image_height:
                         style += f" height: {image_height}px;"
                     
                     result.append(f'<img src="{img_url}" alt="{img_alt}" class="question-image" style="{style}" />')
                 else:
-                    # Image not found - show placeholder
-                    result.append(f'<div style="margin: 10px 0; padding: 10px; background: #f8d7da; border: 1px solid #dc3545; border-radius: 4px; font-size: 11px;">❌ Image Not Found (ID: {int(image_id)}, Size: {image_width}×{image_height or "auto"}px)</div>')
+                    result.append(f'<div style="margin: 10px 0; padding: 10px; background: #f8d7da; border: 1px solid #dc3545; border-radius: 4px; font-size: 11px;">❌ Image Not Found (ID: {int(image_id)})</div>')
         
         # Regular text
         else:
@@ -538,29 +610,76 @@ def _process_question_text(text, images=None, answer_lines=None):
     return ''.join(result)
 
 
-def _generate_question_pages(questions, total_pages):
+def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None):
     """
-    Generate paginated question pages
-    
-    Args:
-        questions (list): List of questions with 'number', 'text', 'marks', 
-                         'question_inline_images', 'question_answer_lines'
-        total_pages (int): Total number of pages in the exam
-    
-    Returns:
-        str: HTML for all question pages
+    Generate paginated question pages for Biology Paper 2
+    (Same implementation as before)
     """
-    
-    questions_per_page = 3  # Adjust based on question length
     pages_html = []
-    current_page = 2  # Page 1 is coverpage
+    current_page = 2
+    
+    # Determine section boundaries from coverpage_data if provided
+    metadata = coverpage_data or {}
+    section_a_count = metadata.get('section_a_questions', 5)
+    try:
+        section_a_count = int(section_a_count)
+    except Exception:
+        section_a_count = 5
+
+    section_a_questions = [q for q in questions if q['number'] <= section_a_count]
+    section_b_questions = [q for q in questions if q['number'] > section_a_count]
+    
+    # Section A title and instruction - get marks/instruction from metadata if present
+    section_a_marks = 40
+    section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
+    section_a_instruction = metadata.get('section_a_instruction', 'Answer ALL questions in this section')
+
+    section_a_html = _generate_section_pages(
+        section_a_questions,
+        section_a_title,
+        section_a_instruction,
+        current_page,
+        total_pages,
+        is_last_section=False
+    )
+    pages_html.append(section_a_html['html'])
+    current_page = section_a_html['next_page']
+    
+    # Section B title and instruction - prefer metadata; default to answer ALL questions similar to Section A
+    section_b_marks = 40
+    section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
+    section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
+
+    section_b_html = _generate_section_pages(
+        section_b_questions,
+        section_b_title,
+        section_b_instruction,
+        current_page,
+        total_pages,
+        is_last_section=True,
+        answer_lines=100
+    )
+    pages_html.append(section_b_html['html'])
+    
+    return '\n'.join(pages_html)
+
+
+def _generate_section_pages(questions, section_title, section_instruction, start_page, total_pages, is_last_section=False, answer_lines=0):
+    """
+    Generate pages for a specific section
+    (Same implementation as before)
+    """
+    pages_html = []
+    current_page = start_page
+    questions_per_page = 2
     
     for i in range(0, len(questions), questions_per_page):
         page_questions = questions[i:i + questions_per_page]
+        is_first_page = (i == 0)
+        is_last_page_of_questions = (i + questions_per_page >= len(questions))
         
         questions_html = ""
         for q in page_questions:
-            # Process question text to render images and lines
             processed_text = _process_question_text(
                 q.get('text', ''),
                 q.get('question_inline_images', []),
@@ -570,17 +689,167 @@ def _generate_question_pages(questions, total_pages):
             questions_html += f"""
         <div class="question">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
-            <!--<div class="answer-space"></div>-->
+        </div>
+"""
+        
+        section_header_html = ""
+        if is_first_page:
+            section_header_html = f"""
+        <div class="section-header">
+            <h2>{section_title}</h2>
+            <p class="section-instruction">{section_instruction}</p>
+        </div>
+        """
+        
+#         answer_section_html = ""
+#         if is_last_section and is_last_page_of_questions and answer_lines > 0:
+#             answer_section_html = f"""
+        
+#         <div class="answer-section-header" style="margin-top: 30px;">
+#             <p><strong>ANSWER SECTION B HERE</strong></p>
+#             <p style="font-size: 11px; color: #666;">Use these lines to write your answers for Section B questions (6, 7 or 8)</p>
+#         </div>
+        
+#         <div class="answer-lines-container">
+# """
+            # initial_lines = 8
+            # for _ in range(initial_lines):
+            #     answer_section_html += '            <div class="answer-line"></div>\n'
+            
+            # answer_section_html += "        </div>"
+        
+        page_html = f"""
+    <!-- Page {current_page} -->
+    <div class="exam-page page-break">
+        {section_header_html}
+        {questions_html}        
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+"""
+        pages_html.append(page_html)
+        current_page += 1
+    
+    if is_last_section and answer_lines > 0:
+        initial_lines = 8
+        # remaining_lines = answer_lines - initial_lines
+        # answer_lines_html = _generate_answer_lines_continuation(remaining_lines, current_page, total_pages)
+        # pages_html.append(answer_lines_html)
+    
+    return {'html': '\n'.join(pages_html), 'next_page': current_page}
+
+
+def _generate_answer_lines_continuation(num_lines, start_page, total_pages):
+    """
+    Generate continuation pages with answer lines
+    (Same implementation as before)
+    """
+    lines_per_page = 25
+    total_answer_pages = (num_lines + lines_per_page - 1) // lines_per_page
+    pages_html = []
+    current_page = start_page
+
+    for page_num in range(total_answer_pages):
+        lines_on_this_page = min(lines_per_page, num_lines - (page_num * lines_per_page))
+        
+        lines_html = ""
+        for i in range(lines_on_this_page):
+            lines_html += '            <div class="answer-line"></div>\n'
+        
+        is_last_page = current_page >= total_pages
+        
+        page_html = f"""
+    <div class="exam-page {'page-break' if not is_last_page else ''}">
+        <div class="answer-lines-container">
+            {lines_html}
+        </div>
+        
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+"""
+        pages_html.append(page_html)
+        current_page += 1
+    
+    return '\n'.join(pages_html)
+
+
+def _generate_question_pages(questions, total_pages, coverpage_data=None):
+    """
+    Generate paginated question pages for standard papers
+    (Same implementation as before)
+    """
+    questions_per_page = 3
+    pages_html = []
+    current_page = 2
+    
+    # Determine section boundaries from coverpage_data if available
+    metadata = coverpage_data or {}
+    section_a_count = metadata.get('section_a_questions') or metadata.get('section_a_questions', 0)
+    try:
+        section_a_count = int(section_a_count)
+    except Exception:
+        section_a_count = 0
+
+    page_last_section = None
+    for i in range(0, len(questions), questions_per_page):
+        page_questions = questions[i:i + questions_per_page]
+        
+        # Determine first and last question sections for this page
+        first_qnum = int(page_questions[0].get('number', 0)) if page_questions else 0
+        first_section = 'A' if (section_a_count and first_qnum <= section_a_count) else 'B'
+        last_qnum = int(page_questions[-1].get('number', 0)) if page_questions else 0
+        last_section_on_page = 'A' if (section_a_count and last_qnum <= section_a_count) else 'B'
+
+        # If this page continues the same section from previous page, show a small continue header
+        page_header_html = ''
+        if page_last_section is not None and page_last_section == first_section:
+            page_header_html = f"""
+        <div class=\"question-page-header\"> 
+            <h2>Continue answering ALL questions in this section</h2>
+        </div>
+"""
+
+        questions_html = ""
+        # Track last section to insert headers when section changes within the page
+        last_section = page_last_section
+        for q in page_questions:
+            processed_text = _process_question_text(
+                q.get('text', ''),
+                q.get('question_inline_images', []),
+                q.get('question_answer_lines', [])
+            )
+            # Determine section by question number and available section count
+            qnum = int(q.get('number', 0))
+            current_section = 'A' if (section_a_count and qnum <= section_a_count) else 'B'
+
+            # If section changed (or starting), insert section header
+            if last_section != current_section:
+                # Get marks for section from coverpage_data if present
+                if current_section == 'A':
+                    s_marks = metadata.get('section_a_marks', None)
+                else:
+                    s_marks = metadata.get('section_b_marks', None)
+
+                s_marks_text = f" ({s_marks} MARKS)" if s_marks else ''
+                # Instruction text: by default we show 'Answer ALL questions in this section.'
+                instruction_text = metadata.get(f'section_{current_section.lower()}_instruction', 'Answer ALL questions in this section.')
+
+                questions_html += f"""
+        <div class=\"section-header\"> 
+           <!-- <h2>Section {current_section}</h2> -->
+            <div class=\"section-instruction\" style=\"font-style: italic;\">{instruction_text}</div>
+        </div>
+"""
+                last_section = current_section
+
+            questions_html += f"""
+        <div class="question">
+            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
         
         page_html = f"""
-    <!-- Page {current_page} -->
     <div class="exam-page {'page-break' if current_page < total_pages else ''}">
-        <div class="question-page-header">
-            <h2>BIOLOGY PAPER 1</h2>
-            <p>(Continue answering all questions in the spaces provided)</p>
-        </div>
+        {page_header_html}
         
         {questions_html}
         
@@ -590,5 +859,7 @@ def _generate_question_pages(questions, total_pages):
         
         pages_html.append(page_html)
         current_page += 1
+        # remember section for next page
+        page_last_section = last_section_on_page
     
     return '\n'.join(pages_html)

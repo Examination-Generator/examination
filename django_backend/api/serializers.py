@@ -479,7 +479,7 @@ class QuestionListSerializer(serializers.ModelSerializer):
                   'answer_text', 'answer_inline_images',
                   'question_image_positions', 'answer_image_positions',
                   'question_answer_lines', 'answer_answer_lines',
-                  'marks', 'question_type',
+                  'marks', 'question_type', 'kcse_question_type', 'paper2_category',
                   'difficulty', 'is_nested', 'is_active', 'times_used', 'created_at']
         read_only_fields = ['id', 'created_at', 'times_used']
 
@@ -515,7 +515,7 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
                   'answer_text', 'answer_inline_images',
                   'question_image_positions', 'answer_image_positions',
                   'question_answer_lines', 'answer_answer_lines',
-                  'question_type', 'difficulty', 'marks',
+                  'question_type', 'kcse_question_type', 'paper2_category', 'difficulty', 'marks',
                   'options', 'correct_answer', 'answer_explanation',
                   'is_nested', 'is_active', 'times_used', 'last_used',
                   'created_by', 'created_by_name', 'created_at', 'updated_at']
@@ -525,6 +525,9 @@ class QuestionDetailSerializer(serializers.ModelSerializer):
 class QuestionCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating questions"""
     
+    is_graph = serializers.BooleanField(required=False, allow_null=True, default=False)
+    is_essay = serializers.BooleanField(required=False, allow_null=True, default=False)
+
     class Meta:
         model = Question
         fields = ['subject', 'paper', 'topic', 'section',
@@ -532,9 +535,9 @@ class QuestionCreateSerializer(serializers.ModelSerializer):
                   'answer_text', 'answer_inline_images',
                   'question_image_positions', 'answer_image_positions',
                   'question_answer_lines', 'answer_answer_lines',
-                  'question_type', 'difficulty', 'marks',
+                  'question_type', 'kcse_question_type', 'paper2_category', 'difficulty', 'marks',
                   'options', 'correct_answer', 'answer_explanation',
-                  'is_nested', 'is_active']
+                  'is_nested', 'is_active', 'is_graph', 'is_essay']
     
     def validate(self, data):
         """Validate relationships between subject, paper, topic, section"""

@@ -294,6 +294,7 @@ class Section(models.Model):
 # ==================== QUESTION MODEL ====================
 
 class Question(models.Model):
+        
     """Question bank"""
     
     QUESTION_TYPE_CHOICES = [
@@ -312,6 +313,13 @@ class Question(models.Model):
         ('explain_account', 'Explain/Account For'),
         ('describe', 'Describe'),
         ('calculate', 'Calculate'),
+    ]
+    
+    # Paper 2 question categories (for Section B)
+    PAPER2_CATEGORY_CHOICES = [
+        ('graph', 'Graph Question'),
+        ('essay', 'Essay Question'),
+        ('structured', 'Structured Question'),
     ]
     
     DIFFICULTY_CHOICES = [
@@ -401,6 +409,13 @@ class Question(models.Model):
         blank=True,
         help_text='KCSE-specific question type for Biology Paper 1 generation'
     )
+    paper2_category = models.CharField(
+        max_length=20,
+        choices=PAPER2_CATEGORY_CHOICES,
+        null=True,
+        blank=True,
+        help_text='Category for Paper 2 questions (graph/essay/structured). Used for Section B question selection.'
+    )
     difficulty = models.CharField(
         max_length=20,
         choices=DIFFICULTY_CHOICES,
@@ -419,7 +434,14 @@ class Question(models.Model):
         null=True,
         help_text='OPTIONAL: Can store part breakdowns if needed, but not required for paper generation.'
     )
-    
+    is_graph = models.BooleanField(
+            default=False,
+            help_text='True if this question requires a graph as part of the answer.'
+        )
+    is_essay = models.BooleanField(
+            default=False,
+            help_text='True if this question is an essay type.'
+        )
     # MCQ options (for multiple choice questions)
     options = models.JSONField(null=True, blank=True)
     correct_answer = models.TextField(null=True, blank=True)
@@ -681,6 +703,14 @@ class GeneratedPaper(models.Model):
         null=True,
         blank=True,
         help_text='Coverpage information (school name, logo, instructions, etc.)'
+    )
+    
+    # Additional metadata for paper generation
+    metadata = models.JSONField(
+        null=True,
+        blank=True,
+        default=dict,
+        help_text='Additional metadata about the paper (paper_type, generation_algorithm, sections, etc.)'
     )
     
     # User tracking

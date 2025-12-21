@@ -71,8 +71,8 @@ class SectionAdmin(admin.ModelAdmin):
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
     list_display = ['question_text_preview', 'subject', 'paper', 'topic', 'marks', 
-                   'difficulty', 'is_active', 'created_at']
-    list_filter = ['is_active', 'difficulty', 'question_type', 'subject', 'paper']
+                   'difficulty', 'paper2_category', 'is_active', 'created_at']
+    list_filter = ['is_active', 'difficulty', 'question_type', 'paper2_category', 'subject', 'paper']
     search_fields = ['question_text', 'answer_text']
     readonly_fields = ['id', 'created_at', 'updated_at', 'times_used', 'last_used']
     
@@ -87,7 +87,7 @@ class QuestionAdmin(admin.ModelAdmin):
             'fields': ('answer_text', 'answer_inline_images')
         }),
         ('Metadata', {
-            'fields': ('question_type', 'difficulty', 'marks')
+            'fields': ('question_type', 'kcse_question_type', 'paper2_category', 'difficulty', 'marks')
         }),
         ('MCQ Options', {
             'fields': ('options', 'correct_answer', 'answer_explanation'),

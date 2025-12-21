@@ -5,6 +5,7 @@ URL Configuration for API app
 from django.urls import path
 from django.http import JsonResponse
 from . import auth_views, subject_views, question_views, database_views, paper_generation_views
+from . import biology_paper2_generation, physics_paper1_generation
 
 def api_root(request):
     """API root endpoint - returns available endpoints"""
@@ -31,6 +32,12 @@ urlpatterns = [
     path('database/health', database_views.database_health, name='database-health'),
     path('database/create-admin', database_views.create_superuser, name='create-admin'),
     path('database/create-defaults', database_views.create_default_users, name='create-defaults'),
+    
+    # specific question delete (hard delete)
+    path('questions/hard-delete/<uuid:question_id>/', question_views.hard_delete_question),
+    
+    # setting question mode 
+    path('questions/set-mode/<uuid:question_id>/', question_views.set_question_mode),
     
     # ==================== AUTHENTICATION ROUTES ====================
     # Auth endpoints without 'auth/' prefix to match frontend expectations
@@ -84,4 +91,14 @@ urlpatterns = [
     path('papers/<uuid:paper_id>/configuration', paper_generation_views.get_paper_configuration, name='get-paper-config'),
     path('papers/<uuid:paper_id>/configuration/update', paper_generation_views.update_paper_configuration, name='update-paper-config'),
     path('papers/<uuid:paper_id>/topics/statistics', paper_generation_views.get_topic_statistics, name='topic-statistics'),
+    
+    # ==================== BIOLOGY PAPER 2 GENERATION ROUTES ====================
+    # KCSE Biology Paper 2 specific generation endpoints
+    path('papers/biology-paper2/validate', biology_paper2_generation.validate_paper2_pool, name='validate-paper2-pool'),
+    path('papers/biology-paper2/generate', biology_paper2_generation.generate_biology_paper2, name='generate-biology-paper2'),
+    
+    # ==================== PHYSICS PAPER 1 GENERATION ROUTES ====================
+    # KCSE Physics Paper 1 specific generation endpoints
+    path('papers/physics-paper1/validate', physics_paper1_generation.validate_physics_paper1, name='validate-physics-paper1'),
+    path('papers/physics-paper1/generate', physics_paper1_generation.generate_physics_paper1, name='generate-physics-paper1'),
 ]

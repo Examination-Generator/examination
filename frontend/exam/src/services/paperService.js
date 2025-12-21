@@ -39,27 +39,251 @@ export const getTopicStatistics = async (paperId) => {
  * Generate a new paper
  * @param {string} paperId - UUID of the paper
  * @param {Array<string>} topicIds - Array of topic UUIDs to include
+ * @param {Object} paperData - Optional paper metadata (name, type, etc.)
  * @returns {Promise} Generated paper details
  */
-export const generatePaper = async (paperId, topicIds) => {
+export const generatePaper = async (paperId, topicIds, paperData = null) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/papers/generate`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-                paper_id: paperId,
-                selected_topics: topicIds
-            })
-        });
+        console.log('📤 ========== PAPER GENERATION REQUEST ==========');
+        console.log('📄 Paper ID:', paperId);
+        console.log('📚 Selected Topic IDs:', topicIds);
+        console.log('🗂️ Paper Data (FULL OBJECT):', JSON.stringify(paperData, null, 2));
         
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        // Determine endpoint based on paper type
+        let endpoint = `${API_BASE_URL}/papers/generate`;
+        let paperType = 'standard';
+        
+        // Check if this is Biology Paper 2
+        if (paperData) {
+            console.log('🔍 Checking paper type using database fields...');
+            console.log('   Available fields:', Object.keys(paperData));
+            console.log('   Paper object:', paperData);
+            
+            // Get paper metadata from database object
+            const paperNumber = paperData.paper_number || paperData.number || null;
+            const paperName = paperData.name?.toLowerCase() || '';
+            const subjectId = paperData.subject_id || paperData.subject?.id || null;
+            const subjectName = paperData.subject?.name?.toLowerCase() || paperData.subject_name?.toLowerCase() || '';
+            
+            console.log('   Paper Number (from DB):', paperNumber);
+            console.log('   Paper Name:', paperName);
+            console.log('   Subject ID:', subjectId);
+            console.log('   Subject Name:', subjectName);
+            
+            // Check for Biology Paper 2
+            const isBiology = paperName.includes('biology') || subjectName.includes('biology');
+            const isPaper2 = paperNumber === 2 || 
+                           paperNumber === '2' || 
+                           paperName.includes('paper 2') || 
+                           paperName.includes('paper two') || 
+                           paperName.includes('paper ii');
+            
+            // Check for Physics Paper 1
+            const isPhysics = paperName.includes('physics') || subjectName.includes('physics');
+            const isPaper1 = paperNumber === 1 || 
+                           paperNumber === '1' || 
+                           paperName.includes('paper 1') || 
+                           paperName.includes('paper one') || 
+                           paperName.includes('paper i');
+            
+            console.log('   Is Biology?', isBiology);
+            console.log('   Is Paper 2?', isPaper2);
+            console.log('   Is Physics?', isPhysics);
+            console.log('   Is Paper 1?', isPaper1);
+            
+            if (isBiology && isPaper2) {
+                endpoint = `${API_BASE_URL}/papers/biology-paper2/generate`;
+                paperType = 'biology-paper2';
+                console.log('🧬 ✅ DETECTED: Biology Paper 2 (using dedicated endpoint)');
+            } else if (isPhysics && isPaper1) {
+                endpoint = `${API_BASE_URL}/papers/physics-paper1/generate`;
+                paperType = 'physics-paper1';
+                console.log('⚛️ ✅ DETECTED: Physics Paper 1 (using dedicated endpoint)');
+            } else {
+                console.log('📝 DETECTED: Standard Paper (using general endpoint)');
+            }
         }
         
-        return await response.json();
+        // Use correct field for topics depending on endpoint or Biology Paper I
+        let requestBody;
+        // Detect Biology Paper I
+        let isBiologyPaper1 = false;
+        if (paperData) {
+            const paperName = paperData.name?.toLowerCase() || '';
+            const subjectName = paperData.subject_name?.toLowerCase() || paperData.subject?.name?.toLowerCase() || '';
+            const isBiology = paperName.includes('biology') || subjectName.includes('biology');
+            // Paper 1 detection: number === 1 or name includes 'paper 1', 'paper one', or 'paper i' (but not 'paper 2', 'paper two', 'paper ii')
+            const paperNumber = paperData.paper_number || paperData.number || null;
+            const isPaper1 = paperNumber === 1 || paperNumber === '1' || paperName.includes('paper 1') || paperName.includes('paper one') || (paperName.includes('paper i') && !paperName.includes('paper ii'));
+            const isPaper2 = paperNumber === 2 || paperNumber === '2' || paperName.includes('paper 2') || paperName.includes('paper two') || paperName.includes('paper ii');
+            isBiologyPaper1 = isBiology && isPaper1 && !isPaper2;
+        }
+        if (isBiologyPaper1) {
+            requestBody = {
+                paper_id: paperId,
+                selected_topics: topicIds
+            };
+        } else if (endpoint.includes('/biology-paper2/')) {
+            requestBody = {
+                paper_id: paperId,
+                selected_topics: topicIds
+            };
+        } else {
+            requestBody = {
+                paper_id: paperId,
+                topic_ids: topicIds
+            };
+        }
+
+        console.log('Target Endpoint:', endpoint);
+        console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+        console.log('Headers:', getAuthHeaders());
+        console.log('=================================================');
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        
+        console.log('📡 Response Status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error Response:', errorText);
+            
+            // Try to parse as JSON
+            let errorMessage;
+            try {
+                const errorData = JSON.parse(errorText);
+                console.error('Error Response Data:', errorData);
+                errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
+            } catch (e) {
+                // If not JSON, use the text directly
+                errorMessage = errorText || `HTTP error! status: ${response.status}`;
+            }
+            
+            throw new Error(errorMessage);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Generation Success! Result:', result);
+        return result;
     } catch (error) {
-        console.error('Error generating paper:', error);
+        console.error('========== GENERATION ERROR ==========');
+        console.error('Error Type:', error.name);
+        console.error('Error Message:', error.message);
+        console.error('Error Stack:', error.stack);
+        console.error('=========================================');
+        throw error;
+    }
+};
+
+/**
+ * Validate Biology Paper 2 question pool
+ * @param {string} paperId - UUID of the paper
+ * @param {Array<string>} topicIds - Array of topic UUIDs to validate
+ * @returns {Promise} Validation results
+ */
+export const validateBiologyPaper2Pool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/biology-paper2/validate`;
+        const requestBody = {
+            paper_id: paperId,
+            selected_topics: topicIds
+        };
+        
+        console.log(' ========== BIOLOGY PAPER 2 VALIDATION ==========');
+        console.log('Endpoint:', endpoint);
+        console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+        console.log('==================================================');
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        
+        console.log('📡 Validation Response Status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            // Read the response body as text first (can only read once!)
+            const errorText = await response.text();
+            console.error('Validation Error Response:', errorText);
+            
+            // Try to parse as JSON
+            let errorMessage;
+            try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
+            } catch (e) {
+                // If not JSON, use the text directly
+                errorMessage = errorText || `HTTP error! status: ${response.status}`;
+            }
+            
+            throw new Error(errorMessage);
+        }
+        
+        const result = await response.json();
+        console.log(' Validation Result:', result);
+        return result;
+    } catch (error) {
+        console.error(' Validation Error:', error);
+        throw error;
+    }
+};
+
+/**
+ * Validate Physics Paper 1 question pool
+ * @param {string} paperId - UUID of the paper
+ * @param {Array<string>} topicIds - Array of topic UUIDs to validate
+ * @returns {Promise} Validation results
+ */
+export const validatePhysicsPaper1Pool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/physics-paper1/validate`;
+        const requestBody = {
+            paper_id: paperId,
+            topic_ids: topicIds  
+        };
+        
+        console.log(' ========== PHYSICS PAPER 1 VALIDATION ==========');
+        console.log('Endpoint:', endpoint);
+        console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+        console.log('==================================================');
+        
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        
+        console.log('Validation Response Status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            // Read the response body as text first (can only read once!)
+            const errorText = await response.text();
+            console.error('Validation Error Response:', errorText);
+            
+            // Try to parse as JSON
+            let errorMessage;
+            try {
+                const errorData = JSON.parse(errorText);
+                console.error('Validation Error Data:', errorData);
+                errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
+            } catch (e) {
+                // If not JSON, use the text directly
+                errorMessage = errorText || `HTTP error! status: ${response.status}`;
+            }
+            
+            throw new Error(errorMessage);
+        }
+        
+        const result = await response.json();
+        console.log('Validation Result:', result);
+        return result;
+    } catch (error) {
+        console.error(' Validation Error:', error);
         throw error;
     }
 };

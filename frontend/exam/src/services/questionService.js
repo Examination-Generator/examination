@@ -120,6 +120,8 @@ export const updateQuestion = async (questionId, questionData) => {
             headers: getHeaders(),
             body: JSON.stringify(questionData)
         });
+
+        console.log('Updating question with data:', questionData);
         
         if (!response.ok) {
             const errorData = await response.json();
@@ -138,9 +140,9 @@ export const updateQuestion = async (questionId, questionData) => {
 export const deleteQuestion = async (questionId) => {
     try {
         console.log('🗑️ DELETE request - Question ID:', questionId);
-        console.log('🗑️ DELETE URL:', `${API_BASE_URL}/questions/${questionId}`);
+        console.log('🗑️ DELETE URL:', `${API_BASE_URL}/questions/hard-delete/${questionId}`);
         
-        const response = await fetch(`${API_BASE_URL}/questions/${questionId}`, {
+        const response = await fetch(`${API_BASE_URL}/questions/hard-delete/${questionId}`, {
             method: 'DELETE',
             headers: getHeaders()
         });

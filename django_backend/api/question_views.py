@@ -579,3 +579,68 @@ def get_question_stats(request):
             ]
         }
     )
+
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def hard_delete_question(request, question_id):
+    """
+    Hard delete a question from the database
+    DELETE /api/questions/hard-delete/<id>
+    """
+    try:
+        question = Question.objects.get(id=question_id)
+    except Question.DoesNotExist:
+        return error_response(
+            'Question not found',
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    question.delete()
+    
+    response_data = {
+        'message': 'Question permanently deleted',
+        'status': status.HTTP_200_OK,
+        'statusText': 'OK'
+    }
+    
+    return success_response(
+        response_data.get('message'),
+        data=response_data,
+        status=response_data.get('status')
+    )
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def set_question_mode(request, question_id):
+    """
+    Set question mode (essay, graph, or regular) by updating is_essay and is_graph fields.
+    POST /api/questions/set-mode/<question_id>/
+    Body: { "mode": "essay" | "graph" | "regular" }
+    """
+    from .models import Question
+    mode = request.data.get('mode')
+    if mode not in ['essay', 'graph', 'regular1', 'regular2']:
+        return error_response('Invalid mode. Must be one of: essay, graph, regular.')
+    try:
+        question = Question.objects.get(id=question_id)
+    except Question.DoesNotExist:
+        return error_response('Question not found.', status=404)
+    if mode == 'essay':
+        question.is_essay = True
+        question.is_graph = False
+    elif mode == 'graph':
+        question.is_essay = False
+        question.is_graph = True
+    elif mode == 'regular1' : 
+        question.is_essay = False
+    elif mode == 'regular2' :
+        question.is_graph = False
+        
+    question.save()
+    return success_response('Question mode updated successfully.', {
+        'id': str(question.id),
+        'is_essay': question.is_essay,
+        'is_graph': question.is_graph
+    })

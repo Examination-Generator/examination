@@ -31,7 +31,17 @@ from .models import (
     Paper, Topic, PaperConfiguration, GeneratedPaper, Question
 )
 from .kcse_biology_paper1_generator import KCSEBiologyPaper1Generator
-from .coverpage_templates import BiologyPaper1Coverpage, MarkingSchemeCoverpage, format_time_allocation
+from .coverpage_templates import (
+    BiologyPaper1Coverpage, 
+    BiologyPaper2Coverpage, 
+    BiologyPaper2MarkingSchemeCoverpage,
+    BiologyPaper3Coverpage,
+    PhysicsPaper1Coverpage,
+    ChemistryPaper1Coverpage,
+    ChemistryPaper2Coverpage,
+    MarkingSchemeCoverpage, 
+    format_time_allocation
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +49,71 @@ logger = logging.getLogger(__name__)
 class PaperGenerationException(Exception):
     """Exception raised when paper generation fails"""
     pass
+
+
+def _select_coverpage_class_and_default(generated_paper, paper, is_marking_scheme=False):
+    """
+    Select the most appropriate coverpage/marking-scheme class and default data
+    for a given generated paper. This centralizes logic and makes the selection
+    robust (case-insensitive, checks both metadata and paper name).
+
+    Returns: (CoverpageClass, default_data_dict)
+    """
+    metadata = getattr(generated_paper, 'metadata', {}) or {}
+    paper_type = (metadata.get('paper_type') or '').upper()
+    subject_name = (paper.subject.name or '').upper()
+    paper_name = (paper.name or '').upper()
+
+    def is_paper1():
+        return any(k in paper_type or k in paper_name for k in ('PAPER 1', 'PAPER I'))
+
+    def is_paper2():
+        return any(k in paper_type or k in paper_name for k in ('PAPER 2', 'PAPER II'))
+
+    def is_paper3():
+        return any(k in paper_type or k in paper_name for k in ('PAPER 3', 'PAPER III'))
+
+    # Prefer subject-specific classes first
+    try:
+        if is_marking_scheme:
+            # Marking scheme selection
+            if subject_name == 'BIOLOGY' and is_paper2():
+                return BiologyPaper2MarkingSchemeCoverpage, BiologyPaper2MarkingSchemeCoverpage.generate_default_data(generated_paper, paper)
+            if subject_name == 'BIOLOGY' and is_paper3():
+                # No separate Paper 3 marking scheme class exists; reuse Paper 2 marking scheme structure
+                return BiologyPaper2MarkingSchemeCoverpage, BiologyPaper2MarkingSchemeCoverpage.generate_default_data(generated_paper, paper)
+            # Generic marking scheme class fallback
+            return MarkingSchemeCoverpage, MarkingSchemeCoverpage.generate_default_data(generated_paper, paper)
+
+        # Question paper coverpage selection
+        if subject_name == 'PHYSICS' and is_paper1():
+            return PhysicsPaper1Coverpage, PhysicsPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+
+        if subject_name == 'CHEMISTRY':
+            if is_paper2():
+                return ChemistryPaper2Coverpage, ChemistryPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
+            # default to paper1 if not explicit
+            return ChemistryPaper1Coverpage, ChemistryPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+
+        # If it's explicitly a Paper 3 (and subject biology), prefer Biology Paper3
+        if subject_name == 'BIOLOGY' and is_paper3():
+            return BiologyPaper3Coverpage, BiologyPaper3Coverpage.generate_default_coverpage_data(generated_paper, paper)
+
+        # If it's explicitly a Paper 2 (and not chemistry/physics), prefer Biology Paper2
+        if is_paper2():
+            return BiologyPaper2Coverpage, BiologyPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
+
+        # Fallback: if subject is biology use Biology Paper 1, otherwise fallback below
+        if subject_name == 'BIOLOGY':
+            return BiologyPaper1Coverpage, BiologyPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+
+    except Exception:
+        # If any class doesn't expose expected helper, fallback to a safe default
+        try:
+            return BiologyPaper1Coverpage, BiologyPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+        except Exception:
+            # Last resort: return MarkingSchemeCoverpage default
+            return MarkingSchemeCoverpage, MarkingSchemeCoverpage.generate_default_data(generated_paper, paper)
 
 
 @api_view(['POST'])
@@ -324,12 +399,8 @@ def list_generated_papers(request):
         ).order_by('-created_at')
         
         # Filters
-        paper_id = request.query_params.get('paper_id')
         paper_status = request.query_params.get('status')
         user_only = request.query_params.get('user_only', 'false').lower() == 'true'
-        
-        if paper_id:
-            queryset = queryset.filter(paper_id=paper_id)
         
         if paper_status:
             queryset = queryset.filter(status=paper_status)
@@ -340,11 +411,17 @@ def list_generated_papers(request):
         
         papers = []
         for gp in queryset[:100]:  # Limit to 100 recent papers (increased from 50)
+            # Get paper type from metadata
+            paper_type = None
+            if hasattr(gp, 'metadata') and gp.metadata:
+                paper_type = gp.metadata.get('paper_type')
+            
             papers.append({
                 'id': str(gp.id),
                 'unique_code': gp.unique_code,
                 'status': gp.status,
                 'paper_name': gp.paper.name,
+                'paper_type': paper_type,  # Add paper type to response
                 'subject_name': gp.paper.subject.name,
                 'total_marks': gp.total_marks,
                 'total_questions': gp.total_questions,
@@ -743,14 +820,16 @@ def coverpage_data(request, paper_id):
             # Get coverpage data (stored in generated_paper or use defaults)
             coverpage = getattr(generated_paper, 'coverpage_data', None) or {}
             
-            # Default coverpage data using BiologyPaper1Coverpage
-            default_coverpage = BiologyPaper1Coverpage.generate_default_coverpage_data(
-                generated_paper, 
-                generated_paper.paper
-            )
+            # Select Coverpage class and default data robustly
+            CoverpageClass, default_coverpage = _select_coverpage_class_and_default(generated_paper, generated_paper.paper, is_marking_scheme=False)
             
             # Merge with saved data
             coverpage_data = {**default_coverpage, **coverpage}
+            
+            # Ensure paper_type is included in coverpage data
+            paper_type = getattr(generated_paper, 'metadata', {}).get('paper_type', '')
+            if 'paper_type' not in coverpage_data:
+                coverpage_data['paper_type'] = paper_type
             
             # Ensure time_allocation is always formatted (in case old data has numeric value)
             if isinstance(coverpage_data.get('time_allocation'), int):
@@ -758,7 +837,7 @@ def coverpage_data(request, paper_id):
             
             if output_format == 'html':
                 # Generate HTML coverpage
-                html_content = BiologyPaper1Coverpage.generate_html(coverpage_data)
+                html_content = CoverpageClass.generate_html(coverpage_data)
                 
                 from django.http import HttpResponse
                 return HttpResponse(html_content, content_type='text/html')
@@ -782,7 +861,8 @@ def coverpage_data(request, paper_id):
             allowed_fields = [
                 'school_name', 'school_logo', 'logo_position', 'class_name', 'exam_title', 'paper_name',
                 'instructions', 'time_allocation', 'total_marks',
-                'candidate_name_field', 'candidate_number_field', 'date_field'
+                'candidate_name_field', 'candidate_number_field', 'date_field',
+                'paper_type', 'section_a_questions', 'section_a_marks', 'section_b_questions', 'section_b_marks'
             ]
             
             for field in allowed_fields:
@@ -965,10 +1045,13 @@ def preview_full_exam(request, paper_id):
         
         if view_type == 'marking_scheme':
             # Generate marking scheme preview
-            marking_scheme_coverpage = MarkingSchemeCoverpage.generate_default_data(
-                generated_paper, 
-                generated_paper.paper
-            )
+            # Detect paper type for correct marking scheme coverpage
+            paper_type = generated_paper.metadata.get('paper_type', '')
+            subject_name = generated_paper.paper.subject.name.upper()
+            paper_name = generated_paper.paper.name.upper()
+            
+            # Select Marking Scheme class and default data robustly
+            MarkingSchemeClass, marking_scheme_coverpage = _select_coverpage_class_and_default(generated_paper, generated_paper.paper, is_marking_scheme=True)
             
             # Get all questions in order with answers
             question_ids = generated_paper.question_ids
@@ -997,7 +1080,11 @@ def preview_full_exam(request, paper_id):
             if output_format == 'html':
                 # Generate marking scheme HTML
                 from .marking_scheme_template import generate_marking_scheme_html
-                html_content = generate_marking_scheme_html(marking_scheme_coverpage, marking_scheme_items)
+                html_content = generate_marking_scheme_html(
+                    marking_scheme_coverpage, 
+                    marking_scheme_items,
+                    coverpage_class=MarkingSchemeClass
+                )
                 return HttpResponse(html_content, content_type='text/html')
             
             return Response({
@@ -1009,10 +1096,15 @@ def preview_full_exam(request, paper_id):
             # Generate questions preview (default)
             # Get coverpage data
             coverpage_data_dict = getattr(generated_paper, 'coverpage_data', None) or {}
-            default_coverpage = BiologyPaper1Coverpage.generate_default_coverpage_data(
-                generated_paper, 
-                generated_paper.paper
-            )
+            
+            # Detect paper type and use appropriate coverpage template
+            paper_type = generated_paper.metadata.get('paper_type', '')
+            subject_name = generated_paper.paper.subject.name.upper()
+            paper_name = generated_paper.paper.name.upper()
+            
+            # Select Coverpage class and default data robustly
+            CoverpageClass, default_coverpage = _select_coverpage_class_and_default(generated_paper, generated_paper.paper, is_marking_scheme=False)
+
             coverpage_data = {**default_coverpage, **coverpage_data_dict}
             
             # Get all questions in order
@@ -1037,13 +1129,22 @@ def preview_full_exam(request, paper_id):
                         'marks': question.marks,
                         'is_nested': question.is_nested,
                         'nested_parts': question.nested_parts if question.is_nested else None,
-                        'topic': question.topic.name
+                        'topic': question.topic.name,
+                        'section': {
+                            'id': str(question.section.id),
+                            'name': question.section.name,
+                            'order': question.section.order
+                        } if question.section else None
                     })
             
             if output_format == 'html':
                 # Generate complete exam HTML
                 from .exam_paper_template import generate_full_exam_html
-                html_content = generate_full_exam_html(coverpage_data, ordered_questions)
+                html_content = generate_full_exam_html(
+                    coverpage_data, 
+                    ordered_questions,
+                    coverpage_class=CoverpageClass
+                )
                 return HttpResponse(html_content, content_type='text/html')
         
         # Return JSON
