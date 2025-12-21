@@ -84,6 +84,7 @@ export default function EditorDashboard({ onLogout }) {
     const [answerInlineImages, setAnswerInlineImages] = useState([]);
     const [questionAnswerLines, setQuestionAnswerLines] = useState([]);
     const [answerAnswerLines, setAnswerAnswerLines] = useState([]);
+    const [answerImagePositions, setAnswerImagePositions] = useState({});
 
     // Answer drawing refs/state
     const answerCanvasRef = useRef(null);
