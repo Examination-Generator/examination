@@ -247,6 +247,30 @@ export default function EditorDashboard({ onLogout }) {
         setIsSearchingQuestions(!!rqIsLoading);
     }, [rqSearchResults, rqIsLoading]);
 
+    // Statistics and filters (declared early so effects can reference them)
+    const [savedQuestions, setSavedQuestions] = useState([]); // Filtered questions for list display
+    const [allQuestions, setAllQuestions] = useState([]); // All questions for statistics cards
+    const [questionStats, setQuestionStats] = useState({
+        totalQuestions: 0,
+        activeQuestions: 0,
+        inactiveQuestions: 0,
+        unknownTopics: 0
+    });
+    const [isLoadingStats, setIsLoadingStats] = useState(false);
+    const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0); // Trigger for stats refresh
+    const [filterSubject, setFilterSubject] = useState('');
+    const [filterPaper, setFilterPaper] = useState('');
+    const [filterTopic, setFilterTopic] = useState('');
+    const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'active', 'inactive'
+
+    // Filter IDs for API calls
+    const [filterSubjectId, setFilterSubjectId] = useState('');
+    const [filterPaperId, setFilterPaperId] = useState('');
+    const [filterTopicId, setFilterTopicId] = useState('');
+
+    const [availablePapers, setAvailablePapers] = useState([]);
+    const [availableTopics, setAvailableTopics] = useState([]);
+
     // When Edit tab is active and user hasn't typed a search query,
     // show the shared `savedQuestions` as the initial results so the
     // Edit results pane isn't empty. Only refetch when there's a query.
@@ -270,30 +294,6 @@ export default function EditorDashboard({ onLogout }) {
     const [bulkQuestions, setBulkQuestions] = useState([]);
     const [currentBulkIndex, setCurrentBulkIndex] = useState(0);
     
-    // Statistics and filters
-    const [savedQuestions, setSavedQuestions] = useState([]); // Filtered questions for list display
-    const [allQuestions, setAllQuestions] = useState([]); // All questions for statistics cards
-    const [questionStats, setQuestionStats] = useState({
-        totalQuestions: 0,
-        activeQuestions: 0,
-        inactiveQuestions: 0,
-        unknownTopics: 0
-    });
-    const [isLoadingStats, setIsLoadingStats] = useState(false);
-    const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0); // Trigger for stats refresh
-    const [filterSubject, setFilterSubject] = useState('');
-    const [filterPaper, setFilterPaper] = useState('');
-    const [filterTopic, setFilterTopic] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'active', 'inactive'
-    
-    // Filter IDs for API calls
-    const [filterSubjectId, setFilterSubjectId] = useState('');
-    const [filterPaperId, setFilterPaperId] = useState('');
-    const [filterTopicId, setFilterTopicId] = useState('');
-    
-    const [availablePapers, setAvailablePapers] = useState([]);
-    const [availableTopics, setAvailableTopics] = useState([]);
-
     // New Subject Form States
     const [newSubjectName, setNewSubjectName] = useState('');
     const [newSubjectPapers, setNewSubjectPapers] = useState([{ name: '', topics: [''], sections: [''] }]);
@@ -307,7 +307,7 @@ export default function EditorDashboard({ onLogout }) {
     const [deletingItem, setDeletingItem] = useState(null);
     const [expandedSubjects, setExpandedSubjects] = useState({}); // Track which subjects are expanded
     const [expandedPapers, setExpandedPapers] = useState({}); // Track which papers are expanded
-    
+
     // Full subject edit states
     const [editSubjectData, setEditSubjectData] = useState(null);
     const [showFullEditModal, setShowFullEditModal] = useState(false);
