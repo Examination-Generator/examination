@@ -95,14 +95,7 @@ export default function EditorDashboard({ onLogout }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearchingQuestions, setIsSearchingQuestions] = useState(false);
-    // Debounce the search input to avoid frequent queries
-    const debouncedSearchQuery = useDebounce(searchQuery, 400);
-    // Use React Query hook for cached searching — enabled only when edit tab active
-    const { data: rqSearchResults = [], isLoading: rqIsLoading, refetch: refetchQuestions } = useSearchQuestions(
-        debouncedSearchQuery,
-        { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
-        activeTab === 'edit'
-    );
+    
     const [editFilterStatus, setEditFilterStatus] = useState('all'); // 'all', 'active', 'inactive'
     const [editFilterType, setEditFilterType] = useState('all'); // 'all', 'nested', 'standalone'
     const [selectedQuestion, setSelectedQuestion] = useState(null);
@@ -126,11 +119,7 @@ export default function EditorDashboard({ onLogout }) {
     const editQuestionTextareaRef = useRef(null);
     const editAnswerTextareaRef = useRef(null);
 
-    // Sync react-query results into local state used across the component
-    useEffect(() => {
-        setSearchResults(Array.isArray(rqSearchResults) ? rqSearchResults : []);
-        setIsSearchingQuestions(!!rqIsLoading);
-    }, [rqSearchResults, rqIsLoading]);
+    
 
     // Memoize rendered search results to avoid re-rendering list items unnecessarily
     const renderedSearchResults = useMemo(() => (
@@ -229,6 +218,19 @@ export default function EditorDashboard({ onLogout }) {
     const [editFilterTopic, setEditFilterTopic] = useState('');
     const [editAvailablePapers, setEditAvailablePapers] = useState([]);
     const [editAvailableTopics, setEditAvailableTopics] = useState([]);
+    // Debounce the search input to avoid frequent queries
+    const debouncedSearchQuery = useDebounce(searchQuery, 400);
+    // Use React Query hook for cached searching — enabled only when edit tab active
+    const { data: rqSearchResults = [], isLoading: rqIsLoading, refetch: refetchQuestions } = useSearchQuestions(
+        debouncedSearchQuery,
+        { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
+        activeTab === 'edit'
+    );
+    // Sync react-query results into local state used across the component
+    useEffect(() => {
+        setSearchResults(Array.isArray(rqSearchResults) ? rqSearchResults : []);
+        setIsSearchingQuestions(!!rqIsLoading);
+    }, [rqSearchResults, rqIsLoading]);
     
     // Bulk entry states
     const [bulkText, setBulkText] = useState('');
