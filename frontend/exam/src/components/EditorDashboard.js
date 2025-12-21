@@ -2924,7 +2924,7 @@ useEffect(() => {
     };
 
     // Statistics calculations
-    const getStatistics = () => {
+    function getStatistics() {
         // Start with all questions
         let questions = Array.isArray(allQuestions) ? allQuestions : [];
         
@@ -3001,13 +3001,13 @@ useEffect(() => {
         });
 
         return stats;
-    };
+    }
 
-    const getFilteredQuestions = () => {
+    function getFilteredQuestions() {
         // Questions are already filtered by the backend based on filters
         // Ensure we always return an array
         return Array.isArray(savedQuestions) ? savedQuestions : [];
-    };
+    }
 
     // New Subject Management Functions
     const addPaper = () => {
