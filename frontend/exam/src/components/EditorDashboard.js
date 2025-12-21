@@ -58,6 +58,62 @@ export default function EditorDashboard({ onLogout }) {
     // Answer section states
     const [uploadedAnswerImages, setUploadedAnswerImages] = useState([]);
     const [showAnswerDrawingTool, setShowAnswerDrawingTool] = useState(false);
+
+    // Missing edit/selection state and refs (declared early to avoid TDZ/no-undef)
+    const [selectedQuestion, setSelectedQuestion] = useState(null);
+
+    // Edit form fields
+    const [editQuestionText, setEditQuestionText] = useState('');
+    const [editAnswerText, setEditAnswerText] = useState('');
+    const [editMarks, setEditMarks] = useState('');
+    const [editTopic, setEditTopic] = useState('');
+    const [editSection, setEditSection] = useState('');
+    const [editIsActive, setEditIsActive] = useState(true);
+
+    // Edit lists (topics/sections for selected paper)
+    const [editQuestionTopics, setEditQuestionTopics] = useState([]);
+    const [editQuestionSections, setEditQuestionSections] = useState([]);
+
+    // Edit inline images and positions
+    const [editQuestionInlineImages, setEditQuestionInlineImages] = useState([]);
+    const [editAnswerInlineImages, setEditAnswerInlineImages] = useState([]);
+    const [editQuestionImagePositions, setEditQuestionImagePositions] = useState({});
+    const [editAnswerImagePositions, setEditAnswerImagePositions] = useState({});
+
+    // Non-edit variants used by some legacy code paths
+    const [answerInlineImages, setAnswerInlineImages] = useState([]);
+    const [questionAnswerLines, setQuestionAnswerLines] = useState([]);
+    const [answerAnswerLines, setAnswerAnswerLines] = useState([]);
+
+    // Answer drawing refs/state
+    const answerCanvasRef = useRef(null);
+    const [isAnswerDrawing, setIsAnswerDrawing] = useState(false);
+    const [answerDrawingTool, setAnswerDrawingTool] = useState('pen');
+    const [answerDrawingColor, setAnswerDrawingColor] = useState('#000000');
+    const [answerDrawingWidth, setAnswerDrawingWidth] = useState(2);
+    const [showAnswerGraphPaper, setShowAnswerGraphPaper] = useState(false);
+
+    // Answer lines modal
+    const [showAnswerLinesModal, setShowAnswerLinesModal] = useState(false);
+    const [answerLinesConfig, setAnswerLinesConfig] = useState({
+        numberOfLines: 5,
+        lineHeight: 30,
+        lineStyle: 'dotted',
+        opacity: 0.5,
+        targetSection: 'answer'
+    });
+
+    // Speech recognition refs/state (question/answer)
+    const questionRecognitionRef = useRef(null);
+    const answerRecognitionRef = useRef(null);
+    const [isQuestionListening, setIsQuestionListening] = useState(false);
+    const [isAnswerListening, setIsAnswerListening] = useState(false);
+
+    // Textarea refs
+    const questionTextareaRef = useRef(null);
+    const answerTextareaRef = useRef(null);
+    const editQuestionTextareaRef = useRef(null);
+    const editAnswerTextareaRef = useRef(null);
     
         
         // Edit answer/line configurations and edit-specific flags
