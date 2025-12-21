@@ -351,6 +351,9 @@ export default function EditorDashboard({ onLogout }) {
     // Memoize statistics computation to avoid repeated heavy recalculation
     const memoizedStatistics = useMemo(() => getStatistics(), [allQuestions, filterSubject, filterPaper, filterTopic, filterStatus]);
 
+    // Memoize filtered questions used in stats to avoid recomputing during render
+    const memoizedFilteredQuestions = useMemo(() => getFilteredQuestions(), [savedQuestions]);
+
     // Load subjects from database for question entry dropdowns
     const loadDynamicSubjects = async () => {
         setIsLoadingDynamicSubjects(true);
@@ -7872,7 +7875,7 @@ useEffect(() => {
                 {/* Statistics Tab Content */}
                 {activeTab === 'stats' && (() => {
                     const stats = memoizedStatistics;
-                    const filteredQuestions = useMemo(() => getFilteredQuestions(), [savedQuestions]);
+                    const filteredQuestions = memoizedFilteredQuestions;
                     
                     return (
                         <div>
