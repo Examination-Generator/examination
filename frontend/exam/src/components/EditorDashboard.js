@@ -246,6 +246,23 @@ export default function EditorDashboard({ onLogout }) {
         setSearchResults(Array.isArray(rqSearchResults) ? rqSearchResults : []);
         setIsSearchingQuestions(!!rqIsLoading);
     }, [rqSearchResults, rqIsLoading]);
+
+    // When Edit tab is active and user hasn't typed a search query,
+    // show the shared `savedQuestions` as the initial results so the
+    // Edit results pane isn't empty. Only refetch when there's a query.
+    useEffect(() => {
+        if (activeTab !== 'edit') return;
+
+        if (!searchQuery || searchQuery.length < 2) {
+            // Show cached/shared questions
+            setSearchResults(Array.isArray(savedQuestions) ? savedQuestions : []);
+            setIsSearchingQuestions(false);
+        } else {
+            // For meaningful queries, delegate to react-query refetch
+            refetchQuestions();
+            setIsSearchingQuestions(true);
+        }
+    }, [activeTab, searchQuery, savedQuestions, refetchQuestions]);
     
     // Bulk entry states
     const [bulkText, setBulkText] = useState('');
