@@ -60,120 +60,71 @@ export default function EditorDashboard({ onLogout }) {
     const [showAnswerDrawingTool, setShowAnswerDrawingTool] = useState(false);
     
         
-        // NEW: Load answer lines configurations
-        const questionLines = question.question_answer_lines || [];
-        const answerLines = question.answer_answer_lines || [];
-        
-        // Debug: Log if there are LINES placeholders but no configurations
-        const questionHasLines = questionText.includes('[LINES:');
-        const answerHasLines = answerText.includes('[LINES:');
-        
-        if ((questionHasLines && questionLines.length === 0) || (answerHasLines && answerLines.length === 0)) {
-            console.warn('⚠️ Question has LINES placeholders but no configuration:', {
-                questionId: question.id,
-                questionHasLines,
-                answerHasLines,
-                questionLinesCount: questionLines.length,
-                answerLinesCount: answerLines.length
-            });
-            
-            // Auto-generate default line configurations for missing lines
-            if (questionHasLines && questionLines.length === 0) {
-                const matches = questionText.matchAll(/\[LINES:([\d.]+)\]/g);
-                const defaultLines = [];
-                for (const match of matches) {
-                    const lineId = parseFloat(match[1]);
-                    defaultLines.push({
-                        id: lineId,
-                        numberOfLines: 3, // Default to 3 lines
-                        lineHeight: 30,   // Default height
-                        lineStyle: 'solid',
-                        opacity: 0.5
-                    });
+        // Edit answer/line configurations and edit-specific flags
+        const [editQuestionAnswerLines, setEditQuestionAnswerLines] = useState([]);
+        const [editAnswerAnswerLines, setEditAnswerAnswerLines] = useState([]);
+
+        // Edit-specific flags (missing earlier) — initialize here
+        const [editIsNested, setEditIsNested] = useState(false);
+        const [editIsEssayQuestion, setEditIsEssayQuestion] = useState(false);
+        const [editIsGraphQuestion, setEditIsGraphQuestion] = useState(false);
+
+        // Initialize edit fields when a question is selected for editing
+        useEffect(() => {
+            if (!selectedQuestion) {
+                setEditQuestionAnswerLines([]);
+                setEditAnswerAnswerLines([]);
+                setEditIsNested(false);
+                setEditIsEssayQuestion(false);
+                setEditIsGraphQuestion(false);
+                return;
+            }
+
+            const q = selectedQuestion;
+            const questionLines = q.question_answer_lines || [];
+            const answerLines = q.answer_answer_lines || [];
+            const questionTextVal = q.question_text || '';
+            const answerTextVal = q.answer_text || '';
+
+            const questionHasLines = questionTextVal.includes('[LINES:');
+            const answerHasLines = answerTextVal.includes('[LINES:');
+
+            if ((questionHasLines && questionLines.length === 0) || (answerHasLines && answerLines.length === 0)) {
+                if (questionHasLines && questionLines.length === 0) {
+                    const matches = questionTextVal.matchAll(/\[LINES:([\d.]+)\]/g);
+                    const defaultLines = [];
+                    for (const match of matches) {
+                        const lineId = parseFloat(match[1]);
+                        defaultLines.push({ id: lineId, numberOfLines: 3, lineHeight: 30, lineStyle: 'solid', opacity: 0.5 });
+                    }
+                    setEditQuestionAnswerLines(defaultLines);
+                } else {
+                    setEditQuestionAnswerLines(questionLines);
                 }
-                setEditQuestionAnswerLines(defaultLines);
-                console.log('✅ Auto-generated question line configurations:', defaultLines);
+
+                if (answerHasLines && answerLines.length === 0) {
+                    const matches = answerTextVal.matchAll(/\[LINES:([\d.]+)\]/g);
+                    const defaultLines = [];
+                    for (const match of matches) {
+                        const lineId = parseFloat(match[1]);
+                        defaultLines.push({ id: lineId, numberOfLines: 3, lineHeight: 30, lineStyle: 'solid', opacity: 0.5 });
+                    }
+                    setEditAnswerAnswerLines(defaultLines);
+                } else {
+                    setEditAnswerAnswerLines(answerLines);
+                }
             } else {
                 setEditQuestionAnswerLines(questionLines);
-            }
-            
-            if (answerHasLines && answerLines.length === 0) {
-                const matches = answerText.matchAll(/\[LINES:([\d.]+)\]/g);
-                const defaultLines = [];
-                for (const match of matches) {
-                    const lineId = parseFloat(match[1]);
-                    defaultLines.push({
-                        id: lineId,
-                        numberOfLines: 3,
-                        lineHeight: 30,
-                        lineStyle: 'solid',
-                        opacity: 0.5
-                    });
-                }
-                setEditAnswerAnswerLines(defaultLines);
-                console.log('✅ Auto-generated answer line configurations:', defaultLines);
-            } else {
                 setEditAnswerAnswerLines(answerLines);
             }
-        } else {
-            setEditQuestionAnswerLines(questionLines);
-            setEditAnswerAnswerLines(answerLines);
-        }
 
-    // Memoize rendered search results to avoid re-rendering list items unnecessarily
-    const renderedSearchResults = useMemo(() => (
-        (Array.isArray(searchResults) ? searchResults : []).map((question) => (
-            <div
-                key={question.id}
-                onClick={() => handleSelectQuestion(question)}
-                className={`p-4 border rounded-lg cursor-pointer transition ${
-                    selectedQuestion?.id === question.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                }`}
-            >
-                <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-800 line-clamp-2">
-                            {question.question_text?.substring(0, 150)}...
-                        </p>
-                    </div>
-                    <span className="ml-3 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full whitespace-nowrap">
-                        {question.marks} marks
-                    </span>
-                </div>
-                <div className="flex flex-wrap gap-2 text-xs text-gray-600">
-                    <span className="bg-gray-100 px-2 py-1 rounded">
-                        📚 {question.subject_name}
-                    </span>
-                    {question.paper_name && (
-                        <span className="bg-gray-100 px-2 py-1 rounded">
-                            📄 {question.paper_name}
-                        </span>
-                    )}
-                    {question.topic_name && (
-                        <span className="bg-gray-100 px-2 py-1 rounded">
-                            📖 {question.topic_name}
-                        </span>
-                    )}
-                    <span className={`px-2 py-1 rounded font-semibold ${
-                        question.is_active !== false 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-red-100 text-red-700'
-                    }`}>
-                        {question.is_active !== false ? '✓ Active' : '✕ Inactive'}
-                    </span>
-                    <span className={`px-2 py-1 rounded font-semibold ${
-                        question.is_nested === true 
-                            ? 'bg-purple-100 text-purple-700' 
-                            : 'bg-blue-100 text-blue-700'
-                    }`}>
-                        {question.is_nested === true ? '⊕ Nested' : '◉ Standalone'}
-                    </span>
-                </div>
-            </div>
-        ))
-    ), [searchResults, selectedQuestion, handleSelectQuestion]);
+            // Load edit flags
+            setEditIsNested(q.is_nested === true);
+            setEditIsEssayQuestion(q.is_essay_question === true);
+            setEditIsGraphQuestion(q.is_graph_question === true);
+        }, [selectedQuestion]);
+
+    // `renderedSearchResults` moved below (after handler declarations)
 
     // Edit question drawing states
     const [showEditQuestionDrawing, setShowEditQuestionDrawing] = useState(false);
@@ -217,6 +168,14 @@ export default function EditorDashboard({ onLogout }) {
     const [editFilterTopic, setEditFilterTopic] = useState('');
     const [editAvailablePapers, setEditAvailablePapers] = useState([]);
     const [editAvailableTopics, setEditAvailableTopics] = useState([]);
+    // Local search state used by both normal and edit flows
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearchingQuestions, setIsSearchingQuestions] = useState(false);
+
+    // Edit filter controls (used by the edit tab search hook)
+    const [editFilterStatus, setEditFilterStatus] = useState('all');
+    const [editFilterType, setEditFilterType] = useState('all');
     // Debounce the search input to avoid frequent queries
     const debouncedSearchQuery = useDebounce(searchQuery, 400);
     // Use React Query hook for cached searching — enabled only when edit tab active
@@ -2562,6 +2521,61 @@ useEffect(() => {
         // Note: Answer lines are embedded in the text as [LINES:id] placeholders
         // They will be rendered automatically when the text is displayed
     }, [fetchTopicsForPaper]);
+
+    // Memoize rendered search results to avoid re-rendering list items unnecessarily
+    const renderedSearchResults = useMemo(() => (
+        (Array.isArray(searchResults) ? searchResults : []).map((question) => (
+            <div
+                key={question.id}
+                onClick={() => handleSelectQuestion(question)}
+                className={`p-4 border rounded-lg cursor-pointer transition ${
+                    selectedQuestion?.id === question.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                }`}
+            >
+                <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-800 line-clamp-2">
+                            {question.question_text?.substring(0, 150)}...
+                        </p>
+                    </div>
+                    <span className="ml-3 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full whitespace-nowrap">
+                        {question.marks} marks
+                    </span>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+                    <span className="bg-gray-100 px-2 py-1 rounded">
+                        📚 {question.subject_name}
+                    </span>
+                    {question.paper_name && (
+                        <span className="bg-gray-100 px-2 py-1 rounded">
+                            📄 {question.paper_name}
+                        </span>
+                    )}
+                    {question.topic_name && (
+                        <span className="bg-gray-100 px-2 py-1 rounded">
+                            📖 {question.topic_name}
+                        </span>
+                    )}
+                    <span className={`px-2 py-1 rounded font-semibold ${
+                        question.is_active !== false 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-red-100 text-red-700'
+                    }`}>
+                        {question.is_active !== false ? '✓ Active' : '✕ Inactive'}
+                    </span>
+                    <span className={`px-2 py-1 rounded font-semibold ${
+                        question.is_nested === true 
+                            ? 'bg-purple-100 text-purple-700' 
+                            : 'bg-blue-100 text-blue-700'
+                    }`}>
+                        {question.is_nested === true ? '⊕ Nested' : '◉ Standalone'}
+                    </span>
+                </div>
+            </div>
+        ))
+    ), [searchResults, selectedQuestion, handleSelectQuestion]);
 
     const handleUpdateQuestion = async (e) => {
         e.preventDefault();
