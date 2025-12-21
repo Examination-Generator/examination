@@ -1,13 +1,11 @@
-import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import * as subjectService from '../services/subjectService';
 import * as questionService from '../services/questionService';
 import * as authService from '../services/authService';
-// new chnge
 import { useSearchQuestions } from '../hooks/useQuestions';
 import { useDebounce } from '../hooks/useDebounce';
-
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api' ;
 
@@ -18,7 +16,7 @@ if (typeof window !== 'undefined') {
 
 
 
-const EditorDashboard = ({ onLogout }) => {
+export default function EditorDashboard({ onLogout }) {
     const [activeTab, setActiveTab] = useState('questions'); // 'questions', 'subjects', 'stats'
     const [selectedSubject, setSelectedSubject] = useState('');
     const [selectedTopic, setSelectedTopic] = useState('');
@@ -95,8 +93,16 @@ const EditorDashboard = ({ onLogout }) => {
     
     // Edit questions states
     const [searchQuery, setSearchQuery] = useState('');
-    // Removed searchResults state, using useSearchQuestions hook instead
-    // const [isSearchingQuestions, setIsSearchingQuestions] = useState(false);
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearchingQuestions, setIsSearchingQuestions] = useState(false);
+    // Debounce the search input to avoid frequent queries
+    const debouncedSearchQuery = useDebounce(searchQuery, 400);
+    // Use React Query hook for cached searching — enabled only when edit tab active
+    const { data: rqSearchResults = [], isLoading: rqIsLoading, refetch: refetchQuestions } = useSearchQuestions(
+        debouncedSearchQuery,
+        { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
+        activeTab === 'edit'
+    );
     const [editFilterStatus, setEditFilterStatus] = useState('all'); // 'all', 'active', 'inactive'
     const [editFilterType, setEditFilterType] = useState('all'); // 'all', 'nested', 'standalone'
     const [selectedQuestion, setSelectedQuestion] = useState(null);
@@ -119,6 +125,67 @@ const EditorDashboard = ({ onLogout }) => {
     const [editIsGraphQuestion, setEditIsGraphQuestion] = useState(false); // Track if question requires graphing
     const editQuestionTextareaRef = useRef(null);
     const editAnswerTextareaRef = useRef(null);
+
+    // Sync react-query results into local state used across the component
+    useEffect(() => {
+        setSearchResults(Array.isArray(rqSearchResults) ? rqSearchResults : []);
+        setIsSearchingQuestions(!!rqIsLoading);
+    }, [rqSearchResults, rqIsLoading]);
+
+    // Memoize rendered search results to avoid re-rendering list items unnecessarily
+    const renderedSearchResults = useMemo(() => (
+        (Array.isArray(searchResults) ? searchResults : []).map((question) => (
+            <div
+                key={question.id}
+                onClick={() => handleSelectQuestion(question)}
+                className={`p-4 border rounded-lg cursor-pointer transition ${
+                    selectedQuestion?.id === question.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                }`}
+            >
+                <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-800 line-clamp-2">
+                            {question.question_text?.substring(0, 150)}...
+                        </p>
+                    </div>
+                    <span className="ml-3 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full whitespace-nowrap">
+                        {question.marks} marks
+                    </span>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+                    <span className="bg-gray-100 px-2 py-1 rounded">
+                        📚 {question.subject_name}
+                    </span>
+                    {question.paper_name && (
+                        <span className="bg-gray-100 px-2 py-1 rounded">
+                            📄 {question.paper_name}
+                        </span>
+                    )}
+                    {question.topic_name && (
+                        <span className="bg-gray-100 px-2 py-1 rounded">
+                            📖 {question.topic_name}
+                        </span>
+                    )}
+                    <span className={`px-2 py-1 rounded font-semibold ${
+                        question.is_active !== false 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-red-100 text-red-700'
+                    }`}>
+                        {question.is_active !== false ? '✓ Active' : '✕ Inactive'}
+                    </span>
+                    <span className={`px-2 py-1 rounded font-semibold ${
+                        question.is_nested === true 
+                            ? 'bg-purple-100 text-purple-700' 
+                            : 'bg-blue-100 text-blue-700'
+                    }`}>
+                        {question.is_nested === true ? '⊕ Nested' : '◉ Standalone'}
+                    </span>
+                </div>
+            </div>
+        ))
+    ), [searchResults, selectedQuestion, handleSelectQuestion]);
 
     // Edit question drawing states
     const [showEditQuestionDrawing, setShowEditQuestionDrawing] = useState(false);
@@ -218,17 +285,71 @@ const EditorDashboard = ({ onLogout }) => {
     const [subjects, setSubjects] = useState({});
     const [isLoadingDynamicSubjects, setIsLoadingDynamicSubjects] = useState(false);
 
-    // optimition chnge
-    const debouncedSearchQuery = useDebounce(searchQuery, 500);
-
-const { 
-  data: searchResults = [], 
-  isLoading: isSearchingQuestionsLoading 
-} = useSearchQuestions(
-  debouncedSearchQuery,
-  { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType }
-);
-
+    // Legacy hardcoded subject configuration (fallback only)
+    const fallbackSubjects = {
+        'Mathematics': {
+            topics: ['Algebra', 'Geometry', 'Calculus', 'Statistics', 'Trigonometry'],
+            papers: ['Paper 1', 'Paper 2', 'Paper 3'],
+            sections: {
+                'Paper 1': ['Section A', 'Section B', 'Section C'],
+                'Paper 2': ['Section A', 'Section B'],
+                'Paper 3': []
+            }
+        },
+        'English': {
+            topics: ['Grammar', 'Composition', 'Literature', 'Comprehension'],
+            papers: ['Paper 1', 'Paper 2'],
+            sections: {
+                'Paper 1': ['Section A', 'Section B', 'Section C'],
+                'Paper 2': ['Section A', 'Section B']
+            }
+        },
+        'Physics': {
+            topics: ['Mechanics', 'Electricity', 'Waves', 'Thermodynamics', 'Modern Physics'],
+            papers: ['Paper 1', 'Paper 2', 'Paper 3'],
+            sections: {
+                'Paper 1': ['Section A', 'Section B'],
+                'Paper 2': [],
+                'Paper 3': ['Section A']
+            }
+        },
+        'Chemistry': {
+            topics: ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry', 'Analytical Chemistry'],
+            papers: ['Paper 1', 'Paper 2', 'Paper 3'],
+            sections: {
+                'Paper 1': ['Section A', 'Section B'],
+                'Paper 2': [],
+                'Paper 3': ['Section A']
+            }
+        },
+        'Biology': {
+            topics: ['Cell Biology', 'Genetics', 'Evolution', 'Ecology', 'Human Biology'],
+            papers: ['Paper 1', 'Paper 2', 'Paper 3'],
+            sections: {
+                'Paper 1': ['Section A', 'Section B'],
+                'Paper 2': [],
+                'Paper 3': ['Section A']
+            }
+        },
+        'History': {
+            topics: ['World Wars', 'African History', 'Modern History', 'Ancient Civilizations'],
+            papers: ['Paper 1', 'Paper 2'],
+            sections: {
+                'Paper 1': ['Section A', 'Section B', 'Section C'],
+                'Paper 2': ['Section A', 'Section B']
+            }
+        },
+        'Geography': {
+            topics: ['Physical Geography', 'Human Geography', 'Map Work', 'Climate'],
+            papers: ['Paper 1', 'Paper 2'],
+            sections: {
+                'Paper 1': ['Section A', 'Section B'],
+                'Paper 2': ['Section A', 'Section B']
+            }
+        }
+    };
+    // Memoize statistics computation to avoid repeated heavy recalculation
+    const memoizedStatistics = useMemo(() => getStatistics(), [allQuestions, filterSubject, filterPaper, filterTopic, filterStatus]);
 
     // Load subjects from database for question entry dropdowns
     const loadDynamicSubjects = async () => {
@@ -278,7 +399,7 @@ const {
         } catch (error) {
             console.error('Error loading dynamic subjects:', error);
             // Fallback to hardcoded subjects on error
-            // setSubjects(fallbackSubjects);
+            setSubjects(fallbackSubjects);
         } finally {
             setIsLoadingDynamicSubjects(false);
         }
@@ -2267,9 +2388,16 @@ useEffect(() => {
     };
 
     // Edit Questions functions
-    // Removed handleSearchQuestions, use useSearchQuestions hook for searching and filtering
+    const handleSearchQuestions = async (query = '') => {
+        // Legacy wrapper — use react-query refetch which uses the debounced value and filters
+        try {
+            await refetchQuestions();
+        } catch (e) {
+            console.error('Error refetching questions via handleSearchQuestions wrapper', e);
+        }
+    };
 
-    const handleSelectQuestion = (question) => {
+    const handleSelectQuestion = useCallback((question) => {
         console.log('RAW question data received:', question);
         console.log('🔍 question_inline_images field:', question.question_inline_images);
         console.log('🔍 answer_inline_images field:', question.answer_inline_images);
@@ -2429,7 +2557,7 @@ useEffect(() => {
         
         // Note: Answer lines are embedded in the text as [LINES:id] placeholders
         // They will be rendered automatically when the text is displayed
-    };
+    }, [fetchTopicsForPaper]);
 
     const handleUpdateQuestion = async (e) => {
         e.preventDefault();
@@ -2499,7 +2627,7 @@ useEffect(() => {
             alert('Question updated successfully!');
             
             // Refresh search results and get updated question data
-            await handleSearchQuestions(searchQuery || '');
+            await refetchQuestions();
             
             // Fetch the updated question to refresh the form with latest data
             try {
@@ -2561,7 +2689,7 @@ useEffect(() => {
             setEditIsGraphQuestion(false); // Reset graph status
             
             // Refresh search results - this will re-fetch questions
-            await handleSearchQuestions(searchQuery || '');
+            await refetchQuestions();
             
             console.log('✅ Question deleted and search results refreshed');
             
@@ -2900,19 +3028,19 @@ useEffect(() => {
             setEditAvailableTopics([]);
         }
         
-        // Trigger search when filters change
-        handleSearchQuestions(searchQuery);
+        // Trigger search when filters change (use react-query refetch)
+        refetchQuestions();
     }, [editFilterPaper, editAvailablePapers, editFilterSubject]);
 
     // Trigger search when other filters change
     useEffect(() => {
-        handleSearchQuestions(searchQuery);
+        refetchQuestions();
     }, [editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType]);
 
     // Load all questions when Edit tab becomes active
     useEffect(() => {
         if (activeTab === 'edit') {
-            handleSearchQuestions(searchQuery);
+            refetchQuestions();
             fetchSubjects();
         }
     }, [activeTab]);
@@ -6493,15 +6621,15 @@ useEffect(() => {
                                         type="text"
                                         value={searchQuery}
                                         onChange={(e) => {
+                                            // Only update the search query; debounced hook + React Query will fetch
                                             setSearchQuery(e.target.value);
-                                            handleSearchQuestions(e.target.value);
                                         }}
                                         placeholder="Search by question text, answer, subject, or topic... "
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                                     />
                                 </div>
                                 <button
-                                    onClick={() => handleSearchQuestions(searchQuery)}
+                                    onClick={() => refetchQuestions()}
                                     disabled={isSearchingQuestions || searchQuery.length < 2}
                                     className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
@@ -6533,7 +6661,7 @@ useEffect(() => {
                                             setEditAvailableTopics([]);
                                             setSearchQuery('');
                                             // Re-run search with no filters
-                                            handleSearchQuestions('');
+                                            refetchQuestions();
                                         }}
                                         className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1"
                                     >
@@ -6744,62 +6872,9 @@ useEffect(() => {
                                 <div className="space-y-3">
                                     <p className="text-sm text-gray-600 mb-3">Found {searchResults.length} question(s)</p>
                                     <div className="max-h-96 overflow-y-auto space-y-2">
-                                        {useMemo(() => searchResults.map((question) => (
-                                            <div
-                                                key={question.id}
-                                                onClick={() => handleSelectQuestion(question)}
-                                                className={`p-4 border rounded-lg cursor-pointer transition ${
-                                                    selectedQuestion?.id === question.id
-                                                        ? 'border-blue-500 bg-blue-50'
-                                                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                                                }`}
-                                            >
-                                                {/* ...existing code... */}
-                                            </div>
-                                        )), [searchResults, selectedQuestion, handleSelectQuestion])}
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-semibold text-gray-800 line-clamp-2">
-                                                            {question.question_text?.substring(0, 150)}...
-                                                        </p>
-                                                    </div>
-                                                    <span className="ml-3 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full whitespace-nowrap">
-                                                        {question.marks} marks
-                                                    </span>
-                                                </div>
-                                                <div className="flex flex-wrap gap-2 text-xs text-gray-600">
-                                                    <span className="bg-gray-100 px-2 py-1 rounded">
-                                                        📚 {question.subject_name}
-                                                    </span>
-                                                    {question.paper_name && (
-                                                        <span className="bg-gray-100 px-2 py-1 rounded">
-                                                            📄 {question.paper_name}
-                                                        </span>
-                                                    )}
-
-                                                    {question.topic_name && (
-                                                        <span className="bg-gray-100 px-2 py-1 rounded">
-                                                            📖 {question.topic_name}
-                                                        </span>
-                                                    )}
-                                                    <span className={`px-2 py-1 rounded font-semibold ${
-                                                        question.is_active !== false 
-                                                            ? 'bg-green-100 text-green-700' 
-                                                            : 'bg-red-100 text-red-700'
-                                                    }`}>
-                                                        {question.is_active !== false ? '✓ Active' : '✕ Inactive'}
-                                                    </span>
-                                                    <span className={`px-2 py-1 rounded font-semibold ${
-                                                        question.is_nested === true 
-                                                            ? 'bg-purple-100 text-purple-700' 
-                                                            : 'bg-blue-100 text-blue-700'
-                                                    }`}>
-                                                        {question.is_nested === true ? '⊕ Nested' : '◉ Standalone'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-
+                                        {renderedSearchResults}
+                                    </div>
+                                </div>
                             ) : searchQuery.length >= 2 ? (
                                 <div className="text-center py-12 text-gray-500">
                                     <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -6904,6 +6979,75 @@ useEffect(() => {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Question Content */}
+                                {/* <div className="mb-6">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-sm font-bold text-gray-700">
+                                            Question Content *
+                                        </label>
+                                        
+                                        {/* Text Formatting Buttons */}
+                                        {/* <div className="flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => applyEditQuestionFormatting('bold')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs font-bold"
+                                                title="Bold"
+                                            >
+                                                B
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => applyEditQuestionFormatting('italic')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs italic"
+                                                title="Italic"
+                                            >
+                                                I
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => applyEditQuestionFormatting('underline')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs underline"
+                                                title="Underline"
+                                            >
+                                                U
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
+                                        {/* Display Area */}
+                                        {/* <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
+                                            {editQuestionText.length > 0 ? (
+                                                renderTextWithImages(
+                                                    editQuestionText,
+                                                    editQuestionInlineImages,
+                                                    editQuestionImagePositions,
+                                                    editQuestionAnswerLines,
+                                                    null,
+                                                    null,
+                                                    'edit'
+                                                )
+                                            ) : (
+                                                <span className="text-gray-400">Question preview...</span>
+                                            )}
+                                        </div> */}
+                                         
+                                        {/* Editable Textarea */}
+                                        {/* <div className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300" style={{ height: '40%' }}>
+                                            <textarea
+                                                ref={editQuestionTextareaRef}
+                                                value={editQuestionText}
+                                                onChange={(e) => setEditQuestionText(e.target.value)}
+                                                className="w-full h-full px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition text-sm resize-none"
+                                                placeholder="Edit question text..."
+                                                style={{ fontFamily: 'monospace' }}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                </div>  */}
 
                                 {/* Question Content */}
                                 <div className="mb-6">
@@ -7727,8 +7871,8 @@ useEffect(() => {
 
                 {/* Statistics Tab Content */}
                 {activeTab === 'stats' && (() => {
-                    const stats = getStatistics();
-                    const filteredQuestions = getFilteredQuestions();
+                    const stats = memoizedStatistics;
+                    const filteredQuestions = useMemo(() => getFilteredQuestions(), [savedQuestions]);
                     
                     return (
                         <div>
@@ -8035,6 +8179,3 @@ useEffect(() => {
         </div>
     );
 }
-
-
-export default memo(EditorDashboard);
