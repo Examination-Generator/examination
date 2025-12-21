@@ -2367,16 +2367,7 @@ useEffect(() => {
                 });
 
                 console.log(`After text search for "${searchTerm}": ${filtered.length} questions`);
-                // const searchTerm = query.toLowerCase();
-                // filtered = filtered.filter(q => 
-                //     q.question_text?.toLowerCase().includes(searchTerm) ||
-                //     q.answer_text?.toLowerCase().includes(searchTerm) ||
-                //     q.subject_name?.toLowerCase().includes(searchTerm) ||
-                //     q.topic_name?.toLowerCase().includes(searchTerm)
-                // );
-
-
-                // console.log(`📝 After text search: ${filtered.length} questions`);
+                
             }
             
             // Apply subject filter
@@ -6403,9 +6394,9 @@ useEffect(() => {
 
                 {/* Answer Lines Configuration Modal */}
                 {showAnswerLinesModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-                            <div className="flex items-center justify-between mb-4">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
+                        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-2">
+                            <div className="flex items-center justify-between mb-2">
                                 <h3 className="text-xl font-bold text-gray-800">Add Answer Lines</h3>
                                 <button
                                     onClick={() => setShowAnswerLinesModal(false)}
@@ -6417,29 +6408,7 @@ useEffect(() => {
                                 </button>
                             </div>
 
-                            <div className="space-y-4">
-                                {/* Number of Lines */}
-                                {/* <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                                        Number of Lines *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        min="0.5"
-                                        max="400"
-                                        step="0.5"
-                                        value={answerLinesConfig.numberOfLines}
-                                        onChange={(e) => setAnswerLinesConfig(prev => ({ 
-                                            ...prev, 
-                                            numberOfLines: parseFloat(e.target.value) || 0.5 
-                                        }))}
-                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                        placeholder="e.g., 5 or 2.5 for half line"
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Enter whole numbers (1, 2, 3...) or half lines (0.5, 1.5, 2.5...)
-                                    </p>
-                                </div> */}
+                            <div className="space-y-2">
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">
                                         Number of Lines *
@@ -6475,7 +6444,7 @@ useEffect(() => {
                                         placeholder="e.g., 5 or 2.5 for half line"
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
-                                        Enter whole numbers (1, 2, 3...) or half lines (0.5, 1.5, 2.5...). Range: 0.5 - 400
+                                        Enter whole numbers (1, 2, 3,0.5, 2.5...)
                                     </p>
                                 </div>
 
@@ -6563,7 +6532,7 @@ useEffect(() => {
 
                                 {/* Preview */}
                                 <div className="bg-gray-50 rounded-lg p-4">
-                                    <p className="text-xs font-bold text-gray-700 mb-2">Preview:</p>
+                                    <p className="text-xs font-bold text-gray-700 mb-0">Preview:</p>
                                     <div className="bg-white p-3 rounded border border-gray-300 overflow-y-auto h-24">
                                         {[...Array(Math.min(3, Math.ceil(answerLinesConfig.numberOfLines)))].map((_, idx) => (
                                             <div
