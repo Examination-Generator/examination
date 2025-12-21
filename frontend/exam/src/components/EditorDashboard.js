@@ -580,14 +580,43 @@ export default function EditorDashboard({ onLogout }) {
     useEffect(() => {
         if (activeTab === 'stats') {
             fetchStatistics();
-            // Fetch ALL questions for statistics cards (no limit)
-            fetchQuestions({ limit: 10000 }).then(questions => {
-                setAllQuestions(questions || []);
-                setSavedQuestions(questions || []); // Initially show all questions
-            });
-            fetchSubjects(); // Load subjects for filter dropdowns
+            // If questions haven't been loaded yet, fetch them once and share across tabs
+            if (!Array.isArray(allQuestions) || allQuestions.length === 0) {
+                fetchQuestions({ limit: 10000 }).then(questions => {
+                    setAllQuestions(questions || []);
+                    setSavedQuestions(questions || []);
+                });
+            } else {
+                // reuse already-loaded questions
+                setSavedQuestions(allQuestions);
+            }
+
+            // Load subjects only if not already present
+            fetchSubjects();
         }
     }, [activeTab, statsRefreshTrigger]);
+
+    // Initial load: fetch questions and subjects once and share across Edit and Stats tabs
+    useEffect(() => {
+        let mounted = true;
+        const initialLoad = async () => {
+            try {
+                // Load subjects (for dropdowns)
+                await loadDynamicSubjects();
+
+                // Load all questions once (used by stats and edit lists)
+                const questions = await fetchQuestions({ limit: 10000 });
+                if (!mounted) return;
+                setAllQuestions(questions || []);
+                // Only set savedQuestions if none set yet (avoid overwriting user filters)
+                setSavedQuestions(prev => (Array.isArray(prev) && prev.length > 0 ? prev : (questions || [])));
+            } catch (err) {
+                console.error('Initial load failed:', err);
+            }
+        };
+        initialLoad();
+        return () => { mounted = false; };
+    }, []);
 
     // Refetch questions when filters change in statistics tab (only affects question list, not cards)
     useEffect(() => {
