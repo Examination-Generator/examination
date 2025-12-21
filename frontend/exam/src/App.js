@@ -1,5 +1,7 @@
 import './App.css';
 import { useState, useEffect } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import EditorDashboard from './components/EditorDashboard';
@@ -14,6 +16,37 @@ import {
   logout 
 } from './services/authService';
 
+// ============================================================================
+// REACT QUERY CONFIGURATION - Performance Optimization
+// ============================================================================
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Cache Configuration
+      staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
+      cacheTime: 10 * 60 * 1000, // 10 minutes - keep in memory
+      
+      // Performance Optimizations
+      refetchOnWindowFocus: false, // Don't refetch when switching tabs
+      refetchOnReconnect: false, // Don't auto-refetch on reconnect
+      retry: 1, // Only retry failed requests once
+      
+      // Prevent unnecessary re-renders
+      notifyOnChangeProps: 'tracked', // Only notify on tracked properties
+      
+      // Keep previous data while fetching new data
+      keepPreviousData: true,
+    },
+    mutations: {
+      // Retry failed mutations once
+      retry: 1,
+    },
+  },
+});
+
+// ============================================================================
+// MAIN APP COMPONENT
+// ============================================================================
 function App() {
   const [currentView, setCurrentView] = useState('login'); // 'login', 'signup', 'editor', or 'user'
   const [userRole, setUserRole] = useState('user'); // 'editor' or 'user'
@@ -86,6 +119,11 @@ function App() {
 
   const handleLogout = () => {
     debugLog('[APP] Logging out');
+    
+    // Clear React Query cache on logout
+    queryClient.clear();
+    debugLog('[APP] React Query cache cleared');
+    
     logout();
     setCurrentView('login');
     setUserRole('user');
@@ -108,7 +146,7 @@ function App() {
   }
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       {/* Session Warning - shown when session is about to expire */}
       {(currentView === 'editor' || currentView === 'user') && (
         <SessionWarning onLogout={handleLogout} />
@@ -135,7 +173,16 @@ function App() {
       ) : (
         <UserDashboard onLogout={handleLogout} />
       )}
-    </>
+
+      {/* React Query DevTools - Only in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <ReactQueryDevtools 
+          initialIsOpen={false} 
+          position="bottom-right"
+          buttonPosition="bottom-right"
+        />
+      )}
+    </QueryClientProvider>
   );
 }
 

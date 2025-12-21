@@ -1,9 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import * as subjectService from '../services/subjectService';
 import * as questionService from '../services/questionService';
 import * as authService from '../services/authService';
+// new chnge
+import { useSearchQuestions } from '../hooks/useQuestions';
+import { useDebounce } from '../hooks/useDebounce';
+
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api' ;
 
@@ -14,7 +18,7 @@ if (typeof window !== 'undefined') {
 
 
 
-export default function EditorDashboard({ onLogout }) {
+const EditorDashboard = ({ onLogout }) => {
     const [activeTab, setActiveTab] = useState('questions'); // 'questions', 'subjects', 'stats'
     const [selectedSubject, setSelectedSubject] = useState('');
     const [selectedTopic, setSelectedTopic] = useState('');
@@ -91,8 +95,8 @@ export default function EditorDashboard({ onLogout }) {
     
     // Edit questions states
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
-    const [isSearchingQuestions, setIsSearchingQuestions] = useState(false);
+    // Removed searchResults state, using useSearchQuestions hook instead
+    // const [isSearchingQuestions, setIsSearchingQuestions] = useState(false);
     const [editFilterStatus, setEditFilterStatus] = useState('all'); // 'all', 'active', 'inactive'
     const [editFilterType, setEditFilterType] = useState('all'); // 'all', 'nested', 'standalone'
     const [selectedQuestion, setSelectedQuestion] = useState(null);
@@ -214,69 +218,17 @@ export default function EditorDashboard({ onLogout }) {
     const [subjects, setSubjects] = useState({});
     const [isLoadingDynamicSubjects, setIsLoadingDynamicSubjects] = useState(false);
 
-    // Legacy hardcoded subject configuration (fallback only)
-    const fallbackSubjects = {
-        'Mathematics': {
-            topics: ['Algebra', 'Geometry', 'Calculus', 'Statistics', 'Trigonometry'],
-            papers: ['Paper 1', 'Paper 2', 'Paper 3'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B', 'Section C'],
-                'Paper 2': ['Section A', 'Section B'],
-                'Paper 3': []
-            }
-        },
-        'English': {
-            topics: ['Grammar', 'Composition', 'Literature', 'Comprehension'],
-            papers: ['Paper 1', 'Paper 2'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B', 'Section C'],
-                'Paper 2': ['Section A', 'Section B']
-            }
-        },
-        'Physics': {
-            topics: ['Mechanics', 'Electricity', 'Waves', 'Thermodynamics', 'Modern Physics'],
-            papers: ['Paper 1', 'Paper 2', 'Paper 3'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B'],
-                'Paper 2': [],
-                'Paper 3': ['Section A']
-            }
-        },
-        'Chemistry': {
-            topics: ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry', 'Analytical Chemistry'],
-            papers: ['Paper 1', 'Paper 2', 'Paper 3'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B'],
-                'Paper 2': [],
-                'Paper 3': ['Section A']
-            }
-        },
-        'Biology': {
-            topics: ['Cell Biology', 'Genetics', 'Evolution', 'Ecology', 'Human Biology'],
-            papers: ['Paper 1', 'Paper 2', 'Paper 3'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B'],
-                'Paper 2': [],
-                'Paper 3': ['Section A']
-            }
-        },
-        'History': {
-            topics: ['World Wars', 'African History', 'Modern History', 'Ancient Civilizations'],
-            papers: ['Paper 1', 'Paper 2'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B', 'Section C'],
-                'Paper 2': ['Section A', 'Section B']
-            }
-        },
-        'Geography': {
-            topics: ['Physical Geography', 'Human Geography', 'Map Work', 'Climate'],
-            papers: ['Paper 1', 'Paper 2'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B'],
-                'Paper 2': ['Section A', 'Section B']
-            }
-        }
-    };
+    // optimition chnge
+    const debouncedSearchQuery = useDebounce(searchQuery, 500);
+
+const { 
+  data: searchResults = [], 
+  isLoading: isSearchingQuestionsLoading 
+} = useSearchQuestions(
+  debouncedSearchQuery,
+  { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType }
+);
+
 
     // Load subjects from database for question entry dropdowns
     const loadDynamicSubjects = async () => {
@@ -326,7 +278,7 @@ export default function EditorDashboard({ onLogout }) {
         } catch (error) {
             console.error('Error loading dynamic subjects:', error);
             // Fallback to hardcoded subjects on error
-            setSubjects(fallbackSubjects);
+            // setSubjects(fallbackSubjects);
         } finally {
             setIsLoadingDynamicSubjects(false);
         }
@@ -2315,135 +2267,7 @@ useEffect(() => {
     };
 
     // Edit Questions functions
-    const handleSearchQuestions = async (query = '') => {
-        setIsSearchingQuestions(true);
-        try {
-            // Fetch ALL questions from database (with high limit to ensure we get everything)
-            const allQuestions = await questionService.getAllQuestions({ limit: 10000 });
-            let filtered = [...allQuestions];
-            
-            console.log('Search filters applied:', {
-                query,
-                editFilterSubject,
-                editFilterPaper,
-                editFilterTopic,
-                editFilterStatus,
-                editFilterType,
-                totalQuestions: allQuestions.length
-            });
-
-            console.log('Sample question structure:', allQuestions[0]);
-            console.log('Field check for first 5 questions:', allQuestions.slice(0, 5).map(q => ({
-                has_question_text: !!q.question_text,
-                has_answer_text: !!q.answer_text,
-                has_subject_name: !!q.subject_name,
-                has_topic_name: !!q.topic_name,
-                actual_keys: Object.keys(q)
-            })));
-            
-            // Apply text search filter if query exists
-            if (query && query.trim().length >= 2) {
-
-                const searchTerm = query
-                                .replace(/…/g, '') 
-                                .replace(/\s+/g, ' ') 
-                                .trim()
-                                .toLowerCase();
-
-                if (searchTerm.length < 2) {
-                    console.log('Search term too short after cleaning');
-                    return;
-                }
-
-                filtered = filtered.filter(q => {
-                    const searchableText = [
-                        q.question_text || '',
-                        q.answer_text || '',
-                        q.subject_name || '',
-                        q.topic_name || ''
-                    ].join(' ').toLowerCase();
-                    
-                    return searchableText.includes(searchTerm);
-                });
-
-                console.log(`After text search for "${searchTerm}": ${filtered.length} questions`);
-                
-            }
-            
-            // Apply subject filter
-            if (editFilterSubject) {
-                const beforeCount = filtered.length;
-                filtered = filtered.filter(q => q.subject_name === editFilterSubject);
-                console.log(`📚 Subject filter (${editFilterSubject}): ${beforeCount} → ${filtered.length} questions`);
-            }
-            
-            // Apply paper filter
-            if (editFilterPaper) {
-                const beforeCount = filtered.length;
-                filtered = filtered.filter(q => q.paper_name === editFilterPaper);
-                console.log(`📄 Paper filter (${editFilterPaper}): ${beforeCount} → ${filtered.length} questions`);
-            }
-            
-            // Apply topic filter
-            if (editFilterTopic) {
-                const beforeCount = filtered.length;
-                
-                // Log all unique topics in current filtered set for debugging
-                const uniqueTopics = [...new Set(filtered.map(q => q.topic_name).filter(Boolean))];
-                console.log(`📖 Topic filter attempting to match: "${editFilterTopic}"`);
-                console.log(`   Available topics in filtered questions:`, uniqueTopics);
-                console.log(`   Total questions before filter: ${beforeCount}`);
-                
-                filtered = filtered.filter(q => q.topic_name === editFilterTopic);
-                console.log(`   Questions after topic filter: ${filtered.length}`);
-                
-                // Log sample question to debug topic_name
-                if (filtered.length > 0) {
-                    console.log('✅ Sample matched question:', {
-                        question_text: filtered[0].question_text?.substring(0, 50),
-                        topic_name: filtered[0].topic_name,
-                        subject_name: filtered[0].subject_name,
-                        paper_name: filtered[0].paper_name
-                    });
-                } else if (beforeCount > 0) {
-                    // Show what topics exist in the questions for this paper
-                    const sampleQuestions = allQuestions.filter(q => q.paper_name === editFilterPaper).slice(0, 3);
-                    console.log('⚠️ No matches! Sample questions from this paper:', 
-                        sampleQuestions.map(q => ({
-                            topic_name: q.topic_name,
-                            question_preview: q.question_text?.substring(0, 30)
-                        }))
-                    );
-                }
-            }
-
-            // Apply status filter
-            if (editFilterStatus === 'active') {
-                filtered = filtered.filter(q => q.is_active !== false);
-                console.log(`✓ Active filter: ${filtered.length} questions`);
-            } else if (editFilterStatus === 'inactive') {
-                filtered = filtered.filter(q => q.is_active === false);
-                console.log(`✕ Inactive filter: ${filtered.length} questions`);
-            }
-            
-            // Apply type filter
-            if (editFilterType === 'nested') {
-                filtered = filtered.filter(q => q.is_nested === true);
-                console.log(`⊕ Nested filter: ${filtered.length} questions`);
-            } else if (editFilterType === 'standalone') {
-                filtered = filtered.filter(q => q.is_nested !== true);
-                console.log(`◉ Standalone filter: ${filtered.length} questions`);
-            }
-            
-            console.log(`✅ Final filtered results: ${filtered.length} questions`);
-            setSearchResults(filtered);
-        } catch (error) {
-            console.error('Error searching questions:', error);
-            alert('Failed to search questions');
-        } finally {
-            setIsSearchingQuestions(false);
-        }
-    };
+    // Removed handleSearchQuestions, use useSearchQuestions hook for searching and filtering
 
     const handleSelectQuestion = (question) => {
         console.log('RAW question data received:', question);
@@ -6920,7 +6744,7 @@ useEffect(() => {
                                 <div className="space-y-3">
                                     <p className="text-sm text-gray-600 mb-3">Found {searchResults.length} question(s)</p>
                                     <div className="max-h-96 overflow-y-auto space-y-2">
-                                        {searchResults.map((question) => (
+                                        {useMemo(() => searchResults.map((question) => (
                                             <div
                                                 key={question.id}
                                                 onClick={() => handleSelectQuestion(question)}
@@ -6930,6 +6754,9 @@ useEffect(() => {
                                                         : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                                                 }`}
                                             >
+                                                {/* ...existing code... */}
+                                            </div>
+                                        )), [searchResults, selectedQuestion, handleSelectQuestion])}
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div className="flex-1">
                                                         <p className="text-sm font-semibold text-gray-800 line-clamp-2">
@@ -6949,6 +6776,7 @@ useEffect(() => {
                                                             📄 {question.paper_name}
                                                         </span>
                                                     )}
+
                                                     {question.topic_name && (
                                                         <span className="bg-gray-100 px-2 py-1 rounded">
                                                             📖 {question.topic_name}
@@ -6970,9 +6798,8 @@ useEffect(() => {
                                                     </span>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
+                                        </div>
+
                             ) : searchQuery.length >= 2 ? (
                                 <div className="text-center py-12 text-gray-500">
                                     <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -7077,75 +6904,6 @@ useEffect(() => {
                                         )}
                                     </div>
                                 </div>
-
-                                {/* Question Content */}
-                                {/* <div className="mb-6">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <label className="block text-sm font-bold text-gray-700">
-                                            Question Content *
-                                        </label>
-                                        
-                                        {/* Text Formatting Buttons */}
-                                        {/* <div className="flex items-center gap-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => applyEditQuestionFormatting('bold')}
-                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs font-bold"
-                                                title="Bold"
-                                            >
-                                                B
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => applyEditQuestionFormatting('italic')}
-                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs italic"
-                                                title="Italic"
-                                            >
-                                                I
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => applyEditQuestionFormatting('underline')}
-                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs underline"
-                                                title="Underline"
-                                            >
-                                                U
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
-                                        {/* Display Area */}
-                                        {/* <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
-                                            {editQuestionText.length > 0 ? (
-                                                renderTextWithImages(
-                                                    editQuestionText,
-                                                    editQuestionInlineImages,
-                                                    editQuestionImagePositions,
-                                                    editQuestionAnswerLines,
-                                                    null,
-                                                    null,
-                                                    'edit'
-                                                )
-                                            ) : (
-                                                <span className="text-gray-400">Question preview...</span>
-                                            )}
-                                        </div> */}
-                                         
-                                        {/* Editable Textarea */}
-                                        {/* <div className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300" style={{ height: '40%' }}>
-                                            <textarea
-                                                ref={editQuestionTextareaRef}
-                                                value={editQuestionText}
-                                                onChange={(e) => setEditQuestionText(e.target.value)}
-                                                className="w-full h-full px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition text-sm resize-none"
-                                                placeholder="Edit question text..."
-                                                style={{ fontFamily: 'monospace' }}
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                </div>  */}
 
                                 {/* Question Content */}
                                 <div className="mb-6">
@@ -8277,3 +8035,6 @@ useEffect(() => {
         </div>
     );
 }
+
+
+export default memo(EditorDashboard);
