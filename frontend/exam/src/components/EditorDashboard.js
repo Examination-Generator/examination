@@ -58,68 +58,67 @@ export default function EditorDashboard({ onLogout }) {
     // Answer section states
     const [uploadedAnswerImages, setUploadedAnswerImages] = useState([]);
     const [showAnswerDrawingTool, setShowAnswerDrawingTool] = useState(false);
-    const [showAnswerGraphPaper, setShowAnswerGraphPaper] = useState(false);
-    const [answerDrawingTool, setAnswerDrawingTool] = useState('pen');
-    const [answerDrawingColor, setAnswerDrawingColor] = useState('#000000');
-    const [answerDrawingWidth, setAnswerDrawingWidth] = useState(2);
-    const answerCanvasRef = useRef(null);
-    const [isAnswerDrawing, setIsAnswerDrawing] = useState(false);
     
-    // Inline images for answer
-    const [answerInlineImages, setAnswerInlineImages] = useState([]);
-    const [answerImagePositions, setAnswerImagePositions] = useState({}); // { imageId: { x, y } }
-    
-    // Voice transcription states
-    const [isQuestionListening, setIsQuestionListening] = useState(false);
-    const [isAnswerListening, setIsAnswerListening] = useState(false);
-    const questionRecognitionRef = useRef(null);
-    const answerRecognitionRef = useRef(null);
-    
-    // Text formatting states
-    const questionTextareaRef = useRef(null);
-    const answerTextareaRef = useRef(null);
-    
-    // Answer lines states
-    const [showAnswerLinesModal, setShowAnswerLinesModal] = useState(false);
-    const [answerLinesConfig, setAnswerLinesConfig] = useState({
-        numberOfLines: 5,
-        lineHeight: 30,
-        lineStyle: 'dotted', // 'dotted' or 'solid'
-        opacity: 0.5, // 0.1 to 1
-        targetSection: 'question' // 'question' or 'answer'
-    });
-    const [questionAnswerLines, setQuestionAnswerLines] = useState([]); // Array of line configurations
-    const [answerAnswerLines, setAnswerAnswerLines] = useState([]); // Array of line configurations
-    
-    // Edit questions states
-    const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
-    const [isSearchingQuestions, setIsSearchingQuestions] = useState(false);
-    
-    const [editFilterStatus, setEditFilterStatus] = useState('all'); // 'all', 'active', 'inactive'
-    const [editFilterType, setEditFilterType] = useState('all'); // 'all', 'nested', 'standalone'
-    const [selectedQuestion, setSelectedQuestion] = useState(null);
-    const [editQuestionText, setEditQuestionText] = useState('');
-    const [editAnswerText, setEditAnswerText] = useState('');
-    const [editMarks, setEditMarks] = useState('');
-    const [editTopic, setEditTopic] = useState(''); // Topic ID for editing
-    const [editQuestionTopics, setEditQuestionTopics] = useState([]); // Topics for the selected paper
-    const [editQuestionSections, setEditQuestionSections] = useState([]); // Sections for the selected paper
-    const [editSection, setEditSection] = useState(''); // Section ID for editing
-    const [editQuestionInlineImages, setEditQuestionInlineImages] = useState([]);
-    const [editAnswerInlineImages, setEditAnswerInlineImages] = useState([]);
-    const [editQuestionImagePositions, setEditQuestionImagePositions] = useState({});
-    const [editAnswerImagePositions, setEditAnswerImagePositions] = useState({});
-    const [editQuestionAnswerLines, setEditQuestionAnswerLines] = useState([]);
-    const [editAnswerAnswerLines, setEditAnswerAnswerLines] = useState([]);
-    const [editIsActive, setEditIsActive] = useState(true); // Question active status
-    const [editIsNested, setEditIsNested] = useState(false); // Question nested status
-    const [editIsEssayQuestion, setEditIsEssayQuestion] = useState(false); // Track if question is an essay
-    const [editIsGraphQuestion, setEditIsGraphQuestion] = useState(false); // Track if question requires graphing
-    const editQuestionTextareaRef = useRef(null);
-    const editAnswerTextareaRef = useRef(null);
-
-    
+        
+        // NEW: Load answer lines configurations
+        const questionLines = question.question_answer_lines || [];
+        const answerLines = question.answer_answer_lines || [];
+        
+        // Debug: Log if there are LINES placeholders but no configurations
+        const questionHasLines = questionText.includes('[LINES:');
+        const answerHasLines = answerText.includes('[LINES:');
+        
+        if ((questionHasLines && questionLines.length === 0) || (answerHasLines && answerLines.length === 0)) {
+            console.warn('⚠️ Question has LINES placeholders but no configuration:', {
+                questionId: question.id,
+                questionHasLines,
+                answerHasLines,
+                questionLinesCount: questionLines.length,
+                answerLinesCount: answerLines.length
+            });
+            
+            // Auto-generate default line configurations for missing lines
+            if (questionHasLines && questionLines.length === 0) {
+                const matches = questionText.matchAll(/\[LINES:([\d.]+)\]/g);
+                const defaultLines = [];
+                for (const match of matches) {
+                    const lineId = parseFloat(match[1]);
+                    defaultLines.push({
+                        id: lineId,
+                        numberOfLines: 3, // Default to 3 lines
+                        lineHeight: 30,   // Default height
+                        lineStyle: 'solid',
+                        opacity: 0.5
+                    });
+                }
+                setEditQuestionAnswerLines(defaultLines);
+                console.log('✅ Auto-generated question line configurations:', defaultLines);
+            } else {
+                setEditQuestionAnswerLines(questionLines);
+            }
+            
+            if (answerHasLines && answerLines.length === 0) {
+                const matches = answerText.matchAll(/\[LINES:([\d.]+)\]/g);
+                const defaultLines = [];
+                for (const match of matches) {
+                    const lineId = parseFloat(match[1]);
+                    defaultLines.push({
+                        id: lineId,
+                        numberOfLines: 3,
+                        lineHeight: 30,
+                        lineStyle: 'solid',
+                        opacity: 0.5
+                    });
+                }
+                setEditAnswerAnswerLines(defaultLines);
+                console.log('✅ Auto-generated answer line configurations:', defaultLines);
+            } else {
+                setEditAnswerAnswerLines(answerLines);
+            }
+        } else {
+            setEditQuestionAnswerLines(questionLines);
+            setEditAnswerAnswerLines(answerLines);
+        }
 
     // Memoize rendered search results to avoid re-rendering list items unnecessarily
     const renderedSearchResults = useMemo(() => (
@@ -8183,4 +8182,4 @@ useEffect(() => {
             </div>
         </div>
     );
-}
+}  
