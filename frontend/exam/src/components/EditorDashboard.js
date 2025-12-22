@@ -4164,9 +4164,9 @@ useEffect(() => {
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                    {/* Question Entry Section - 80% width on large screens */}
-                    <div className="lg:col-span-4">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    {/* Question Entry Section - 75% width on large screens */}
+                    <div className="lg:col-span-3">
                         <form onSubmit={bulkQuestions.length > 0 ? handleBulkSubmit : handleSubmit} className="bg-white rounded-xl shadow-lg p-6">
                             <h2 className="text-xl font-bold text-gray-800 mb-4">
                                 Question Entry {bulkQuestions.length > 0 && `(${currentBulkIndex + 1} of ${bulkQuestions.length})`}
@@ -5499,10 +5499,10 @@ useEffect(() => {
                             )}
 
                             {!isSearching && similarQuestions.length > 0 && (
-                                <div className="space-y-3">
+                                <div className="space-y-3 max-h-[75%] overflow-y-auto">
                                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                                         <p className="text-xs font-bold text-yellow-800">
-                                            ⚠️ WARNING: Similar questions detected!
+                                            Similar questions detected!
                                         </p>
                                         <p className="text-xs text-yellow-700 mt-1">
                                             Found {similarQuestions.length} similar question{similarQuestions.length > 1 ? 's' : ''} in {selectedSubject}
