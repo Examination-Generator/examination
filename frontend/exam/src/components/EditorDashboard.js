@@ -400,69 +400,7 @@ export default function EditorDashboard({ onLogout }) {
     const [subjects, setSubjects] = useState({});
     const [isLoadingDynamicSubjects, setIsLoadingDynamicSubjects] = useState(false);
 
-    // Legacy hardcoded subject configuration (fallback only)
-    const fallbackSubjects = {
-        'Mathematics': {
-            topics: ['Algebra', 'Geometry', 'Calculus', 'Statistics', 'Trigonometry'],
-            papers: ['Paper 1', 'Paper 2', 'Paper 3'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B', 'Section C'],
-                'Paper 2': ['Section A', 'Section B'],
-                'Paper 3': []
-            }
-        },
-        'English': {
-            topics: ['Grammar', 'Composition', 'Literature', 'Comprehension'],
-            papers: ['Paper 1', 'Paper 2'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B', 'Section C'],
-                'Paper 2': ['Section A', 'Section B']
-            }
-        },
-        'Physics': {
-            topics: ['Mechanics', 'Electricity', 'Waves', 'Thermodynamics', 'Modern Physics'],
-            papers: ['Paper 1', 'Paper 2', 'Paper 3'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B'],
-                'Paper 2': [],
-                'Paper 3': ['Section A']
-            }
-        },
-        'Chemistry': {
-            topics: ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry', 'Analytical Chemistry'],
-            papers: ['Paper 1', 'Paper 2', 'Paper 3'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B'],
-                'Paper 2': [],
-                'Paper 3': ['Section A']
-            }
-        },
-        'Biology': {
-            topics: ['Cell Biology', 'Genetics', 'Evolution', 'Ecology', 'Human Biology'],
-            papers: ['Paper 1', 'Paper 2', 'Paper 3'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B'],
-                'Paper 2': [],
-                'Paper 3': ['Section A']
-            }
-        },
-        'History': {
-            topics: ['World Wars', 'African History', 'Modern History', 'Ancient Civilizations'],
-            papers: ['Paper 1', 'Paper 2'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B', 'Section C'],
-                'Paper 2': ['Section A', 'Section B']
-            }
-        },
-        'Geography': {
-            topics: ['Physical Geography', 'Human Geography', 'Map Work', 'Climate'],
-            papers: ['Paper 1', 'Paper 2'],
-            sections: {
-                'Paper 1': ['Section A', 'Section B'],
-                'Paper 2': ['Section A', 'Section B']
-            }
-        }
-    };
+    
     // Memoize statistics computation to avoid repeated heavy recalculation
     const memoizedStatistics = useMemo(() => getStatistics(), [allQuestions, filterSubject, filterPaper, filterTopic, filterStatus]);
 
@@ -517,7 +455,7 @@ export default function EditorDashboard({ onLogout }) {
         } catch (error) {
             console.error('Error loading dynamic subjects:', error);
             // Fallback to hardcoded subjects on error
-            setSubjects(fallbackSubjects);
+            // setSubjects(fallbackSubjects);
         } finally {
             setIsLoadingDynamicSubjects(false);
         }
@@ -7182,74 +7120,6 @@ useEffect(() => {
                                     </div>
                                 </div>
 
-                                {/* Question Content */}
-                                {/* <div className="mb-6">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <label className="block text-sm font-bold text-gray-700">
-                                            Question Content *
-                                        </label>
-                                        
-                                        {/* Text Formatting Buttons */}
-                                        {/* <div className="flex items-center gap-1">
-                                            <button
-                                                type="button"
-                                                onClick={() => applyEditQuestionFormatting('bold')}
-                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs font-bold"
-                                                title="Bold"
-                                            >
-                                                B
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => applyEditQuestionFormatting('italic')}
-                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs italic"
-                                                title="Italic"
-                                            >
-                                                I
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => applyEditQuestionFormatting('underline')}
-                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs underline"
-                                                title="Underline"
-                                            >
-                                                U
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
-                                        {/* Display Area */}
-                                        {/* <div className="p-4 overflow-y-auto" style={{ height: '60%', whiteSpace: 'pre-wrap' }}>
-                                            {editQuestionText.length > 0 ? (
-                                                renderTextWithImages(
-                                                    editQuestionText,
-                                                    editQuestionInlineImages,
-                                                    editQuestionImagePositions,
-                                                    editQuestionAnswerLines,
-                                                    null,
-                                                    null,
-                                                    'edit'
-                                                )
-                                            ) : (
-                                                <span className="text-gray-400">Question preview...</span>
-                                            )}
-                                        </div> */}
-                                         
-                                        {/* Editable Textarea */}
-                                        {/* <div className="absolute bottom-0 left-0 right-0 bg-white border-t-2 border-gray-300" style={{ height: '40%' }}>
-                                            <textarea
-                                                ref={editQuestionTextareaRef}
-                                                value={editQuestionText}
-                                                onChange={(e) => setEditQuestionText(e.target.value)}
-                                                className="w-full h-full px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition text-sm resize-none"
-                                                placeholder="Edit question text..."
-                                                style={{ fontFamily: 'monospace' }}
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                </div>  */}
 
                                 {/* Question Content */}
                                 <div className="mb-6">
