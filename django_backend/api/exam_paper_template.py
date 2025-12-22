@@ -108,23 +108,15 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     
     # Detect paper type from coverpage data
     is_paper2 = coverpage_data.get('paper_type') == 'Paper 2'
-    
-    # Use total_pages from coverpage_data if available (Paper 2 has dynamic calculation)
-    total_pages = coverpage_data.get('total_pages')
-    
-    # Fallback to calculated pages if not provided
-    if total_pages is None:
-        if is_paper2:
-            # Paper 2: 1 coverpage + 3 Section A pages + 2 Section B pages + 4 answer pages
-            total_pages = 6
-        else:
-            # Paper 1: Assuming ~3-4 questions per page
-            total_pages = 1 + ((len(questions) + 2) // 3)
-    
-    # Generate question pages (use specialized function for Paper 2)
+
+    # Dynamic page calculation
     if is_paper2:
-        questions_html = _generate_paper2_question_pages(questions, total_pages, coverpage_data)
+        # 1 cover + ceil(questions/2) + 2 answer pages
+        question_pages = (len(questions) + 1) // 2
+        total_pages = 1 + question_pages + 2
+        questions_html = _generate_paper2_question_pages(questions, total_pages, coverpage_data, answer_lines_pages=2)
     else:
+        total_pages = 1 + ((len(questions) + 2) // 3)
         questions_html = _generate_question_pages(questions, total_pages, coverpage_data)
     
     # Combine everything
@@ -610,15 +602,16 @@ def _process_question_text(text, images=None, answer_lines=None):
     return ''.join(result)
 
 
-def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None):
+def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None, answer_lines_pages=2):
     """
     Generate paginated question pages for Biology Paper 2
-    (Same implementation as before)
+    After the last question, insert two pages of dotted answer lines (no header)
     """
+    import math
     pages_html = []
     current_page = 2
-    
-    # Determine section boundaries from coverpage_data if provided
+
+    # Section boundaries
     metadata = coverpage_data or {}
     section_a_count = metadata.get('section_a_questions', 5)
     try:
@@ -628,12 +621,11 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None)
 
     section_a_questions = [q for q in questions if q['number'] <= section_a_count]
     section_b_questions = [q for q in questions if q['number'] > section_a_count]
-    
-    # Section A title and instruction - get marks/instruction from metadata if present
+
+    # Section A
     section_a_marks = 40
     section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
     section_a_instruction = metadata.get('section_a_instruction', 'Answer ALL questions in this section')
-
     section_a_html = _generate_section_pages(
         section_a_questions,
         section_a_title,
@@ -644,12 +636,11 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None)
     )
     pages_html.append(section_a_html['html'])
     current_page = section_a_html['next_page']
-    
-    # Section B title and instruction - prefer metadata; default to answer ALL questions similar to Section A
+
+    # Section B
     section_b_marks = 40
     section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
     section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
-
     section_b_html = _generate_section_pages(
         section_b_questions,
         section_b_title,
@@ -657,10 +648,26 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None)
         current_page,
         total_pages,
         is_last_section=True,
-        answer_lines=100
+        answer_lines=0
     )
     pages_html.append(section_b_html['html'])
-    
+    current_page = section_b_html['next_page']
+
+    # Insert two pages of dotted answer lines (no header)
+    lines_per_page = 25
+    for i in range(answer_lines_pages):
+        lines_html = ''
+        for _ in range(lines_per_page):
+            lines_html += '<div class="answer-line dotted" style="height: 28px; margin: 8px 0;"></div>'
+        page_html = f'''
+    <div class="exam-page page-break">
+        {lines_html}
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+'''
+        pages_html.append(page_html)
+        current_page += 1
+
     return '\n'.join(pages_html)
 
 
