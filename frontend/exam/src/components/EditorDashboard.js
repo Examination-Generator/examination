@@ -2657,6 +2657,25 @@ useEffect(() => {
         
         // Note: Answer lines are embedded in the text as [LINES:id] placeholders
         // They will be rendered automatically when the text is displayed
+        // Request backend to check whether this question has graph/essay content
+        try {
+            if (question && question.id) {
+                // lightweight call — update edit flags when available
+                questionService.checkGraphEssay(question.id).then((res) => {
+                    if (res) {
+                        const hasGraph = !!res.has_graph;
+                        const hasEssay = !!res.has_essay;
+                        console.debug('[checkGraphEssay] result for', question.id, { hasGraph, hasEssay });
+                        setEditIsGraphQuestion(hasGraph);
+                        setEditIsEssayQuestion(hasEssay);
+                    }
+                }).catch(err => {
+                    console.warn('checkGraphEssay failed (will ignore):', err);
+                });
+            }
+        } catch (e) {
+            console.warn('Error initiating checkGraphEssay request:', e);
+        }
     }, [fetchTopicsForPaper]);
 
     // Memoize rendered search results to avoid re-rendering list items unnecessarily
@@ -2708,6 +2727,16 @@ useEffect(() => {
                             : 'bg-blue-100 text-blue-700'
                     }`}>
                         {question.is_nested === true ? '⊕ Nested' : '◉ Standalone'}
+                    </span>
+                    {/* Essay/Graph/Regular status highlight - backend flags: is_essay_question/is_graph_question or fallback keys */}
+                    <span className={`px-2 py-1 rounded font-semibold ${
+                        (question.is_essay_question === true || question.is_essay === true) ? 'bg-yellow-100 text-yellow-800' :
+                        (question.is_graph_question === true || question.is_graph === true) ? 'bg-teal-100 text-teal-800' :
+                        'bg-gray-100 text-gray-700'
+                    }`}>
+                        {(question.is_essay_question === true || question.is_essay === true) ? '✎ Essay' :
+                         (question.is_graph_question === true || question.is_graph === true) ? '📈 Graph' :
+                         '📄 Regular'}
                     </span>
                 </div>
             </div>
@@ -2805,6 +2834,40 @@ useEffect(() => {
         } catch (error) {
             console.error('Error updating question:', error);
             alert('Failed to update question: ' + (error.message || 'Unknown error'));
+        }
+        // After update, the backend may process graph/essay detection asynchronously.
+        // Poll a few times to update UI flags when processing completes.
+        try {
+            if (selectedQuestion && selectedQuestion.id) {
+                const pollCheckGraphEssay = async (qId, attempts = 4, delay = 3000) => {
+                    for (let i = 0; i < attempts; i++) {
+                        try {
+                            const res = await questionService.checkGraphEssay(qId);
+                            if (res) {
+                                const hasGraph = !!res.has_graph;
+                                const hasEssay = !!res.has_essay;
+                                setEditIsGraphQuestion(hasGraph);
+                                setEditIsEssayQuestion(hasEssay);
+                                console.debug('[pollCheckGraphEssay] attempt', i + 1, 'for', qId, { hasGraph, hasEssay });
+                                // If either flag is true or both false (determinate), stop polling
+                                return res;
+                            }
+                        } catch (e) {
+                            console.warn('[pollCheckGraphEssay] attempt failed', i + 1, e);
+                        }
+                        // wait before next attempt
+                        await new Promise(r => setTimeout(r, delay));
+                    }
+                    return null;
+                };
+
+                // run in background; no need to await here
+                pollCheckGraphEssay(selectedQuestion.id, 4, 3000).then(res => {
+                    if (!res) console.debug('[pollCheckGraphEssay] no result after attempts');
+                }).catch(e => console.warn('pollCheckGraphEssay error:', e));
+            }
+        } catch (e) {
+            console.warn('Error scheduling pollCheckGraphEssay:', e);
         }
     };
 

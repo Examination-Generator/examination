@@ -163,3 +163,25 @@ export const deleteQuestion = async (questionId) => {
         throw error;
     }
 };
+
+// Check whether a question has graph/essay content (backend may process async)
+export const checkGraphEssay = async (questionId) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/questions/${questionId}/check_graph_essay`, {
+            method: 'GET',
+            headers: getHeaders()
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`HTTP error! status: ${response.status} - ${text}`);
+        }
+
+        const result = await response.json();
+        // Expected response: { question_id: '...', has_graph: true|false, has_essay: true|false }
+        return result || null;
+    } catch (error) {
+        console.error('Error checking graph/essay for question:', questionId, error);
+        throw error;
+    }
+};
