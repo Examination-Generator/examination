@@ -67,9 +67,10 @@ function App() {
       if (isAuthenticated() && isSessionValid()) {
         const user = getCurrentUser();
         debugLog('[APP] Valid session found:', user);
-        
+
         setUserRole(user.role);
-        if (user.role === 'editor') {
+        // Treat both 'editor' and 'admin' roles as editor view
+        if (user.role === 'editor' || user.role === 'admin') {
           setCurrentView('editor');
         } else {
           setCurrentView('user');
@@ -110,7 +111,8 @@ function App() {
   const handleLoginSuccess = (role) => {
     debugLog('[APP] Login successful, role:', role);
     setUserRole(role);
-    if (role === 'editor') {
+    // Keep admin users on the editor dashboard as well
+    if (role === 'editor' || role === 'admin') {
       setCurrentView('editor');
     } else {
       setCurrentView('user');
