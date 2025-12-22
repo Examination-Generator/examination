@@ -91,6 +91,7 @@ urlpatterns = [
     path('papers/<uuid:paper_id>/configuration', paper_generation_views.get_paper_configuration, name='get-paper-config'),
     path('papers/<uuid:paper_id>/configuration/update', paper_generation_views.update_paper_configuration, name='update-paper-config'),
     path('papers/<uuid:paper_id>/topics/statistics', paper_generation_views.get_topic_statistics, name='topic-statistics'),
+    path('questions/<uuid:question_id>/check_graph_essay', paper_generation_views.check_question_graph_essay_status, name='check-graph-essay'),
     
     # ==================== BIOLOGY PAPER 2 GENERATION ROUTES ====================
     # KCSE Biology Paper 2 specific generation endpoints

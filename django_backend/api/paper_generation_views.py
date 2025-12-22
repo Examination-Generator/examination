@@ -1162,3 +1162,31 @@ def preview_full_exam(request, paper_id):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+
+# view to chech uestion grph nd essy sttus
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def check_question_graph_essay_status(request, question_id):
+    """
+    Check if a question has graph or essay components
+    
+    GET /api/questions/{question_id}/check_graph_essay
+    """
+    try:
+        question = get_object_or_404(Question, id=question_id)
+        
+        has_graph = 'graph' in (question.question_type or '').lower()
+        has_essay = 'essay' in (question.question_type or '').lower()
+        
+        return Response({
+            'question_id': str(question.id),
+            'has_graph': has_graph,
+            'has_essay': has_essay,
+        })
+        
+    except Exception as e:
+        logger.error(f"[CHECK_GRAPH_ESSAY] Error: {str(e)}", exc_info=True)
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
