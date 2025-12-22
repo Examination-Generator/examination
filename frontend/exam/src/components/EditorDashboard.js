@@ -5463,7 +5463,7 @@ useEffect(() => {
                     </div>
 
                     {/* Similar Questions Section */}
-                    <div className="lg:col-span-1">
+                    <div className="lg:col-span-1 h-[75vh] overflow-y-auto">
                         <div id="similar-questions-section" className="bg-white rounded-xl shadow-lg p-6 sticky top-4">
                             <h2 className="text-xl font-bold text-gray-800 mb-4">Similar Questions</h2>
                             
