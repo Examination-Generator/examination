@@ -17,7 +17,13 @@ if (typeof window !== 'undefined') {
 
 
 export default function EditorDashboard({ onLogout }) {
-    const [activeTab, setActiveTab] = useState('questions'); // 'questions', 'subjects', 'stats'
+    const [activeTab, setActiveTab] = useState(() => {
+        try {
+            return localStorage.getItem('editorActiveTab') || 'questions';
+        } catch (e) {
+            return 'questions';
+        }
+    }); // 'questions', 'subjects', 'stats'
     const [selectedSubject, setSelectedSubject] = useState('');
     const [selectedTopic, setSelectedTopic] = useState('');
     const [selectedPaper, setSelectedPaper] = useState('');
@@ -681,6 +687,15 @@ export default function EditorDashboard({ onLogout }) {
     useEffect(() => {
         loadDynamicSubjects();
     }, []);
+
+    // Persist active tab so refresh keeps the current dashboard view
+    useEffect(() => {
+        try {
+            localStorage.setItem('editorActiveTab', activeTab);
+        } catch (e) {
+            // ignore storage errors
+        }
+    }, [activeTab]);
 
     // Reload subjects when returning to questions tab after editing subjects
     useEffect(() => {
