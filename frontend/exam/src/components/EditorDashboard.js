@@ -241,11 +241,14 @@ export default function EditorDashboard({ onLogout }) {
         { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
         activeTab === 'edit'
     );
-    // Sync react-query results into local state used across the component
+    // Sync react-query results into local state only when a text search is active
+    // (avoids clobbering instant client-side filtered results when no search text)
     useEffect(() => {
-        setSearchResults(Array.isArray(rqSearchResults) ? rqSearchResults : []);
-        setIsSearchingQuestions(!!rqIsLoading);
-    }, [rqSearchResults, rqIsLoading]);
+        if (searchQuery && searchQuery.length >= 2) {
+            setSearchResults(Array.isArray(rqSearchResults) ? rqSearchResults : []);
+            setIsSearchingQuestions(!!rqIsLoading);
+        }
+    }, [rqSearchResults, rqIsLoading, searchQuery]);
 
     // Statistics and filters (declared early so effects can reference them)
     const [savedQuestions, setSavedQuestions] = useState([]); // Filtered questions for list display
@@ -314,13 +317,30 @@ export default function EditorDashboard({ onLogout }) {
         // If there is any search text, do a fast local filter for immediate UX
         if (searchQuery && searchQuery.length >= 2) {
             const local = localFilter(source, searchQuery);
+            console.debug('[EditFilter] local search:', {
+                sourceCount: Array.isArray(source) ? source.length : 0,
+                filters: { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
+                searchQuery,
+                resultCount: local.length
+            });
+            if (local.length === 0 && Array.isArray(source) && source.length > 0) {
+                console.debug('[EditFilter] sample source items:', source.slice(0,5).map(q => ({ id: q.id, subject_name: q.subject_name, paper_name: q.paper_name, topic_name: q.topic_name })));
+            }
             setSearchResults(local);
             setIsSearchingQuestions(true); // indicate loading while we refresh remote results
             // trigger an up-to-date remote query (react-query will use current filters)
-            try { refetchQuestions(); } catch (e) { /* ignore */ }
+            try { refetchQuestions(); console.debug('[EditFilter] triggered refetchQuestions'); } catch (e) { /* ignore */ }
         } else {
             // No text search: apply advanced filters locally and show results immediately
             const local = localFilter(source, null);
+            console.debug('[EditFilter] local filter (no search):', {
+                sourceCount: Array.isArray(source) ? source.length : 0,
+                filters: { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
+                resultCount: local.length
+            });
+            if (local.length === 0 && Array.isArray(source) && source.length > 0) {
+                console.debug('[EditFilter] sample source items:', source.slice(0,5).map(q => ({ id: q.id, subject_name: q.subject_name, paper_name: q.paper_name, topic_name: q.topic_name })));
+            }
             setSearchResults(local);
             setIsSearchingQuestions(false);
             // If we don't have a local source, fetch from server using filters
