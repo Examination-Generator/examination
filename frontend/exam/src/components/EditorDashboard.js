@@ -277,36 +277,77 @@ export default function EditorDashboard({ onLogout }) {
     useEffect(() => {
         if (activeTab !== 'edit') return;
 
-        // Helper to apply edit filters to an in-memory list
-        const applyEditFiltersToList = (list) => {
+        // Apply advanced filters (and optional text search) to an in-memory list
+        const localFilter = (list, query) => {
             if (!Array.isArray(list)) return [];
-            let filtered = [...list];
-            if (editFilterSubject) filtered = filtered.filter(q => q.subject_name === editFilterSubject);
-            if (editFilterPaper) filtered = filtered.filter(q => q.paper_name === editFilterPaper);
-            if (editFilterTopic) filtered = filtered.filter(q => q.topic_name === editFilterTopic);
+            let out = [...list];
+            // Advanced filters
+            if (editFilterSubject) out = out.filter(q => q.subject_name === editFilterSubject);
+            if (editFilterPaper) out = out.filter(q => q.paper_name === editFilterPaper);
+            if (editFilterTopic) out = out.filter(q => q.topic_name === editFilterTopic);
             if (editFilterStatus && editFilterStatus !== 'all') {
-                filtered = filtered.filter(q => editFilterStatus === 'active' ? q.is_active !== false : q.is_active === false);
+                out = out.filter(q => editFilterStatus === 'active' ? q.is_active !== false : q.is_active === false);
             }
             if (editFilterType && editFilterType !== 'all') {
-                if (editFilterType === 'nested') filtered = filtered.filter(q => q.is_nested === true);
-                if (editFilterType === 'standalone') filtered = filtered.filter(q => q.is_nested !== true);
-                if (editFilterType === 'essay') filtered = filtered.filter(q => q.is_essay_question === true || q.is_essay === true);
-                if (editFilterType === 'graph') filtered = filtered.filter(q => q.is_graph_question === true || q.is_graph === true);
+                if (editFilterType === 'nested') out = out.filter(q => q.is_nested === true);
+                if (editFilterType === 'standalone') out = out.filter(q => q.is_nested !== true);
+                if (editFilterType === 'essay') out = out.filter(q => q.is_essay_question === true || q.is_essay === true);
+                if (editFilterType === 'graph') out = out.filter(q => q.is_graph_question === true || q.is_graph === true);
             }
-            return filtered;
+
+            // Text search (instant client-side)
+            const term = query && query.trim().length >= 2 ? query.toLowerCase().trim() : null;
+            if (term) {
+                out = out.filter(q => {
+                    const searchableText = [q.question_text || '', q.answer_text || '', q.subject_name || '', q.topic_name || '']
+                        .join(' ').toLowerCase();
+                    return searchableText.includes(term);
+                });
+            }
+
+            return out;
         };
 
-        if (!searchQuery || searchQuery.length < 2) {
-            // Show cached/shared questions filtered by advanced filters
-            const filtered = applyEditFiltersToList(savedQuestions);
-            setSearchResults(filtered);
-            setIsSearchingQuestions(false);
+        // Prefer the full cached dataset if available for instant filtering
+        const source = Array.isArray(allQuestions) && allQuestions.length > 0 ? allQuestions : savedQuestions;
+
+        // If there is any search text, do a fast local filter for immediate UX
+        if (searchQuery && searchQuery.length >= 2) {
+            const local = localFilter(source, searchQuery);
+            setSearchResults(local);
+            setIsSearchingQuestions(true); // indicate loading while we refresh remote results
+            // trigger an up-to-date remote query (react-query will use current filters)
+            try { refetchQuestions(); } catch (e) { /* ignore */ }
         } else {
-            // For meaningful queries, delegate to react-query refetch (server-side-like filtering)
-            refetchQuestions();
-            setIsSearchingQuestions(true);
+            // No text search: apply advanced filters locally and show results immediately
+            const local = localFilter(source, null);
+            setSearchResults(local);
+            setIsSearchingQuestions(false);
+            // If we don't have a local source, fetch from server using filters
+            if ((!Array.isArray(allQuestions) || allQuestions.length === 0) && (!Array.isArray(savedQuestions) || savedQuestions.length === 0)) {
+                // Build API filters from edit filters
+                const apiFilters = {};
+                if (editFilterSubject) apiFilters.subject = editFilterSubject;
+                if (editFilterPaper) apiFilters.paper = editFilterPaper;
+                if (editFilterTopic) apiFilters.topic = editFilterTopic;
+                if (editFilterStatus === 'active') apiFilters.isActive = 'true';
+                if (editFilterStatus === 'inactive') apiFilters.isActive = 'false';
+                // Fetch once with the applied filters
+                fetchQuestions(apiFilters).then(qs => setSearchResults(qs || []));
+            }
         }
-    }, [activeTab, searchQuery, savedQuestions, refetchQuestions, editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType]);
+    }, [
+        activeTab,
+        searchQuery,
+        savedQuestions,
+        allQuestions,
+        refetchQuestions,
+        editFilterSubject,
+        editFilterPaper,
+        editFilterTopic,
+        editFilterStatus,
+        editFilterType
+    ]);
     
     // Bulk entry states
     const [bulkText, setBulkText] = useState('');
