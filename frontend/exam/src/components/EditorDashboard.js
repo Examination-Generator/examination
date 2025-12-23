@@ -7978,7 +7978,8 @@ useEffect(() => {
                                         </div>
 
                                         {/* Essay Question Toggle */}
-                                        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-yellow-300 transition">
+                                        <div className='flex flex-col lg:flex-row lg:space-x-6 space-y-4 lg:space-y-0 lg:col-span-full'>
+                                        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-yellow-300 transition mb-4 rounded-lg w-full lg:w-1/3">
                                             <label className="block text-sm font-bold text-gray-700 mb-3">
                                                 Essay Question
                                             </label>
@@ -8016,7 +8017,7 @@ useEffect(() => {
                                         </div>
 
                                         {/* Graph Question Toggle */}
-                                        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-cyan-300 transition">
+                                        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-cyan-300 transition mb-4 rounded-lg w-full lg:w-1/3">
                                             <label className="block text-sm font-bold text-gray-700 mb-3">
                                                 Graph Question
                                             </label>
@@ -8054,7 +8055,7 @@ useEffect(() => {
                                         </div>
 
                                         {/* Map Question Toggle */}
-                                        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-emerald-300 transition">
+                                        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-emerald-300 transition mb-4 rounded-lg  w-full lg:w-1/3">
                                             <label className="block text-sm font-bold text-gray-700 mb-3">
                                                 Map Question
                                             </label>
@@ -8089,6 +8090,7 @@ useEffect(() => {
                                                     ? '🗺️ Requires map-based response' 
                                                     : '📄 No map required'}
                                             </p>
+                                        </div>
                                         </div>
                                     </div>
                                 </div>
