@@ -621,7 +621,7 @@ def set_question_mode(request, question_id):
     """
     from .models import Question
     mode = request.data.get('mode')
-    if mode not in ['essay', 'graph', 'regular1', 'regular2']:
+    if mode not in ['essay', 'graph', 'regular1', 'regular2','map']:
         return error_response('Invalid mode. Must be one of: essay, graph, regular.')
     try:
         question = Question.objects.get(id=question_id)
@@ -637,6 +637,10 @@ def set_question_mode(request, question_id):
         question.is_essay = False
     elif mode == 'regular2' :
         question.is_graph = False
+    elif mode == 'map' :
+        question.is_essay = False
+        question.is_graph = False   
+        question.is_map = True
         
     question.save()
     return success_response('Question mode updated successfully.', {

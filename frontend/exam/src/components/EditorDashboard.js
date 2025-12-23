@@ -48,6 +48,7 @@ export default function EditorDashboard({ onLogout }) {
     const [isNested, setIsNested] = useState(false); // Track if question is nested
     const [isEssayQuestion, setIsEssayQuestion] = useState(false); // Track if question is an essay
     const [isGraphQuestion, setIsGraphQuestion] = useState(false); // Track if question requires graphing
+    const [isMapQuestion, setIsMapQuestion] = useState(false); // Track if question requires a map
     const [uploadedImages, setUploadedImages] = useState([]);
     const [showDrawingTool, setShowDrawingTool] = useState(false);
     const [showGraphPaper, setShowGraphPaper] = useState(false);
@@ -133,6 +134,7 @@ export default function EditorDashboard({ onLogout }) {
         const [editIsNested, setEditIsNested] = useState(false);
         const [editIsEssayQuestion, setEditIsEssayQuestion] = useState(false);
         const [editIsGraphQuestion, setEditIsGraphQuestion] = useState(false);
+        const [editIsMapQuestion, setEditIsMapQuestion] = useState(false);
 
         // Initialize edit fields when a question is selected for editing
         useEffect(() => {
@@ -142,6 +144,7 @@ export default function EditorDashboard({ onLogout }) {
                 setEditIsNested(false);
                 setEditIsEssayQuestion(false);
                 setEditIsGraphQuestion(false);
+                setEditIsMapQuestion(false);
                 return;
             }
 
@@ -1199,6 +1202,7 @@ export default function EditorDashboard({ onLogout }) {
                 // Update local state for UI
                 setEditIsEssayQuestion(result.data.is_essay);
                 setEditIsGraphQuestion(result.data.is_graph);
+                setEditIsMapQuestion(result.data.is_map);
             } else {
                 showError(result.message || 'Failed to update question mode.');
             }
@@ -1568,6 +1572,7 @@ useEffect(() => {
                 is_nested: isNested, // NEW: Nested question flag
                 is_essay: isEssayQuestion, // NEW: Essay question flag
                 is_graph: isGraphQuestion, // NEW: Graph question flag
+                is_map: isMapQuestion, // NEW: Map question flag
                 question_inline_images: questionInlineImages,
                 answer_inline_images: answerInlineImages,
                 question_image_positions: questionImagePositions, // NEW: Image positions for question
@@ -1657,6 +1662,7 @@ useEffect(() => {
                 setIsNested(false); // NEW: Reset nested checkbox
                 setIsEssayQuestion(false); // NEW: Reset essay checkbox
                 setIsGraphQuestion(false); // NEW: Reset graph checkbox
+                setIsMapQuestion(false); // NEW: Reset map checkbox
                 setSimilarQuestions([]);
                 
                 showSuccess('Question saved to database successfully!');
@@ -2516,6 +2522,7 @@ useEffect(() => {
         setEditIsNested(question.is_nested === true); // Load nested status
         setEditIsEssayQuestion(question.is_essay_question === true); // Load essay status
         setEditIsGraphQuestion(question.is_graph_question === true); // Load graph status
+        setEditIsMapQuestion(question.is_map_question === true); // Load map status
         
         console.log('📋 Question Status Loaded for Editing:', {
             questionId: question.id,
@@ -2667,9 +2674,11 @@ useEffect(() => {
                     if (res) {
                         const hasGraph = !!res.has_graph;
                         const hasEssay = !!res.has_essay;
-                        console.debug('[checkGraphEssay] result for', question.id, { hasGraph, hasEssay });
+                        const hasMap = !!res.has_map;
+                        console.debug('[checkGraphEssay] result for', question.id, { hasGraph, hasEssay, hasMap });
                         setEditIsGraphQuestion(hasGraph);
                         setEditIsEssayQuestion(hasEssay);
+                        setEditIsMapQuestion(hasMap);
                     }
                 }).catch(err => {
                     console.warn('checkGraphEssay failed (will ignore):', err);
@@ -2786,7 +2795,8 @@ useEffect(() => {
                 is_active: editIsActive, // Use edited status
                 is_nested: editIsNested, // Use edited type
                 is_essay: editIsEssayQuestion, // Use edited essay status
-                is_graph: editIsGraphQuestion // Use edited graph status
+                is_graph: editIsGraphQuestion, // Use edited graph status
+                is_map: editIsMapQuestion // Use edited map status
             };
 
             console.log('🔄 Updating question - Full details:');
@@ -2848,10 +2858,12 @@ useEffect(() => {
                             if (res) {
                                 const hasGraph = !!res.has_graph;
                                 const hasEssay = !!res.has_essay;
+                                const hasMap = !!res.has_map;
                                 setEditIsGraphQuestion(hasGraph);
                                 setEditIsEssayQuestion(hasEssay);
-                                console.debug('[pollCheckGraphEssay] attempt', i + 1, 'for', qId, { hasGraph, hasEssay });
-                                // If either flag is true or both false (determinate), stop polling
+                                setEditIsMapQuestion(hasMap);
+                                console.debug('[pollCheckGraphEssay] attempt', i + 1, 'for', qId, { hasGraph, hasEssay, hasMap });
+                                // If either flag is true or all determinate, stop polling
                                 return res;
                             }
                         } catch (e) {
@@ -2907,6 +2919,7 @@ useEffect(() => {
             setEditIsNested(false); // Reset to standalone
             setEditIsEssayQuestion(false); // Reset essay status
             setEditIsGraphQuestion(false); // Reset graph status
+            setEditIsMapQuestion(false); // Reset map status
             
             // Refresh search results - this will re-fetch questions
             await refetchQuestions();
@@ -5435,6 +5448,29 @@ useEffect(() => {
                                     {isGraphQuestion 
                                         ? '✓ Graph question - requires drawing/plotting graphs' 
                                         : 'Not a graph question'}
+                                </p>
+                            </div>
+
+                            {/* Map Question Checkbox */}
+                            <div className="mb-4 border-2 rounded-lg p-4" style={{
+                                borderColor: isMapQuestion ? '#059669' : '#d1d5db',
+                                backgroundColor: isMapQuestion ? '#bbf7d0' : '#f9fafb'
+                            }}>
+                                <label className="flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={isMapQuestion}
+                                        onChange={(e) => setIsMapQuestion(e.target.checked)}
+                                        className="w-5 h-5 text-emerald-600 rounded focus:ring-2 focus:ring-emerald-500"
+                                    />
+                                    <span className="ml-3 text-sm font-bold text-gray-700">
+                                        This is a Map Question
+                                    </span>
+                                </label>
+                                <p className="text-xs mt-2 ml-8" style={{color: isMapQuestion ? '#065f46' : '#6b7280'}}>
+                                    {isMapQuestion 
+                                        ? '✓ Map question - requires map/atlas-based response' 
+                                        : 'Not a map question'}
                                 </p>
                             </div>
 
@@ -8012,6 +8048,44 @@ useEffect(() => {
                                                 {editIsGraphQuestion 
                                                     ? '📊 Requires drawing/plotting graphs' 
                                                     : '📄 No graphing required'}
+                                            </p>
+                                        </div>
+
+                                        {/* Map Question Toggle */}
+                                        <div className="bg-white rounded-lg p-4 border-2 border-gray-200 hover:border-emerald-300 transition">
+                                            <label className="block text-sm font-bold text-gray-700 mb-3">
+                                                Map Question
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setQuestionMode('map')}
+                                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                                                        editIsMapQuestion
+                                                            ? 'bg-emerald-600 text-white shadow-lg'
+                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                    }`}
+                                                >
+                                                    <span className="text-lg">🗺️</span>
+                                                    Map
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setQuestionMode('regular3')}
+                                                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+                                                        !editIsMapQuestion
+                                                            ? 'bg-gray-600 text-white shadow-lg'
+                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                    }`}
+                                                >
+                                                    <span className="text-lg">📄</span>
+                                                    Regular
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-2">
+                                                {editIsMapQuestion 
+                                                    ? '🗺️ Requires map-based response' 
+                                                    : '📄 No map required'}
                                             </p>
                                         </div>
                                     </div>

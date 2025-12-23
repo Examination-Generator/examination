@@ -18,18 +18,24 @@ which uses an intelligent dynamic algorithm:
 - Total: 18-27 questions, exactly 80 marks
 """
 
+
 import logging
 import time
+from django.shortcuts import get_object_or_404
+from django.db.models import Count, Q
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from django.shortcuts import get_object_or_404
-from django.db.models import Count, Q
+
 
 from .models import (
     Paper, Topic, PaperConfiguration, GeneratedPaper, Question
 )
+from .mathematics_generator import KCSEMathematicsPaper1Generator, KCSEMathematicsPaper2Generator
+from .chemistry_paper_generator import KCSEChemistryPaper1Generator, KCSEChemistryPaper2Generator
+from .english_generator import KCSEEnglishPaper1Generator, KCSEEnglishPaper2Generator,KCSEEnglishPaper3Generator
+from .georaphy_paper_generator import KCSEGeographyPaper1Generator, KCSEGeographyPaper2Generator, Paper, Topic, Question
 from .kcse_biology_paper1_generator import KCSEBiologyPaper1Generator
 from .coverpage_templates import (
     BiologyPaper1Coverpage, 
@@ -1190,3 +1196,523 @@ def check_question_graph_essay_status(request, question_id):
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+        
+
+# Geography Paper 1 Pool Validation (DRF version)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def validate_geography_paper_pool(request):
+    """
+    Validate if the selected Geography Paper 1 pool can generate a valid paper.
+    POST /api/papers/geography/validate-pool
+    Body: { "paper_id": ..., "selected_topic_ids": [...], "paper_number": 1 }
+    """
+    try:
+        paper_id = request.data.get("paper_id")
+        selected_topic_ids = request.data.get("selected_topic_ids", [])
+        paper_number = int(request.data.get("paper_number", 1))
+        if not paper_id or not selected_topic_ids:
+            return Response({"can_generate": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
+
+        paper = Paper.objects.select_related('subject').get(id=paper_id, is_active=True)
+        topics = list(Topic.objects.filter(id__in=selected_topic_ids, paper=paper, is_active=True))
+        if not topics:
+            return Response({
+                'can_generate': False,
+                'message': 'No valid topics found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        all_questions = list(Question.objects.filter(
+            subject=paper.subject,
+            paper=paper,
+            topic__in=topics,
+            is_active=True
+        ).select_related('topic', 'section'))
+        section_a_count = 0
+        section_b_25mark_map_count = 0
+        section_b_25mark_regular_count = 0
+        for q in all_questions:
+            section_name = q.section.name.upper() if q.section else ""
+            is_map = getattr(q, 'is_map', False)
+            if ("SECTION A" in section_name or "SECTION 1" in section_name) and q.marks < 25:
+                section_a_count += 1
+            elif ("SECTION B" in section_name or "SECTION 2" in section_name) and q.marks == 25:
+                if is_map:
+                    section_b_25mark_map_count += 1
+                else:
+                    section_b_25mark_regular_count += 1
+        section_b_25mark_total = section_b_25mark_map_count + section_b_25mark_regular_count
+        section_a_ok = section_a_count >= 5
+        section_b_ok = section_b_25mark_total >= 5
+        can_generate = section_a_ok and section_b_ok
+        issues = []
+        if not section_a_ok:
+            issues.append(f"Section A: Need 5-6 questions, have {section_a_count}")
+        if not section_b_ok:
+            issues.append(f"Section B: Need 5 X 25-mark, have {section_b_25mark_total}")
+        message = f"Ready to generate Geography Paper {paper_number}" if can_generate else "Insufficient questions: " + "; ".join(issues)
+        paper_notes = "Note: Question 6 will be MAP question if available" if paper_number == 1 else "Note: No map priority for Question 6"
+        return Response({
+            'can_generate': can_generate,
+            'available_counts': {
+                'section_a_questions': section_a_count,
+                'section_b_25mark_map': section_b_25mark_map_count,
+                'section_b_25mark_regular': section_b_25mark_regular_count,
+                'section_b_25mark_total': section_b_25mark_total,
+            },
+            'required_counts': {
+                'section_a_questions': '5-6',
+                'section_b_25mark': 5,
+            },
+            'paper_structure': {
+                'section_a': '5-6 questions = 25 marks (ALL COMPULSORY)',
+                'section_b': '5 questions X 25 marks = 125 marks (ALL COMPULSORY)',
+                'paper_total': '150 marks',
+                'paper_specific_note': paper_notes
+            },
+            'validation': {
+                'section_a_ok': section_a_ok,
+                'section_b_ok': section_b_ok,
+            },
+            'message': message
+        })
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        logging.getLogger(__name__).error(f"[GEOGRAPHY VALIDATE POOL ERROR] {error_details}")
+        return Response({
+            'can_generate': False,
+            'message': f'Validation error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# Geography Paper 1 Generation (DRF version)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_geography_paper(request):
+    """
+    Generate Geography Paper 1 using selected topics.
+    POST /api/papers/geography/generate
+    Body: { "paper_id": ..., "selected_topic_ids": [...], "paper_number": 1 }
+    """
+    try:
+        paper_id = request.data.get("paper_id")
+        selected_topic_ids = request.data.get("selected_topic_ids", [])
+        paper_number = int(request.data.get("paper_number", 1))
+        user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
+        if not paper_id or not selected_topic_ids:
+            return Response({
+                'success': False,
+                'message': 'Missing paper_id or selected_topic_ids'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        if paper_number not in [1, 2]:
+            return Response({
+                'success': False,
+                'message': 'Invalid paper_number. Must be 1 or 2'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        if paper_number == 1:
+            generator = KCSEGeographyPaper1Generator(
+                paper_id=paper_id,
+                selected_topic_ids=selected_topic_ids,
+                user=user
+            )
+        else:
+            generator = KCSEGeographyPaper2Generator(
+                paper_id=paper_id,
+                selected_topic_ids=selected_topic_ids,
+                user=user
+            )
+        generator.load_data()
+        result = generator.generate()
+        from datetime import datetime
+        current_year = datetime.now().year
+        paper = generator.paper
+        year_count = GeneratedPaper.objects.filter(
+            paper=paper,
+            created_at__year=current_year
+        ).count()
+        unique_code = f"GEO{paper_number}-{current_year}-{year_count + 1:03d}"
+        generated_paper = GeneratedPaper.objects.create(
+            paper=paper,
+            unique_code=unique_code,
+            status='draft',
+            question_ids=result['question_ids'],
+            selected_topics=[str(tid) for tid in selected_topic_ids],
+            total_marks=result['statistics']['paper_total_marks'],
+            total_questions=result['statistics']['total_questions'],
+            mark_distribution=result.get('mark_distribution', {}),
+            topic_distribution=result.get('topic_distribution', {}),
+            question_type_distribution=result.get('question_type_distribution', {}),
+            generation_attempts=generator.attempts,
+            backtracking_count=0,
+            generation_time_seconds=result.get('generation_time', 0),
+            generated_by=user,
+            validation_passed=result.get('validation_report', {}).get('all_passed', True),
+            validation_report=result.get('validation_report', {}),
+        )
+        return Response({
+            'success': True,
+            'message': 'Paper generated successfully',
+            'generated_paper': {
+                'id': str(generated_paper.id),
+                'unique_code': generated_paper.unique_code,
+                'status': generated_paper.status,
+                'total_marks': generated_paper.total_marks,
+                'total_questions': generated_paper.total_questions,
+                'mark_distribution': generated_paper.mark_distribution,
+                'topic_distribution': generated_paper.topic_distribution,
+                'validation_passed': generated_paper.validation_passed,
+                'validation_report': generated_paper.validation_report,
+                'generation_time_seconds': generated_paper.generation_time_seconds,
+                'generation_attempts': generated_paper.generation_attempts,
+                'created_at': generated_paper.created_at,
+            },
+            'questions': result.get('questions', []),
+            'instructions': result.get('instructions', []),
+            'statistics': result.get('statistics', {}),
+        }, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        logging.getLogger(__name__).error(f"[GEOGRAPHY GENERATE ERROR] {error_details}")
+        return Response({
+            'success': False,
+            'message': f'Generation error: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_english_paper(request):
+    """
+    Generate any English paper (1, 2, or 3) based on paper_number.
+    POST /api/papers/english/generate
+    Body: { "paper_id": ..., "paper_number": 1|2|3, "selections": {...} }
+    """
+    try:
+        paper_id = request.data.get("paper_id")
+        paper_number = int(request.data.get("paper_number", 1))
+        selections = request.data.get("selections", {})
+        if not paper_id:
+            return Response({"success": False, "message": "Missing paper_id"}, status=status.HTTP_400_BAD_REQUEST)
+        if paper_number == 1:
+            from .english_generator import KCSEEnglishPaper1Generator
+            generator = KCSEEnglishPaper1Generator(paper_id=str(paper_id), selections=selections)
+        elif paper_number == 2:
+            from .english_generator import KCSEEnglishPaper2Generator
+            generator = KCSEEnglishPaper2Generator(paper_id=str(paper_id), selections=selections)
+        elif paper_number == 3:
+            from .english_generator import KCSEEnglishPaper3Generator
+            generator = KCSEEnglishPaper3Generator(paper_id=str(paper_id), selections=selections)
+        else:
+            return Response({"success": False, "message": "Invalid paper_number for English (must be 1, 2, or 3)"}, status=status.HTTP_400_BAD_REQUEST)
+        generator.load_data()
+        result = generator.generate()
+        from datetime import datetime
+        current_year = datetime.now().year
+        paper = generator.paper
+        year_count = GeneratedPaper.objects.filter(paper=paper, created_at__year=current_year).count()
+        unique_code = f"EN{paper_number}-{current_year}-{year_count + 1:03d}"
+        generated_paper = GeneratedPaper.objects.create(
+            paper=paper,
+            unique_code=unique_code,
+            status='draft',
+            question_ids=result['question_ids'],
+            selected_topics=[],
+            total_marks=result['statistics']['total_marks'],
+            total_questions=result['statistics']['total_questions'],
+            mark_distribution=result.get('marks_distribution', {}),
+            topic_distribution=result.get('topic_distribution', {}),
+            question_type_distribution={},
+            generation_attempts=result['statistics'].get('generation_attempts', 1),
+            backtracking_count=0,
+            generation_time_seconds=result['statistics'].get('generation_time_seconds', 0),
+            generated_by=request.user,
+            validation_passed=True,
+            validation_report={},
+        )
+        return Response({
+            'success': True,
+            'message': 'Paper generated successfully',
+            'generated_paper': {
+                'id': str(generated_paper.id),
+                'unique_code': generated_paper.unique_code,
+                'status': generated_paper.status,
+                'total_marks': generated_paper.total_marks,
+                'total_questions': generated_paper.total_questions,
+                'mark_distribution': generated_paper.mark_distribution,
+                'topic_distribution': generated_paper.topic_distribution,
+                'validation_passed': generated_paper.validation_passed,
+                'validation_report': generated_paper.validation_report,
+                'generation_time_seconds': generated_paper.generation_time_seconds,
+                'generation_attempts': generated_paper.generation_attempts,
+                'created_at': generated_paper.created_at,
+            },
+            'questions': result.get('questions', []),
+            'instructions': result.get('instructions', []),
+            'statistics': result.get('statistics', {}),
+        }, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"[ENGLISH GENERATE ERROR] {error_details}")
+        return Response({'success': False, 'message': f'Generation error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+# Mathematics Paper Generation (both papers)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_mathematics_paper(request):
+    """
+    Generate Mathematics Paper 1 or 2 based on paper_number.
+    POST /api/papers/mathematics/generate
+    Body: { "paper_id": ..., "paper_number": 1|2, "selected_topic_ids": [...] }
+    """
+    try:
+        paper_id = request.data.get("paper_id")
+        paper_number = int(request.data.get("paper_number", 1))
+        selected_topic_ids = request.data.get("selected_topic_ids", [])
+        if not paper_id or not selected_topic_ids:
+            return Response({"success": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
+        if paper_number == 1:
+            from .mathematics_generator import KCSEMathematicsPaper1Generator
+            generator = KCSEMathematicsPaper1Generator(paper_id=str(paper_id), selected_topic_ids=[str(tid) for tid in selected_topic_ids])
+        elif paper_number == 2:
+            from .mathematics_generator import KCSEMathematicsPaper2Generator
+            generator = KCSEMathematicsPaper2Generator(paper_id=str(paper_id), selected_topic_ids=[str(tid) for tid in selected_topic_ids])
+        else:
+            return Response({"success": False, "message": "Invalid paper_number for Mathematics (must be 1 or 2)"}, status=status.HTTP_400_BAD_REQUEST)
+        generator.load_data()
+        result = generator.generate()
+        from datetime import datetime
+        current_year = datetime.now().year
+        paper = generator.paper
+        year_count = GeneratedPaper.objects.filter(paper=paper, created_at__year=current_year).count()
+        unique_code = f"MA{paper_number}-{current_year}-{year_count + 1:03d}"
+        generated_paper = GeneratedPaper.objects.create(
+            paper=paper,
+            unique_code=unique_code,
+            status='draft',
+            question_ids=result['question_ids'],
+            selected_topics=[str(tid) for tid in selected_topic_ids],
+            total_marks=result['statistics']['total_marks'],
+            total_questions=result['statistics']['total_questions'],
+            mark_distribution=result.get('marks_distribution', {}),
+            topic_distribution=result.get('topic_distribution', {}),
+            question_type_distribution={},
+            generation_attempts=result['statistics'].get('generation_attempts', 1),
+            backtracking_count=0,
+            generation_time_seconds=result['statistics'].get('generation_time_seconds', 0),
+            generated_by=request.user,
+            validation_passed=True,
+            validation_report={},
+        )
+        return Response({
+            'success': True,
+            'message': 'Paper generated successfully',
+            'generated_paper': {
+                'id': str(generated_paper.id),
+                'unique_code': generated_paper.unique_code,
+                'status': generated_paper.status,
+                'total_marks': generated_paper.total_marks,
+                'total_questions': generated_paper.total_questions,
+                'mark_distribution': generated_paper.mark_distribution,
+                'topic_distribution': generated_paper.topic_distribution,
+                'validation_passed': generated_paper.validation_passed,
+                'validation_report': generated_paper.validation_report,
+                'generation_time_seconds': generated_paper.generation_time_seconds,
+                'generation_attempts': generated_paper.generation_attempts,
+                'created_at': generated_paper.created_at,
+            },
+            'questions': result.get('questions', []),
+            'instructions': result.get('instructions', []),
+            'statistics': result.get('statistics', {}),
+        }, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"[MATHEMATICS GENERATE ERROR] {error_details}")
+        return Response({'success': False, 'message': f'Generation error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+# Chemistry Paper Generation (both papers)
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_chemistry_paper(request):
+    """
+    Generate Chemistry Paper 1 or 2 based on paper_number.
+    POST /api/papers/chemistry/generate
+    Body: { "paper_id": ..., "paper_number": 1|2, "selected_topic_ids": [...] }
+    """
+    try:
+        paper_id = request.data.get("paper_id")
+        paper_number = int(request.data.get("paper_number", 1))
+        selected_topic_ids = request.data.get("selected_topic_ids", [])
+        if not paper_id or not selected_topic_ids:
+            return Response({"success": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
+        if paper_number == 1:
+            from .chemistry_paper_generator import KCSEChemistryPaper1Generator
+            generator = KCSEChemistryPaper1Generator(paper_id=str(paper_id), selected_topic_ids=[str(tid) for tid in selected_topic_ids])
+        elif paper_number == 2:
+            from .chemistry_paper_generator import KCSEChemistryPaper2Generator
+            generator = KCSEChemistryPaper2Generator(paper_id=str(paper_id), selected_topic_ids=[str(tid) for tid in selected_topic_ids])
+        else:
+            return Response({"success": False, "message": "Invalid paper_number for Chemistry (must be 1 or 2)"}, status=status.HTTP_400_BAD_REQUEST)
+        generator.load_data()
+        result = generator.generate()
+        from datetime import datetime
+        current_year = datetime.now().year
+        paper = generator.paper
+        year_count = GeneratedPaper.objects.filter(paper=paper, created_at__year=current_year).count()
+        unique_code = f"CH{paper_number}-{current_year}-{year_count + 1:03d}"
+        generated_paper = GeneratedPaper.objects.create(
+            paper=paper,
+            unique_code=unique_code,
+            status='draft',
+            question_ids=result['question_ids'],
+            selected_topics=[str(tid) for tid in selected_topic_ids],
+            total_marks=result['statistics']['total_marks'],
+            total_questions=result['statistics']['total_questions'],
+            mark_distribution=result.get('marks_distribution', {}),
+            topic_distribution=result.get('topic_distribution', {}),
+            question_type_distribution={},
+            generation_attempts=result['statistics'].get('generation_attempts', 1),
+            backtracking_count=0,
+            generation_time_seconds=result['statistics'].get('generation_time_seconds', 0),
+            generated_by=request.user,
+            validation_passed=True,
+            validation_report={},
+        )
+        return Response({
+            'success': True,
+            'message': 'Paper generated successfully',
+            'generated_paper': {
+                'id': str(generated_paper.id),
+                'unique_code': generated_paper.unique_code,
+                'status': generated_paper.status,
+                'total_marks': generated_paper.total_marks,
+                'total_questions': generated_paper.total_questions,
+                'mark_distribution': generated_paper.mark_distribution,
+                'topic_distribution': generated_paper.topic_distribution,
+                'validation_passed': generated_paper.validation_passed,
+                'validation_report': generated_paper.validation_report,
+                'generation_time_seconds': generated_paper.generation_time_seconds,
+                'generation_attempts': generated_paper.generation_attempts,
+                'created_at': generated_paper.created_at,
+            },
+            'questions': result.get('questions', []),
+            'instructions': result.get('instructions', []),
+            'statistics': result.get('statistics', {}),
+        }, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"[CHEMISTRY GENERATE ERROR] {error_details}")
+        return Response({'success': False, 'message': f'Generation error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def validate_english_paper_pool(request):
+    """
+    Validate if the selected English paper pool can generate a valid paper (1, 2, or 3).
+    POST /api/papers/english/validate
+    Body: { "paper_id": ..., "paper_number": 1|2|3, "selections": {...} }
+    """
+    paper_id = request.data.get("paper_id")
+    paper_number = int(request.data.get("paper_number", 1))
+    selections = request.data.get("selections", {})
+    if not paper_id:
+        return Response({"can_generate": False, "message": "Missing paper_id"}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        if paper_number == 1:
+            from .english_generator import KCSEEnglishPaper1Generator
+            generator = KCSEEnglishPaper1Generator(paper_id=str(paper_id), selections=selections)
+        elif paper_number == 2:
+            from .english_generator import KCSEEnglishPaper2Generator
+            generator = KCSEEnglishPaper2Generator(paper_id=str(paper_id), selections=selections)
+        elif paper_number == 3:
+            from .english_generator import KCSEEnglishPaper3Generator
+            generator = KCSEEnglishPaper3Generator(paper_id=str(paper_id), selections=selections)
+        else:
+            return Response({"can_generate": False, "message": "Invalid paper_number for English (must be 1, 2, or 3)"}, status=status.HTTP_400_BAD_REQUEST)
+        generator.load_data()
+        try:
+            generator.generate()
+            can_generate = True
+            message = f"Pool is valid for English Paper {paper_number} generation."
+        except Exception as e:
+            can_generate = False
+            message = f"Pool is insufficient: {str(e)}"
+        return Response({"can_generate": can_generate, "message": message})
+    except Exception as e:
+        return Response({"can_generate": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def validate_mathematics_paper_pool(request):
+    """
+    Validate if the selected Mathematics paper pool can generate a valid paper (1 or 2).
+    POST /api/papers/mathematics/validate
+    Body: { "paper_id": ..., "paper_number": 1|2, "selected_topic_ids": [...] }
+    """
+    paper_id = request.data.get("paper_id")
+    paper_number = int(request.data.get("paper_number", 1))
+    selected_topic_ids = request.data.get("selected_topic_ids", [])
+    if not paper_id or not selected_topic_ids:
+        return Response({"can_generate": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        if paper_number == 1:
+            from .mathematics_generator import KCSEMathematicsPaper1Generator
+            generator = KCSEMathematicsPaper1Generator(paper_id=str(paper_id), selected_topic_ids=[str(tid) for tid in selected_topic_ids])
+        elif paper_number == 2:
+            from .mathematics_generator import KCSEMathematicsPaper2Generator
+            generator = KCSEMathematicsPaper2Generator(paper_id=str(paper_id), selected_topic_ids=[str(tid) for tid in selected_topic_ids])
+        else:
+            return Response({"can_generate": False, "message": "Invalid paper_number for Mathematics (must be 1 or 2)"}, status=status.HTTP_400_BAD_REQUEST)
+        generator.load_data()
+        valid_nested = generator._select_nested_questions()
+        valid_standalone = generator._select_standalone_questions()
+        can_generate = valid_nested and valid_standalone
+        return Response({
+            "can_generate": can_generate,
+            "nested_count": len(getattr(generator, "nested_questions", [])),
+            "standalone_count": sum(len(getattr(generator, f"standalone_{m}mark", [])) for m in range(1, 5)),
+            "message": "Pool is valid" if can_generate else "Pool is insufficient for Mathematics Paper generation"
+        })
+    except Exception as e:
+        return Response({"can_generate": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def validate_chemistry_paper_pool(request):
+    """
+    Validate if the selected Chemistry paper pool can generate a valid paper (1 or 2).
+    POST /api/papers/chemistry/validate
+    Body: { "paper_id": ..., "paper_number": 1|2, "selected_topic_ids": [...] }
+    """
+    paper_id = request.data.get("paper_id")
+    paper_number = int(request.data.get("paper_number", 1))
+    selected_topic_ids = request.data.get("selected_topic_ids", [])
+    if not paper_id or not selected_topic_ids:
+        return Response({"can_generate": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        if paper_number == 1:
+            from .chemistry_paper_generator import KCSEChemistryPaper1Generator
+            generator = KCSEChemistryPaper1Generator(paper_id=str(paper_id), selected_topic_ids=[str(tid) for tid in selected_topic_ids])
+        elif paper_number == 2:
+            from .chemistry_paper_generator import KCSEChemistryPaper2Generator
+            generator = KCSEChemistryPaper2Generator(paper_id=str(paper_id), selected_topic_ids=[str(tid) for tid in selected_topic_ids])
+        else:
+            return Response({"can_generate": False, "message": "Invalid paper_number for Chemistry (must be 1 or 2)"}, status=status.HTTP_400_BAD_REQUEST)
+        generator.load_data()
+        valid_nested = generator._select_nested_questions()
+        valid_standalone = generator._select_standalone_questions()
+        can_generate = valid_nested and valid_standalone
+        return Response({
+            "can_generate": can_generate,
+            "nested_count": len(getattr(generator, "nested_questions", [])),
+            "standalone_count": sum(len(getattr(generator, f"standalone_{m}mark", [])) for m in range(1, 5)),
+            "message": "Pool is valid" if can_generate else "Pool is insufficient for Chemistry Paper generation"
+        })
+    except Exception as e:
+        return Response({"can_generate": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)

@@ -102,14 +102,15 @@ urlpatterns = [
     path('papers/physics-paper/validate', physics_paper_generation.validate_physics_paper_pool, name='validate-physics-paper'),
     path('papers/physics-paper/generate', physics_paper_generation.generate_physics_paper, name='generate-physics-paper'),
 
+
     # ==================== CHEMISTRY GENERATION ROUTES ====================
     path('papers/chemistry-paper/validate', paper_generation_views.validate_chemistry_paper_pool, name='validate-chemistry-paper'),
     path('papers/chemistry-paper/generate', paper_generation_views.generate_chemistry_paper, name='generate-chemistry-paper'),
 
+
     # ==================== MATHEMATICS GENERATION ROUTES ====================
     path('papers/mathematics-paper/validate', paper_generation_views.validate_mathematics_paper_pool, name='validate-mathematics-paper'),
     path('papers/mathematics-paper/generate', paper_generation_views.generate_mathematics_paper, name='generate-mathematics-paper'),
-
     # ==================== GEOGRAPHY GENERATION ROUTES ====================
     path('papers/geography-paper/validate', paper_generation_views.validate_geography_paper_pool, name='validate-geography-paper'),
     path('papers/geography-paper/generate', paper_generation_views.generate_geography_paper, name='generate-geography-paper'),
@@ -118,3 +119,6 @@ urlpatterns = [
     path('papers/english-paper/validate', paper_generation_views.validate_english_paper_pool, name='validate-english-paper'),
     path('papers/english-paper/generate', paper_generation_views.generate_english_paper, name='generate-english-paper'),
 ]
+
+    
+        

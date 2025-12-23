@@ -381,7 +381,10 @@ class Question(models.Model):
         db_column='answerImagePositions',
         help_text='Stores x,y coordinates for positioned images in answer'
     )
-    
+    is_map = models.BooleanField(
+        default=False,
+        help_text='True if this question requires a map as part of the answer.'
+    )
     # Answer lines configuration for students to write answers
     question_answer_lines = models.JSONField(
         default=list,
