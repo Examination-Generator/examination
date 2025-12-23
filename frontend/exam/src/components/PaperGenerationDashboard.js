@@ -3,8 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
     getTopicStatistics, 
     generatePaper, 
-    validateBiologyPaper2Pool, 
-    validatePhysicsPaper1Pool, 
+    validateBiologyPaper2Pool,
     validatePhysicsPaperPool,
     validateChemistryPaperPool,
     validateMathematicsPaperPool,
@@ -334,11 +333,11 @@ export default function PaperGenerationDashboard() {
             setSuccess(null);
             setGeneratedResult(null);
 
-            console.log('🚀 ========== STARTING PAPER GENERATION ==========');
-            console.log('📋 Selected Paper Data:', selectedPaperData);
-            console.log('🆔 Selected Paper ID:', selectedPaperId);
-            console.log('📚 Selected Topics:', selectedTopics);
-            console.log('🔢 Number of Topics:', selectedTopics.length);
+            console.log('========== STARTING PAPER GENERATION ==========');
+            console.log('Selected Paper Data:', selectedPaperData);
+            console.log(' Selected Paper ID:', selectedPaperId);
+            console.log('Selected Topics:', selectedTopics);
+            console.log('Number of Topics:', selectedTopics.length);
 
             // Check paper type using database fields
             const paperNumber = selectedPaperData?.paper_number || selectedPaperData?.number || null;
@@ -364,7 +363,8 @@ export default function PaperGenerationDashboard() {
                            paperName.includes('paper ii');
             
             const isBiologyPaper2 = isBiology && isPaper2;
-            const isPhysicsPaper1 = isPhysics && isPaper1;
+            // Use the same physics endpoints/validation for both paper 1 and paper 2
+            const isPhysicsPaper = isPhysics && (isPaper1 || isPaper2);
             
             console.log('🔍 Paper Detection (using DB fields):');
             console.log('   Paper Number (from DB):', paperNumber);
@@ -375,7 +375,7 @@ export default function PaperGenerationDashboard() {
             console.log('   Is Paper 1?', isPaper1);
             console.log('   Is Paper 2?', isPaper2);
             console.log('   Is Biology Paper 2?', isBiologyPaper2);
-            console.log('   Is Physics Paper 1?', isPhysicsPaper1);
+            console.log('   Is Physics (paper 1 or 2)?', isPhysicsPaper);
             
             // Validate Biology Paper 2
             if (isBiologyPaper2) {
@@ -405,18 +405,18 @@ export default function PaperGenerationDashboard() {
                 }
             }
             
-            // Validate Physics Paper 1
-            if (isPhysicsPaper1) {
-                console.log('⚛️ Physics Paper 1 detected - Starting validation...');
+            // Validate Physics (both Paper 1 and Paper 2 use the same validation endpoint)
+            if (isPhysicsPaper) {
+                console.log('⚛️ Physics detected (paper 1 or 2) - Starting validation...');
                 try {
-                    const validation = await validatePhysicsPaper1Pool(selectedPaperId, selectedTopics);
+                    const validation = await validatePhysicsPaperPool(selectedPaperId, selectedTopics);
                     console.log('Validation result:', validation);
                     
                     // Show validation info to user
                     if (validation.issues && validation.issues.length > 0) {
                         const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
                         const proceed = window.confirm(
-                            `Physics Paper 1 Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
+                            `Physics Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
                         );
                         if (!proceed) {
                             console.log('User cancelled generation after validation warnings');
@@ -529,7 +529,7 @@ export default function PaperGenerationDashboard() {
                 }
             }
 
-            console.log('📤 Calling generatePaper with:');
+            console.log(' Calling generatePaper with:');
             console.log('   paperId:', selectedPaperId);
             console.log('   topicIds:', selectedTopics);
             console.log('   paperData:', selectedPaperData);
@@ -537,7 +537,7 @@ export default function PaperGenerationDashboard() {
             // Pass paper data to determine correct endpoint
             const result = await generatePaper(selectedPaperId, selectedTopics, selectedPaperData);
             
-            console.log('✅ Generation successful! Result:', result);
+            console.log('Generation successful! Result:', result);
             
             setGeneratedResult(result);
             
@@ -546,8 +546,8 @@ export default function PaperGenerationDashboard() {
             const paperCode = result?.unique_code || result?.generated_paper?.unique_code || 'N/A';
             const generatedPaperId = result?.generated_paper_id || result?.paper_id || result?.generated_paper?.id || result?.id || result?.paper?.id;
             
-            console.log('📋 Paper Code:', paperCode);
-            console.log('🆔 Generated Paper ID:', generatedPaperId);
+            console.log('Paper Code:', paperCode);
+            console.log('Generated Paper ID:', generatedPaperId);
             
             setSuccess(`Paper generated successfully! Code: ${paperCode}`);
             
@@ -596,25 +596,25 @@ export default function PaperGenerationDashboard() {
         try {
             setLoading(true);
             setError(null);
-            console.log('📄 Loading coverpage for paper ID:', paperId);
+            console.log('Loading coverpage for paper ID:', paperId);
             
             // First, get the paper details to store in selectedPaper
             const paperDetails = await viewFullPaper(paperId);
-            console.log('✅ Paper details loaded:', paperDetails);
+            console.log('Paper details loaded:', paperDetails);
             setSelectedPaper(paperDetails);
             
             // Then, load coverpage data and go directly to coverpage editor
             setCoverpageLoading(true);
-            console.log('📡 Fetching coverpage data...');
+            console.log('Fetching coverpage data...');
             const data = await getCoverpageData(paperId);
-            console.log('✅ Coverpage data received:', data);
+            console.log('Coverpage data received:', data);
             setCoverpageData(data);
             
             // Go directly to coverpage editor (skip full paper view)
             setViewingCoverpage(true);
             setViewingPaper(false);
         } catch (err) {
-            console.error('❌ Error loading paper/coverpage:', err);
+            console.error('Error loading paper/coverpage:', err);
             setError(err.message || 'Failed to load paper details');
         } finally {
             setLoading(false);
@@ -630,28 +630,28 @@ export default function PaperGenerationDashboard() {
     };
 
     const handleProceedToCoverpage = async () => {
-        console.log('🎯 Proceed to Coverpage clicked!', selectedPaper);
+        console.log('Proceed to Coverpage clicked!', selectedPaper);
         try {
             setCoverpageLoading(true);
             setError(null);
             
             // Get the paper ID from selectedPaper
             const paperId = selectedPaper?.id || selectedPaper?.generated_paper?.id;
-            console.log('📄 Paper ID:', paperId);
+            console.log('Paper ID:', paperId);
             
             if (!paperId) {
                 throw new Error('Invalid paper ID');
             }
             
             // Fetch coverpage data
-            console.log('📡 Fetching coverpage data...');
+            console.log('Fetching coverpage data...');
             const data = await getCoverpageData(paperId);
-            console.log('✅ Coverpage data received:', data);
+            console.log('Coverpage data received:', data);
             setCoverpageData(data);
             setViewingPaper(false);
             setViewingCoverpage(true);
         } catch (err) {
-            console.error('❌ Error loading coverpage:', err);
+            console.error('Error loading coverpage:', err);
             setError(err.message || 'Failed to load coverpage');
         } finally {
             setCoverpageLoading(false);
@@ -673,13 +673,13 @@ export default function PaperGenerationDashboard() {
                 setSaving(true);
                 setError(null);
                 
-                console.log('📤 Saving coverpage data:', editableData);
+                console.log('Saving coverpage data:', editableData);
                 await updateCoverpageData(paperId, editableData);
                 setSuccess('Coverpage updated successfully!');
                 
                 // Refresh coverpage data from backend
                 const updatedData = await getCoverpageData(paperId);
-                console.log('📥 Received updated data:', updatedData);
+                console.log('Received updated data:', updatedData);
                 setCoverpageData(updatedData);
                 
                 // Small delay to ensure backend has processed the update
@@ -691,7 +691,7 @@ export default function PaperGenerationDashboard() {
                     delete iframe.dataset.loaded;
                     // Add timestamp to prevent caching
                     const cacheBustUrl = `${coverpageHtmlUrl}&t=${Date.now()}`;
-                    console.log('🔄 Fetching preview from:', cacheBustUrl);
+                    console.log('Fetching preview from:', cacheBustUrl);
                     
                     fetch(cacheBustUrl, {
                         method: 'GET',
@@ -700,20 +700,20 @@ export default function PaperGenerationDashboard() {
                         }
                     })
                     .then(response => {
-                        console.log('📡 Preview response status:', response.status);
+                        console.log('Preview response status:', response.status);
                         return response.text();
                     })
                     .then(html => {
-                        console.log('📄 Received HTML length:', html.length);
+                        console.log('Received HTML length:', html.length);
                         const doc = iframe.contentDocument || iframe.contentWindow.document;
                         doc.open();
                         doc.write(html);
                         doc.close();
                         iframe.dataset.loaded = 'true';
-                        console.log('✅ Preview refreshed successfully');
+                        console.log(' Preview refreshed successfully');
                     })
                     .catch(err => {
-                        console.error('❌ Error refreshing preview:', err);
+                        console.error(' Error refreshing preview:', err);
                         setError('Failed to refresh preview. Please use the Refresh button.');
                     });
                 }

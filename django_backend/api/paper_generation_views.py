@@ -1296,7 +1296,7 @@ def generate_geography_paper(request):
     """
     try:
         paper_id = request.data.get("paper_id")
-        selected_topic_ids = request.data.get("selected_topic_ids", [])
+        selected_topic_ids = request.data.get("topic_ids", [])
         paper_number = int(request.data.get("paper_number", 1))
         user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
         if not paper_id or not selected_topic_ids:
@@ -1472,7 +1472,7 @@ def generate_mathematics_paper(request):
     try:
         paper_id = request.data.get("paper_id")
         paper_number = int(request.data.get("paper_number", 1))
-        selected_topic_ids = request.data.get("selected_topic_ids", [])
+        selected_topic_ids = request.data.get("topic_ids", [])
         if not paper_id or not selected_topic_ids:
             return Response({"success": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
         if paper_number == 1:
@@ -1547,7 +1547,7 @@ def generate_chemistry_paper(request):
     try:
         paper_id = request.data.get("paper_id")
         paper_number = int(request.data.get("paper_number", 1))
-        selected_topic_ids = request.data.get("selected_topic_ids", [])
+        selected_topic_ids = request.data.get("topic_ids", [])
         if not paper_id or not selected_topic_ids:
             return Response({"success": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
         if paper_number == 1:
@@ -1657,7 +1657,7 @@ def validate_mathematics_paper_pool(request):
     """
     paper_id = request.data.get("paper_id")
     paper_number = int(request.data.get("paper_number", 1))
-    selected_topic_ids = request.data.get("selected_topic_ids", [])
+    selected_topic_ids = request.data.get("topic_ids", [])
     if not paper_id or not selected_topic_ids:
         return Response({"can_generate": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
     try:
@@ -1692,7 +1692,7 @@ def validate_chemistry_paper_pool(request):
     """
     paper_id = request.data.get("paper_id")
     paper_number = int(request.data.get("paper_number", 1))
-    selected_topic_ids = request.data.get("selected_topic_ids", [])
+    selected_topic_ids = request.data.get("topic_ids", [])
     if not paper_id or not selected_topic_ids:
         return Response({"can_generate": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
     try:

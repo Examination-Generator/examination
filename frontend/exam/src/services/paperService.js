@@ -100,11 +100,11 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
                 endpoint = `${API_BASE_URL}/papers/biology-paper2/generate`;
                 paperType = 'biology-paper2';
                 console.log('DETECTED: Biology Paper 2 (using dedicated endpoint)');
-                } else if (isPhysics && isPaper1) {
-                    // New generic physics endpoint
+                } else if (isPhysics) {
+                    // Use same physics endpoint for any physics paper (paper 1 or 2)
                     endpoint = `${API_BASE_URL}/papers/physics-paper/generate`;
-                    paperType = 'physics-paper1';
-                    console.log('DETECTED: Physics Paper 1 (using dedicated physics endpoint)');
+                    paperType = 'physics-paper';
+                    console.log('DETECTED: Physics Paper (using dedicated physics endpoint)');
                 } else if (paperName.includes('chemistry') || subjectName.includes('chemistry')) {
                     endpoint = `${API_BASE_URL}/papers/chemistry-paper/generate`;
                     paperType = 'chemistry-paper';
@@ -251,60 +251,6 @@ export const validateBiologyPaper2Pool = async (paperId, topicIds) => {
     }
 };
 
-/**
- * Validate Physics Paper 1 question pool
- * @param {string} paperId - UUID of the paper
- * @param {Array<string>} topicIds - Array of topic UUIDs to validate
- * @returns {Promise} Validation results
- */
-export const validatePhysicsPaper1Pool = async (paperId, topicIds) => {
-    try {
-        const endpoint = `${API_BASE_URL}/papers/physics-paper1/validate`;
-        const requestBody = {
-            paper_id: paperId,
-            topic_ids: topicIds  
-        };
-        
-        console.log(' ========== PHYSICS PAPER 1 VALIDATION ==========');
-        console.log('Endpoint:', endpoint);
-        console.log('Request Body:', JSON.stringify(requestBody, null, 2));
-        console.log('==================================================');
-        
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(requestBody)
-        });
-        
-        console.log('Validation Response Status:', response.status, response.statusText);
-        
-        if (!response.ok) {
-            // Read the response body as text first (can only read once!)
-            const errorText = await response.text();
-            console.error('Validation Error Response:', errorText);
-            
-            // Try to parse as JSON
-            let errorMessage;
-            try {
-                const errorData = JSON.parse(errorText);
-                console.error('Validation Error Data:', errorData);
-                errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
-            } catch (e) {
-                // If not JSON, use the text directly
-                errorMessage = errorText || `HTTP error! status: ${response.status}`;
-            }
-            
-            throw new Error(errorMessage);
-        }
-        
-        const result = await response.json();
-        console.log('Validation Result:', result);
-        return result;
-    } catch (error) {
-        console.error(' Validation Error:', error);
-        throw error;
-    }
-};
 
 // Generic validate for physics (new route)
 export const validatePhysicsPaperPool = async (paperId, topicIds) => {
