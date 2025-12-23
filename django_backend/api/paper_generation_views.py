@@ -43,6 +43,7 @@ from .coverpage_templates import (
     BiologyPaper2MarkingSchemeCoverpage,
     BiologyPaper3Coverpage,
     PhysicsPaper1Coverpage,
+    PhysicsPaper2Coverpage,
     ChemistryPaper1Coverpage,
     ChemistryPaper2Coverpage,
     MarkingSchemeCoverpage, 
@@ -92,8 +93,11 @@ def _select_coverpage_class_and_default(generated_paper, paper, is_marking_schem
             return MarkingSchemeCoverpage, MarkingSchemeCoverpage.generate_default_data(generated_paper, paper)
 
         # Question paper coverpage selection
-        if subject_name == 'PHYSICS' and is_paper1():
-            return PhysicsPaper1Coverpage, PhysicsPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+        if subject_name == 'PHYSICS':
+            if is_paper1():
+                return PhysicsPaper1Coverpage, PhysicsPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+            return PhysicsPaper2Coverpage, PhysicsPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
+        
 
         if subject_name == 'CHEMISTRY':
             if is_paper2():
