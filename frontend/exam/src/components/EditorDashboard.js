@@ -505,6 +505,75 @@ export default function EditorDashboard({ onLogout }) {
         }
     };
 
+    // Background polling to keep `allQuestions` and stats up-to-date without
+    // interrupting the user's current view. Runs every 2 minutes and avoids
+    // overlapping requests.
+    const POLL_INTERVAL_MS = 120000; // 2 minutes
+    const pollingRef = useRef(false);
+
+    useEffect(() => {
+        let intervalId = null;
+
+        const runPoll = async () => {
+            // Only poll when Questions tab is active and page is visible
+            try {
+                if (activeTab !== 'questions') return;
+                if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+                if (pollingRef.current) return; // avoid overlapping runs
+                pollingRef.current = true;
+
+                // Fetch fresh questions in the background and update the
+                // `allQuestions` cache only. We deliberately DO NOT call
+                // `fetchQuestions()` here because that function updates
+                // `savedQuestions` which may be reflecting the user's
+                // current filtered view — overwriting it would be disruptive.
+                try {
+                    const fresh = await questionService.getAllQuestions({ limit: 10000 });
+                    if (Array.isArray(fresh)) {
+                        setAllQuestions(fresh);
+                        console.debug('[poll] updated allQuestions (background)', { count: fresh.length });
+                    }
+                } catch (err) {
+                    console.warn('[poll] failed to fetch questions in background:', err);
+                }
+
+                // Fetch stats in background without toggling the visible
+                // loading flag so cards don't show a spinner or otherwise
+                // interrupt the UI.
+                try {
+                    const stats = await questionService.getQuestionStats();
+                    if (stats) {
+                        setQuestionStats({
+                            totalQuestions: stats.total || 0,
+                            activeQuestions: stats.active || 0,
+                            inactiveQuestions: stats.inactive || 0,
+                            unknownTopics: stats.unknownTopics || 0
+                        });
+                        console.debug('[poll] updated questionStats (background)', stats);
+                    }
+                } catch (err) {
+                    console.warn('[poll] failed to fetch stats in background:', err);
+                }
+            } catch (err) {
+                console.warn('[poll] unexpected error during polling:', err);
+            } finally {
+                pollingRef.current = false;
+            }
+        };
+
+        // Trigger an immediate background refresh when switching to Questions tab
+        if (activeTab === 'questions') {
+            runPoll().catch(e => console.warn('[poll] initial run failed', e));
+        }
+
+        intervalId = setInterval(() => runPoll().catch(e => console.warn('[poll] interval run failed', e)), POLL_INTERVAL_MS);
+
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+            pollingRef.current = false;
+        };
+    }, [activeTab]);
+
     // Fetch topics for a specific paper (for edit question dropdown)
     const fetchTopicsForPaper = async (paperId) => {
         try {
