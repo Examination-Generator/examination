@@ -1213,7 +1213,7 @@ def validate_geography_paper_pool(request):
     """
     try:
         paper_id = request.data.get("paper_id")
-        selected_topic_ids = request.data.get("selected_topic_ids", [])
+        selected_topic_ids = request.data.get("topic_ids", [])
         paper_number = int(request.data.get("paper_number", 1))
         if not paper_id or not selected_topic_ids:
             return Response({"can_generate": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
