@@ -5370,8 +5370,10 @@ useEffect(() => {
                                 />
                             </div>
 
+                            <div className="mt-6 flex flex-col lg:flex-row lg:space-x-6 w-full p-2">
+
                             {/* Nested Question Checkbox */}
-                            <div className="mb-4 border-2 rounded-lg p-4" style={{
+                            <div className="mb-4 border-2 rounded-lg p-4 w-full lg:w-1/4" style={{
                                 borderColor: isNested ? '#8b5cf6' : '#d1d5db',
                                 backgroundColor: isNested ? '#f3e8ff' : '#f9fafb'
                             }}>
@@ -5406,7 +5408,7 @@ useEffect(() => {
                             </div>
 
                             {/* Essay Question Checkbox */}
-                            <div className="mb-4 border-2 rounded-lg p-4" style={{
+                            <div className="mb-4 border-2 rounded-lg p-4 w-full lg:w-1/4" style={{
                                 borderColor: isEssayQuestion ? '#f59e0b' : '#d1d5db',
                                 backgroundColor: isEssayQuestion ? '#fef3c7' : '#f9fafb'
                             }}>
@@ -5429,7 +5431,7 @@ useEffect(() => {
                             </div>
 
                             {/* Graph Question Checkbox */}
-                            <div className="mb-4 border-2 rounded-lg p-4" style={{
+                            <div className="mb-4 border-2 rounded-lg p-4 w-full lg:w-1/4" style={{
                                 borderColor: isGraphQuestion ? '#06b6d4' : '#d1d5db',
                                 backgroundColor: isGraphQuestion ? '#cffafe' : '#f9fafb'
                             }}>
@@ -5452,7 +5454,7 @@ useEffect(() => {
                             </div>
 
                             {/* Map Question Checkbox */}
-                            <div className="mb-4 border-2 rounded-lg p-4" style={{
+                            <div className="mb-4 border-2 rounded-lg p-4 w-full lg:w-1/4" style={{
                                 borderColor: isMapQuestion ? '#059669' : '#d1d5db',
                                 backgroundColor: isMapQuestion ? '#bbf7d0' : '#f9fafb'
                             }}>
@@ -5473,7 +5475,7 @@ useEffect(() => {
                                         : 'Not a map question'}
                                 </p>
                             </div>
-
+                          </div>
                             {/* Question Status */}
                             <div className="mb-6 border-2 rounded-lg p-4" style={{
                                 borderColor: isQuestionActive ? '#10b981' : '#ef4444',
