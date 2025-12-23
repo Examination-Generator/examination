@@ -130,7 +130,7 @@ export const isSessionValid = () => {
 // Request OTP for registration
 export const requestOTP = async (phoneNumber, fullName) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/send-otp`, {
+        const response = await fetch(`${API_BASE_URL}/send-otp`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -155,7 +155,7 @@ export const requestOTP = async (phoneNumber, fullName) => {
 // Verify OTP
 export const verifyOTP = async (phoneNumber, otp) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
+        const response = await fetch(`${API_BASE_URL}/verify-otp`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -180,7 +180,7 @@ export const verifyOTP = async (phoneNumber, otp) => {
 // Register new user (after OTP verification)
 export const register = async (phoneNumber, fullName, password, role = 'user') => {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        const response = await fetch(`${API_BASE_URL}/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -215,7 +215,7 @@ export const register = async (phoneNumber, fullName, password, role = 'user') =
 // Login user
 export const login = async (phoneNumber, password) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        const response = await fetch(`${API_BASE_URL}/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
