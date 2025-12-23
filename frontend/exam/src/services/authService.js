@@ -1,9 +1,10 @@
 // Authentication API Service
 import { API_URL } from '../config';
+import { friendlyErrorMessage } from './errors';
+
 
 const API_BASE_URL = API_URL;
 
-import { friendlyErrorMessage } from './errors';
 
 // Session configuration
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
