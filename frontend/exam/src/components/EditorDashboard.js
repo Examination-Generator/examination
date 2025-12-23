@@ -8017,7 +8017,7 @@ useEffect(() => {
                                         </div>
 
                                         {/* Graph Question Toggle */}
-                                        <div className="bg-white rounded-lg p-2 border-2 border-gray-200 hover:border-cyan-300 transition mb-4  w-full lg:w-1/3">
+                                        <div className="bg-white rounded-lg p-2 border-2 border-gray-200 hover:border-cyan-300 transition mb-2  w-full lg:w-1/3">
                                             <label className="block text-sm font-bold text-gray-700 mb-3">
                                                 Graph Question
                                             </label>
@@ -8055,7 +8055,7 @@ useEffect(() => {
                                         </div>
 
                                         {/* Map Question Toggle */}
-                                        <div className="bg-white rounded-lg p-2 border-2 border-gray-200 hover:border-emerald-300 transition mb-4  w-full lg:w-1/3">
+                                        <div className="bg-white rounded-lg p-2 border-2 border-gray-200 hover:border-emerald-300 transition mb-2  w-full lg:w-1/3">
                                             <label className="block text-sm font-bold text-gray-700 mb-3">
                                                 Map Question
                                             </label>
