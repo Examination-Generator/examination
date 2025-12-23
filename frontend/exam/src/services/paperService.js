@@ -1,6 +1,7 @@
 // Paper Generation API Service
 import { getAuthToken } from './authService';
 import { API_URL } from '../config';
+import { friendlyErrorMessage } from './errors';
 
 const API_BASE_URL = API_URL;
 
@@ -9,6 +10,8 @@ const getAuthHeaders = () => ({
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${getAuthToken()}`
 });
+
+// friendlyErrorMessage imported from services/errors.js
 
 /**
  * Get topic statistics for a paper
@@ -25,7 +28,9 @@ export const getTopicStatistics = async (paperId) => {
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            const raw = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Backend error (getTopicStatistics):', raw);
+            throw new Error(friendlyErrorMessage(raw));
         }
         
         return await response.json();
@@ -44,10 +49,10 @@ export const getTopicStatistics = async (paperId) => {
  */
 export const generatePaper = async (paperId, topicIds, paperData = null) => {
     try {
-        console.log('📤 ========== PAPER GENERATION REQUEST ==========');
-        console.log('📄 Paper ID:', paperId);
-        console.log('📚 Selected Topic IDs:', topicIds);
-        console.log('🗂️ Paper Data (FULL OBJECT):', JSON.stringify(paperData, null, 2));
+        console.log('========== PAPER GENERATION REQUEST ==========');
+        console.log('Paper ID:', paperId);
+        console.log('Selected Topic IDs:', topicIds);
+        console.log('Paper Data (FULL OBJECT):', JSON.stringify(paperData, null, 2));
         
         // Determine endpoint based on paper type
         let endpoint = `${API_BASE_URL}/papers/generate`;
@@ -94,36 +99,52 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
             if (isBiology && isPaper2) {
                 endpoint = `${API_BASE_URL}/papers/biology-paper2/generate`;
                 paperType = 'biology-paper2';
-                console.log('🧬 ✅ DETECTED: Biology Paper 2 (using dedicated endpoint)');
-            } else if (isPhysics && isPaper1) {
-                endpoint = `${API_BASE_URL}/papers/physics-paper1/generate`;
-                paperType = 'physics-paper1';
-                console.log('⚛️ ✅ DETECTED: Physics Paper 1 (using dedicated endpoint)');
+                console.log('DETECTED: Biology Paper 2 (using dedicated endpoint)');
+                } else if (isPhysics && isPaper1) {
+                    // New generic physics endpoint
+                    endpoint = `${API_BASE_URL}/papers/physics-paper/generate`;
+                    paperType = 'physics-paper1';
+                    console.log('DETECTED: Physics Paper 1 (using dedicated physics endpoint)');
+                } else if (paperName.includes('chemistry') || subjectName.includes('chemistry')) {
+                    endpoint = `${API_BASE_URL}/papers/chemistry-paper/generate`;
+                    paperType = 'chemistry-paper';
+                    console.log('DETECTED: Chemistry Paper (using dedicated chemistry endpoint)');
+                } else if (paperName.includes('mathematics') || paperName.includes('math') || subjectName.includes('mathematics') || subjectName.includes('math')) {
+                    endpoint = `${API_BASE_URL}/papers/mathematics-paper/generate`;
+                    paperType = 'mathematics-paper';
+                    console.log('DETECTED: Mathematics Paper (using dedicated mathematics endpoint)');
+                } else if (paperName.includes('geography') || subjectName.includes('geography')) {
+                    endpoint = `${API_BASE_URL}/papers/geography-paper/generate`;
+                    paperType = 'geography-paper';
+                    console.log('DETECTED: Geography Paper (using dedicated geography endpoint)');
+                } else if (paperName.includes('english') || subjectName.includes('english')) {
+                    endpoint = `${API_BASE_URL}/papers/english-paper/generate`;
+                    paperType = 'english-paper';
+                    console.log('DETECTED: English Paper (using dedicated english endpoint)');
             } else {
-                console.log('📝 DETECTED: Standard Paper (using general endpoint)');
+                console.log('DETECTED: Standard Paper (using general endpoint)');
             }
         }
         
-        // Use correct field for topics depending on endpoint or Biology Paper I
+        // Normalize topic request body per endpoint
+        // Some backend endpoints (biology special-case) expect `selected_topics`,
+        // while most others expect `topic_ids`. Decide based on endpoint or
+        // biology paper detection.
         let requestBody;
-        // Detect Biology Paper I
         let isBiologyPaper1 = false;
         if (paperData) {
             const paperName = paperData.name?.toLowerCase() || '';
             const subjectName = paperData.subject_name?.toLowerCase() || paperData.subject?.name?.toLowerCase() || '';
             const isBiology = paperName.includes('biology') || subjectName.includes('biology');
-            // Paper 1 detection: number === 1 or name includes 'paper 1', 'paper one', or 'paper i' (but not 'paper 2', 'paper two', 'paper ii')
             const paperNumber = paperData.paper_number || paperData.number || null;
             const isPaper1 = paperNumber === 1 || paperNumber === '1' || paperName.includes('paper 1') || paperName.includes('paper one') || (paperName.includes('paper i') && !paperName.includes('paper ii'));
             const isPaper2 = paperNumber === 2 || paperNumber === '2' || paperName.includes('paper 2') || paperName.includes('paper two') || paperName.includes('paper ii');
             isBiologyPaper1 = isBiology && isPaper1 && !isPaper2;
         }
-        if (isBiologyPaper1) {
-            requestBody = {
-                paper_id: paperId,
-                selected_topics: topicIds
-            };
-        } else if (endpoint.includes('/biology-paper2/')) {
+
+        const endpointUsesSelectedTopics = isBiologyPaper1 || endpoint.includes('/biology-paper2/') || endpoint.includes('/biology-paper');
+
+        if (endpointUsesSelectedTopics) {
             requestBody = {
                 paper_id: paperId,
                 selected_topics: topicIds
@@ -150,20 +171,17 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
         
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Error Response:', errorText);
-            
-            // Try to parse as JSON
-            let errorMessage;
+            console.error('Error Response (generatePaper):', errorText);
+            // Try to parse as JSON for specific messages
+            let rawMessage = errorText || `HTTP error! status: ${response.status}`;
             try {
                 const errorData = JSON.parse(errorText);
-                console.error('Error Response Data:', errorData);
-                errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
+                rawMessage = errorData.error || errorData.message || rawMessage;
+                console.error('Parsed error data:', errorData);
             } catch (e) {
-                // If not JSON, use the text directly
-                errorMessage = errorText || `HTTP error! status: ${response.status}`;
+                // ignore JSON parse errors
             }
-            
-            throw new Error(errorMessage);
+            throw new Error(friendlyErrorMessage(rawMessage, rawMessage));
         }
         
         const result = await response.json();
@@ -288,6 +306,112 @@ export const validatePhysicsPaper1Pool = async (paperId, topicIds) => {
     }
 };
 
+// Generic validate for physics (new route)
+export const validatePhysicsPaperPool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/physics-paper/validate`;
+        const requestBody = { paper_id: paperId, topic_ids: topicIds };
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Validation API error (physics):', text);
+            throw new Error(friendlyErrorMessage(text));
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Physics validation error:', error);
+        throw error;
+    }
+};
+
+export const validateChemistryPaperPool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/chemistry-paper/validate`;
+        const requestBody = { paper_id: paperId, topic_ids: topicIds };
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Validation API error (chemistry):', text);
+            throw new Error(friendlyErrorMessage(text));
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Chemistry validation error:', error);
+        throw error;
+    }
+};
+
+export const validateMathematicsPaperPool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/mathematics-paper/validate`;
+        const requestBody = { paper_id: paperId, topic_ids: topicIds };
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Validation API error (mathematics):', text);
+            throw new Error(friendlyErrorMessage(text));
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Mathematics validation error:', error);
+        throw error;
+    }
+};
+
+export const validateGeographyPaperPool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/geography-paper/validate`;
+        const requestBody = { paper_id: paperId, topic_ids: topicIds };
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Validation API error (geography):', text);
+            throw new Error(friendlyErrorMessage(text));
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Geography validation error:', error);
+        throw error;
+    }
+};
+
+export const validateEnglishPaperPool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/english-paper/validate`;
+        const requestBody = { paper_id: paperId, topic_ids: topicIds };
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Validation API error (english):', text);
+            throw new Error(friendlyErrorMessage(text));
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('English validation error:', error);
+        throw error;
+    }
+};
+
 /**
  * Get a specific generated paper with full question details
  * @param {string} generatedPaperId - UUID of the generated paper
@@ -302,7 +426,9 @@ export const getGeneratedPaper = async (generatedPaperId) => {
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            const raw = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Backend error (getGeneratedPaper):', raw);
+            throw new Error(friendlyErrorMessage(raw));
         }
         
         return await response.json();
@@ -326,7 +452,9 @@ export const viewFullPaper = async (generatedPaperId) => {
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            const raw = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Backend error (getCoverpageData):', raw);
+            throw new Error(friendlyErrorMessage(raw));
         }
         
         return await response.json();
@@ -350,7 +478,9 @@ export const getCoverpageData = async (generatedPaperId) => {
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            const raw = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Backend error (updateCoverpageData):', raw);
+            throw new Error(friendlyErrorMessage(raw));
         }
         
         return await response.json();
@@ -378,7 +508,9 @@ export const updateCoverpageData = async (generatedPaperId, coverpageData) => {
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            const raw = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Backend error (downloadPaper):', raw);
+            throw new Error(friendlyErrorMessage(raw));
         }
         
         return await response.json();
@@ -415,7 +547,9 @@ export const downloadPaper = async (generatedPaperId, options = {}) => {
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            const raw = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Backend error (updatePaperStatus):', raw);
+            throw new Error(friendlyErrorMessage(raw));
         }
         
         return await response.json();
@@ -441,7 +575,9 @@ export const updatePaperStatus = async (generatedPaperId, status) => {
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            const raw = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Backend error (listGeneratedPapers):', raw);
+            throw new Error(friendlyErrorMessage(raw));
         }
         
         return await response.json();
@@ -478,7 +614,9 @@ export const listGeneratedPapers = async (filters = {}) => {
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            const raw = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Backend error (getPaperConfiguration):', raw);
+            throw new Error(friendlyErrorMessage(raw));
         }
         
         return await response.json();
@@ -502,7 +640,9 @@ export const getPaperConfiguration = async (paperId) => {
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            const raw = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Backend error (updatePaperConfiguration):', raw);
+            throw new Error(friendlyErrorMessage(raw));
         }
         
         return await response.json();
@@ -528,7 +668,9 @@ export const updatePaperConfiguration = async (paperId, configData) => {
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            const raw = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Backend error (getAllSubjects):', raw);
+            throw new Error(friendlyErrorMessage(raw));
         }
         
         return await response.json();
@@ -551,7 +693,9 @@ export const getAllSubjects = async () => {
         
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            const raw = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Backend error (getPapersBySubject):', raw);
+            throw new Error(friendlyErrorMessage(raw));
         }
         
         return await response.json();

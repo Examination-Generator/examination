@@ -1,6 +1,21 @@
 import React from 'react';
 import { useState, useEffect, useRef } from 'react';
-import { getTopicStatistics, generatePaper, validateBiologyPaper2Pool, validatePhysicsPaper1Pool, listGeneratedPapers, viewFullPaper, getCoverpageData, updateCoverpageData, getAllSubjects } from '../services/paperService';
+import { 
+    getTopicStatistics, 
+    generatePaper, 
+    validateBiologyPaper2Pool, 
+    validatePhysicsPaper1Pool, 
+    validatePhysicsPaperPool,
+    validateChemistryPaperPool,
+    validateMathematicsPaperPool,
+    validateGeographyPaperPool,
+    validateEnglishPaperPool,
+    listGeneratedPapers, 
+    viewFullPaper, 
+    getCoverpageData, 
+    updateCoverpageData, 
+    getAllSubjects 
+} from '../services/paperService';
 import { getCurrentUser, getAuthToken } from '../services/authService';
 
 export default function PaperGenerationDashboard() {
@@ -333,6 +348,10 @@ export default function PaperGenerationDashboard() {
             
             const isBiology = paperName.includes('biology') || subjectName.includes('biology');
             const isPhysics = paperName.includes('physics') || subjectName.includes('physics');
+            const isChemistry = paperName.includes('chemistry') || subjectName.includes('chemistry');
+            const isMathematics = paperName.includes('mathematics') || paperName.includes('math') || subjectName.includes('mathematics') || subjectName.includes('math');
+            const isGeography = paperName.includes('geography') || subjectName.includes('geography');
+            const isEnglish = paperName.includes('english') || subjectName.includes('english');
             const isPaper1 = paperNumber === 1 || 
                            paperNumber === '1' || 
                            paperName.includes('paper 1') || 
@@ -405,6 +424,102 @@ export default function PaperGenerationDashboard() {
                             return;
                         }
                         console.log('User confirmed to proceed despite warnings');
+                    }
+                } catch (validationErr) {
+                    console.error('Validation failed:', validationErr);
+                    setError(`Validation failed: ${validationErr.message}`);
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // Validate Chemistry
+            if (isChemistry) {
+                console.log('🧪 Chemistry detected - Starting validation...');
+                try {
+                    const validation = await validateChemistryPaperPool(selectedPaperId, selectedTopics);
+                    console.log('Validation result:', validation);
+                    if (validation.issues && validation.issues.length > 0) {
+                        const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
+                        const proceed = window.confirm(
+                            `Chemistry Paper Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
+                        );
+                        if (!proceed) {
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                } catch (validationErr) {
+                    console.error('Validation failed:', validationErr);
+                    setError(`Validation failed: ${validationErr.message}`);
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // Validate Mathematics
+            if (isMathematics) {
+                console.log('➗ Mathematics detected - Starting validation...');
+                try {
+                    const validation = await validateMathematicsPaperPool(selectedPaperId, selectedTopics);
+                    console.log('Validation result:', validation);
+                    if (validation.issues && validation.issues.length > 0) {
+                        const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
+                        const proceed = window.confirm(
+                            `Mathematics Paper Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
+                        );
+                        if (!proceed) {
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                } catch (validationErr) {
+                    console.error('Validation failed:', validationErr);
+                    setError(`Validation failed: ${validationErr.message}`);
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // Validate Geography
+            if (isGeography) {
+                console.log('🗺️ Geography detected - Starting validation...');
+                try {
+                    const validation = await validateGeographyPaperPool(selectedPaperId, selectedTopics);
+                    console.log('Validation result:', validation);
+                    if (validation.issues && validation.issues.length > 0) {
+                        const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
+                        const proceed = window.confirm(
+                            `Geography Paper Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
+                        );
+                        if (!proceed) {
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                } catch (validationErr) {
+                    console.error('Validation failed:', validationErr);
+                    setError(`Validation failed: ${validationErr.message}`);
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // Validate English
+            if (isEnglish) {
+                console.log('📝 English detected - Starting validation...');
+                try {
+                    const validation = await validateEnglishPaperPool(selectedPaperId, selectedTopics);
+                    console.log('Validation result:', validation);
+                    if (validation.issues && validation.issues.length > 0) {
+                        const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
+                        const proceed = window.confirm(
+                            `English Paper Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
+                        );
+                        if (!proceed) {
+                            setLoading(false);
+                            return;
+                        }
                     }
                 } catch (validationErr) {
                     console.error('Validation failed:', validationErr);

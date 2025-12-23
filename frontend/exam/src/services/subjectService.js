@@ -1,5 +1,6 @@
 // Subject Management API Service
 import { API_URL } from '../config';
+import { friendlyErrorMessage } from './errors';
 
 const API_BASE_URL = API_URL;
 
@@ -26,7 +27,9 @@ export const getAllSubjects = async () => {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const text = await response.text();
+            console.error('Error fetching subjects:', text);
+            throw new Error(friendlyErrorMessage(text || `HTTP error! status: ${response.status}`));
         }
         
         const result = await response.json();
@@ -48,7 +51,9 @@ export const getSubjectById = async (subjectId) => {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const text = await response.text();
+            console.error('Error fetching subject:', text);
+            throw new Error(friendlyErrorMessage(text || `HTTP error! status: ${response.status}`));
         }
         
         const result = await response.json();
@@ -70,8 +75,15 @@ export const createSubject = async (subjectData) => {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error creating subject:', errorText);
+            // try parse json
+            try {
+                const parsed = JSON.parse(errorText);
+                throw new Error(friendlyErrorMessage(parsed.message || parsed.error || errorText));
+            } catch (e) {
+                throw new Error(friendlyErrorMessage(errorText));
+            }
         }
         
         const result = await response.json();
@@ -93,8 +105,14 @@ export const updateSubject = async (subjectId, subjectData) => {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error updating subject:', errorText);
+            try {
+                const parsed = JSON.parse(errorText);
+                throw new Error(friendlyErrorMessage(parsed.message || parsed.error || errorText));
+            } catch (e) {
+                throw new Error(friendlyErrorMessage(errorText));
+            }
         }
         
         const result = await response.json();
@@ -115,7 +133,9 @@ export const deleteSubject = async (subjectId) => {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const text = await response.text();
+            console.error('Error deleting subject:', text);
+            throw new Error(friendlyErrorMessage(text || `HTTP error! status: ${response.status}`));
         }
         
         const result = await response.json();
@@ -136,7 +156,9 @@ export const getTopicsByPaper = async (subjectId, paperId) => {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const text = await response.text();
+            console.error('Error fetching topics by paper:', text);
+            throw new Error(friendlyErrorMessage(text || `HTTP error! status: ${response.status}`));
         }
         
         const result = await response.json();
@@ -158,8 +180,14 @@ export const updatePaper = async (subjectId, paperId, paperData) => {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error updating paper:', errorText);
+            try {
+                const parsed = JSON.parse(errorText);
+                throw new Error(friendlyErrorMessage(parsed.message || parsed.error || errorText));
+            } catch (e) {
+                throw new Error(friendlyErrorMessage(errorText));
+            }
         }
         
         const result = await response.json();
@@ -179,7 +207,9 @@ export const deletePaper = async (subjectId, paperId) => {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const text = await response.text();
+            console.error('Error deleting paper:', text);
+            throw new Error(friendlyErrorMessage(text || `HTTP error! status: ${response.status}`));
         }
         
         const result = await response.json();
@@ -200,8 +230,14 @@ export const updateTopic = async (topicId, topicData) => {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error updating topic:', errorText);
+            try {
+                const parsed = JSON.parse(errorText);
+                throw new Error(friendlyErrorMessage(parsed.message || parsed.error || errorText));
+            } catch (e) {
+                throw new Error(friendlyErrorMessage(errorText));
+            }
         }
         
         const data = await response.json();
@@ -221,7 +257,9 @@ export const deleteTopic = async (topicId) => {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const text = await response.text();
+            console.error('Error deleting topic:', text);
+            throw new Error(friendlyErrorMessage(text || `HTTP error! status: ${response.status}`));
         }
         
         const data = await response.json();
@@ -242,8 +280,14 @@ export const updateSection = async (sectionId, sectionData) => {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error updating section:', errorText);
+            try {
+                const parsed = JSON.parse(errorText);
+                throw new Error(friendlyErrorMessage(parsed.message || parsed.error || errorText));
+            } catch (e) {
+                throw new Error(friendlyErrorMessage(errorText));
+            }
         }
         
         const data = await response.json();
@@ -263,7 +307,9 @@ export const deleteSection = async (sectionId) => {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const text = await response.text();
+            console.error('Error deleting section:', text);
+            throw new Error(friendlyErrorMessage(text || `HTTP error! status: ${response.status}`));
         }
         
         const data = await response.json();

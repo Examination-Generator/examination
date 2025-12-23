@@ -3,6 +3,8 @@ import { API_URL } from '../config';
 
 const API_BASE_URL = API_URL;
 
+import { friendlyErrorMessage } from './errors';
+
 // Session configuration
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
 const ACTIVITY_CHECK_INTERVAL = 60 * 1000; // Check every minute
@@ -136,8 +138,9 @@ export const requestOTP = async (phoneNumber, fullName) => {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error requesting OTP:', errorText);
+            throw new Error(friendlyErrorMessage(errorText));
         }
         
         const data = await response.json();
@@ -160,8 +163,9 @@ export const verifyOTP = async (phoneNumber, otp) => {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error verifying OTP:', errorText);
+            throw new Error(friendlyErrorMessage(errorText));
         }
         
         const data = await response.json();
@@ -184,8 +188,9 @@ export const register = async (phoneNumber, fullName, password, role = 'user') =
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error registering user:', errorText);
+            throw new Error(friendlyErrorMessage(errorText));
         }
         
         const result = await response.json();
@@ -218,8 +223,9 @@ export const login = async (phoneNumber, password) => {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error logging in:', errorText);
+            throw new Error(friendlyErrorMessage(errorText));
         }
         
         const result = await response.json();
@@ -303,8 +309,9 @@ export const requestPasswordReset = async (phoneNumber) => {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error requesting password reset:', errorText);
+            throw new Error(friendlyErrorMessage(errorText));
         }
         
         const data = await response.json();
@@ -327,8 +334,9 @@ export const resetPassword = async (phoneNumber, otp, newPassword) => {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error resetting password:', errorText);
+            throw new Error(friendlyErrorMessage(errorText));
         }
         
         const data = await response.json();

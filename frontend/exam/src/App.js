@@ -15,6 +15,7 @@ import {
   isSessionValid,
   logout 
 } from './services/authService';
+import { useError } from './contexts/ErrorContext';
 
 // ============================================================================
 // REACT QUERY CONFIGURATION - Performance Optimization
@@ -51,6 +52,7 @@ function App() {
   const [currentView, setCurrentView] = useState('login'); // 'login', 'signup', 'editor', or 'user'
   const [userRole, setUserRole] = useState('user'); // 'editor' or 'user'
   const [isLoading, setIsLoading] = useState(true); // Loading state for session check
+  const errorApi = useError();
 
   // Logging utility - only logs in development
   const debugLog = (message, ...args) => {
@@ -92,10 +94,10 @@ function App() {
 
     if (currentView === 'editor' || currentView === 'user') {
       debugLog('[APP] Initializing activity tracking');
-      
+      const { showError } = errorApi;
       cleanup = initActivityTracking(() => {
         debugLog('[APP] Session expired, redirecting to login');
-        alert('Your session has expired due to inactivity. Please login again.');
+        showError('Your session has expired due to inactivity. Please login again.');
         handleLogout();
       });
     }

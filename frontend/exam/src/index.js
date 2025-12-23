@@ -2,12 +2,17 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { ErrorProvider } from './contexts/ErrorContext';
+import ErrorToast from './components/ErrorToast';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <ErrorProvider>
+      <App />
+      <ErrorToast />
+    </ErrorProvider>
   </React.StrictMode>
 );
 

@@ -4,8 +4,8 @@ URL Configuration for API app
 
 from django.urls import path
 from django.http import JsonResponse
-from . import auth_views, subject_views, question_views, database_views, paper_generation_views
-from . import biology_paper2_generation, physics_paper1_generation
+from . import auth_views, physics_paper_generation, subject_views, question_views, database_views, paper_generation_views
+from . import biology_paper2_generation
 
 def api_root(request):
     """API root endpoint - returns available endpoints"""
@@ -98,8 +98,23 @@ urlpatterns = [
     path('papers/biology-paper2/validate', biology_paper2_generation.validate_paper2_pool, name='validate-paper2-pool'),
     path('papers/biology-paper2/generate', biology_paper2_generation.generate_biology_paper2, name='generate-biology-paper2'),
     
-    # ==================== PHYSICS PAPER 1 GENERATION ROUTES ====================
-    # KCSE Physics Paper 1 specific generation endpoints
-    path('papers/physics-paper1/validate', physics_paper1_generation.validate_physics_paper1, name='validate-physics-paper1'),
-    path('papers/physics-paper1/generate', physics_paper1_generation.generate_physics_paper1, name='generate-physics-paper1'),
+    # ==================== PHYSICS GENERATION ROUTES ====================
+    path('papers/physics-paper/validate', physics_paper_generation.validate_physics_paper_pool, name='validate-physics-paper'),
+    path('papers/physics-paper/generate', physics_paper_generation.generate_physics_paper, name='generate-physics-paper'),
+
+    # ==================== CHEMISTRY GENERATION ROUTES ====================
+    path('papers/chemistry-paper/validate', paper_generation_views.validate_chemistry_paper_pool, name='validate-chemistry-paper'),
+    path('papers/chemistry-paper/generate', paper_generation_views.generate_chemistry_paper, name='generate-chemistry-paper'),
+
+    # ==================== MATHEMATICS GENERATION ROUTES ====================
+    path('papers/mathematics-paper/validate', paper_generation_views.validate_mathematics_paper_pool, name='validate-mathematics-paper'),
+    path('papers/mathematics-paper/generate', paper_generation_views.generate_mathematics_paper, name='generate-mathematics-paper'),
+
+    # ==================== GEOGRAPHY GENERATION ROUTES ====================
+    path('papers/geography-paper/validate', paper_generation_views.validate_geography_paper_pool, name='validate-geography-paper'),
+    path('papers/geography-paper/generate', paper_generation_views.generate_geography_paper, name='generate-geography-paper'),
+
+    # ==================== ENGLISH GENERATION ROUTES ====================
+    path('papers/english-paper/validate', paper_generation_views.validate_english_paper_pool, name='validate-english-paper'),
+    path('papers/english-paper/generate', paper_generation_views.generate_english_paper, name='generate-english-paper'),
 ]

@@ -1,5 +1,6 @@
 // Question Management API Service
 import { API_URL } from '../config';
+import { friendlyErrorMessage } from './errors';
 
 const API_BASE_URL = API_URL;
 
@@ -38,7 +39,9 @@ export const getAllQuestions = async (filters = {}) => {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const text = await response.text();
+            console.error('Error fetching questions:', text);
+            throw new Error(friendlyErrorMessage(text));
         }
         
         const result = await response.json();
@@ -59,7 +62,9 @@ export const getQuestionStats = async () => {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const text = await response.text();
+            console.error('Error fetching question stats:', text);
+            throw new Error(friendlyErrorMessage(text));
         }
         
         const result = await response.json();
@@ -79,7 +84,9 @@ export const getQuestionById = async (questionId) => {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const text = await response.text();
+            console.error('Error fetching question by id:', text);
+            throw new Error(friendlyErrorMessage(text));
         }
         
         const result = await response.json();
@@ -100,8 +107,15 @@ export const createQuestion = async (questionData) => {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error creating question:', errorText);
+            // try parse JSON
+            try {
+                const parsed = JSON.parse(errorText);
+                throw new Error(friendlyErrorMessage(parsed.message || parsed.error || errorText, parsed.message || errorText));
+            } catch (e) {
+                throw new Error(friendlyErrorMessage(errorText));
+            }
         }
         
         const result = await response.json();
@@ -124,8 +138,14 @@ export const updateQuestion = async (questionId, questionData) => {
         console.log('Updating question with data:', questionData);
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error updating question:', errorText);
+            try {
+                const parsed = JSON.parse(errorText);
+                throw new Error(friendlyErrorMessage(parsed.message || parsed.error || errorText, parsed.message || errorText));
+            } catch (e) {
+                throw new Error(friendlyErrorMessage(errorText));
+            }
         }
         
         const result = await response.json();
@@ -152,7 +172,7 @@ export const deleteQuestion = async (questionId) => {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('🗑️ DELETE failed:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(friendlyErrorMessage(errorText));
         }
         
         const result = await response.json();
@@ -174,7 +194,8 @@ export const checkGraphEssay = async (questionId) => {
 
         if (!response.ok) {
             const text = await response.text();
-            throw new Error(`HTTP error! status: ${response.status} - ${text}`);
+            console.error('Error checking graph/essay for question:', text);
+            throw new Error(friendlyErrorMessage(text));
         }
 
         const result = await response.json();

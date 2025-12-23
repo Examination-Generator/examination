@@ -4,6 +4,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import * as subjectService from '../services/subjectService';
 import * as questionService from '../services/questionService';
 import * as authService from '../services/authService';
+import { useError } from '../contexts/ErrorContext';
 import { useSearchQuestions } from '../hooks/useQuestions';
 import { useDebounce } from '../hooks/useDebounce';
 
@@ -121,6 +122,7 @@ export default function EditorDashboard({ onLogout }) {
     const answerTextareaRef = useRef(null);
     const editQuestionTextareaRef = useRef(null);
     const editAnswerTextareaRef = useRef(null);
+    const { showError, showSuccess } = useError();
     
         
         // Edit answer/line configurations and edit-specific flags
@@ -1167,19 +1169,19 @@ export default function EditorDashboard({ onLogout }) {
         const imagePlaceholder = `\n[IMAGE:${newImage.id}:${newImage.width}x${newImage.height}px]\n`;
         setEditQuestionText(prev => prev + imagePlaceholder);
         setShowEditQuestionDrawing(false);
-        alert('✅ Drawing inserted!');
+        showSuccess('✅ Drawing inserted!');
     };
 
     // ====== SET QUESTION MODE (ESSAY/GRAPH/REGULAR) ======
     // Call backend to update is_essay and is_graph fields for a question
     const setQuestionMode = async (mode) => {
         if (!selectedQuestion) {
-            alert('No question selected.');
+            showError('No question selected.');
             return;
         }
         const token = localStorage.getItem('token');
         if (!token) {
-            alert('You must be logged in.');
+            showError('You must be logged in.');
             return;
         }
         try {
@@ -1193,15 +1195,15 @@ export default function EditorDashboard({ onLogout }) {
             });
             const result = await response.json();
             if (response.ok && result.success) {
-                alert('Question mode updated!');
+                showSuccess('Question mode updated!');
                 // Update local state for UI
                 setEditIsEssayQuestion(result.data.is_essay);
                 setEditIsGraphQuestion(result.data.is_graph);
             } else {
-                alert(result.message || 'Failed to update question mode.');
+                showError(result.message || 'Failed to update question mode.');
             }
         } catch (error) {
-            alert('Error updating question mode.');
+            showError('Error updating question mode.');
         }
     };
 
@@ -1337,14 +1339,14 @@ export default function EditorDashboard({ onLogout }) {
         setEditAnswerText(prev => prev + imagePlaceholder);
         
         setShowEditAnswerDrawing(false);
-        alert('Answer drawing inserted!');
+        showSuccess('Answer drawing inserted!');
     };
 
     // ====== EDIT VOICE RECORDING FUNCTIONS ======
 
     const toggleEditQuestionVoiceRecording = () => {
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+            showError('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
             return;
         }
 
@@ -1384,7 +1386,7 @@ export default function EditorDashboard({ onLogout }) {
                 console.error('Speech recognition error:', event.error);
                 setIsEditQuestionListening(false);
                 if (event.error !== 'no-speech') {
-                    alert('Voice recognition error: ' + event.error);
+                    showError('Voice recognition error: ' + event.error);
                 }
             };
             
@@ -1399,7 +1401,7 @@ export default function EditorDashboard({ onLogout }) {
 
     const toggleEditAnswerVoiceRecording = () => {
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+            showError('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
             return;
         }
 
@@ -1439,7 +1441,7 @@ export default function EditorDashboard({ onLogout }) {
                 console.error('Speech recognition error:', event.error);
                 setIsEditAnswerListening(false);
                 if (event.error !== 'no-speech') {
-                    alert('Voice recognition error: ' + event.error);
+                    showError('Voice recognition error: ' + event.error);
                 }
             };
             
@@ -1524,32 +1526,32 @@ useEffect(() => {
         e.preventDefault();
         
         if (!selectedSubject || !selectedPaper) {
-            alert('Please select subject and paper');
+            showError('Please select subject and paper');
             return;
         }
 
         if (!selectedSubjectId || !selectedPaperId) {
-            alert('Error: Subject or Paper ID not found. Please reselect your options.');
+            showError('Error: Subject or Paper ID not found. Please reselect your options.');
             return;
         }
 
         if (!questionText.trim()) {
-            alert('Please enter the question text');
+            showError('Please enter the question text');
             return;
         }
 
         if (!answerText.trim()) {
-            alert('Please enter the answer text');
+            showError('Please enter the answer text');
             return;
         }
 
         if (!marks || parseInt(marks) <= 0) {
-            alert('Please enter valid marks');
+            showError('Please enter valid marks');
             return;
         }
 
         if (!selectedTopic || !selectedTopicId) {
-            alert('Please select a topic');
+            showError('Please select a topic');
             return;
         }
 
@@ -1599,7 +1601,7 @@ useEffect(() => {
             const token = localStorage.getItem('token');
             
             if (!token) {
-                alert('You must be logged in to create questions');
+                showError('You must be logged in to create questions');
                 return;
             }
 
@@ -1657,15 +1659,15 @@ useEffect(() => {
                 setIsGraphQuestion(false); // NEW: Reset graph checkbox
                 setSimilarQuestions([]);
                 
-                alert('Question saved to database successfully!');
+                showSuccess('Question saved to database successfully!');
                 console.log('Question saved:', result);
             } else {
                 console.error('Failed to save question:', result);
-                alert(`Failed to save question: ${result.message || 'Unknown error'}`);
+                showError(`Failed to save question: ${result.message || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Error submitting question:', error);
-            alert('Error submitting question. Please check your connection and try again.');
+            showError('Error submitting question. Please check your connection and try again.');
         }
     };
 
@@ -1900,7 +1902,7 @@ useEffect(() => {
         setQuestionText(prev => prev + imagePlaceholder);
         
         setShowDrawingTool(false);
-        alert('✅ Drawing inserted!');
+        showSuccess('✅ Drawing inserted!');
     };
 
     // ====== ANSWER DRAWING FUNCTIONS ======
@@ -2041,7 +2043,7 @@ useEffect(() => {
         setAnswerText(prev => prev + imagePlaceholder);
         
         setShowAnswerDrawingTool(false);
-        alert('Answer drawing inserted!');
+        showSuccess('Answer drawing inserted!');
     };
     
     const handleAnswerFileUpload = (e) => {
@@ -2086,7 +2088,7 @@ useEffect(() => {
         
         const image = images.find(img => img.id === imageId);
         if (!image) {
-            alert('Image not found!');
+            showError('Image not found!');
             return;
         }
         
@@ -2099,7 +2101,7 @@ useEffect(() => {
             img.id === imageId ? { ...img, position: text.length } : img
         ));
         
-        alert('Image inserted!');
+        showSuccess('Image inserted!');
     };
 
     // Insert image directly with image object (for when state hasn't updated yet)
@@ -2109,7 +2111,7 @@ useEffect(() => {
         const text = targetType === 'question' ? questionText : answerText;
         
         if (!image) {
-            alert('Image not found!');
+            showError('Image not found!');
             return;
         }
         
@@ -2122,7 +2124,7 @@ useEffect(() => {
             img.id === image.id ? { ...img, position: text.length } : img
         ));
         
-        alert('Image inserted!');
+        showSuccess('Image inserted!');
     };
 
 
@@ -2210,7 +2212,7 @@ useEffect(() => {
                 };
                 reader.readAsDataURL(file);
             } else {
-                alert('Please drop only image files (.jpg, .png, .gif, etc.)');
+                showError('Please drop only image files (.jpg, .png, .gif, etc.)');
             }
         });
     };
@@ -2245,7 +2247,7 @@ useEffect(() => {
                 };
                 reader.readAsDataURL(file);
             } else {
-                alert('Please drop only image files (.jpg, .png, .gif, etc.)');
+                showError('Please drop only image files (.jpg, .png, .gif, etc.)');
             }
         });
     };
@@ -2253,7 +2255,7 @@ useEffect(() => {
     // Voice transcription handlers
     const toggleQuestionVoiceRecording = () => {
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+            showError('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
             return;
         }
 
@@ -2298,7 +2300,7 @@ useEffect(() => {
                 console.error('Speech recognition error:', event.error);
                 setIsQuestionListening(false);
                 if (event.error !== 'no-speech') {
-                    alert('Voice recognition error: ' + event.error);
+                    showError('Voice recognition error: ' + event.error);
                 }
             };
             
@@ -2313,7 +2315,7 @@ useEffect(() => {
 
     const toggleAnswerVoiceRecording = () => {
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            alert('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+            showError('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
             return;
         }
 
@@ -2358,7 +2360,7 @@ useEffect(() => {
                 console.error('Speech recognition error:', event.error);
                 setIsAnswerListening(false);
                 if (event.error !== 'no-speech') {
-                    alert('Voice recognition error: ' + event.error);
+                    showError('Voice recognition error: ' + event.error);
                 }
             };
             
@@ -2393,7 +2395,7 @@ useEffect(() => {
         const selectedText = textarea.value.substring(start, end);
 
         if (!selectedText) {
-            alert('Please select text to format');
+            showError('Please select text to format');
             return;
         }
 
@@ -2580,11 +2582,11 @@ useEffect(() => {
             // Warn if placeholders exist but no images - DATA INTEGRITY ISSUE
             if (questionImageMatches.length > 0 && questionImages.length === 0) {
                 console.error('❌ Question has IMAGE placeholders but no image data in database - DATA CORRUPTION!');
-                alert('⚠️ Warning: This question has image placeholders but the actual images are missing from the database. The images were not saved properly when the question was created.');
+                showError('⚠️ Warning: This question has image placeholders but the actual images are missing from the database. The images were not saved properly when the question was created.');
             }
             if (answerImageMatches.length > 0 && answerImages.length === 0) {
                 console.error('❌ Answer has IMAGE placeholders but no image data in database - DATA CORRUPTION!');
-                alert('⚠️ Warning: This answer has image placeholders but the actual images are missing from the database. The images were not saved properly.');
+                showError('⚠️ Warning: This answer has image placeholders but the actual images are missing from the database. The images were not saved properly.');
             }
         }
         
@@ -2747,17 +2749,17 @@ useEffect(() => {
         e.preventDefault();
 
         if (!selectedQuestion) {
-            alert('No question selected');
+            showError('No question selected');
             return;
         }
 
         if (!editQuestionText.trim()) {
-            alert('Please enter the question text');
+            showError('Please enter the question text');
             return;
         }
 
         if (!editAnswerText.trim()) {
-            alert('Please enter the answer text');
+            showError('Please enter the answer text');
             return;
         }
 
@@ -2808,7 +2810,7 @@ useEffect(() => {
             const result = await questionService.updateQuestion(selectedQuestion.id, updatedData);
             console.log('✅ Update result:', result);
             
-            alert('Question updated successfully!');
+            showSuccess('Question updated successfully!');
             
             // Refresh search results and get updated question data
             await refetchQuestions();
@@ -2833,7 +2835,7 @@ useEffect(() => {
             
         } catch (error) {
             console.error('Error updating question:', error);
-            alert('Failed to update question: ' + (error.message || 'Unknown error'));
+            showError('Failed to update question: ' + (error.message || 'Unknown error'));
         }
         // After update, the backend may process graph/essay detection asynchronously.
         // Poll a few times to update UI flags when processing completes.
@@ -2873,7 +2875,7 @@ useEffect(() => {
 
     const handleDeleteQuestion = async () => {
         if (!selectedQuestion) {
-            alert('No question selected');
+            showError('No question selected');
             return;
         }
 
@@ -2885,7 +2887,7 @@ useEffect(() => {
             console.log('🗑️ Deleting question:', selectedQuestion.id);
             await questionService.deleteQuestion(selectedQuestion.id);
             
-            alert('Question deleted successfully!');
+            showSuccess('Question deleted successfully!');
             
             // Clear selection first
             const deletedQuestionId = selectedQuestion.id;
@@ -2913,7 +2915,7 @@ useEffect(() => {
             
         } catch (error) {
             console.error('Error deleting question:', error);
-            alert('Failed to delete question: ' + (error.message || 'Unknown error'));
+            showError('Failed to delete question: ' + (error.message || 'Unknown error'));
         }
     };
 
@@ -2973,24 +2975,24 @@ useEffect(() => {
                 extractedText = fullText;
             }
             else {
-                alert('⚠️ Unsupported file type!\n\nSupported formats:\n• Text files (.txt)\n• Word documents (.docx)\n• PDF documents (.pdf)');
+                showError('⚠️ Unsupported file type!\n\nSupported formats:\n• Text files (.txt)\n• Word documents (.docx)\n• PDF documents (.pdf)');
                 e.target.value = '';
                 return;
             }
 
             if (!extractedText.trim()) {
-                alert('❌ No text content found in the file. Please check the file and try again.');
+                showError('❌ No text content found in the file. Please check the file and try again.');
                 e.target.value = '';
                 return;
             }
 
             setBulkText(extractedText);
             const questionCount = extractedText.split('\n\n').filter(s => s.trim()).length;
-            alert(`✅ File "${file.name}" loaded successfully!\n\n📊 ${questionCount} potential questions found.\n\nClick "Process Bulk Questions" to continue.`);
+            showSuccess(`✅ File "${file.name}" loaded successfully!\n\n📊 ${questionCount} potential questions found.\n\nClick "Process Bulk Questions" to continue.`);
             
         } catch (error) {
             console.error('Error reading file:', error);
-            alert('❌ Error reading file: ' + error.message + '\n\nPlease try again or paste the text directly.');
+            showError('❌ Error reading file: ' + error.message + '\n\nPlease try again or paste the text directly.');
         }
         
         e.target.value = ''; // Reset file input for re-upload
@@ -2998,7 +3000,7 @@ useEffect(() => {
 
     const processBulkText = () => {
         if (!bulkText.trim()) {
-            alert('Please paste some text or upload a file first');
+            showError('Please paste some text or upload a file first');
             return;
         }
         // Split by double newlines to separate questions
@@ -3008,12 +3010,12 @@ useEffect(() => {
         if (sections.length > 0) {
             setQuestionText(sections[0]);
         }
-        alert(`Found ${sections.length} potential questions. Review and save each one.`);
+        showSuccess(`Found ${sections.length} potential questions. Review and save each one.`);
     };
 
     const refreshBulkQueue = () => {
         if (!bulkText.trim()) {
-            alert('No text to refresh. Please paste or upload content first.');
+            showError('No text to refresh. Please paste or upload content first.');
             return;
         }
         // Recalculate questions from current text
@@ -3023,7 +3025,7 @@ useEffect(() => {
         if (sections.length > 0) {
             setQuestionText(sections[0]);
         }
-        alert(`✅ Queue refreshed!\n\n📊 Found ${sections.length} questions in the text area.`);
+        showSuccess(`✅ Queue refreshed!\n\n📊 Found ${sections.length} questions in the text area.`);
     };
 
     const clearBulkEntry = () => {
@@ -3035,10 +3037,10 @@ useEffect(() => {
                 setCurrentBulkIndex(0);
                 setQuestionText('');
                 setAnswerText('');
-                alert('✅ Bulk entry cleared successfully!');
+                showSuccess('✅ Bulk entry cleared successfully!');
             }
         } else {
-            alert('Nothing to clear.');
+            showError('Nothing to clear.');
         }
     };
 
@@ -3049,7 +3051,7 @@ useEffect(() => {
             setQuestionText(bulkQuestions[nextIndex]);
             setAnswerText('');
         } else {
-            alert('All bulk questions processed!');
+            showSuccess('All bulk questions processed!');
             setBulkQuestions([]);
             setCurrentBulkIndex(0);
             setBulkText('');
@@ -3213,7 +3215,7 @@ useEffect(() => {
         } catch (error) {
             console.error('Error fetching subjects:', error);
             // Display the actual error message from backend
-            alert(error.message || 'Failed to load subjects. Please try again.');
+            showError(error.message || 'Failed to load subjects. Please try again.');
         } finally {
             setIsLoadingSubjects(false);
         }
@@ -3271,14 +3273,14 @@ useEffect(() => {
         
         // Validate inputs
         if (!newSubjectName.trim()) {
-            alert('Please enter a subject name');
+            showError('Please enter a subject name');
             return;
         }
 
         // Validate that at least one paper has a name
         const validPapers = newSubjectPapers.filter(p => p.name.trim() !== '');
         if (validPapers.length === 0) {
-            alert('Please add at least one paper');
+            showError('Please add at least one paper');
             return;
         }
         
@@ -3299,7 +3301,7 @@ useEffect(() => {
             // Update existing subjects list directly to avoid flickering
             setExistingSubjects(prevSubjects => [...prevSubjects, result]);
             
-            alert(`Subject "${newSubjectName}" added successfully!`);
+            showSuccess(`Subject "${newSubjectName}" added successfully!`);
             
             // Reset form
             setNewSubjectName('');
@@ -3313,7 +3315,7 @@ useEffect(() => {
         } catch (error) {
             console.error('Error creating subject:', error);
             // Display the actual error message from backend
-            alert(error.message || 'Failed to add subject. Please try again.');
+            showError(error.message || 'Failed to add subject. Please try again.');
         }
     };
 
@@ -3479,7 +3481,7 @@ useEffect(() => {
                     break;
             }
 
-            alert(`${editingItem.type.charAt(0).toUpperCase() + editingItem.type.slice(1)} updated successfully!`);
+            showSuccess(`${editingItem.type.charAt(0).toUpperCase() + editingItem.type.slice(1)} updated successfully!`);
             setShowEditModal(false);
             setEditingItem(null);
             
@@ -3490,7 +3492,7 @@ useEffect(() => {
             }, 500);
         } catch (error) {
             console.error('Error updating:', error);
-            alert(error.message || `Failed to update ${editingItem.type}. Please try again.`);
+            showError(error.message || `Failed to update ${editingItem.type}. Please try again.`);
         }
     };
 
@@ -3638,7 +3640,7 @@ useEffect(() => {
 
         // Validation
         if (!editSubjectData.name.trim()) {
-            alert('Subject name cannot be empty');
+            showError('Subject name cannot be empty');
             return;
         }
 
@@ -3703,7 +3705,7 @@ useEffect(() => {
             });
 
             if (validPapers.length === 0) {
-                alert('Please add at least one paper with a name and at least one topic');
+                showError('Please add at least one paper with a name and at least one topic');
                 return;
             }
 
@@ -3724,7 +3726,7 @@ useEffect(() => {
                 message += `• Added ${newPapersCount} new paper${newPapersCount > 1 ? 's' : ''}`;
             }
             
-            alert(message);
+            showError(message);
             
             setShowFullEditModal(false);
             setEditSubjectData(null);
@@ -3737,7 +3739,7 @@ useEffect(() => {
             }, 300);
         } catch (error) {
             console.error('Error updating subject:', error);
-            alert(error.message || 'Failed to update subject. Please try again.');
+            showError(error.message || 'Failed to update subject. Please try again.');
         }
     };
 
@@ -3821,7 +3823,7 @@ useEffect(() => {
                     break;
             }
 
-            alert(`${deletingItem.type.charAt(0).toUpperCase() + deletingItem.type.slice(1)} deleted successfully!`);
+            showSuccess(`${deletingItem.type.charAt(0).toUpperCase() + deletingItem.type.slice(1)} deleted successfully!`);
             setShowDeleteConfirm(false);
             setDeletingItem(null);
             
@@ -3832,7 +3834,7 @@ useEffect(() => {
             }, 500);
         } catch (error) {
             console.error('Error deleting:', error);
-            alert(error.message || `Failed to delete ${deletingItem.type}. Please try again.`);
+            showError(error.message || `Failed to delete ${deletingItem.type}. Please try again.`);
         }
     };
 
