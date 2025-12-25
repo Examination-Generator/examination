@@ -193,6 +193,7 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
         console.log('Headers:', getAuthHeaders());
         console.log('=================================================');
 
+        console.debug('[validateChemistryPaperPool] POST', endpoint, 'body:', JSON.stringify(requestBody));
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: getAuthHeaders(),

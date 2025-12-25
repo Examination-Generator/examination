@@ -439,6 +439,12 @@ export default function PaperGenerationDashboard() {
                 try {
                     const paperNameForValidation = selectedPaperData?.name || selectedPaperData?.paper_title || null;
                     const paperNumberForValidation = isPaper1 ? 1 : (isPaper2 ? 2 : null);
+                    console.debug('[PaperGenerationDashboard] Chemistry validation params', {
+                        paperId: selectedPaperId,
+                        selectedTopicsCount: Array.isArray(selectedTopics) ? selectedTopics.length : 0,
+                        paperName: paperNameForValidation,
+                        paperNumber: paperNumberForValidation
+                    });
                     const validation = await validateChemistryPaperPool(selectedPaperId, selectedTopics, paperNameForValidation, paperNumberForValidation);
                     console.log('Validation result:', validation);
                     if (validation.issues && validation.issues.length > 0) {
@@ -461,7 +467,7 @@ export default function PaperGenerationDashboard() {
 
             // Validate Mathematics
             if (isMathematics) {
-                console.log('➗ Mathematics detected - Starting validation...');
+                console.log('Mathematics detected - Starting validation...');
                 try {
                     const validation = await validateMathematicsPaperPool(selectedPaperId, selectedTopics);
                     console.log('Validation result:', validation);
