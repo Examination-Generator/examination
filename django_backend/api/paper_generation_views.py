@@ -1703,20 +1703,32 @@ def validate_chemistry_paper_pool(request):
     Body: { "paper_id": ..., "paper_number": 1|2, "selected_topic_ids": [...] }
     """
     paper_id = request.data.get("paper_id")
+    # Accept both 'selected_topic_ids' and 'topic_ids' for compatibility
+    selected_topic_ids = request.data.get("selected_topic_ids")
+    if selected_topic_ids is None:
+        selected_topic_ids = request.data.get("topic_ids", [])
+    paper_number = request.data.get("paper_number")
     paper_name = request.data.get("paper_name", "")
     chemistry_paper1_titles = ['chemistry paper 1', 'chemistry paper i', 'chemistry paper I']
     chemistry_paper2_titles = ['chemistry paper 2', 'chemistry paper ii', 'chemistry paper II']
-    selected_topic_ids = request.data.get("topic_ids", [])
-    
-    
-    
+
     if not paper_id or not selected_topic_ids:
         return Response({"can_generate": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
-    if paper_name.lower() in chemistry_paper1_titles:
-        paper_number = 1
-    elif paper_name.lower() in chemistry_paper2_titles:
-        paper_number = 2
-        
+
+    # Determine paper_number from paper_name if not provided
+    if not paper_number:
+        if paper_name and paper_name.lower() in chemistry_paper1_titles:
+            paper_number = 1
+        elif paper_name and paper_name.lower() in chemistry_paper2_titles:
+            paper_number = 2
+        else:
+            paper_number = 1  # Default to 1 if not specified (legacy behavior)
+    else:
+        try:
+            paper_number = int(paper_number)
+        except Exception:
+            paper_number = 1
+
     try:
         if paper_number == 1:
             from .chemistry_paper_generator import KCSEChemistryPaper1Generator
