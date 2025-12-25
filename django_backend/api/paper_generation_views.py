@@ -1696,7 +1696,7 @@ def validate_mathematics_paper_pool(request):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def validate_chemistry_paper_pool(request):
+def validate_f_paper_pool(request):
     """
     Validate if the selected Chemistry paper pool can generate a valid paper (1 or 2).
     POST /api/papers/chemistry/validate
@@ -1708,7 +1708,7 @@ def validate_chemistry_paper_pool(request):
     if selected_topic_ids is None:
         selected_topic_ids = request.data.get("topic_ids", [])
     paper_number = request.data.get("paper_number")
-    paper_name = request.data.get("paper_name", "")
+    paper_name = request.data.get("name", "")
     chemistry_paper1_titles = ['chemistry paper 1', 'chemistry paper i', 'chemistry paper I']
     chemistry_paper2_titles = ['chemistry paper 2', 'chemistry paper ii', 'chemistry paper II']
 
