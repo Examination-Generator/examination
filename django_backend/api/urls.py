@@ -104,8 +104,8 @@ urlpatterns = [
 
 
     # ==================== CHEMISTRY GENERATION ROUTES ====================
-    path('papers/chemistry-paper/validate', paper_generation_views.validate_chemistry_paper_pool, name='validate-chemistry-paper'),
-    path('papers/chemistry-paper/generate', paper_generation_views.generate_chemistry_paper, name='generate-chemistry-paper'),
+    path('papers/chemistry/validate', paper_generation_views.validate_chemistry_paper_pool, name='validate-chemistry-paper'),
+    path('papers/chemistry/generate', paper_generation_views.generate_chemistry_paper, name='generate-chemistry-paper'),
 
 
     # ==================== MATHEMATICS GENERATION ROUTES ====================
