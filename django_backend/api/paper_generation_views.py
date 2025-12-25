@@ -1637,17 +1637,26 @@ def validate_chemistry_paper_pool(request):
         selected_topic_ids = request.data.get("topic_ids", [])
     paper_number = request.data.get("paper_number")
     paper_name = request.data.get("paper_name", "")
-    chemistry_paper1_titles = ['chemistry paper 1', 'chemistry paper i', 'chemistry paper I']
-    chemistry_paper2_titles = ['chemistry paper 2', 'chemistry paper ii', 'chemistry paper II']
+    chemistry_paper1_titles = [
+        'chemistry paper 1', 'chemistry paper i', 'chemistry paper I',
+        'chemistry paper one', 'chemistry paper One', 'chemistry paper ONE',
+        'chemistry paper  1', 'chemistry paper  1.', 'chemistry paper i.', 'chemistry paper I.',
+    ]
+    chemistry_paper2_titles = [
+        'chemistry paper 2', 'chemistry paper ii', 'chemistry paper II',
+        'chemistry paper two', 'chemistry paper Two', 'chemistry paper TWO',
+        'chemistry paper  2', 'chemistry paper  2.', 'chemistry paper ii.', 'chemistry paper II.'
+    ]
 
     if not paper_id or not selected_topic_ids:
         return Response({"can_generate": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
 
     # Determine paper_number from paper_name if not provided
     if not paper_number:
-        if paper_name and paper_name.lower() in chemistry_paper1_titles:
+        paper_name_lc = paper_name.lower() if paper_name else ''
+        if paper_name_lc in [t.lower() for t in chemistry_paper1_titles]:
             paper_number = 1
-        elif paper_name and paper_name.lower() in chemistry_paper2_titles:
+        elif paper_name_lc in [t.lower() for t in chemistry_paper2_titles]:
             paper_number = 2
         else:
             paper_number = 1  # Default to 1 if not specified (legacy behavior)
