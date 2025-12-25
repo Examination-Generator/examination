@@ -437,7 +437,8 @@ export default function PaperGenerationDashboard() {
             if (isChemistry) {
                 console.log('🧪 Chemistry detected - Starting validation...');
                 try {
-                    const validation = await validateChemistryPaperPool(selectedPaperId, selectedTopics);
+                    const paperNameForValidation = selectedPaperData?.name || selectedPaperData?.paper_title || null;
+                    const validation = await validateChemistryPaperPool(selectedPaperId, selectedTopics, paperNameForValidation);
                     console.log('Validation result:', validation);
                     if (validation.issues && validation.issues.length > 0) {
                         const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');

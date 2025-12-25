@@ -156,6 +156,21 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
             };
         }
 
+        // Some backend endpoints (e.g., chemistry) require the paper name
+        // string so they can correctly apply paper-specific rules. If we
+        // have a paperData object and the endpoint targets chemistry, include
+        // the paper name in the request body.
+        try {
+            const targetLower = (endpoint || '').toLowerCase();
+            const paperName = paperData?.name || paperData?.paper_title || null;
+            if (paperName && targetLower.includes('/chemistry-paper')) {
+                requestBody.paper_name = paperName;
+                console.debug('[generatePaper] added paper_name for chemistry endpoint:', paperName);
+            }
+        } catch (e) {
+            // Non-fatal guard - proceed without paper_name if something goes wrong
+        }
+
         console.log('Target Endpoint:', endpoint);
         console.log('Request Body:', JSON.stringify(requestBody, null, 2));
         console.log('Headers:', getAuthHeaders());
@@ -274,10 +289,11 @@ export const validatePhysicsPaperPool = async (paperId, topicIds) => {
     }
 };
 
-export const validateChemistryPaperPool = async (paperId, topicIds) => {
+export const validateChemistryPaperPool = async (paperId, topicIds, paperName = null) => {
     try {
         const endpoint = `${API_BASE_URL}/papers/chemistry-paper/validate`;
         const requestBody = { paper_id: paperId, topic_ids: topicIds };
+        if (paperName) requestBody.paper_name = paperName;
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: getAuthHeaders(),
