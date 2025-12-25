@@ -106,7 +106,8 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
                     paperType = 'physics-paper';
                     console.log('DETECTED: Physics Paper (using dedicated physics endpoint)');
                 } else if (paperName.includes('chemistry') || subjectName.includes('chemistry')) {
-                    endpoint = `${API_BASE_URL}/papers/chemistry-paper/generate`;
+                    // Use backend chemistry endpoints (expects paper number/name)
+                    endpoint = `${API_BASE_URL}/papers/chemistry/generate`;
                     paperType = 'chemistry-paper';
                     console.log('DETECTED: Chemistry Paper (using dedicated chemistry endpoint)');
                 } else if (paperName.includes('mathematics') || paperName.includes('math') || subjectName.includes('mathematics') || subjectName.includes('math')) {
@@ -156,19 +157,35 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
             };
         }
 
-        // Some backend endpoints (e.g., chemistry) require the paper name
-        // string so they can correctly apply paper-specific rules. If we
-        // have a paperData object and the endpoint targets chemistry, include
-        // the paper name in the request body.
+        // Some backend endpoints (e.g., chemistry) require specific keys:
+        // - The chemistry endpoints expect `selected_topic_ids` and either
+        //   `paper_number` (preferred) or `paper_name` so the generator can
+        //   choose Paper 1 vs Paper 2.
         try {
             const targetLower = (endpoint || '').toLowerCase();
             const paperName = paperData?.name || paperData?.paper_title || null;
-            if (paperName && targetLower.includes('/chemistry-paper')) {
+            if (paperName && targetLower.includes('/chemistry')) {
+                // Ensure both compatibility keys are present
+                requestBody.selected_topic_ids = topicIds;
+                // Also keep topic_ids for backwards compatibility
+                requestBody.topic_ids = topicIds;
+
+                // Derive paper_number when possible
+                let inferredPaperNumber = null;
+                const pn = paperData?.paper_number || paperData?.number || null;
+                if (pn === 1 || pn === '1' || (typeof pn === 'number' && pn === 1)) inferredPaperNumber = 1;
+                if (pn === 2 || pn === '2' || (typeof pn === 'number' && pn === 2)) inferredPaperNumber = 2;
+                const lowerName = (paperName || '').toLowerCase();
+                if (!inferredPaperNumber) {
+                    if (lowerName.includes('paper 1') || lowerName.includes('paper i') || lowerName.includes('paper one')) inferredPaperNumber = 1;
+                    if (lowerName.includes('paper 2') || lowerName.includes('paper ii') || lowerName.includes('paper two')) inferredPaperNumber = 2;
+                }
+                if (inferredPaperNumber) requestBody.paper_number = inferredPaperNumber;
                 requestBody.paper_name = paperName;
-                console.debug('[generatePaper] added paper_name for chemistry endpoint:', paperName);
+                console.debug('[generatePaper] chemistry requestBody augmented with paper_name/paper_number', { paper_name: paperName, paper_number: requestBody.paper_number });
             }
         } catch (e) {
-            // Non-fatal guard - proceed without paper_name if something goes wrong
+            // Non-fatal guard - proceed without extra chemistry keys if something goes wrong
         }
 
         console.log('Target Endpoint:', endpoint);
@@ -289,11 +306,21 @@ export const validatePhysicsPaperPool = async (paperId, topicIds) => {
     }
 };
 
-export const validateChemistryPaperPool = async (paperId, topicIds, paperName = null) => {
+export const validateChemistryPaperPool = async (paperId, topicIds, paperName = null, paperNumber = null) => {
     try {
-        const endpoint = `${API_BASE_URL}/papers/chemistry-paper/validate`;
-        const requestBody = { paper_id: paperId, topic_ids: topicIds };
+        // Backend expects `/papers/chemistry/validate` and keys like
+        // `selected_topic_ids` and either `paper_number` or `paper_name`.
+        const endpoint = `${API_BASE_URL}/papers/chemistry/validate`;
+        const requestBody = { paper_id: paperId };
+
+        // Accept both `selected_topic_ids` (preferred) and `topic_ids` for
+        // compatibility with older clients/servers.
+        requestBody.selected_topic_ids = topicIds;
+        requestBody.topic_ids = topicIds;
+
         if (paperName) requestBody.paper_name = paperName;
+        if (paperNumber) requestBody.paper_number = paperNumber;
+
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: getAuthHeaders(),
