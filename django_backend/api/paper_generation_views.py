@@ -1659,7 +1659,10 @@ def validate_chemistry_paper_pool(request):
         elif paper_name_lc in [t.lower() for t in chemistry_paper2_titles]:
             paper_number = 2
         else:
-            paper_number = 1  # Default to 1 if not specified (legacy behavior)
+            return Response({
+                "can_generate": False,
+                "message": "Unable to determine Chemistry paper number from paper_name. Please provide a valid paper_name or paper_number."
+            }, status=status.HTTP_400_BAD_REQUEST)
     else:
         try:
             paper_number = int(paper_number)
