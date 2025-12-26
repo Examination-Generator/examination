@@ -355,15 +355,15 @@ export default function PaperGenerationDashboard() {
                 paperName.includes('paper 2') ||
                 paperName.includes('paper ii') ||
                 paperName.includes('paper two') ||
-                /paper\s+ii(?!\s*i)/.test(paperNameLower) || 
-                /paper\s+2(?!\d)/.test(paperNameLower)       
+                /paper\s+ii(?!\s*i)/.test(paperName) || 
+                /paper\s+2(?!\d)/.test(paperName)       
                 );
 
             const isPaper1 = !isPaper2 && (
                 paperName.includes('paper 1') ||
                 paperName.includes('paper one') ||
-                /paper\s+i(?!\s*i)/.test(paperNameLower) || 
-                /paper\s+1(?!\d)/.test(paperNameLower)       
+                /paper\s+i(?!\s*i)/.test(paperName) || 
+                /paper\s+1(?!\d)/.test(paperName)       
                 );
             
             const isBiologyPaper2 = isBiology && isPaper2;
