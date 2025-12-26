@@ -486,18 +486,16 @@ class KCSEChemistryPaper1Generator:
 
 class KCSEChemistryPaper2Generator:
     """
-    KCSE Chemistry Paper 2 Generator
-    EXACTLY 7 questions (flexible: 6-8), all nested, totaling EXACTLY 80 marks
-    Each question: 10-13 marks
-    Common pattern: 2X10 + 2X11 + 2X13 + 1X12 = 80
+    KCSE Chemistry Paper 2 Generator - Sequential Selection Strategy
+    EXACTLY 7 questions, all nested, totaling EXACTLY 80 marks
+    Each question: 10-14 marks (Updated range)
+    Strategy: Select questions one by one, calculating remaining marks needed
     """
     
     TOTAL_MARKS = 80
     TARGET_QUESTIONS = 7
-    MIN_QUESTIONS = 6
-    MAX_QUESTIONS = 8
     MIN_QUESTION_MARKS = 10
-    MAX_QUESTION_MARKS = 13
+    MAX_QUESTION_MARKS = 14  # Updated from 13 to 14
     
     def __init__(self, paper_id: str, selected_topic_ids: List[str]):
         """
@@ -534,7 +532,7 @@ class KCSEChemistryPaper2Generator:
         )
         self.subject = self.paper.subject
         
-        # Validate Chemistry Paper 2 - FIXED VERSION
+        # Validate Chemistry Paper 2
         paper_name_lower = self.paper.name.lower()
         subject_name_lower = self.subject.name.lower()
         
@@ -559,7 +557,7 @@ class KCSEChemistryPaper2Generator:
         if not self.topics:
             raise ValueError("No valid topics found for the selected IDs")
         
-        # Load ONLY nested questions with marks between 10-13
+        # Load ONLY nested questions with marks between 10-14
         self.nested_questions = list(Question.objects.filter(
             subject=self.subject,
             paper=self.paper,
@@ -571,7 +569,7 @@ class KCSEChemistryPaper2Generator:
         ).select_related('topic', 'section'))
         
         if not self.nested_questions:
-            raise ValueError("No nested questions (10-13 marks) found for selected topics")
+            raise ValueError(f"No nested questions ({self.MIN_QUESTION_MARKS}-{self.MAX_QUESTION_MARKS} marks) found for selected topics")
         
         # Shuffle for randomness
         random.shuffle(self.nested_questions)
@@ -579,7 +577,7 @@ class KCSEChemistryPaper2Generator:
         print(f"\n[CHEMISTRY PAPER 2 DATA LOADED]")
         print(f"  Subject: {self.subject.name}")
         print(f"  Paper: {self.paper.name}")
-        print(f"  Nested questions (10-13 marks): {len(self.nested_questions)}")
+        print(f"  Nested questions ({self.MIN_QUESTION_MARKS}-{self.MAX_QUESTION_MARKS} marks): {len(self.nested_questions)}")
         
         # Show distribution by marks
         marks_dist = defaultdict(int)
@@ -591,95 +589,124 @@ class KCSEChemistryPaper2Generator:
             print(f"    {marks}-mark: {marks_dist[marks]} questions")
         
         # Validate minimum requirements
-        if len(self.nested_questions) < self.MIN_QUESTIONS:
-            raise ValueError(f"Need at least {self.MIN_QUESTIONS} nested questions (10-13 marks)")
+        if len(self.nested_questions) < self.TARGET_QUESTIONS:
+            raise ValueError(f"Need at least {self.TARGET_QUESTIONS} nested questions ({self.MIN_QUESTION_MARKS}-{self.MAX_QUESTION_MARKS} marks)")
     
-    def _select_7_questions(self) -> bool:
+    def _select_questions_sequentially(self) -> bool:
         """
-        Select exactly 7 questions (or 6-8) that sum to exactly 80 marks
-        Uses recursive/backtracking approach to find valid combinations
+        Select questions one by one using intelligent sequential selection
+        
+        Strategy:
+        1. For positions 1-6: Select questions that leave valid remaining marks
+        2. For position 7: Select the exact question needed to reach 80 marks
         
         Returns:
             bool: True if successful
         """
+        # Get available questions (not yet used)
         available = [q for q in self.nested_questions if q.id not in self.used_ids]
         
-        if len(available) < self.MIN_QUESTIONS:
+        if len(available) < self.TARGET_QUESTIONS:
             return False
         
-        # Try to find a combination that sums to 80
-        # Target: 7 questions, but allow 6-8
-        for target_count in [self.TARGET_QUESTIONS, 6, 8]:
-            result = self._find_combination(available, target_count, self.TOTAL_MARKS)
-            if result:
-                selected = result
-                total_marks = sum(q.marks for q in selected)
-                
-                if total_marks == self.TOTAL_MARKS and self.MIN_QUESTIONS <= len(selected) <= self.MAX_QUESTIONS:
-                    # Accept selection
-                    self.selected_questions = selected
-                    for q in selected:
-                        self.used_ids.add(q.id)
-                        self.selected_question_ids.append(str(q.id))
-                    
-                    self.total_marks = total_marks
-                    
-                    print(f"\n[QUESTION SELECTION]")
-                    print(f"  Selected: {len(selected)} questions")
-                    print(f"  Total marks: {self.total_marks}")
-                    print(f"  Breakdown:")
-                    for idx, q in enumerate(selected, start=1):
-                        print(f"    Q{idx}: {q.marks} marks - {q.topic.name}")
-                    
-                    return True
+        # Group questions by marks for efficient lookup
+        questions_by_marks = defaultdict(list)
+        for q in available:
+            questions_by_marks[q.marks].append(q)
         
-        return False
-    
-    def _find_combination(self, questions: List, target_count: int, target_marks: int, 
-                         current: List = None, start_idx: int = 0) -> Optional[List]:
-        """
-        Recursive helper to find combination of questions summing to target marks
+        # Track current selection
+        current_selection = []
+        current_marks = 0
         
-        Args:
-            questions: Available questions
-            target_count: Target number of questions
-            target_marks: Target sum of marks
-            current: Current selection (for recursion)
-            start_idx: Start index (for recursion)
+        # Select first 6 questions
+        for position in range(1, self.TARGET_QUESTIONS):
+            remaining_questions = self.TARGET_QUESTIONS - position
+            remaining_marks = self.TOTAL_MARKS - current_marks
             
-        Returns:
-            List of questions if found, None otherwise
-        """
-        if current is None:
-            current = []
+            # Calculate the marks needed for the last question after this selection
+            # We need to ensure the final question can be between 10-14 marks
+            min_final_mark = self.MIN_QUESTION_MARKS
+            max_final_mark = self.MAX_QUESTION_MARKS
+            
+            # Valid range for current question
+            # If we pick X marks now, the remaining (remaining_questions) questions 
+            # must sum to (remaining_marks - X)
+            valid_marks = []
+            
+            for marks in sorted(questions_by_marks.keys()):
+                if not questions_by_marks[marks]:  # Skip if no questions available
+                    continue
+                
+                marks_after = remaining_marks - marks
+                questions_after = remaining_questions
+                
+                # Check if it's possible to complete with remaining questions
+                # For the last question (when questions_after == 1), we need exact match
+                if questions_after == 1:
+                    if min_final_mark <= marks_after <= max_final_mark:
+                        valid_marks.append(marks)
+                else:
+                    # For earlier positions, check if remaining marks are achievable
+                    min_possible = questions_after * self.MIN_QUESTION_MARKS
+                    max_possible = questions_after * self.MAX_QUESTION_MARKS
+                    
+                    if min_possible <= marks_after <= max_possible:
+                        valid_marks.append(marks)
+            
+            if not valid_marks:
+                return False  # No valid selection possible
+            
+            # Select randomly from valid marks
+            selected_marks = random.choice(valid_marks)
+            selected_question = random.choice(questions_by_marks[selected_marks])
+            
+            # Add to selection
+            current_selection.append(selected_question)
+            current_marks += selected_marks
+            
+            # Remove from available pool
+            questions_by_marks[selected_marks].remove(selected_question)
+            if not questions_by_marks[selected_marks]:
+                del questions_by_marks[selected_marks]
         
-        # Base case: if we have target_count questions
-        if len(current) == target_count:
-            if sum(q.marks for q in current) == target_marks:
-                return current[:]
-            return None
+        # Select the 7th question - must be exact remaining marks
+        final_marks_needed = self.TOTAL_MARKS - current_marks
         
-        # If we've exceeded target marks, stop
-        if sum(q.marks for q in current) >= target_marks:
-            return None
+        if final_marks_needed not in questions_by_marks or not questions_by_marks[final_marks_needed]:
+            return False  # No question with exact marks needed
         
-        # Try each remaining question
-        for i in range(start_idx, len(questions)):
-            current.append(questions[i])
-            result = self._find_combination(questions, target_count, target_marks, current, i + 1)
-            if result:
-                return result
-            current.pop()
+        final_question = random.choice(questions_by_marks[final_marks_needed])
+        current_selection.append(final_question)
+        current_marks += final_marks_needed
         
-        return None
+        # Verify selection
+        if len(current_selection) != self.TARGET_QUESTIONS or current_marks != self.TOTAL_MARKS:
+            return False
+        
+        # Success! Store the selection
+        self.selected_questions = current_selection
+        self.total_marks = current_marks
+        
+        for q in current_selection:
+            self.used_ids.add(q.id)
+            self.selected_question_ids.append(str(q.id))
+        
+        print(f"\n[QUESTION SELECTION SUCCESS]")
+        print(f"  Selected: {len(self.selected_questions)} questions")
+        print(f"  Total marks: {self.total_marks}")
+        print(f"  Breakdown:")
+        for idx, q in enumerate(self.selected_questions, start=1):
+            print(f"    Q{idx}: {q.marks} marks - {q.topic.name}")
+        
+        return True
     
     def generate(self) -> Dict:
         """Generate Chemistry Paper 2"""
-        max_attempts = 200  # May need more attempts due to exact combination requirement
+        max_attempts = 1000  # Increased attempts for better success rate
         start_time = time.time()
         
         print(f"\n{'='*70}")
-        print(f"KCSE CHEMISTRY PAPER 2 GENERATION")
+        print(f"KCSE CHEMISTRY PAPER 2 GENERATION - SEQUENTIAL SELECTION")
         print(f"{'='*70}")
         
         for attempt in range(1, max_attempts + 1):
@@ -694,10 +721,10 @@ class KCSEChemistryPaper2Generator:
             # Shuffle available questions for variety
             random.shuffle(self.nested_questions)
             
-            # Select 7 questions (or 6-8) summing to exactly 80
-            if not self._select_7_questions():
-                if attempt % 20 == 0:
-                    print(f"[ATTEMPT {attempt}] Failed to find valid combination")
+            # Select questions sequentially
+            if not self._select_questions_sequentially():
+                if attempt % 100 == 0:
+                    print(f"[ATTEMPT {attempt}] Still searching for valid combination...")
                 continue
             
             # Success!
@@ -710,7 +737,10 @@ class KCSEChemistryPaper2Generator:
         
         raise Exception(
             f"Failed to generate paper after {max_attempts} attempts. "
-            f"Try adding more questions or adjusting topic selection."
+            f"Possible issues:\n"
+            f"1. Insufficient question variety in the {self.MIN_QUESTION_MARKS}-{self.MAX_QUESTION_MARKS} marks range\n"
+            f"2. Need more questions in the database\n"
+            f"3. Try selecting different topics"
         )
     
     def _build_result(self, generation_time: float) -> Dict:
@@ -755,11 +785,13 @@ class KCSEChemistryPaper2Generator:
                 'generation_attempts': self.attempts,
                 'generation_time_seconds': round(generation_time, 2),
                 'validation': {
-                    'total_marks_ok': self.total_marks == 80,
-                    'question_count_ok': self.MIN_QUESTIONS <= len(self.selected_questions) <= self.MAX_QUESTIONS,
+                    'total_marks_ok': self.total_marks == self.TOTAL_MARKS,
+                    'question_count_ok': len(self.selected_questions) == self.TARGET_QUESTIONS,
                     'all_nested': all(q['is_nested'] for q in questions_data),
-                    'marks_range_ok': all(10 <= q['marks'] <= 13 for q in questions_data),
+                    'marks_range_ok': all(
+                        self.MIN_QUESTION_MARKS <= q['marks'] <= self.MAX_QUESTION_MARKS 
+                        for q in questions_data
+                    ),
                 }
             }
         }
-
