@@ -106,7 +106,7 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
                     paperType = 'physics-paper';
                     console.log('DETECTED: Physics Paper (using dedicated physics endpoint)');
                 } else if (paperName.includes('chemistry') || subjectName.includes('chemistry')) {
-                    endpoint = `${API_BASE_URL}/papers/chemistry-paper/generate`;
+                    endpoint = `${API_BASE_URL}/papers/chemistry/generate`;
                     paperType = 'chemistry-paper';
                     console.log('DETECTED: Chemistry Paper (using dedicated chemistry endpoint)');
                 } else if (paperName.includes('mathematics') || paperName.includes('math') || subjectName.includes('mathematics') || subjectName.includes('math')) {
