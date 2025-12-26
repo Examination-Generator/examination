@@ -83,7 +83,7 @@ class KCSEChemistryPaper1Generator:
         self.subject = self.paper.subject
         
         # Validate Chemistry Paper 1
-        if 'Chemistry' not in self.subject.name or ('Paper 1' not in self.paper.name and 'Paper I' not in self.paper.name):
+        if 'Chemistry' not in self.subject.name or 'Paper 1' not in self.paper.name or 'Paper I' not in self.paper.name:
             raise ValueError("This generator is only for Chemistry Paper 1")
         
         # Load selected topics
