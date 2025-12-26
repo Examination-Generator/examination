@@ -1539,6 +1539,75 @@ def generate_mathematics_paper(request):
         error_details = traceback.format_exc()
         logger.error(f"[MATHEMATICS GENERATE ERROR] {error_details}")
         return Response({'success': False, 'message': f'Generation error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+def determine_chemistry_paper_number(paper_name: str) -> int:
+    """
+    Determine if a chemistry paper is Paper 1 or Paper 2 from its name.
+    
+    Args:
+        paper_name: Name of the paper (e.g., "Chemistry Paper II")
+    
+    Returns:
+        int: 1 for Paper 1, 2 for Paper 2
+        
+    Raises:
+        ValueError: If paper number cannot be determined
+    """
+    paper_name_lower = paper_name.lower().strip()
+    
+    # IMPORTANT: Check Paper 2 FIRST (more specific patterns)
+    # Paper II contains 'i' so we must check 'ii' before 'i'
+    paper_2_keywords = [
+        'paper 2',
+        'paper ii',      # Check this before 'paper i'
+        'paper two',
+        'paper  2',      # Double space
+        'paper2',
+        'paperii',
+    ]
+    
+    for keyword in paper_2_keywords:
+        if keyword in paper_name_lower:
+            logger.info(f"[PAPER DETECTION] Matched Paper 2 keyword: '{keyword}' in '{paper_name}'")
+            return 2
+    
+    # Then check Paper 1 (less specific)
+    paper_1_keywords = [
+        'paper 1',
+        'paper i ',      # Space after I to avoid matching II
+        'paper one',
+        'paper  1',
+        'paper1',
+    ]
+    
+    for keyword in paper_1_keywords:
+        if keyword in paper_name_lower:
+            logger.info(f"[PAPER DETECTION] Matched Paper 1 keyword: '{keyword}' in '{paper_name}'")
+            return 1
+    
+    # Special case: ends with just 'i' (e.g., "Chemistry Paper I")
+    if paper_name_lower.endswith(' i') or paper_name_lower.endswith('i)'):
+        logger.info(f"[PAPER DETECTION] Matched Paper 1 by ending 'i' in '{paper_name}'")
+        return 1
+    
+    # Fallback: Try regex
+    # Match paper number in various formats
+    match = re.search(r'paper\s*(?:number\s*)?([12]|one|two)', paper_name_lower, re.IGNORECASE)
+    if match:
+        num_str = match.group(1).lower()
+        if num_str in ['1', 'one']:
+            logger.info(f"[PAPER DETECTION] Matched Paper 1 by regex: '{num_str}' in '{paper_name}'")
+            return 1
+        elif num_str in ['2', 'two']:
+            logger.info(f"[PAPER DETECTION] Matched Paper 2 by regex: '{num_str}' in '{paper_name}'")
+            return 2
+    
+    # If we still can't determine, raise error
+    raise ValueError(
+        f"Unable to determine paper number from paper name: '{paper_name}'. "
+        f"Expected keywords: 'paper 1', 'paper i', 'paper 2', 'paper ii', etc."
+    )
+
+
 # Chemistry Paper Generation (both papers)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -1563,46 +1632,30 @@ def generate_chemistry_paper(request):
         # Get the actual paper from database to determine type
         from .models import Paper, GeneratedPaper
         paper = Paper.objects.select_related('subject').get(id=paper_id, is_active=True)
-        paper_name_from_db = paper.name.lower().strip()
         
-        logger.info(f"[CHEMISTRY GENERATE] DB paper name: '{paper_name_from_db}'")
+        logger.info(f"[CHEMISTRY GENERATE] DB paper name: '{paper.name}'")
         
-        # Determine paper number from database paper name
-        if any(keyword in paper_name_from_db for keyword in ['paper 1', 'paper i', 'paper one', 'paper  1']):
-            paper_number = 1
-        elif any(keyword in paper_name_from_db for keyword in ['paper 2', 'paper ii', 'paper two', 'paper  2']):
-            paper_number = 2
-        else:
-            # Fallback: try regex
-            import re
-            match = re.search(r'(?:paper\s*)?([12]|i{1,2}|one|two)', paper_name_from_db, re.IGNORECASE)
-            if match:
-                num_str = match.group(1).lower()
-                if num_str in ['1', 'i', 'one']:
-                    paper_number = 1
-                elif num_str in ['2', 'ii', 'two']:
-                    paper_number = 2
-                else:
-                    return Response({
-                        "success": False,
-                        "message": f"Unable to determine paper number from paper name: '{paper.name}'"
-                    }, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response({
-                    "success": False,
-                    "message": f"Unable to determine paper number from paper name: '{paper.name}'"
-                }, status=status.HTTP_400_BAD_REQUEST)
-        
-        logger.info(f"[CHEMISTRY GENERATE] Determined paper_number: {paper_number}")
+        # Determine paper number using improved function
+        try:
+            paper_number = determine_chemistry_paper_number(paper.name)
+            logger.info(f"[CHEMISTRY GENERATE] Determined paper_number: {paper_number}")
+        except ValueError as e:
+            logger.error(f"[CHEMISTRY GENERATE] {str(e)}")
+            return Response({
+                "success": False,
+                "message": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
         
         # Initialize appropriate generator
         if paper_number == 1:
+            logger.info("[CHEMISTRY GENERATE] Using Paper 1 Generator")
             from .chemistry_paper_generator import KCSEChemistryPaper1Generator
             generator = KCSEChemistryPaper1Generator(
                 paper_id=str(paper_id), 
                 selected_topic_ids=[str(tid) for tid in selected_topic_ids]
             )
         else:  # paper_number == 2
+            logger.info("[CHEMISTRY GENERATE] Using Paper 2 Generator")
             from .chemistry_paper_generator import KCSEChemistryPaper2Generator
             generator = KCSEChemistryPaper2Generator(
                 paper_id=str(paper_id), 
@@ -1613,7 +1666,6 @@ def generate_chemistry_paper(request):
         result = generator.generate()
         
         # Create unique code
-        from datetime import datetime
         current_year = datetime.now().year
         year_count = GeneratedPaper.objects.filter(
             paper=paper, 
@@ -1705,37 +1757,19 @@ def validate_chemistry_paper_pool(request):
     try:
         from .models import Paper
         paper = Paper.objects.get(id=paper_id, is_active=True)
-        paper_name_from_db = paper.name.lower().strip()
         
-        logger.info(f"[CHEMISTRY VALIDATE] DB paper name: '{paper_name_from_db}'")
+        logger.info(f"[CHEMISTRY VALIDATE] DB paper name: '{paper.name}'")
         
-        # Determine paper number from database paper name
-        if any(keyword in paper_name_from_db for keyword in ['paper 1', 'paper i', 'paper one', 'paper  1']):
-            paper_number = 1
-        elif any(keyword in paper_name_from_db for keyword in ['paper 2', 'paper ii', 'paper two', 'paper  2']):
-            paper_number = 2
-        else:
-            # Fallback: try to extract number from paper name
-            import re
-            match = re.search(r'(?:paper\s*)?([12]|i{1,2}|one|two)', paper_name_from_db, re.IGNORECASE)
-            if match:
-                num_str = match.group(1).lower()
-                if num_str in ['1', 'i', 'one']:
-                    paper_number = 1
-                elif num_str in ['2', 'ii', 'two']:
-                    paper_number = 2
-                else:
-                    return Response({
-                        "can_generate": False,
-                        "message": f"Unable to determine paper number from paper name: '{paper.name}'"
-                    }, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response({
-                    "can_generate": False,
-                    "message": f"Unable to determine paper number from paper name: '{paper.name}'"
-                }, status=status.HTTP_400_BAD_REQUEST)
-        
-        logger.info(f"[CHEMISTRY VALIDATE] Determined paper_number: {paper_number}")
+        # Determine paper number using improved function
+        try:
+            paper_number = determine_chemistry_paper_number(paper.name)
+            logger.info(f"[CHEMISTRY VALIDATE] Determined paper_number: {paper_number}")
+        except ValueError as e:
+            logger.error(f"[CHEMISTRY VALIDATE] {str(e)}")
+            return Response({
+                "can_generate": False,
+                "message": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
         
     except Paper.DoesNotExist:
         return Response({
@@ -1751,6 +1785,7 @@ def validate_chemistry_paper_pool(request):
 
     try:
         if paper_number == 1:
+            logger.info("[CHEMISTRY VALIDATE] Using Paper 1 Generator for validation")
             from .chemistry_paper_generator import KCSEChemistryPaper1Generator
             generator = KCSEChemistryPaper1Generator(
                 paper_id=str(paper_id), 
@@ -1784,6 +1819,7 @@ def validate_chemistry_paper_pool(request):
             })
             
         elif paper_number == 2:
+            logger.info("[CHEMISTRY VALIDATE] Using Paper 2 Generator for validation")
             from .chemistry_paper_generator import KCSEChemistryPaper2Generator
             generator = KCSEChemistryPaper2Generator(
                 paper_id=str(paper_id), 
@@ -1791,11 +1827,11 @@ def validate_chemistry_paper_pool(request):
             )
             generator.load_data()
             
-            # For Paper 2: Check if we have sufficient nested questions (10-13 marks)
+            # For Paper 2: Check if we have sufficient nested questions (10-14 marks)
             nested_available = len(generator.nested_questions)
-            can_generate = nested_available >= generator.MIN_QUESTIONS
+            can_generate = nested_available >= generator.TARGET_QUESTIONS
             
-            logger.info(f"[CHEMISTRY P2 VALIDATE] nested={nested_available}, min_required={generator.MIN_QUESTIONS}")
+            logger.info(f"[CHEMISTRY P2 VALIDATE] nested={nested_available}, required={generator.TARGET_QUESTIONS}")
             
             # Count by marks for detailed info
             marks_dist = defaultdict(int)
@@ -1808,9 +1844,10 @@ def validate_chemistry_paper_pool(request):
                 "paper_name": paper.name,
                 "nested_count": nested_available,
                 "marks_distribution": dict(marks_dist),
-                "minimum_required": generator.MIN_QUESTIONS,
+                "target_questions": generator.TARGET_QUESTIONS,
+                "marks_range": f"{generator.MIN_QUESTION_MARKS}-{generator.MAX_QUESTION_MARKS}",
                 "message": "Pool is valid for Chemistry Paper 2" if can_generate else 
-                          f"Insufficient questions. Need at least {generator.MIN_QUESTIONS} nested questions (10-13 marks). Found: {nested_available}"
+                          f"Insufficient questions. Need at least {generator.TARGET_QUESTIONS} nested questions ({generator.MIN_QUESTION_MARKS}-{generator.MAX_QUESTION_MARKS} marks). Found: {nested_available}"
             })
         
     except ValueError as ve:
