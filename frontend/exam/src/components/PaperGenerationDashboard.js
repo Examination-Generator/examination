@@ -352,16 +352,16 @@ export default function PaperGenerationDashboard() {
             const isGeography = paperName.includes('geography') || subjectName.includes('geography');
             const isEnglish = paperName.includes('english') || subjectName.includes('english');
             const isPaper2 = (
-                paperNameLower.includes('paper 2') ||
-                paperNameLower.includes('paper ii') ||
-                paperNameLower.includes('paper two') ||
+                paperName.includes('paper 2') ||
+                paperName.includes('paper ii') ||
+                paperName.includes('paper two') ||
                 /paper\s+ii(?!\s*i)/.test(paperNameLower) || 
                 /paper\s+2(?!\d)/.test(paperNameLower)       
                 );
 
             const isPaper1 = !isPaper2 && (
-                paperNameLower.includes('paper 1') ||
-                paperNameLower.includes('paper one') ||
+                paperName.includes('paper 1') ||
+                paperName.includes('paper one') ||
                 /paper\s+i(?!\s*i)/.test(paperNameLower) || 
                 /paper\s+1(?!\d)/.test(paperNameLower)       
                 );
