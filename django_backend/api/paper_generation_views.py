@@ -1538,7 +1538,6 @@ def generate_mathematics_paper(request):
         error_details = traceback.format_exc()
         logger.error(f"[MATHEMATICS GENERATE ERROR] {error_details}")
         return Response({'success': False, 'message': f'Generation error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
-
 # Chemistry Paper Generation (both papers)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -1546,37 +1545,68 @@ def generate_chemistry_paper(request):
     """
     Generate Chemistry Paper 1 or 2 based on paper_number.
     POST /api/papers/chemistry/generate
-    Body: { "paper_id": ..., "paper_number": 1|2, "selected_topic_ids": [...] }
+    Body: { "paper_id": ..., "paper_name": "...", "topic_ids": [...] }
     """
     try:
         paper_id = request.data.get("paper_id")
-        paper_name = int(request.data.get("paper_name", ""))
-        chemistry_paper1_titles = ['chemistry paper 1', 'chemistry paper i', 'chemistry paper I']
-        chemistry_paper2_titles = ['chemistry paper 2', 'chemistry paper ii', 'chemistry paper II']
+        paper_name = request.data.get("paper_name", "")  # Keep as string, don't convert to int
         selected_topic_ids = request.data.get("topic_ids", [])
+        
+        chemistry_paper1_titles = [
+            'chemistry paper 1', 'chemistry paper i', 
+            'chemistry paper one', 'chemistry paper  1'
+        ]
+        chemistry_paper2_titles = [
+            'chemistry paper 2', 'chemistry paper ii', 
+            'chemistry paper two', 'chemistry paper  2'
+        ]
+        
         if not paper_id or not selected_topic_ids:
-            return Response({"success": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                "success": False, 
+                "message": "Missing paper_id or topic_ids"
+            }, status=status.HTTP_400_BAD_REQUEST)
         
-        if paper_name.lower() in chemistry_paper1_titles:
-           paper_number = 1
-        elif paper_name.lower() in chemistry_paper2_titles:
-           paper_number = 2
+        # Determine paper number from paper_name
+        paper_name_lower = paper_name.lower().strip()
+        if any(title in paper_name_lower for title in chemistry_paper1_titles):
+            paper_number = 1
+        elif any(title in paper_name_lower for title in chemistry_paper2_titles):
+            paper_number = 2
+        else:
+            return Response({
+                "success": False, 
+                "message": f"Unable to determine Chemistry paper number from paper_name: '{paper_name}'"
+            }, status=status.HTTP_400_BAD_REQUEST)
         
+        # Initialize appropriate generator
         if paper_number == 1:
             from .chemistry_paper_generator import KCSEChemistryPaper1Generator
-            generator = KCSEChemistryPaper1Generator(paper_id=str(paper_id), selected_topic_ids=[str(tid) for tid in selected_topic_ids])
-        elif paper_number == 2:
+            generator = KCSEChemistryPaper1Generator(
+                paper_id=str(paper_id), 
+                selected_topic_ids=[str(tid) for tid in selected_topic_ids]
+            )
+        else:  # paper_number == 2
             from .chemistry_paper_generator import KCSEChemistryPaper2Generator
-            generator = KCSEChemistryPaper2Generator(paper_id=str(paper_id), selected_topic_ids=[str(tid) for tid in selected_topic_ids])
-        else:
-            return Response({"success": False, "message": "Invalid paper_number for Chemistry (must be 1 or 2)"}, status=status.HTTP_400_BAD_REQUEST)
+            generator = KCSEChemistryPaper2Generator(
+                paper_id=str(paper_id), 
+                selected_topic_ids=[str(tid) for tid in selected_topic_ids]
+            )
+        
         generator.load_data()
         result = generator.generate()
+        
+        # Create unique code
         from datetime import datetime
         current_year = datetime.now().year
         paper = generator.paper
-        year_count = GeneratedPaper.objects.filter(paper=paper, created_at__year=current_year).count()
+        year_count = GeneratedPaper.objects.filter(
+            paper=paper, 
+            created_at__year=current_year
+        ).count()
         unique_code = f"CH{paper_number}-{current_year}-{year_count + 1:03d}"
+        
+        # Create generated paper record
         generated_paper = GeneratedPaper.objects.create(
             paper=paper,
             unique_code=unique_code,
@@ -1585,16 +1615,17 @@ def generate_chemistry_paper(request):
             selected_topics=[str(tid) for tid in selected_topic_ids],
             total_marks=result['statistics']['total_marks'],
             total_questions=result['statistics']['total_questions'],
-            mark_distribution=result.get('marks_distribution', {}),
-            topic_distribution=result.get('topic_distribution', {}),
+            mark_distribution=result['statistics'].get('marks_distribution', {}),
+            topic_distribution=result['statistics'].get('topic_distribution', {}),
             question_type_distribution={},
             generation_attempts=result['statistics'].get('generation_attempts', 1),
             backtracking_count=0,
             generation_time_seconds=result['statistics'].get('generation_time_seconds', 0),
             generated_by=request.user,
             validation_passed=True,
-            validation_report={},
+            validation_report=result['statistics'].get('validation', {}),
         )
+        
         return Response({
             'success': True,
             'message': 'Paper generated successfully',
@@ -1613,14 +1644,18 @@ def generate_chemistry_paper(request):
                 'created_at': generated_paper.created_at,
             },
             'questions': result.get('questions', []),
-            'instructions': result.get('instructions', []),
             'statistics': result.get('statistics', {}),
         }, status=status.HTTP_201_CREATED)
+        
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
         logger.error(f"[CHEMISTRY GENERATE ERROR] {error_details}")
-        return Response({'success': False, 'message': f'Generation error: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'success': False, 
+            'message': f'Generation error: {str(e)}'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -1628,69 +1663,113 @@ def validate_chemistry_paper_pool(request):
     """
     Validate if the selected Chemistry paper pool can generate a valid paper (1 or 2).
     POST /api/papers/chemistry/validate
-    Body: { "paper_id": ..., "paper_number": 1|2, "selected_topic_ids": [...] }
+    Body: { "paper_id": ..., "paper_name": "...", "topic_ids": [...] }
     """
     paper_id = request.data.get("paper_id")
-    # Accept both 'selected_topic_ids' and 'topic_ids' for compatibility
-    selected_topic_ids = request.data.get("selected_topic_ids")
-    if selected_topic_ids is None:
-        selected_topic_ids = request.data.get("topic_ids", [])
-    paper_number = request.data.get("paper_number")
+    selected_topic_ids = request.data.get("topic_ids") or request.data.get("selected_topic_ids", [])
     paper_name = request.data.get("paper_name", "")
+    
     chemistry_paper1_titles = [
-        'chemistry paper 1', 'chemistry paper i', 'chemistry paper I',
-        'chemistry paper one', 'chemistry paper One', 'chemistry paper ONE',
-        'chemistry paper  1', 'chemistry paper  1.', 'chemistry paper i.', 'chemistry paper I.',
+        'chemistry paper 1', 'chemistry paper i', 
+        'chemistry paper one', 'chemistry paper  1'
     ]
     chemistry_paper2_titles = [
-        'chemistry paper 2', 'chemistry paper ii', 'chemistry paper II',
-        'chemistry paper two', 'chemistry paper Two', 'chemistry paper TWO',
-        'chemistry paper  2', 'chemistry paper  2.', 'chemistry paper ii.', 'chemistry paper II.'
+        'chemistry paper 2', 'chemistry paper ii', 
+        'chemistry paper two', 'chemistry paper  2'
     ]
 
     if not paper_id or not selected_topic_ids:
-        return Response({"can_generate": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            "can_generate": False, 
+            "message": "Missing paper_id or topic_ids"
+        }, status=status.HTTP_400_BAD_REQUEST)
 
-    # Determine paper_number from paper_name if not provided
-    if not paper_number:
-        paper_name_lc = paper_name.lower() if paper_name else ''
-        if paper_name_lc in [t.lower() for t in chemistry_paper1_titles]:
-            paper_number = 1
-        elif paper_name_lc in [t.lower() for t in chemistry_paper2_titles]:
-            paper_number = 2
-        else:
-            return Response({
-                "can_generate": False,
-                "message": "Unable to determine Chemistry paper number from paper_name. Please provide a valid paper_name or paper_number."
-            }, status=status.HTTP_400_BAD_REQUEST)
+    # Determine paper_number from paper_name
+    paper_name_lower = paper_name.lower().strip()
+    if any(title in paper_name_lower for title in chemistry_paper1_titles):
+        paper_number = 1
+    elif any(title in paper_name_lower for title in chemistry_paper2_titles):
+        paper_number = 2
     else:
-        try:
-            paper_number = int(paper_number)
-        except Exception:
-            paper_number = 1
+        return Response({
+            "can_generate": False,
+            "message": f"Unable to determine Chemistry paper number from paper_name: '{paper_name}'. Please provide a valid paper_name."
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         if paper_number == 1:
             from .chemistry_paper_generator import KCSEChemistryPaper1Generator
-            generator = KCSEChemistryPaper1Generator(paper_id=str(paper_id), selected_topic_ids=[str(tid) for tid in selected_topic_ids])
+            generator = KCSEChemistryPaper1Generator(
+                paper_id=str(paper_id), 
+                selected_topic_ids=[str(tid) for tid in selected_topic_ids]
+            )
+            generator.load_data()
+            
+            # For Paper 1: Check if we have sufficient questions
+            nested_available = len(generator.nested_questions)
+            standalone_available = (
+                len(generator.standalone_1mark) + 
+                len(generator.standalone_2mark) + 
+                len(generator.standalone_3mark) + 
+                len(generator.standalone_4mark)
+            )
+            
+            # Paper 1 can work with standalone-only mode if needed
+            can_generate = (nested_available >= 8 and standalone_available >= 5) or standalone_available >= 20
+            
+            return Response({
+                "can_generate": can_generate,
+                "paper_number": 1,
+                "nested_count": nested_available,
+                "standalone_count": standalone_available,
+                "mode": "hybrid" if nested_available >= 8 else "standalone_only",
+                "message": "Pool is valid for Chemistry Paper 1" if can_generate else 
+                          f"Insufficient questions. Need either (8+ nested + 5+ standalone) or 20+ standalone questions. Found: {nested_available} nested, {standalone_available} standalone"
+            })
+            
         elif paper_number == 2:
             from .chemistry_paper_generator import KCSEChemistryPaper2Generator
-            generator = KCSEChemistryPaper2Generator(paper_id=str(paper_id), selected_topic_ids=[str(tid) for tid in selected_topic_ids])
-        else:
-            return Response({"can_generate": False, "message": "Invalid paper_number for Chemistry (must be 1 or 2)"}, status=status.HTTP_400_BAD_REQUEST)
-        generator.load_data()
-        valid_nested = generator._select_nested_questions()
-        valid_standalone = generator._select_standalone_questions()
-        can_generate = valid_nested and valid_standalone
+            generator = KCSEChemistryPaper2Generator(
+                paper_id=str(paper_id), 
+                selected_topic_ids=[str(tid) for tid in selected_topic_ids]
+            )
+            generator.load_data()
+            
+            # For Paper 2: Check if we have sufficient nested questions (10-13 marks)
+            nested_available = len(generator.nested_questions)
+            can_generate = nested_available >= generator.MIN_QUESTIONS
+            
+            # Count by marks for detailed info
+            from collections import defaultdict
+            marks_dist = defaultdict(int)
+            for q in generator.nested_questions:
+                marks_dist[q.marks] += 1
+            
+            return Response({
+                "can_generate": can_generate,
+                "paper_number": 2,
+                "nested_count": nested_available,
+                "marks_distribution": dict(marks_dist),
+                "minimum_required": generator.MIN_QUESTIONS,
+                "message": "Pool is valid for Chemistry Paper 2" if can_generate else 
+                          f"Insufficient questions. Need at least {generator.MIN_QUESTIONS} nested questions (10-13 marks). Found: {nested_available}"
+            })
+        
+    except ValueError as ve:
+        # Handle validation errors from load_data()
         return Response({
-            "can_generate": can_generate,
-            "nested_count": len(getattr(generator, "nested_questions", [])),
-            "standalone_count": sum(len(getattr(generator, f"standalone_{m}mark", [])) for m in range(1, 5)),
-            "message": "Pool is valid" if can_generate else "Pool is insufficient for Chemistry Paper generation"
-        })
+            "can_generate": False, 
+            "message": str(ve)
+        }, status=status.HTTP_400_BAD_REQUEST)
+        
     except Exception as e:
-        return Response({"can_generate": False, "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"[CHEMISTRY VALIDATE ERROR] {error_details}")
+        return Response({
+            "can_generate": False, 
+            "message": f"Validation error: {str(e)}"
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     
 @api_view(["POST"])
