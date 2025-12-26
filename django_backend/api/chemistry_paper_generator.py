@@ -1,5 +1,5 @@
 """
-KCSE Chemistry Papers Generator Suite
+KCSE Chemistry Papers Generator Suite - FIXED VERSION
 Based on Chemistry exam structure analysis
 
 PAPER 1 (Section A) - 80 marks, 2 hours:
@@ -72,6 +72,7 @@ class KCSEChemistryPaper1Generator:
         self.standalone_marks = 0
         self.total_marks = 0
         self.attempts = 0
+        self.use_standalone_only = False
     
     def load_data(self):
         """Load all questions from database for selected topics"""
@@ -82,9 +83,20 @@ class KCSEChemistryPaper1Generator:
         )
         self.subject = self.paper.subject
         
-        # Validate Chemistry Paper 1
-        if 'Chemistry' not in self.subject.name or ('Paper 1' not in self.paper.name and 'Paper I' not in self.paper.name):
-            raise ValueError("This generator is only for Chemistry Paper 1")
+        # Validate Chemistry Paper 1 - FIXED VERSION
+        paper_name_lower = self.paper.name.lower()
+        subject_name_lower = self.subject.name.lower()
+        
+        is_chemistry = 'chemistry' in subject_name_lower
+        is_paper_1 = any(keyword in paper_name_lower for keyword in [
+            'paper 1', 'paper i', 'paper one', 'paper  1'
+        ])
+        
+        if not is_chemistry:
+            raise ValueError(f"This generator requires a Chemistry paper. Received subject: '{self.subject.name}'")
+        
+        if not is_paper_1:
+            raise ValueError(f"This generator is only for Chemistry Paper 1. Received paper: '{self.paper.name}'")
         
         # Load selected topics
         self.topics = list(Topic.objects.filter(
@@ -129,6 +141,8 @@ class KCSEChemistryPaper1Generator:
         random.shuffle(self.standalone_4mark)
         
         print(f"\n[CHEMISTRY PAPER 1 DATA LOADED]")
+        print(f"  Subject: {self.subject.name}")
+        print(f"  Paper: {self.paper.name}")
         print(f"  Nested questions: {len(self.nested_questions)}")
         print(f"  1-mark standalone: {len(self.standalone_1mark)}")
         print(f"  2-mark standalone: {len(self.standalone_2mark)}")
@@ -454,17 +468,17 @@ class KCSEChemistryPaper1Generator:
                 'total_marks': self.total_marks,
                 'nested_count': self.nested_count,
                 'nested_marks': self.nested_marks,
-                'nested_percentage': round((self.nested_marks / 80) * 100, 1),
+                'nested_percentage': round((self.nested_marks / 80) * 100, 1) if self.total_marks > 0 else 0,
                 'standalone_count': self.standalone_count,
                 'standalone_marks': self.standalone_marks,
-                'standalone_percentage': round((self.standalone_marks / 80) * 100, 1),
+                'standalone_percentage': round((self.standalone_marks / 80) * 100, 1) if self.total_marks > 0 else 0,
                 'marks_distribution': dict(marks_distribution),
                 'generation_attempts': self.attempts,
                 'generation_time_seconds': round(generation_time, 2),
                 'validation': {
                     'total_marks_ok': self.total_marks == 80,
-                    'nested_marks_in_range': 58 <= self.nested_marks <= 66,
-                    'standalone_marks_in_range': 14 <= self.standalone_marks <= 22,
+                    'nested_marks_in_range': 58 <= self.nested_marks <= 66 if not self.use_standalone_only else True,
+                    'standalone_marks_in_range': 14 <= self.standalone_marks <= 22 if not self.use_standalone_only else True,
                 }
             }
         }
@@ -520,9 +534,20 @@ class KCSEChemistryPaper2Generator:
         )
         self.subject = self.paper.subject
         
-        # Validate Chemistry Paper 2
-        if 'Chemistry' not in self.subject.name or ('Paper 2' not in self.paper.name and 'Paper II' not in self.paper.name):
-            raise ValueError("This generator is only for Chemistry Paper 2")
+        # Validate Chemistry Paper 2 - FIXED VERSION
+        paper_name_lower = self.paper.name.lower()
+        subject_name_lower = self.subject.name.lower()
+        
+        is_chemistry = 'chemistry' in subject_name_lower
+        is_paper_2 = any(keyword in paper_name_lower for keyword in [
+            'paper 2', 'paper ii', 'paper two', 'paper  2'
+        ])
+        
+        if not is_chemistry:
+            raise ValueError(f"This generator requires a Chemistry paper. Received subject: '{self.subject.name}'")
+        
+        if not is_paper_2:
+            raise ValueError(f"This generator is only for Chemistry Paper 2. Received paper: '{self.paper.name}'")
         
         # Load selected topics
         self.topics = list(Topic.objects.filter(
@@ -552,6 +577,8 @@ class KCSEChemistryPaper2Generator:
         random.shuffle(self.nested_questions)
         
         print(f"\n[CHEMISTRY PAPER 2 DATA LOADED]")
+        print(f"  Subject: {self.subject.name}")
+        print(f"  Paper: {self.paper.name}")
         print(f"  Nested questions (10-13 marks): {len(self.nested_questions)}")
         
         # Show distribution by marks
@@ -735,5 +762,4 @@ class KCSEChemistryPaper2Generator:
                 }
             }
         }
-
 

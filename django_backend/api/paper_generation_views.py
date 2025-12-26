@@ -19,6 +19,7 @@ which uses an intelligent dynamic algorithm:
 """
 
 
+from collections import defaultdict
 import logging
 import time
 from django.shortcuts import get_object_or_404
@@ -1543,23 +1544,15 @@ def generate_mathematics_paper(request):
 @permission_classes([IsAuthenticated])
 def generate_chemistry_paper(request):
     """
-    Generate Chemistry Paper 1 or 2 based on paper_number.
+    Generate Chemistry Paper 1 or 2.
     POST /api/papers/chemistry/generate
-    Body: { "paper_id": ..., "paper_name": "...", "topic_ids": [...] }
+    Body: { "paper_id": ..., "topic_ids": [...] }
     """
     try:
         paper_id = request.data.get("paper_id")
-        paper_name = request.data.get("paper_name", "")  # Keep as string, don't convert to int
         selected_topic_ids = request.data.get("topic_ids", [])
         
-        chemistry_paper1_titles = [
-            'chemistry paper 1', 'chemistry paper i', 
-            'chemistry paper one', 'chemistry paper  1'
-        ]
-        chemistry_paper2_titles = [
-            'chemistry paper 2', 'chemistry paper ii', 
-            'chemistry paper two', 'chemistry paper  2'
-        ]
+        logger.info(f"[CHEMISTRY GENERATE] paper_id={paper_id}, topic_count={len(selected_topic_ids)}")
         
         if not paper_id or not selected_topic_ids:
             return Response({
@@ -1567,17 +1560,40 @@ def generate_chemistry_paper(request):
                 "message": "Missing paper_id or topic_ids"
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Determine paper number from paper_name
-        paper_name_lower = paper_name.lower().strip()
-        if any(title in paper_name_lower for title in chemistry_paper1_titles):
+        # Get the actual paper from database to determine type
+        from .models import Paper, GeneratedPaper
+        paper = Paper.objects.select_related('subject').get(id=paper_id, is_active=True)
+        paper_name_from_db = paper.name.lower().strip()
+        
+        logger.info(f"[CHEMISTRY GENERATE] DB paper name: '{paper_name_from_db}'")
+        
+        # Determine paper number from database paper name
+        if any(keyword in paper_name_from_db for keyword in ['paper 1', 'paper i', 'paper one', 'paper  1']):
             paper_number = 1
-        elif any(title in paper_name_lower for title in chemistry_paper2_titles):
+        elif any(keyword in paper_name_from_db for keyword in ['paper 2', 'paper ii', 'paper two', 'paper  2']):
             paper_number = 2
         else:
-            return Response({
-                "success": False, 
-                "message": f"Unable to determine Chemistry paper number from paper_name: '{paper_name}'"
-            }, status=status.HTTP_400_BAD_REQUEST)
+            # Fallback: try regex
+            import re
+            match = re.search(r'(?:paper\s*)?([12]|i{1,2}|one|two)', paper_name_from_db, re.IGNORECASE)
+            if match:
+                num_str = match.group(1).lower()
+                if num_str in ['1', 'i', 'one']:
+                    paper_number = 1
+                elif num_str in ['2', 'ii', 'two']:
+                    paper_number = 2
+                else:
+                    return Response({
+                        "success": False,
+                        "message": f"Unable to determine paper number from paper name: '{paper.name}'"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    "success": False,
+                    "message": f"Unable to determine paper number from paper name: '{paper.name}'"
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        logger.info(f"[CHEMISTRY GENERATE] Determined paper_number: {paper_number}")
         
         # Initialize appropriate generator
         if paper_number == 1:
@@ -1599,7 +1615,6 @@ def generate_chemistry_paper(request):
         # Create unique code
         from datetime import datetime
         current_year = datetime.now().year
-        paper = generator.paper
         year_count = GeneratedPaper.objects.filter(
             paper=paper, 
             created_at__year=current_year
@@ -1626,6 +1641,8 @@ def generate_chemistry_paper(request):
             validation_report=result['statistics'].get('validation', {}),
         )
         
+        logger.info(f"[CHEMISTRY GENERATE] Success! Generated paper: {unique_code}")
+        
         return Response({
             'success': True,
             'message': 'Paper generated successfully',
@@ -1647,6 +1664,13 @@ def generate_chemistry_paper(request):
             'statistics': result.get('statistics', {}),
         }, status=status.HTTP_201_CREATED)
         
+    except Paper.DoesNotExist:
+        logger.error(f"[CHEMISTRY GENERATE] Paper not found: {paper_id}")
+        return Response({
+            'success': False, 
+            'message': f'Paper with ID {paper_id} not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+        
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
@@ -1663,37 +1687,66 @@ def validate_chemistry_paper_pool(request):
     """
     Validate if the selected Chemistry paper pool can generate a valid paper (1 or 2).
     POST /api/papers/chemistry/validate
-    Body: { "paper_id": ..., "paper_name": "...", "topic_ids": [...] }
+    Body: { "paper_id": ..., "topic_ids": [...] }
     """
     paper_id = request.data.get("paper_id")
     selected_topic_ids = request.data.get("topic_ids") or request.data.get("selected_topic_ids", [])
-    paper_name = request.data.get("paper_name", "")
     
-    chemistry_paper1_titles = [
-        'chemistry paper 1', 'chemistry paper i', 
-        'chemistry paper one', 'chemistry paper  1'
-    ]
-    chemistry_paper2_titles = [
-        'chemistry paper 2', 'chemistry paper ii', 
-        'chemistry paper two', 'chemistry paper  2'
-    ]
-
+    # Log what we received for debugging
+    logger.info(f"[CHEMISTRY VALIDATE] paper_id={paper_id}, topic_count={len(selected_topic_ids)}")
+    
     if not paper_id or not selected_topic_ids:
         return Response({
             "can_generate": False, 
             "message": "Missing paper_id or topic_ids"
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    # Determine paper_number from paper_name
-    paper_name_lower = paper_name.lower().strip()
-    if any(title in paper_name_lower for title in chemistry_paper1_titles):
-        paper_number = 1
-    elif any(title in paper_name_lower for title in chemistry_paper2_titles):
-        paper_number = 2
-    else:
+    # Get the actual paper from database to determine type
+    try:
+        from .models import Paper
+        paper = Paper.objects.get(id=paper_id, is_active=True)
+        paper_name_from_db = paper.name.lower().strip()
+        
+        logger.info(f"[CHEMISTRY VALIDATE] DB paper name: '{paper_name_from_db}'")
+        
+        # Determine paper number from database paper name
+        if any(keyword in paper_name_from_db for keyword in ['paper 1', 'paper i', 'paper one', 'paper  1']):
+            paper_number = 1
+        elif any(keyword in paper_name_from_db for keyword in ['paper 2', 'paper ii', 'paper two', 'paper  2']):
+            paper_number = 2
+        else:
+            # Fallback: try to extract number from paper name
+            import re
+            match = re.search(r'(?:paper\s*)?([12]|i{1,2}|one|two)', paper_name_from_db, re.IGNORECASE)
+            if match:
+                num_str = match.group(1).lower()
+                if num_str in ['1', 'i', 'one']:
+                    paper_number = 1
+                elif num_str in ['2', 'ii', 'two']:
+                    paper_number = 2
+                else:
+                    return Response({
+                        "can_generate": False,
+                        "message": f"Unable to determine paper number from paper name: '{paper.name}'"
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    "can_generate": False,
+                    "message": f"Unable to determine paper number from paper name: '{paper.name}'"
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        logger.info(f"[CHEMISTRY VALIDATE] Determined paper_number: {paper_number}")
+        
+    except Paper.DoesNotExist:
         return Response({
             "can_generate": False,
-            "message": f"Unable to determine Chemistry paper number from paper_name: '{paper_name}'. Please provide a valid paper_name."
+            "message": f"Paper with ID {paper_id} not found"
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        logger.error(f"[CHEMISTRY VALIDATE] Error fetching paper: {str(e)}")
+        return Response({
+            "can_generate": False,
+            "message": f"Error fetching paper: {str(e)}"
         }, status=status.HTTP_400_BAD_REQUEST)
 
     try:
@@ -1714,12 +1767,15 @@ def validate_chemistry_paper_pool(request):
                 len(generator.standalone_4mark)
             )
             
+            logger.info(f"[CHEMISTRY P1 VALIDATE] nested={nested_available}, standalone={standalone_available}")
+            
             # Paper 1 can work with standalone-only mode if needed
             can_generate = (nested_available >= 8 and standalone_available >= 5) or standalone_available >= 20
             
             return Response({
                 "can_generate": can_generate,
                 "paper_number": 1,
+                "paper_name": paper.name,
                 "nested_count": nested_available,
                 "standalone_count": standalone_available,
                 "mode": "hybrid" if nested_available >= 8 else "standalone_only",
@@ -1739,8 +1795,9 @@ def validate_chemistry_paper_pool(request):
             nested_available = len(generator.nested_questions)
             can_generate = nested_available >= generator.MIN_QUESTIONS
             
+            logger.info(f"[CHEMISTRY P2 VALIDATE] nested={nested_available}, min_required={generator.MIN_QUESTIONS}")
+            
             # Count by marks for detailed info
-            from collections import defaultdict
             marks_dist = defaultdict(int)
             for q in generator.nested_questions:
                 marks_dist[q.marks] += 1
@@ -1748,6 +1805,7 @@ def validate_chemistry_paper_pool(request):
             return Response({
                 "can_generate": can_generate,
                 "paper_number": 2,
+                "paper_name": paper.name,
                 "nested_count": nested_available,
                 "marks_distribution": dict(marks_dist),
                 "minimum_required": generator.MIN_QUESTIONS,
@@ -1756,9 +1814,11 @@ def validate_chemistry_paper_pool(request):
             })
         
     except ValueError as ve:
+        logger.error(f"[CHEMISTRY VALIDATE] ValueError: {str(ve)}")
         # Handle validation errors from load_data()
         return Response({
-            "can_generate": False, 
+            "can_generate": False,
+            "paper_number": paper_number,
             "message": str(ve)
         }, status=status.HTTP_400_BAD_REQUEST)
         
@@ -1767,10 +1827,10 @@ def validate_chemistry_paper_pool(request):
         error_details = traceback.format_exc()
         logger.error(f"[CHEMISTRY VALIDATE ERROR] {error_details}")
         return Response({
-            "can_generate": False, 
+            "can_generate": False,
+            "paper_number": paper_number if 'paper_number' in locals() else None,
             "message": f"Validation error: {str(e)}"
         }, status=status.HTTP_400_BAD_REQUEST)
-
     
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
