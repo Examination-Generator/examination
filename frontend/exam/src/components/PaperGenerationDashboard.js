@@ -351,16 +351,20 @@ export default function PaperGenerationDashboard() {
             const isMathematics = paperName.includes('mathematics') || paperName.includes('math') || subjectName.includes('mathematics') || subjectName.includes('math');
             const isGeography = paperName.includes('geography') || subjectName.includes('geography');
             const isEnglish = paperName.includes('english') || subjectName.includes('english');
-            const isPaper1 = paperNumber === 1 || 
-                           paperNumber === '1' || 
-                           paperName.includes('paper 1') || 
-                           paperName.includes('paper one') || 
-                           paperName.includes('paper i');
-            const isPaper2 = paperNumber === 2 || 
-                           paperNumber === '2' || 
-                           paperName.includes('paper 2') || 
-                           paperName.includes('paper two') || 
-                           paperName.includes('paper ii');
+            const isPaper2 = (
+                paperNameLower.includes('paper 2') ||
+                paperNameLower.includes('paper ii') ||
+                paperNameLower.includes('paper two') ||
+                /paper\s+ii(?!\s*i)/.test(paperNameLower) || 
+                /paper\s+2(?!\d)/.test(paperNameLower)       
+                );
+
+            const isPaper1 = !isPaper2 && (
+                paperNameLower.includes('paper 1') ||
+                paperNameLower.includes('paper one') ||
+                /paper\s+i(?!\s*i)/.test(paperNameLower) || 
+                /paper\s+1(?!\d)/.test(paperNameLower)       
+                );
             
             const isBiologyPaper2 = isBiology && isPaper2;
             // Use the same physics endpoints/validation for both paper 1 and paper 2
