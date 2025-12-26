@@ -355,16 +355,16 @@ export default function PaperGenerationDashboard() {
                 paperName.includes('paper 2') ||
                 paperName.includes('paper ii') ||
                 paperName.includes('paper two') ||
-                /paper\s+ii(?!\s*i)/.test(paperName) || 
-                /paper\s+2(?!\d)/.test(paperName)       
-                );
+                paperName.includes('paper  2')
+            );
 
             const isPaper1 = !isPaper2 && (
                 paperName.includes('paper 1') ||
+                paperName.includes('paper i ') ||  // Space after to avoid matching "ii"
                 paperName.includes('paper one') ||
-                /paper\s+i(?!\s*i)/.test(paperName) || 
-                /paper\s+1(?!\d)/.test(paperName)       
-                );
+                paperName.includes('paper  1') ||
+                paperName.endsWith('paper i')      // Handle case where "i" is at the end
+            );
             
             const isBiologyPaper2 = isBiology && isPaper2;
             // Use the same physics endpoints/validation for both paper 1 and paper 2
