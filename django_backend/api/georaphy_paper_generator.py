@@ -14,6 +14,7 @@ PAPER 2:
 """
 
 import random
+import re
 import time
 from collections import defaultdict
 from typing import List, Dict, Optional
@@ -624,6 +625,29 @@ def validate_geography_paper_pool(request):
             'message': f'Validation error: {str(e)}'
         }, status=500)
 
+def extract_paper_number_from_name(paper_name: str) -> int:
+    paper_name_upper = paper_name.upper()
+
+    if re.search(r'PAPER\s+II\b', paper_name_upper):
+        return 2
+    
+    if re.search(r'PAPER\s+I\b', paper_name_upper) and not re.search(r'PAPER\s+II\b', paper_name_upper):
+        return 1
+    
+    if re.search(r'\bII\b', paper_name_upper):
+        return 2
+
+    if re.search(r'\bI\b', paper_name_upper) and not re.search(r'\bII\b', paper_name_upper):
+        return 1
+    
+    if re.search(r'\b2\b', paper_name_upper):
+        return 2
+    
+    if re.search(r'\b1\b', paper_name_upper):
+        return 1
+    
+    print(f"WARNING: Could not extract paper number from '{paper_name}', defaulting to 1")
+    return 1
 
 @require_http_methods(["POST"])
 def generate_geography_paper(request):
@@ -634,18 +658,21 @@ def generate_geography_paper(request):
         
         paper_id = data.get('paper_id')
         selected_topic_ids = data.get('selected_topics', [])
-        paper_number = data.get('paper_number')  # 1 or 2
+        # paper_number = data.get('paper_number')  # 1 or 2
+        paper_name = data.get('paper_name')
         
         if not paper_id or not selected_topic_ids:
             return JsonResponse({
                 'message': 'Missing paper_id or selected_topic_ids'
             }, status=400)
         
-        if paper_number not in [1, 2]:
-            return JsonResponse({
-                'message': 'Invalid paper_number. Must be 1 or 2'
-            }, status=400)
+        # if paper_number not in [1, 2]:
+        #     return JsonResponse({
+        #         'message': 'Invalid paper_number. Must be 1 or 2'
+        #     }, status=400)
         
+        # Determine paper number from paper name
+        paper_number = extract_paper_number_from_name(paper_name)
         # Get user from request if available
         user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
         
