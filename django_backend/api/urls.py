@@ -4,7 +4,8 @@ URL Configuration for API app
 
 from django.urls import path
 from django.http import JsonResponse
-from . import auth_views, physics_paper_generation, subject_views, question_views, database_views, paper_generation_views
+from . import auth_views, physics_paper_generation, subject_views, question_views, database_views, paper_generation_views, georaphy_paper_generator
+
 from . import biology_paper2_generation
 
 def api_root(request):
@@ -112,8 +113,8 @@ urlpatterns = [
     path('papers/mathematics-paper/validate', paper_generation_views.validate_mathematics_paper_pool, name='validate-mathematics-paper'),
     path('papers/mathematics-paper/generate', paper_generation_views.generate_mathematics_paper, name='generate-mathematics-paper'),
     # ==================== GEOGRAPHY GENERATION ROUTES ====================
-    path('papers/geography-paper/validate', paper_generation_views.validate_geography_paper_pool, name='validate-geography-paper'),
-    path('papers/geography-paper/generate', paper_generation_views.generate_geography_paper, name='generate-geography-paper'),
+    path('papers/geography-paper/validate', georaphy_paper_generator.validate_geography_paper_pool, name='validate-geography-paper'),
+    path('papers/geography-paper/generate', georaphy_paper_generator.generate_geography_paper, name='generate-geography-paper'),
 
     # ==================== ENGLISH GENERATION ROUTES ====================
     path('papers/english-paper/validate', paper_generation_views.validate_english_paper_pool, name='validate-english-paper'),
