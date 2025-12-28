@@ -45,6 +45,8 @@ from .coverpage_templates import (
     BiologyPaper2Coverpage, 
     BiologyPaper2MarkingSchemeCoverpage,
     BiologyPaper3Coverpage,
+    GeographyPaper1Coverpage,
+    GeographyPaper2Coverpage,
     PhysicsPaper1Coverpage,
     PhysicsPaper2Coverpage,
     ChemistryPaper1Coverpage,
@@ -119,6 +121,15 @@ def _select_coverpage_class_and_default(generated_paper, paper, is_marking_schem
         # Fallback: if subject is biology use Biology Paper 1, otherwise fallback below
         if subject_name == 'BIOLOGY':
             return BiologyPaper1Coverpage, BiologyPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+        
+        if subject_name == 'GEOGRAPHY':
+            if is_paper1():
+                return GeographyPaper1Coverpage, GeographyPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+            return GeographyPaper2Coverpage, GeographyPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
+        if subject_name == 'MATHEMATICS':
+            if is_paper1():
+                return KCSEMathematicsPaper1Generator, KCSEMathematicsPaper1Generator.generate_default_coverpage_data(generated_paper, paper)
+            return KCSEMathematicsPaper2Generator, KCSEMathematicsPaper2Generator.generate_default_coverpage_data(generated_paper, paper)
 
     except Exception:
         # If any class doesn't expose expected helper, fallback to a safe default
