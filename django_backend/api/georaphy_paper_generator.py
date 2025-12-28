@@ -634,7 +634,7 @@ def generate_geography_paper(request):
         
         paper_id = data.get('paper_id')
         selected_topic_ids = data.get('selected_topics', [])
-        paper_number = data.get('paper_number', 1)  # 1 or 2
+        paper_number = data.get('paper_number')  # 1 or 2
         
         if not paper_id or not selected_topic_ids:
             return JsonResponse({

@@ -94,7 +94,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }
         
         coverpage_class = get_coverpage_class(paper_data, is_marking_scheme=False)
-        print(f"🎯 Auto-detected coverpage class: {coverpage_class.__name__}")
+        print(f"Auto-detected coverpage class: {coverpage_class.__name__}")
     
     # Generate coverpage HTML (page 1)
     coverpage_html = coverpage_class.generate_html(coverpage_data)
