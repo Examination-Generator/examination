@@ -673,7 +673,7 @@ def generate_geography_paper(request):
         
         if paper_number not in [1, 2]:
             return JsonResponse({
-                'message': 'Invalid paper_number. Must be 1 or 2'
+                'message': f'Invalid paper_number{paper_number}. Must be 1 or 2 .pper_name is required to extract paper number.{paper_name}'
             }, status=400)
         
         # Determine paper number from paper name
