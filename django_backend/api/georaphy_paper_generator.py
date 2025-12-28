@@ -663,7 +663,7 @@ def generate_geography_paper(request):
         
         paper_id = data.get('paper_id')
         selected_topic_ids = data.get('topic_ids', [])
-        # paper_number = data.get('paper_number')  # 1 or 2
+        paper_number = data.get('paper_number')  # 1 or 2
         paper_name = data.get('paper_name')
         
         if not paper_id or not selected_topic_ids:
@@ -671,13 +671,13 @@ def generate_geography_paper(request):
                 'message': 'Missing paper_id or selected_topic_ids'
             }, status=400)
         
-        # if paper_number not in [1, 2]:
-        #     return JsonResponse({
-        #         'message': 'Invalid paper_number. Must be 1 or 2'
-        #     }, status=400)
+        if paper_number not in [1, 2]:
+            return JsonResponse({
+                'message': 'Invalid paper_number. Must be 1 or 2'
+            }, status=400)
         
         # Determine paper number from paper name
-        paper_number = extract_paper_number_from_name(paper_name)
+        # paper_number = extract_paper_number_from_name(paper_name)
         # Get user from request if available
         user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
         
