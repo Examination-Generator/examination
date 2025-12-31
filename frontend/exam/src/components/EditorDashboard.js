@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import FractionModal from './FractionModal';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import * as subjectService from '../services/subjectService';
@@ -194,28 +195,26 @@ export default function EditorDashboard({ onLogout }) {
         }, 0);
     };
 
-    // Fraction insertion helper: prompts user for numerator/denominator (and optional whole part)
-    const insertFraction = (textareaRef, setText, currentText) => {
-        const textarea = textareaRef.current;
-        // Prompt for whole part (optional)
-        const whole = window.prompt('Enter whole number (leave blank for proper fraction):', '');
-        const numerator = window.prompt('Enter numerator:', '');
-        if (!numerator) {
-            showError('Numerator is required');
-            return;
-        }
-        const denominator = window.prompt('Enter denominator:', '');
-        if (!denominator) {
-            showError('Denominator is required');
-            return;
-        }
+    // Fraction modal state and handlers (replaces prompt-based insertion)
+    const [showFractionModal, setShowFractionModal] = useState(false);
+    const [fractionTarget, setFractionTarget] = useState(null);
 
+    const openFractionModal = (textareaRef, setText, currentText, targetName = '') => {
+        setFractionTarget({ textareaRef, setText, currentText, targetName });
+        setShowFractionModal(true);
+    };
+
+    const handleFractionInsert = ({ whole, numerator, denominator }) => {
+        if (!fractionTarget) return;
+        const { textareaRef, setText } = fractionTarget;
         const token = (whole && whole.trim() !== '')
             ? `[MIX:${whole.trim()}:${numerator.trim()}:${denominator.trim()}]`
             : `[FRAC:${numerator.trim()}:${denominator.trim()}]`;
 
+        const textarea = textareaRef?.current;
         if (!textarea) {
             setText(prev => prev + token);
+            setShowFractionModal(false);
             return;
         }
 
@@ -229,6 +228,8 @@ export default function EditorDashboard({ onLogout }) {
             const pos = start + token.length;
             textarea.setSelectionRange(pos, pos);
         }, 0);
+
+        setShowFractionModal(false);
     };
 
     // Question formatting with superscript/subscript
@@ -236,27 +237,27 @@ export default function EditorDashboard({ onLogout }) {
         applyAdvancedFormatting(format, questionTextareaRef, setQuestionText, 'question');
     };
 
-    const applyQuestionFraction = () => insertFraction(questionTextareaRef, setQuestionText, questionText);
+    const applyQuestionFraction = () => openFractionModal(questionTextareaRef, setQuestionText, questionText, 'question');
 
     // Answer formatting with superscript/subscript
     const applyAnswerFormattingAdvanced = (format) => {
         applyAdvancedFormatting(format, answerTextareaRef, setAnswerText, 'answer');
     };
 
-    const applyAnswerFraction = () => insertFraction(answerTextareaRef, setAnswerText, answerText);
+    const applyAnswerFraction = () => openFractionModal(answerTextareaRef, setAnswerText, answerText, 'answer');
 
     // Edit mode formatting
     const applyEditQuestionFormattingAdvanced = (format) => {
         applyAdvancedFormatting(format, editQuestionTextareaRef, setEditQuestionText, 'editQuestion');
     };
 
-    const applyEditQuestionFraction = () => insertFraction(editQuestionTextareaRef, setEditQuestionText, editQuestionText);
+    const applyEditQuestionFraction = () => openFractionModal(editQuestionTextareaRef, setEditQuestionText, editQuestionText, 'editQuestion');
 
     const applyEditAnswerFormattingAdvanced = (format) => {
         applyAdvancedFormatting(format, editAnswerTextareaRef, setEditAnswerText, 'editAnswer');
     };
 
-    const applyEditAnswerFraction = () => insertFraction(editAnswerTextareaRef, setEditAnswerText, editAnswerText);
+    const applyEditAnswerFraction = () => openFractionModal(editAnswerTextareaRef, setEditAnswerText, editAnswerText, 'editAnswer');
 
     // Symbol insertion function
     const insertSymbol = (symbol, targetType) => {
@@ -4173,6 +4174,7 @@ useEffect(() => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
+            <FractionModal open={showFractionModal} onClose={() => setShowFractionModal(false)} onInsert={handleFractionInsert} />
             {/* Header */}
             <header className="bg-white shadow-md">
                 <div className="max-w-8xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
