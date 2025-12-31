@@ -5464,7 +5464,7 @@ useEffect(() => {
                                         {/* Superscript */}
                                         <button
                                             type="button"
-                                            onClick={() => applyEditQuestionFormattingAdvanced('superscript')}
+                                            onClick={() => applyAnswerFormattingAdvanced('superscript')}
                                             className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
                                             title="Superscript"
                                         >
@@ -5474,7 +5474,7 @@ useEffect(() => {
                                         {/* Subscript */}
                                         <button
                                             type="button"
-                                            onClick={() => applyEditQuestionFormattingAdvanced('subscript')}
+                                            onClick={() => applyAnswerFormattingAdvanced('subscript')}
                                             className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
                                             title="Subscript"
                                         >
@@ -5485,10 +5485,10 @@ useEffect(() => {
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            setEditSymbolPickerTarget('question');
-                                            setShowEditSymbolPicker(true);
+                                            setSymbolPickerTarget('answer');
+                                            setShowSymbolPicker(true);
                                         }}
-                                        className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                        className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded-lg transition text-sm flex items-center gap-1.5"
                                         title="Insert special symbols"
                                     >
                                         <span className="text-lg leading-none">Ω</span>
@@ -7972,7 +7972,7 @@ useEffect(() => {
                                                 {/* Superscript */}
                                                 <button
                                                     type="button"
-                                                    onClick={() => applyEditQuestionFormattingAdvanced('superscript')}
+                                                    onClick={() => applyEditAnswerFormattingAdvanced('superscript')}
                                                     className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
                                                     title="Superscript"
                                                 >
@@ -7982,7 +7982,7 @@ useEffect(() => {
                                                 {/* Subscript */}
                                                 <button
                                                     type="button"
-                                                    onClick={() => applyEditQuestionFormattingAdvanced('subscript')}
+                                                    onClick={() => applyEditAnswerFormattingAdvanced('subscript')}
                                                     className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
                                                     title="Subscript"
                                                 >
