@@ -4606,8 +4606,19 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
                                             // Check for formatting first
+                                            // Superscript formatting
+                                            if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
+                                                const content = part.slice(5, -6);
+                                                return <sup key={index} className="text-sm">{content}</sup>;
+                                            }
+
+                                            // Subscript formatting
+                                            if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
+                                                const content = part.slice(5, -6);
+                                                return <sub key={index} className="text-sm">{content}</sub>;
+                                            }
                                             // Bold: **text**
                                             if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
                                                 const content = part.slice(2, -2);
@@ -5123,8 +5134,20 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
                                             // Check for formatting first
+                                            // Superscript formatting
+                                            if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
+                                                const content = part.slice(5, -6);
+                                                return <sup key={index} data-text-index={index} className="text-sm">{content}</sup>;
+                                            }
+
+                                            // Subscript formatting
+                                            if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
+                                                const content = part.slice(5, -6);
+                                                return <sub key={index} data-text-index={index} className="text-sm">{content}</sub>;
+                                            }
+
                                             // Bold: **text**
                                             if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
                                                 const content = part.slice(2, -2);

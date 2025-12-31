@@ -126,7 +126,17 @@ export default function PaperGenerationDashboard() {
     const renderTextWithImages = (text, images = [], imagePositions = {}, context = 'preview') => {
         if (!text) return [];
         
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+            // Superscript formatting
+            if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
+                return <sup key={index}>{part.slice(5, -6)}</sup>;
+            }
+
+            // Subscript formatting
+            if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
+                return <sub key={index}>{part.slice(5, -6)}</sub>;
+            }
+
             // Bold formatting
             if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
                 return <strong key={index}>{part.slice(2, -2)}</strong>;
