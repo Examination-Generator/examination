@@ -4620,15 +4620,6 @@ useEffect(() => {
                                             {/* Fraction */}
                                             <button
                                                 type="button"
-                                                onClick={() => applyEditQuestionFraction()}
-                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
-                                                title="Insert fraction (prompt)"
-                                            >
-                                                a⁄b
-                                            </button>
-                                            {/* Fraction */}
-                                            <button
-                                                type="button"
                                                 onClick={applyQuestionFraction}
                                                 className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
                                                 title="Insert fraction (prompt for numerator/denominator)"
@@ -5701,16 +5692,15 @@ useEffect(() => {
                                         >
                                             H<sub className="text-[8px]">2</sub>
                                         </button>
-                                            {/* Fraction */}
-                                            <button
-                                                type="button"
-                                                onClick={() => applyEditAnswerFraction()}
-                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
-                                                title="Insert fraction (prompt)"
-                                            >
-                                                a⁄b
-                                            </button>
-                                        
+                                        {/* Fraction */}
+                                        <button
+                                            type="button"
+                                            onClick={applyAnswerFraction}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                            title="Insert fraction (prompt)"
+                                        >
+                                            a⁄b
+                                        </button>
                                     </div>
                                     {/* Symbol Picker Button */}
                                     <button
@@ -7889,6 +7879,16 @@ useEffect(() => {
                                                 >
                                                     H<sub className="text-[8px]">2</sub>
                                                 </button>
+                                                {/* Fraction */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditQuestionFraction()}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                    title="Insert fraction (prompt)"
+                                                >
+                                                    a⁄b
+                                                </button>
+
                                             </div>
                                             <button
                                                 type="button"
@@ -8218,6 +8218,15 @@ useEffect(() => {
                                                     title="Subscript"
                                                 >
                                                     H<sub className="text-[8px]">2</sub>
+                                                </button>
+                                                {/* Fraction */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditAnswerFraction()}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                    title="Insert fraction (prompt)"
+                                                >
+                                                    a⁄b
                                                 </button>
                                             </div>
                                             <button
