@@ -194,24 +194,69 @@ export default function EditorDashboard({ onLogout }) {
         }, 0);
     };
 
+    // Fraction insertion helper: prompts user for numerator/denominator (and optional whole part)
+    const insertFraction = (textareaRef, setText, currentText) => {
+        const textarea = textareaRef.current;
+        // Prompt for whole part (optional)
+        const whole = window.prompt('Enter whole number (leave blank for proper fraction):', '');
+        const numerator = window.prompt('Enter numerator:', '');
+        if (!numerator) {
+            showError('Numerator is required');
+            return;
+        }
+        const denominator = window.prompt('Enter denominator:', '');
+        if (!denominator) {
+            showError('Denominator is required');
+            return;
+        }
+
+        const token = (whole && whole.trim() !== '')
+            ? `[MIX:${whole.trim()}:${numerator.trim()}:${denominator.trim()}]`
+            : `[FRAC:${numerator.trim()}:${denominator.trim()}]`;
+
+        if (!textarea) {
+            setText(prev => prev + token);
+            return;
+        }
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newText = textarea.value.substring(0, start) + token + textarea.value.substring(end);
+        setText(newText);
+
+        setTimeout(() => {
+            textarea.focus();
+            const pos = start + token.length;
+            textarea.setSelectionRange(pos, pos);
+        }, 0);
+    };
+
     // Question formatting with superscript/subscript
     const applyQuestionFormattingAdvanced = (format) => {
         applyAdvancedFormatting(format, questionTextareaRef, setQuestionText, 'question');
     };
+
+    const applyQuestionFraction = () => insertFraction(questionTextareaRef, setQuestionText, questionText);
 
     // Answer formatting with superscript/subscript
     const applyAnswerFormattingAdvanced = (format) => {
         applyAdvancedFormatting(format, answerTextareaRef, setAnswerText, 'answer');
     };
 
+    const applyAnswerFraction = () => insertFraction(answerTextareaRef, setAnswerText, answerText);
+
     // Edit mode formatting
     const applyEditQuestionFormattingAdvanced = (format) => {
         applyAdvancedFormatting(format, editQuestionTextareaRef, setEditQuestionText, 'editQuestion');
     };
 
+    const applyEditQuestionFraction = () => insertFraction(editQuestionTextareaRef, setEditQuestionText, editQuestionText);
+
     const applyEditAnswerFormattingAdvanced = (format) => {
         applyAdvancedFormatting(format, editAnswerTextareaRef, setEditAnswerText, 'editAnswer');
     };
+
+    const applyEditAnswerFraction = () => insertFraction(editAnswerTextareaRef, setEditAnswerText, editAnswerText);
 
     // Symbol insertion function
     const insertSymbol = (symbol, targetType) => {
@@ -1023,7 +1068,41 @@ export default function EditorDashboard({ onLogout }) {
         if (!text) return [];
         
         // Enhanced regex pattern to include SUP and SUB tags
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+            // Fraction: [FRAC:num:den]
+            if (part.startsWith('[FRAC:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(6, -1);
+                    const [num, den] = inner.split(':');
+                    return (
+                        <span key={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                            <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                        </span>
+                    );
+                } catch (e) {
+                    return <span key={index}>{part}</span>;
+                }
+            }
+
+            // Mixed fraction: [MIX:whole:num:den]
+            if (part.startsWith('[MIX:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(5, -1);
+                    const [whole, num, den] = inner.split(':');
+                    return (
+                        <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                            <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                            </span>
+                        </span>
+                    );
+                } catch (e) {
+                    return <span key={index}>{part}</span>;
+                }
+            }
             // Superscript formatting
             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
                 const content = part.slice(5, -6); // Remove [SUP] and [/SUP]
@@ -2665,9 +2744,40 @@ useEffect(() => {
         if (!text) return null;
 
         // Split by markdown patterns while preserving image placeholders
-        const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
+        const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
 
         return parts.map((part, index) => {
+            // Fraction: [FRAC:num:den]
+            if (part.startsWith('[FRAC:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(6, -1);
+                    const [num, den] = inner.split(':');
+                    return (
+                        <span key={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                            <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                        </span>
+                    );
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
+            // Mixed fraction: [MIX:whole:num:den]
+            if (part.startsWith('[MIX:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(5, -1);
+                    const [whole, num, den] = inner.split(':');
+                    return (
+                        <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                            <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                            </span>
+                        </span>
+                    );
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
             // Bold: **text**
             if (part.startsWith('**') && part.endsWith('**')) {
                 const content = part.slice(2, -2);
@@ -4507,6 +4617,24 @@ useEffect(() => {
                                             >
                                                 H<sub className="text-[8px]">2</sub>
                                             </button>
+                                            {/* Fraction */}
+                                            <button
+                                                type="button"
+                                                onClick={() => applyEditQuestionFraction()}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                title="Insert fraction (prompt)"
+                                            >
+                                                a⁄b
+                                            </button>
+                                            {/* Fraction */}
+                                            <button
+                                                type="button"
+                                                onClick={applyQuestionFraction}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                title="Insert fraction (prompt for numerator/denominator)"
+                                            >
+                                                a⁄b
+                                            </button>
                                         </div>
                                         <button
                                             type="button"
@@ -4606,7 +4734,7 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
                                             // Check for formatting first
                                             // Superscript formatting
                                             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
@@ -4618,6 +4746,37 @@ useEffect(() => {
                                             if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
                                                 const content = part.slice(5, -6);
                                                 return <sub key={index} className="text-sm">{content}</sub>;
+                                            }
+
+                                            // Fraction: [FRAC:num:den]
+                                            if (part.startsWith('[FRAC:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(6, -1);
+                                                    const [num, den] = inner.split(':');
+                                                    return (
+                                                        <span key={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                                            <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                        </span>
+                                                    );
+                                                } catch (e) { return <span key={index}>{part}</span>; }
+                                            }
+
+                                            // Mixed fraction: [MIX:whole:num:den]
+                                            if (part.startsWith('[MIX:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(5, -1);
+                                                    const [whole, num, den] = inner.split(':');
+                                                    return (
+                                                        <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                            <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                                                            <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                            </span>
+                                                        </span>
+                                                    );
+                                                } catch (e) { return <span key={index}>{part}</span>; }
                                             }
                                             // Bold: **text**
                                             if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
@@ -5041,8 +5200,39 @@ useEffect(() => {
                                     <div className="mb-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                                         <p className="text-xs font-bold text-blue-800 mb-2">📝 QUESTION PREVIEW:</p>
                                         <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
                                                 // Check for formatting first
+                                                // Fraction: [FRAC:num:den]
+                                                if (part.startsWith('[FRAC:') && part.endsWith(']')) {
+                                                    try {
+                                                        const inner = part.slice(6, -1);
+                                                        const [num, den] = inner.split(':');
+                                                        return (
+                                                            <span key={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                            </span>
+                                                        );
+                                                    } catch (e) { return <span key={index}>{part}</span>; }
+                                                }
+
+                                                // Mixed fraction: [MIX:whole:num:den]
+                                                if (part.startsWith('[MIX:') && part.endsWith(']')) {
+                                                    try {
+                                                        const inner = part.slice(5, -1);
+                                                        const [whole, num, den] = inner.split(':');
+                                                        return (
+                                                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                                <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                                                                <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                                                    <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                                                    <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                                </span>
+                                                            </span>
+                                                        );
+                                                    } catch (e) { return <span key={index}>{part}</span>; }
+                                                }
+
                                                 // Bold: **text**
                                                 if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
                                                     const content = part.slice(2, -2);
@@ -5134,7 +5324,7 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
                                             // Check for formatting first
                                             // Superscript formatting
                                             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
@@ -5146,6 +5336,37 @@ useEffect(() => {
                                             if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
                                                 const content = part.slice(5, -6);
                                                 return <sub key={index} data-text-index={index} className="text-sm">{content}</sub>;
+                                            }
+
+                                            // Fraction: [FRAC:num:den]
+                                            if (part.startsWith('[FRAC:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(6, -1);
+                                                    const [num, den] = inner.split(':');
+                                                    return (
+                                                        <span key={index} data-text-index={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                                            <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                        </span>
+                                                    );
+                                                } catch (e) { return <span key={index}>{part}</span>; }
+                                            }
+
+                                            // Mixed fraction: [MIX:whole:num:den]
+                                            if (part.startsWith('[MIX:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(5, -1);
+                                                    const [whole, num, den] = inner.split(':');
+                                                    return (
+                                                        <span key={index} data-text-index={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                            <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                                                            <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                            </span>
+                                                        </span>
+                                                    );
+                                                } catch (e) { return <span key={index}>{part}</span>; }
                                             }
 
                                             // Bold: **text**
@@ -5480,6 +5701,16 @@ useEffect(() => {
                                         >
                                             H<sub className="text-[8px]">2</sub>
                                         </button>
+                                            {/* Fraction */}
+                                            <button
+                                                type="button"
+                                                onClick={() => applyEditAnswerFraction()}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                title="Insert fraction (prompt)"
+                                            >
+                                                a⁄b
+                                            </button>
+                                        
                                     </div>
                                     {/* Symbol Picker Button */}
                                     <button

@@ -126,7 +126,27 @@ export default function PaperGenerationDashboard() {
     const renderTextWithImages = (text, images = [], imagePositions = {}, context = 'preview') => {
         if (!text) return [];
         
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+            // Fraction formatting
+            if (part.startsWith('[FRAC:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(6, -1);
+                    const [num, den] = inner.split(':');
+                    return (
+                        <span key={index}><sup style={{display:'block',fontSize:'0.9em'}}>{num}</sup><span style={{display:'block',borderTop:'1px solid',paddingTop:'1px',fontSize:'0.9em'}}>{den}</span></span>
+                    );
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
+            if (part.startsWith('[MIX:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(5, -1);
+                    const [whole, num, den] = inner.split(':');
+                    return (
+                        <span key={index}>{whole} <span style={{display:'inline-block',verticalAlign:'middle',textAlign:'center'}}><sup style={{display:'block',fontSize:'0.9em'}}>{num}</sup><span style={{display:'block',borderTop:'1px solid',paddingTop:'1px',fontSize:'0.9em'}}>{den}</span></span></span>
+                    );
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
             // Superscript formatting
             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
                 return <sup key={index}>{part.slice(5, -6)}</sup>;
