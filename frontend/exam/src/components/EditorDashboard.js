@@ -5461,7 +5461,39 @@ useEffect(() => {
                                         >
                                             U
                                         </button>
+                                        {/* Superscript */}
+                                        <button
+                                            type="button"
+                                            onClick={() => applyEditQuestionFormattingAdvanced('superscript')}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                            title="Superscript"
+                                        >
+                                            x<sup className="text-[8px]">2</sup>
+                                        </button>
+
+                                        {/* Subscript */}
+                                        <button
+                                            type="button"
+                                            onClick={() => applyEditQuestionFormattingAdvanced('subscript')}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                            title="Subscript"
+                                        >
+                                            H<sub className="text-[8px]">2</sub>
+                                        </button>
                                     </div>
+                                    {/* Symbol Picker Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setEditSymbolPickerTarget('question');
+                                            setShowEditSymbolPicker(true);
+                                        }}
+                                        className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                        title="Insert special symbols"
+                                    >
+                                        <span className="text-lg leading-none">Ω</span>
+                                        <span>Symbols</span>
+                                    </button>
 
                                     {/* Answer Lines Button */}
                                     <button
@@ -5479,6 +5511,23 @@ useEffect(() => {
                                         <span>Lines</span>
                                     </button>
                                 </div>
+                                {/* Symbol Picker Modal for Question */}
+                                {showSymbolPicker && (
+                                    <SymbolPicker
+                                        onInsert={(symbol) => insertSymbol(symbol, symbolPickerTarget)}
+                                        onClose={() => setShowSymbolPicker(false)}
+                                        targetType={symbolPickerTarget}
+                                    />
+                                )}
+
+                                {/* Symbol Picker Modal for Edit Mode */}
+                                {showEditSymbolPicker && (
+                                    <SymbolPicker
+                                        onInsert={(symbol) => insertEditSymbol(symbol, editSymbolPickerTarget)}
+                                        onClose={() => setShowEditSymbolPicker(false)}
+                                        targetType={editSymbolPickerTarget}
+                                    />
+                                )}
                                 
                                 {/* Hidden textarea for form validation */}
                                 <textarea
@@ -7591,7 +7640,37 @@ useEffect(() => {
                                                 >
                                                     U
                                                 </button>
+                                                {/* Superscript */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyQuestionFormattingAdvanced('superscript')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                                    title="Superscript (Select text first) - e.g., x²"
+                                                >
+                                                    x<sup className="text-[8px]">2</sup>
+                                                </button>
+                                                {/* Subscript */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyQuestionFormattingAdvanced('subscript')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                                    title="Subscript (Select text first) - e.g., H₂O"
+                                                >
+                                                    H<sub className="text-[8px]">2</sub>
+                                                </button>
                                             </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSymbolPickerTarget('question');
+                                                    setShowSymbolPicker(true);
+                                                }}
+                                                className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                                title="Insert special symbols (π, α, β, ∫, etc.)"
+                                            >
+                                                <span className="text-lg leading-none">Ω</span>
+                                                <span>Symbols</span>
+                                            </button>
 
                                             {/* Answer Lines Button */}
                                             <button
@@ -7622,6 +7701,23 @@ useEffect(() => {
                                                 <span>{isEditQuestionListening ? 'Recording...' : 'Mic'}</span>
                                             </button>
                                         </div>
+                                        {/* Symbol Picker Modal for Question */}
+                                        {showSymbolPicker && (
+                                            <SymbolPicker
+                                                onInsert={(symbol) => insertSymbol(symbol, symbolPickerTarget)}
+                                                onClose={() => setShowSymbolPicker(false)}
+                                                targetType={symbolPickerTarget}
+                                            />
+                                        )}
+
+                                        {/* Symbol Picker Modal for Edit Mode */}
+                                        {showEditSymbolPicker && (
+                                            <SymbolPicker
+                                                onInsert={(symbol) => insertEditSymbol(symbol, editSymbolPickerTarget)}
+                                                onClose={() => setShowEditSymbolPicker(false)}
+                                                targetType={editSymbolPickerTarget}
+                                            />
+                                        )}
                                     </div>
                                     
                                     <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
@@ -7873,7 +7969,38 @@ useEffect(() => {
                                                 >
                                                     U
                                                 </button>
+                                                {/* Superscript */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditQuestionFormattingAdvanced('superscript')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                                    title="Superscript"
+                                                >
+                                                    x<sup className="text-[8px]">2</sup>
+                                                </button>
+
+                                                {/* Subscript */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditQuestionFormattingAdvanced('subscript')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                                    title="Subscript"
+                                                >
+                                                    H<sub className="text-[8px]">2</sub>
+                                                </button>
                                             </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSymbolPickerTarget('question');
+                                                    setShowSymbolPicker(true);
+                                                }}
+                                                className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                                title="Insert special symbols (π, α, β, ∫, etc.)"
+                                            >
+                                                <span className="text-lg leading-none">Ω</span>
+                                                <span>Symbols</span>
+                                            </button>
 
                                             {/* Answer Lines */}
                                             <button
@@ -7902,6 +8029,23 @@ useEffect(() => {
                                                 <span>{isEditAnswerListening ? 'Recording...' : 'Mic'}</span>
                                             </button>
                                         </div>
+                                        {/* Symbol Picker Modal for Question */}
+                                        {showSymbolPicker && (
+                                            <SymbolPicker
+                                                onInsert={(symbol) => insertSymbol(symbol, symbolPickerTarget)}
+                                                onClose={() => setShowSymbolPicker(false)}
+                                                targetType={symbolPickerTarget}
+                                            />
+                                        )}
+
+                                        {/* Symbol Picker Modal for Edit Mode */}
+                                        {showEditSymbolPicker && (
+                                            <SymbolPicker
+                                                onInsert={(symbol) => insertEditSymbol(symbol, editSymbolPickerTarget)}
+                                                onClose={() => setShowEditSymbolPicker(false)}
+                                                targetType={editSymbolPickerTarget}
+                                            />
+                                        )}
                                     </div>
                                     
                                     <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
