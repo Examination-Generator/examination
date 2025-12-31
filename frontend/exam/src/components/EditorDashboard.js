@@ -7,6 +7,8 @@ import * as authService from '../services/authService';
 import { useError } from '../contexts/ErrorContext';
 import { useSearchQuestions } from '../hooks/useQuestions';
 import { useDebounce } from '../hooks/useDebounce';
+import SymbolPicker from './SymbolPicker';
+
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api' ;
 
@@ -126,17 +128,143 @@ export default function EditorDashboard({ onLogout }) {
     const { showError, showSuccess } = useError();
     
         
-        // Edit answer/line configurations and edit-specific flags
-        const [editQuestionAnswerLines, setEditQuestionAnswerLines] = useState([]);
-        const [editAnswerAnswerLines, setEditAnswerAnswerLines] = useState([]);
+    // Edit answer/line configurations and edit-specific flags
+    const [editQuestionAnswerLines, setEditQuestionAnswerLines] = useState([]);
+    const [editAnswerAnswerLines, setEditAnswerAnswerLines] = useState([]);
 
-        // Edit-specific flags (missing earlier) — initialize here
-        const [editIsNested, setEditIsNested] = useState(false);
-        const [editIsEssayQuestion, setEditIsEssayQuestion] = useState(false);
-        const [editIsGraphQuestion, setEditIsGraphQuestion] = useState(false);
-        const [editIsMapQuestion, setEditIsMapQuestion] = useState(false);
+    // Edit-specific flags (missing earlier) — initialize here
+    const [editIsNested, setEditIsNested] = useState(false);
+    const [editIsEssayQuestion, setEditIsEssayQuestion] = useState(false);
+    const [editIsGraphQuestion, setEditIsGraphQuestion] = useState(false);
+    const [editIsMapQuestion, setEditIsMapQuestion] = useState(false);
 
-        // Initialize edit fields when a question is selected for editing
+    //more edit functions
+    const [showSymbolPicker, setShowSymbolPicker] = useState(false);
+    const [symbolPickerTarget, setSymbolPickerTarget] = useState('question'); // 'question' or 'answer'
+
+    // For Edit mode
+    const [showEditSymbolPicker, setShowEditSymbolPicker] = useState(false);
+    const [editSymbolPickerTarget, setEditSymbolPickerTarget] = useState('question');
+
+    // Enhanced formatting function with superscript and subscript support
+    const applyAdvancedFormatting = (format, textareaRef, setText, section) => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+
+        if (!selectedText) {
+            showError('Please select text to format');
+            return;
+        }
+
+        let formattedText = '';
+
+        switch (format) {
+            case 'superscript':
+                // Use [SUP]...[/SUP] tags for rendering
+                formattedText = `[SUP]${selectedText}[/SUP]`;
+                break;
+            case 'subscript':
+                // Use [SUB]...[/SUB] tags for rendering
+                formattedText = `[SUB]${selectedText}[/SUB]`;
+                break;
+            case 'bold':
+                formattedText = `**${selectedText}**`;
+                break;
+            case 'italic':
+                formattedText = `*${selectedText}*`;
+                break;
+            case 'underline':
+                formattedText = `__${selectedText}__`;
+                break;
+            default:
+                return;
+        }
+
+        const newText = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+        setText(newText);
+
+        setTimeout(() => {
+            textarea.focus();
+            const newCursorPos = start + formattedText.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
+    };
+
+    // Question formatting with superscript/subscript
+    const applyQuestionFormattingAdvanced = (format) => {
+        applyAdvancedFormatting(format, questionTextareaRef, setQuestionText, 'question');
+    };
+
+    // Answer formatting with superscript/subscript
+    const applyAnswerFormattingAdvanced = (format) => {
+        applyAdvancedFormatting(format, answerTextareaRef, setAnswerText, 'answer');
+    };
+
+    // Edit mode formatting
+    const applyEditQuestionFormattingAdvanced = (format) => {
+        applyAdvancedFormatting(format, editQuestionTextareaRef, setEditQuestionText, 'editQuestion');
+    };
+
+    const applyEditAnswerFormattingAdvanced = (format) => {
+        applyAdvancedFormatting(format, editAnswerTextareaRef, setEditAnswerText, 'editAnswer');
+    };
+
+    // Symbol insertion function
+    const insertSymbol = (symbol, targetType) => {
+        const textareaRef = targetType === 'question' ? questionTextareaRef : answerTextareaRef;
+        const setText = targetType === 'question' ? setQuestionText : setAnswerText;
+        const text = targetType === 'question' ? questionText : answerText;
+        
+        const textarea = textareaRef.current;
+        if (!textarea) {
+            // If no textarea ref, append to end
+            setText(prev => prev + symbol);
+            return;
+        }
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        
+        const newText = text.substring(0, start) + symbol + text.substring(end);
+        setText(newText);
+
+        setTimeout(() => {
+            textarea.focus();
+            const newCursorPos = start + symbol.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
+    };
+
+    // Edit mode symbol insertion
+    const insertEditSymbol = (symbol, targetType) => {
+        const textareaRef = targetType === 'question' ? editQuestionTextareaRef : editAnswerTextareaRef;
+        const setText = targetType === 'question' ? setEditQuestionText : setEditAnswerText;
+        const text = targetType === 'question' ? editQuestionText : editAnswerText;
+        
+        const textarea = textareaRef.current;
+        if (!textarea) {
+            setText(prev => prev + symbol);
+            return;
+        }
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        
+        const newText = text.substring(0, start) + symbol + text.substring(end);
+        setText(newText);
+
+        setTimeout(() => {
+            textarea.focus();
+            const newCursorPos = start + symbol.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
+    };
+
+    // Initialize edit fields when a question is selected for editing
         useEffect(() => {
             if (!selectedQuestion) {
                 setEditQuestionAnswerLines([]);
@@ -894,7 +1022,19 @@ export default function EditorDashboard({ onLogout }) {
     const renderTextWithImages = (text, images = [], imagePositions = {}, answerLines = [], onRemoveImage = null, onRemoveLines = null, context = 'preview') => {
         if (!text) return [];
         
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+
+            if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
+            const content = part.slice(5, -6); 
+            return <sup key={index} className="text-sm">{content}</sup>;
+                }
+            
+            // Subscript formatting
+            if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
+                const content = part.slice(5, -6); 
+                return <sub key={index} className="text-sm">{content}</sub>;
+                }
+
             // Bold formatting
             if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
                 const content = part.slice(2, -2);
@@ -4348,7 +4488,37 @@ useEffect(() => {
                                             >
                                                 U
                                             </button>
+                                            {/* Superscript */}
+                                            <button
+                                                type="button"
+                                                onClick={() => applyQuestionFormattingAdvanced('superscript')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                                title="Superscript (Select text first) - e.g., x²"
+                                            >
+                                                x<sup className="text-[8px]">2</sup>
+                                            </button>
+                                            {/* Subscript */}
+                                            <button
+                                                type="button"
+                                                onClick={() => applyQuestionFormattingAdvanced('subscript')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                                title="Subscript (Select text first) - e.g., H₂O"
+                                            >
+                                                H<sub className="text-[8px]">2</sub>
+                                            </button>
                                         </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSymbolPickerTarget('question');
+                                                setShowSymbolPicker(true);
+                                            }}
+                                            className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                            title="Insert special symbols (π, α, β, ∫, etc.)"
+                                        >
+                                            <span className="text-lg leading-none">Ω</span>
+                                            <span>Symbols</span>
+                                        </button>
 
                                         {/* Answer Lines Button */}
                                         <button
@@ -4378,6 +4548,24 @@ useEffect(() => {
                                             </svg>
                                             <span>{isQuestionListening ? 'Recording...' : 'Mic'}</span>
                                         </button>
+
+                                        {/* Symbol Picker Modal for Question */}
+                                        {showSymbolPicker && (
+                                            <SymbolPicker
+                                                onInsert={(symbol) => insertSymbol(symbol, symbolPickerTarget)}
+                                                onClose={() => setShowSymbolPicker(false)}
+                                                targetType={symbolPickerTarget}
+                                            />
+                                        )}
+
+                                        {/* Symbol Picker Modal for Edit Mode */}
+                                        {showEditSymbolPicker && (
+                                            <SymbolPicker
+                                                onInsert={(symbol) => insertEditSymbol(symbol, editSymbolPickerTarget)}
+                                                onClose={() => setShowEditSymbolPicker(false)}
+                                                targetType={editSymbolPickerTarget}
+                                            />
+                                        )}
                                     </div>
                                 </div>
 
