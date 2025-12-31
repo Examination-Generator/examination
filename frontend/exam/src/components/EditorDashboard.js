@@ -7643,7 +7643,7 @@ useEffect(() => {
                                                 {/* Superscript */}
                                                 <button
                                                     type="button"
-                                                    onClick={() => applyQuestionFormattingAdvanced('superscript')}
+                                                    onClick={() => applyEditQuestionFormattingAdvanced('superscript')}
                                                     className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
                                                     title="Superscript (Select text first) - e.g., x²"
                                                 >
@@ -7652,7 +7652,7 @@ useEffect(() => {
                                                 {/* Subscript */}
                                                 <button
                                                     type="button"
-                                                    onClick={() => applyQuestionFormattingAdvanced('subscript')}
+                                                    onClick={() => applyEditQuestionFormattingAdvanced('subscript')}
                                                     className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
                                                     title="Subscript (Select text first) - e.g., H₂O"
                                                 >
@@ -7662,8 +7662,8 @@ useEffect(() => {
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    setSymbolPickerTarget('question');
-                                                    setShowSymbolPicker(true);
+                                                    setEditSymbolPickerTarget('question');
+                                                    setShowEditSymbolPicker(true);
                                                 }}
                                                 className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
                                                 title="Insert special symbols (π, α, β, ∫, etc.)"
@@ -7992,8 +7992,8 @@ useEffect(() => {
                                             <button
                                                 type="button"
                                                 onClick={() => {
-                                                    setSymbolPickerTarget('question');
-                                                    setShowSymbolPicker(true);
+                                                    setEditSymbolPickerTarget('question');
+                                                    setShowEditSymbolPicker(true);
                                                 }}
                                                 className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
                                                 title="Insert special symbols (π, α, β, ∫, etc.)"
