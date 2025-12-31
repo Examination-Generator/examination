@@ -1022,19 +1022,20 @@ export default function EditorDashboard({ onLogout }) {
     const renderTextWithImages = (text, images = [], imagePositions = {}, answerLines = [], onRemoveImage = null, onRemoveLines = null, context = 'preview') => {
         if (!text) return [];
         
+        // Enhanced regex pattern to include SUP and SUB tags
         return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
-
+            // Superscript formatting
             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
-            const content = part.slice(5, -6); 
-            return <sup key={index} className="text-sm">{content}</sup>;
-                }
+                const content = part.slice(5, -6); // Remove [SUP] and [/SUP]
+                return <sup key={index} className="text-sm">{content}</sup>;
+            }
             
             // Subscript formatting
             if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
-                const content = part.slice(5, -6); 
+                const content = part.slice(5, -6); // Remove [SUB] and [/SUB]
                 return <sub key={index} className="text-sm">{content}</sub>;
-                }
-
+            }
+            
             // Bold formatting
             if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
                 const content = part.slice(2, -2);
