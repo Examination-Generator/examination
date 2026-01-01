@@ -4,7 +4,7 @@ URL Configuration for API app
 
 from django.urls import path
 from django.http import JsonResponse
-from . import auth_views, physics_paper_generation, subject_views, question_views, database_views, paper_generation_views, georaphy_paper_generator
+from . import auth_views, physics_paper_generation, subject_views, question_views, database_views, paper_generation_views, georaphy_paper_generator,kiswahili_paper_generator
 
 from . import biology_paper2_generation
 
@@ -119,6 +119,10 @@ urlpatterns = [
     # ==================== ENGLISH GENERATION ROUTES ====================
     path('papers/english-paper/validate', paper_generation_views.validate_english_paper_pool, name='validate-english-paper'),
     path('papers/english-paper/generate', paper_generation_views.generate_english_paper, name='generate-english-paper'),
+    
+    # ==================== KISWAHILI GENERATION ROUTES ====================
+    path('papers/kiswahili-paper/validate', kiswahili_paper_generator.validate_kiswahili_paper_pool, name='validate-kiswahili-paper'),
+    path('papers/kiswahili-paper/generate', kiswahili_paper_generator.generate_kiswahili_paper, name='generate-kiswahili-paper'),
 ]
 
     

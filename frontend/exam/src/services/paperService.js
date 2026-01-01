@@ -121,6 +121,10 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
                     endpoint = `${API_BASE_URL}/papers/english-paper/generate`;
                     paperType = 'english-paper';
                     console.log('DETECTED: English Paper (using dedicated english endpoint)');
+                } else if (paperName.includes('kiswahili') || subjectName.includes('kiswahili')) {
+                    endpoint = `${API_BASE_URL}/papers/kiswahili-paper/generate`;
+                    paperType = 'kiswahili-paper';
+                    console.log('DETECTED: Kiswahili Paper (using dedicated kiswahili endpoint)');
             } else {
                 console.log('DETECTED: Standard Paper (using general endpoint)');
             }
@@ -370,6 +374,27 @@ export const validateEnglishPaperPool = async (paperId, topicIds) => {
         return await response.json();
     } catch (error) {
         console.error('English validation error:', error);
+        throw error;
+    }
+};
+
+export const validateKiswahiliPaperPool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/kiswahili-paper/validate`;
+        const requestBody = { paper_id: paperId, topic_ids: topicIds };
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Validation API error (kiswahili):', text);
+            throw new Error(friendlyErrorMessage(text));
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Kiswahili validation error:', error);
         throw error;
     }
 };
