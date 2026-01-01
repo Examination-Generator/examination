@@ -125,9 +125,13 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
                     endpoint = `${API_BASE_URL}/papers/kiswahili-paper/generate`;
                     paperType = 'kiswahili-paper';
                     console.log('DETECTED: Kiswahili Paper (using dedicated kiswahili endpoint)');
-            } else {
-                console.log('DETECTED: Standard Paper (using general endpoint)');
-            }
+                }else if (paperName.includes('business') || subjectName.includes('business')) {
+                    endpoint = `${API_BASE_URL}/papers/business-paper/generate`;
+                    paperType = 'business-paper';
+                    console.log('DETECTED: Business Paper (using dedicated business endpoint)');
+                }else {
+                    console.log('DETECTED: Standard Paper (using general endpoint)');
+                }
         }
         
         // Normalize topic request body per endpoint
