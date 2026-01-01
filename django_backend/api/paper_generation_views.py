@@ -51,6 +51,8 @@ from .coverpage_templates import (
     PhysicsPaper2Coverpage,
     ChemistryPaper1Coverpage,
     ChemistryPaper2Coverpage,
+    KiswahiliPaper1Coverpage,
+    KiswahiliPaper2Coverpage,
     MarkingSchemeCoverpage, 
     format_time_allocation
 )
@@ -77,13 +79,13 @@ def _select_coverpage_class_and_default(generated_paper, paper, is_marking_schem
     paper_name = (paper.name or '').upper()
 
     def is_paper1():
-        return any(k in paper_type or k in paper_name for k in ('PAPER 1', 'PAPER I'))
+        return any(k in paper_type or k in paper_name for k in ('PAPER 1', 'PAPER I', 'KWANZA'))
 
     def is_paper2():
-        return any(k in paper_type or k in paper_name for k in ('PAPER 2', 'PAPER II'))
+        return any(k in paper_type or k in paper_name for k in ('PAPER 2', 'PAPER II', 'PILI'))
 
     def is_paper3():
-        return any(k in paper_type or k in paper_name for k in ('PAPER 3', 'PAPER III'))
+        return any(k in paper_type or k in paper_name for k in ('PAPER 3', 'PAPER III', 'TATU'))
 
     # Prefer subject-specific classes first
     try:
@@ -126,6 +128,12 @@ def _select_coverpage_class_and_default(generated_paper, paper, is_marking_schem
             if is_paper1():
                 return GeographyPaper1Coverpage, GeographyPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
             return GeographyPaper2Coverpage, GeographyPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
+        
+        if subject_name == 'KISWAHILI':
+            if is_paper1():
+                return KiswahiliPaper1Coverpage, KiswahiliPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+            return KiswahiliPaper2Coverpage, KiswahiliPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
+        
         if subject_name == 'MATHEMATICS':
             if is_paper1():
                 return KCSEMathematicsPaper1Generator, KCSEMathematicsPaper1Generator.generate_default_coverpage_data(generated_paper, paper)
