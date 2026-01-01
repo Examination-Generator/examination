@@ -450,16 +450,34 @@ class KCSEKiswahiliPaper2Generator:
         if not self.topics:
             raise ValueError("No valid topics found for the selected IDs")
         
-        # Separate topics by boolean fields
-        for topic in self.topics:
-            if getattr(topic, 'is_comprehension', False):
-                self.comprehension_topics.append(topic)
-            if getattr(topic, 'is_summary', False):
-                self.summary_topics.append(topic)
-            if getattr(topic, 'is_lugha', False):
-                self.lugha_topics.append(topic)
-            if getattr(topic, 'is_isimu', False):
-                self.isimu_topics.append(topic)
+        # Separate topics by boolean fields using direct Topic model queries
+        self.comprehension_topics = list(Topic.objects.filter(
+            id__in=self.selected_topic_ids,
+            paper=self.paper,
+            is_active=True,
+            is_comprehension=True
+        ))
+        
+        self.summary_topics = list(Topic.objects.filter(
+            id__in=self.selected_topic_ids,
+            paper=self.paper,
+            is_active=True,
+            is_summary=True
+        ))
+        
+        self.lugha_topics = list(Topic.objects.filter(
+            id__in=self.selected_topic_ids,
+            paper=self.paper,
+            is_active=True,
+            is_lugha=True
+        ))
+        
+        self.isimu_topics = list(Topic.objects.filter(
+            id__in=self.selected_topic_ids,
+            paper=self.paper,
+            is_active=True,
+            is_isimu=True
+        ))
         
         # Load ALL questions for selected topics
         self.all_questions = list(Question.objects.filter(
@@ -472,11 +490,26 @@ class KCSEKiswahiliPaper2Generator:
         if not self.all_questions:
             raise ValueError("No questions found for selected topics")
         
-        # Separate questions by topic category
-        comprehension_topic_ids = {t.id for t in self.comprehension_topics}
-        summary_topic_ids = {t.id for t in self.summary_topics}
-        lugha_topic_ids = {t.id for t in self.lugha_topics}
-        isimu_topic_ids = {t.id for t in self.isimu_topics}
+        # Separate questions by topic category using Topic model queries
+        comprehension_topic_ids = set(Topic.objects.filter(
+            id__in=self.selected_topic_ids,
+            is_comprehension=True
+        ).values_list('id', flat=True))
+        
+        summary_topic_ids = set(Topic.objects.filter(
+            id__in=self.selected_topic_ids,
+            is_summary=True
+        ).values_list('id', flat=True))
+        
+        lugha_topic_ids = set(Topic.objects.filter(
+            id__in=self.selected_topic_ids,
+            is_lugha=True
+        ).values_list('id', flat=True))
+        
+        isimu_topic_ids = set(Topic.objects.filter(
+            id__in=self.selected_topic_ids,
+            is_isimu=True
+        ).values_list('id', flat=True))
         
         for q in self.all_questions:
             if q.topic_id in comprehension_topic_ids:
@@ -839,16 +872,54 @@ def validate_kiswahili_paper_pool(request):
             })
         
         else:  # Paper 2
-            # Categorize topics by boolean fields
-            comprehension_topics = [t for t in topics if getattr(t, 'is_comprehension', False)]
-            summary_topics = [t for t in topics if getattr(t, 'is_summary', False)]
-            lugha_topics = [t for t in topics if getattr(t, 'is_lugha', False)]
-            isimu_topics = [t for t in topics if getattr(t, 'is_isimu', False)]
+            # Categorize topics by boolean fields using direct Topic model queries
+            comprehension_topics = list(Topic.objects.filter(
+                id__in=selected_topic_ids,
+                paper=paper,
+                is_active=True,
+                is_comprehension=True
+            ))
             
-            comprehension_topic_ids = {t.id for t in comprehension_topics}
-            summary_topic_ids = {t.id for t in summary_topics}
-            lugha_topic_ids = {t.id for t in lugha_topics}
-            isimu_topic_ids = {t.id for t in isimu_topics}
+            summary_topics = list(Topic.objects.filter(
+                id__in=selected_topic_ids,
+                paper=paper,
+                is_active=True,
+                is_summary=True
+            ))
+            
+            lugha_topics = list(Topic.objects.filter(
+                id__in=selected_topic_ids,
+                paper=paper,
+                is_active=True,
+                is_lugha=True
+            ))
+            
+            isimu_topics = list(Topic.objects.filter(
+                id__in=selected_topic_ids,
+                paper=paper,
+                is_active=True,
+                is_isimu=True
+            ))
+            
+            comprehension_topic_ids = set(Topic.objects.filter(
+                id__in=selected_topic_ids,
+                is_comprehension=True
+            ).values_list('id', flat=True))
+            
+            summary_topic_ids = set(Topic.objects.filter(
+                id__in=selected_topic_ids,
+                is_summary=True
+            ).values_list('id', flat=True))
+            
+            lugha_topic_ids = set(Topic.objects.filter(
+                id__in=selected_topic_ids,
+                is_lugha=True
+            ).values_list('id', flat=True))
+            
+            isimu_topic_ids = set(Topic.objects.filter(
+                id__in=selected_topic_ids,
+                is_isimu=True
+            ).values_list('id', flat=True))
             
             # Count questions by topic category
             ufhamu_count = sum(1 for q in all_questions if q.topic_id in comprehension_topic_ids)
