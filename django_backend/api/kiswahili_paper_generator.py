@@ -1059,17 +1059,27 @@ def generate_kiswahili_paper(request):
         
         # Retrieve paper name to determine paper number
         paper_name = Paper.objects.get(id=paper_id).name
+        paper_number = None
         
+        # Try Swahili names first
         if paper_name and 'kwanza' in paper_name.lower():
             paper_number = 1
         elif paper_name and 'pili' in paper_name.lower():
             paper_number = 2
         elif paper_name and 'tatu' in paper_name.lower():
             paper_number = 3
+        else:
+            # Fallback to extract_paper_number_from_name function
+            try:
+                paper_number = extract_paper_number_from_name(paper_name)
+            except ValueError:
+                pass
         
-        if paper_number not in [1, 2, 3]:
+        if paper_number not in [1, 2]:
             return JsonResponse({
-                'message': f'Invalid paper_number {paper_number}. Must be 1, 2, or 3. paper_name: {paper_name}'
+                'message': f'Invalid paper_number {paper_number}. Must be 1 or 2. paper_name: {paper_name}. '
+                           f'Paper name should contain "KWANZA" (Paper 1) or "PILI" (Paper 2), '
+                           f'or use Roman numerals (I, II) or Arabic numerals (1, 2).'
             }, status=400)
         
         user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
@@ -1085,12 +1095,16 @@ def generate_kiswahili_paper(request):
                 selected_topic_ids=selected_topic_ids,
                 user=user
             )
-        else:
+        elif paper_number == 2:
             generator = KCSEKiswahiliPaper2Generator(
                 paper_id=paper_id,
                 selected_topic_ids=selected_topic_ids,
                 user=user
             )
+        else:
+            return JsonResponse({
+                'message': f'Paper {paper_number} generator not implemented yet. Only Paper 1 and 2 are available.'
+            }, status=400)
         
         # Load data and generate
         generator.load_data()
