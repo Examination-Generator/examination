@@ -125,8 +125,8 @@ urlpatterns = [
     path('papers/kiswahili-paper/generate', kiswahili_paper_generator.generate_kiswahili_paper, name='generate-kiswahili-paper'),
     
     # ==================== BUSINESS STUDIES GENERATION ROUTES ====================
-    path('papers/business-studies/validate', business_paper_generator.validate_business_studies_paper_pool, name='validate-business-studies-paper'),
-    path('papers/business-studies/generate', business_paper_generator.generate_business_studies_paper, name='generate-business-studies-paper'),
+    path('papers/business-studies/validate', business_paper_generator.validate_business_paper_pool, name='validate-business-studies-paper'),
+    path('papers/business-studies/generate', business_paper_generator.generate_business_paper, name='generate-business-studies-paper'),
 ]
 
     
