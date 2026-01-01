@@ -81,16 +81,26 @@ class KCSEKiswahiliPaper1Generator:
         if not self.topics:
             raise ValueError("No valid topics found for the selected IDs")
         
-        # Separate topics by is_step field
-        for topic in self.topics:
-            is_step = getattr(topic, 'is_step', False)
-            if is_step:
-                self.is_step_topics.append(topic)
-            else:
-                self.regular_topics.append(topic)
+        # Query Topic model directly for is_step=True topics
+        self.is_step_topics = list(Topic.objects.filter(
+            id__in=self.selected_topic_ids,
+            paper=self.paper,
+            is_active=True,
+            is_step=True
+        ))
+        
+        # Get regular topics (not is_step)
+        is_step_topic_ids = {t.id for t in self.is_step_topics}
+        self.regular_topics = [t for t in self.topics if t.id not in is_step_topic_ids]
         
         if not self.is_step_topics:
-            raise ValueError("No is_step topics found. At least one topic with is_step=True is required for Question 1.")
+            # Provide helpful error message with topic details
+            topic_names = [f"'{t.name}'" for t in self.topics]
+            raise ValueError(
+                f"No is_step topics found. At least one topic with is_step=True is required for Question 1 (Compulsory). "
+                f"You selected {len(self.topics)} topics: {', '.join(topic_names)}. "
+                f"Please mark at least one topic with is_step=True in the database."
+            )
         
         # Load ALL questions for selected topics
         self.all_questions = list(Question.objects.filter(
@@ -831,9 +841,16 @@ def validate_kiswahili_paper_pool(request):
         ).select_related('topic', 'section'))
         
         if paper_number == 1:
-            # Count is_step topics and questions
-            is_step_topic_count = sum(1 for t in topics if getattr(t, 'is_step', False))
-            is_step_topic_ids = {t.id for t in topics if getattr(t, 'is_step', False)}
+            # Query Topic model directly for is_step topics
+            is_step_topics = list(Topic.objects.filter(
+                id__in=selected_topic_ids,
+                paper=paper,
+                is_active=True,
+                is_step=True
+            ))
+            
+            is_step_topic_count = len(is_step_topics)
+            is_step_topic_ids = {t.id for t in is_step_topics}
             is_step_question_count = sum(1 for q in all_questions if q.topic_id in is_step_topic_ids)
             regular_question_count = len(all_questions) - is_step_question_count
             
@@ -843,12 +860,16 @@ def validate_kiswahili_paper_pool(request):
                            regular_question_count >= 3)
             
             issues = []
+            topic_names = [t.name for t in topics]
             if is_step_topic_count < 1:
-                issues.append(f"Need at least 1 is_step topic, have {is_step_topic_count}")
-            if is_step_question_count < 1:
+                issues.append(
+                    f"Need at least 1 topic with is_step=True for Question 1, have {is_step_topic_count}. "
+                    f"Selected topics: {', '.join(topic_names)}. Please mark at least one topic with is_step=True."
+                )
+            if is_step_question_count < 1 and is_step_topic_count >= 1:
                 issues.append(f"Need at least 1 question from is_step topics, have {is_step_question_count}")
             if regular_question_count < 3:
-                issues.append(f"Need at least 3 questions from other topics, have {regular_question_count}")
+                issues.append(f"Need at least 3 questions from other topics for Questions 2-4, have {regular_question_count}")
             
             message = "Ready to generate Kiswahili Paper 1" if can_generate else "Insufficient questions: " + "; ".join(issues)
             
