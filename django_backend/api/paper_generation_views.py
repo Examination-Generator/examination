@@ -53,6 +53,8 @@ from .coverpage_templates import (
     ChemistryPaper2Coverpage,
     KiswahiliPaper1Coverpage,
     KiswahiliPaper2Coverpage,
+    BusinessPaper1Coverpage,
+    BusinessPaper2Coverpage,
     MarkingSchemeCoverpage, 
     format_time_allocation
 )
@@ -133,6 +135,11 @@ def _select_coverpage_class_and_default(generated_paper, paper, is_marking_schem
             if is_paper1():
                 return KiswahiliPaper1Coverpage, KiswahiliPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
             return KiswahiliPaper2Coverpage, KiswahiliPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
+        
+        if subject_name == 'BUSINESS STUDIES' or subject_name == 'BUSINESS':
+            if is_paper1():
+                return BusinessPaper1Coverpage, BusinessPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+            return BusinessPaper2Coverpage, BusinessPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
         
         if subject_name == 'MATHEMATICS':
             if is_paper1():
