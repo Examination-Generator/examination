@@ -121,7 +121,7 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
                     endpoint = `${API_BASE_URL}/papers/english-paper/generate`;
                     paperType = 'english-paper';
                     console.log('DETECTED: English Paper (using dedicated english endpoint)');
-                } else if (paperName.includes('kiswahili') || subjectName.includes('kiswahili')) {
+                } else if (paperName.includes('kiswahili') || subjectName.includes('kiswahili') || paperName.includes('karatasi')) {
                     endpoint = `${API_BASE_URL}/papers/kiswahili-paper/generate`;
                     paperType = 'kiswahili-paper';
                     console.log('DETECTED: Kiswahili Paper (using dedicated kiswahili endpoint)');
@@ -146,7 +146,7 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
             isBiologyPaper1 = isBiology && isPaper1 && !isPaper2;
         }
 
-        const endpointUsesSelectedTopics = isBiologyPaper1 || endpoint.includes('/biology-paper2/') || endpoint.includes('/biology-paper');
+        const endpointUsesSelectedTopics = isBiologyPaper1 || endpoint.includes('/biology-paper2/') || endpoint.includes('/biology-paper') || endpoint.includes('/kiswahili-paper');
 
         if (endpointUsesSelectedTopics) {
             requestBody = {
