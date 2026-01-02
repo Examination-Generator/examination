@@ -8,10 +8,10 @@ PAPER 1 & PAPER 2:
 - Total: 100 marks
 
 SELECTION LOGIC:
-1. HIGH PRIORITY: If 6 topics selected > Pick ONE question from EACH topic (maximum diversity)
-2. FALLBACK: If fewer topics selected > Distribute 6 questions across available topics
-   - 1 topic > All 6 questions from same topic
-   - 2-5 topics > Spread questions across topics (may reuse topics)
+1. HIGH PRIORITY: If 6 topics selected -> Pick ONE question from EACH topic (maximum diversity)
+2. FALLBACK: If fewer topics selected -> Distribute 6 questions across available topics
+   - 1 topic -> All 6 questions from same topic
+   - 2-5 topics -> Spread questions across topics (may reuse topics)
 """
 
 import random
