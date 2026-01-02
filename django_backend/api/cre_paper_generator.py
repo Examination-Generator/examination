@@ -8,10 +8,10 @@ PAPER 1 & PAPER 2:
 - Total: 100 marks
 
 SELECTION LOGIC:
-1. HIGH PRIORITY: If 6 topics selected → Pick ONE question from EACH topic (maximum diversity)
-2. FALLBACK: If fewer topics selected → Distribute 6 questions across available topics
-   - 1 topic → All 6 questions from same topic
-   - 2-5 topics → Spread questions across topics (may reuse topics)
+1. HIGH PRIORITY: If 6 topics selected > Pick ONE question from EACH topic (maximum diversity)
+2. FALLBACK: If fewer topics selected > Distribute 6 questions across available topics
+   - 1 topic > All 6 questions from same topic
+   - 2-5 topics > Spread questions across topics (may reuse topics)
 """
 
 import random
@@ -268,8 +268,8 @@ class KCSECREPaperGenerator:
         print(f"  Each question: 20 marks")
         print(f"  Total: 100 marks")
         print(f"\nSelection Strategy:")
-        print(f"  - If 6 topics selected → Pick ONE from EACH topic (high priority)")
-        print(f"  - If fewer topics → Distribute 6 questions across available topics")
+        print(f"  - If 6 topics selected > Pick ONE from EACH topic (high priority)")
+        print(f"  - If fewer topics > Distribute 6 questions across available topics")
         
         for attempt in range(1, max_attempts + 1):
             self.attempts = attempt
@@ -492,8 +492,8 @@ def validate_cre_paper_pool(request):
                 'total_marks': 100,
             },
             'selection_strategy': {
-                'high_priority': 'If 6 topics selected → Pick ONE from EACH topic',
-                'fallback': 'If fewer topics → Distribute 6 questions across available topics',
+                'high_priority': 'If 6 topics selected > Pick ONE from EACH topic',
+                'fallback': 'If fewer topics > Distribute 6 questions across available topics',
                 'current': f'{num_topics} topics selected',
             },
             'message': message
