@@ -155,7 +155,7 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
             isBiologyPaper1 = isBiology && isPaper1 && !isPaper2;
         }
 
-        const endpointUsesSelectedTopics = isBiologyPaper1 || endpoint.includes('/biology-paper2/') || endpoint.includes('/biology-paper') 
+        const endpointUsesSelectedTopics = isBiologyPaper1 || endpoint.includes('/biology-paper2/') || endpoint.includes('/biology-paper')|| endpoint.includes('/cre-paper/'); 
 
         if (endpointUsesSelectedTopics) {
             requestBody = {
