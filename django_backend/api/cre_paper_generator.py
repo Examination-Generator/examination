@@ -418,7 +418,7 @@ def validate_cre_paper_pool(request):
         data = json.loads(request.body)
         
         paper_id = data.get('paper_id')
-        selected_topic_ids = data.get('topic_ids', [])
+        selected_topic_ids = data.get('selected_topics', [])
         
         if not paper_id or not selected_topic_ids:
             return JsonResponse({
@@ -514,7 +514,7 @@ def generate_cre_paper(request):
         data = json.loads(request.body)
         
         paper_id = data.get('paper_id')
-        selected_topic_ids = data.get('topic_ids', [])
+        selected_topic_ids = data.get('selected_topics', [])
         
         if not paper_id or not selected_topic_ids:
             return JsonResponse({
