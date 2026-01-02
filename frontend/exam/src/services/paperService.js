@@ -129,7 +129,12 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
                     endpoint = `${API_BASE_URL}/papers/business-paper/generate`;
                     paperType = 'business-paper';
                     console.log('DETECTED: Business Paper (using dedicated business endpoint)');
-                }else {
+                }else if(paperName.includes('christian') || subjectName.includes('christian')){
+                    endpoint = `${API_BASE_URL}/papers/cre-paper/generate`;
+                    paperType = 'christian-religious-education-paper';
+                    console.log('DETECTED: Christian Religious Education Paper (using dedicated CRE endpoint)');
+
+                } else {
                     console.log('DETECTED: Standard Paper (using general endpoint)');
                 }
         }

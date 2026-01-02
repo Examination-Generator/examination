@@ -36,8 +36,6 @@ from .models import (
     Paper, Topic, PaperConfiguration, GeneratedPaper, Question
 )
 from .mathematics_generator import KCSEMathematicsPaper1Generator, KCSEMathematicsPaper2Generator
-from .chemistry_paper_generator import KCSEChemistryPaper1Generator, KCSEChemistryPaper2Generator
-from .english_generator import KCSEEnglishPaper1Generator, KCSEEnglishPaper2Generator,KCSEEnglishPaper3Generator
 from .georaphy_paper_generator import KCSEGeographyPaper1Generator, KCSEGeographyPaper2Generator, Paper, Topic, Question
 from .kcse_biology_paper1_generator import KCSEBiologyPaper1Generator
 from .coverpage_templates import (
@@ -51,6 +49,8 @@ from .coverpage_templates import (
     PhysicsPaper2Coverpage,
     ChemistryPaper1Coverpage,
     ChemistryPaper2Coverpage,
+    CREPaper1Coverpage,
+    CREPaper2Coverpage,
     KiswahiliPaper1Coverpage,
     KiswahiliPaper2Coverpage,
     BusinessPaper1Coverpage,
@@ -140,6 +140,11 @@ def _select_coverpage_class_and_default(generated_paper, paper, is_marking_schem
             if is_paper1():
                 return BusinessPaper1Coverpage, BusinessPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
             return BusinessPaper2Coverpage, BusinessPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
+        
+        if subject_name == 'CHRISTIAN RELIGIOUS EDUCATION' or subject_name == 'CRE':
+            if is_paper1():
+                return CREPaper1Coverpage, CREPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+            return CREPaper2Coverpage, CREPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
         
         if subject_name == 'MATHEMATICS':
             if is_paper1():
