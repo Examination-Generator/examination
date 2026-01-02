@@ -408,6 +408,27 @@ export const validateKiswahiliPaperPool = async (paperId, topicIds) => {
     }
 };
 
+export const validateCREPaperPool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/cre-paper/validate`;
+        const requestBody = { paper_id: paperId, topic_ids: topicIds };
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Validation API error (cre):', text);
+            throw new Error(friendlyErrorMessage(text));
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('CRE validation error:', error);
+        throw error;
+    }
+};
+
 /**
  * Get a specific generated paper with full question details
  * @param {string} generatedPaperId - UUID of the generated paper
