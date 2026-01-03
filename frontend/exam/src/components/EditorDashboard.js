@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import FractionModal from './FractionModal';
+import TableMatrixModal from './TableMatrixModal';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import * as subjectService from '../services/subjectService';
@@ -238,6 +239,48 @@ export default function EditorDashboard({ onLogout }) {
     };
 
     const applyQuestionFraction = () => openFractionModal(questionTextareaRef, setQuestionText, questionText, 'question');
+
+    // Table/Matrix modal state and handlers
+    const [showTableMatrixModal, setShowTableMatrixModal] = useState(false);
+    const [tableMatrixTarget, setTableMatrixTarget] = useState(null);
+    const [tableMatrixType, setTableMatrixType] = useState('table'); // 'table' or 'matrix'
+
+    const openTableMatrixModal = (textareaRef, setText, currentText, type) => {
+        setTableMatrixTarget({ textareaRef, setText, currentText });
+        setTableMatrixType(type);
+        setShowTableMatrixModal(true);
+    };
+
+    const handleTableMatrixInsert = ({ rows, cols }) => {
+        if (!tableMatrixTarget) return;
+        const { textareaRef, setText } = tableMatrixTarget;
+        const token = tableMatrixType === 'table' ? `[TABLE:${rows}x${cols}]` : `[MATRIX:${rows}x${cols}]`;
+
+        const textarea = textareaRef?.current;
+        if (!textarea) {
+            setText(prev => prev + token);
+            setShowTableMatrixModal(false);
+            return;
+        }
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newText = textarea.value.substring(0, start) + token + textarea.value.substring(end);
+        setText(newText);
+
+        setTimeout(() => {
+            textarea.focus();
+            const pos = start + token.length;
+            textarea.setSelectionRange(pos, pos);
+        }, 0);
+
+        setShowTableMatrixModal(false);
+    };
+
+    const applyQuestionTable = () => openTableMatrixModal(questionTextareaRef, setQuestionText, questionText, 'table');
+    const applyQuestionMatrix = () => openTableMatrixModal(questionTextareaRef, setQuestionText, questionText, 'matrix');
+    const applyEditQuestionTable = () => openTableMatrixModal(editQuestionTextareaRef, setEditQuestionText, editQuestionText, 'table');
+    const applyEditQuestionMatrix = () => openTableMatrixModal(editQuestionTextareaRef, setEditQuestionText, editQuestionText, 'matrix');
 
     // Answer formatting with superscript/subscript
     const applyAnswerFormattingAdvanced = (format) => {
@@ -1068,8 +1111,70 @@ export default function EditorDashboard({ onLogout }) {
     const renderTextWithImages = (text, images = [], imagePositions = {}, answerLines = [], onRemoveImage = null, onRemoveLines = null, context = 'preview') => {
         if (!text) return [];
         
-        // Enhanced regex pattern to include SUP and SUB tags
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+        // Enhanced regex pattern to include SUP, SUB, FRAC, MIX, TABLE, and MATRIX tags
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+            // Table: [TABLE:RxC]
+            if (part.startsWith('[TABLE:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(7, -1); // Remove [TABLE: and ]
+                    const match = inner.match(/(\d+)x(\d+)/);
+                    if (match) {
+                        const rows = parseInt(match[1]);
+                        const cols = parseInt(match[2]);
+                        return (
+                            <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                <tbody>
+                                    {[...Array(rows)].map((_, rowIdx) => (
+                                        <tr key={rowIdx}>
+                                            {[...Array(cols)].map((_, colIdx) => (
+                                                <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                    &nbsp;
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        );
+                    }
+                } catch (e) {
+                    return <span key={index}>{part}</span>;
+                }
+            }
+
+            // Matrix: [MATRIX:RxC]
+            if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(8, -1); // Remove [MATRIX: and ]
+                    const match = inner.match(/(\d+)x(\d+)/);
+                    if (match) {
+                        const rows = parseInt(match[1]);
+                        const cols = parseInt(match[2]);
+                        return (
+                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
+                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
+                                <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
+                                    <tbody>
+                                        {[...Array(rows)].map((_, rowIdx) => (
+                                            <tr key={rowIdx}>
+                                                {[...Array(cols)].map((_, colIdx) => (
+                                                    <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                        &nbsp;
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎤</span>
+                            </span>
+                        );
+                    }
+                } catch (e) {
+                    return <span key={index}>{part}</span>;
+                }
+            }
+
             // Fraction: [FRAC:num:den]
             if (part.startsWith('[FRAC:') && part.endsWith(']')) {
                 try {
@@ -2745,9 +2850,67 @@ useEffect(() => {
         if (!text) return null;
 
         // Split by markdown patterns while preserving image placeholders
-        const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
+        const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
 
         return parts.map((part, index) => {
+            // Table: [TABLE:RxC]
+            if (part.startsWith('[TABLE:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(7, -1);
+                    const match = inner.match(/(\d+)x(\d+)/);
+                    if (match) {
+                        const rows = parseInt(match[1]);
+                        const cols = parseInt(match[2]);
+                        return (
+                            <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                <tbody>
+                                    {[...Array(rows)].map((_, rowIdx) => (
+                                        <tr key={rowIdx}>
+                                            {[...Array(cols)].map((_, colIdx) => (
+                                                <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                    &nbsp;
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        );
+                    }
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
+            // Matrix: [MATRIX:RxC]
+            if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(8, -1);
+                    const match = inner.match(/(\d+)x(\d+)/);
+                    if (match) {
+                        const rows = parseInt(match[1]);
+                        const cols = parseInt(match[2]);
+                        return (
+                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
+                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
+                                <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
+                                    <tbody>
+                                        {[...Array(rows)].map((_, rowIdx) => (
+                                            <tr key={rowIdx}>
+                                                {[...Array(cols)].map((_, colIdx) => (
+                                                    <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                        &nbsp;
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎤</span>
+                            </span>
+                        );
+                    }
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
             // Fraction: [FRAC:num:den]
             if (part.startsWith('[FRAC:') && part.endsWith(']')) {
                 try {
@@ -4175,6 +4338,7 @@ useEffect(() => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
             <FractionModal open={showFractionModal} onClose={() => setShowFractionModal(false)} onInsert={handleFractionInsert} />
+            <TableMatrixModal open={showTableMatrixModal} onClose={() => setShowTableMatrixModal(false)} onInsert={handleTableMatrixInsert} type={tableMatrixType} />
             {/* Header */}
             <header className="bg-white shadow-md">
                 <div className="max-w-8xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -4628,6 +4792,24 @@ useEffect(() => {
                                             >
                                                 a⁄b
                                             </button>
+                                            {/* Table */}
+                                            <button
+                                                type="button"
+                                                onClick={applyQuestionTable}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                title="Insert table"
+                                            >
+                                                ⊞
+                                            </button>
+                                            {/* Matrix */}
+                                            <button
+                                                type="button"
+                                                onClick={applyQuestionMatrix}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                title="Insert matrix"
+                                            >
+                                                ⎡⎤
+                                            </button>
                                         </div>
                                         <button
                                             type="button"
@@ -4727,7 +4909,7 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
                                             // Check for formatting first
                                             // Superscript formatting
                                             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
@@ -4739,6 +4921,64 @@ useEffect(() => {
                                             if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
                                                 const content = part.slice(5, -6);
                                                 return <sub key={index} className="text-sm">{content}</sub>;
+                                            }
+
+                                            // Table: [TABLE:RxC]
+                                            if (part.startsWith('[TABLE:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(7, -1);
+                                                    const match = inner.match(/(\d+)x(\d+)/);
+                                                    if (match) {
+                                                        const rows = parseInt(match[1]);
+                                                        const cols = parseInt(match[2]);
+                                                        return (
+                                                            <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                                                <tbody>
+                                                                    {[...Array(rows)].map((_, rowIdx) => (
+                                                                        <tr key={rowIdx}>
+                                                                            {[...Array(cols)].map((_, colIdx) => (
+                                                                                <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                                                    &nbsp;
+                                                                                </td>
+                                                                            ))}
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        );
+                                                    }
+                                                } catch (e) { return <span key={index}>{part}</span>; }
+                                            }
+
+                                            // Matrix: [MATRIX:RxC]
+                                            if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(8, -1);
+                                                    const match = inner.match(/(\d+)x(\d+)/);
+                                                    if (match) {
+                                                        const rows = parseInt(match[1]);
+                                                        const cols = parseInt(match[2]);
+                                                        return (
+                                                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
+                                                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
+                                                                <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
+                                                                    <tbody>
+                                                                        {[...Array(rows)].map((_, rowIdx) => (
+                                                                            <tr key={rowIdx}>
+                                                                                {[...Array(cols)].map((_, colIdx) => (
+                                                                                    <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                                                        &nbsp;
+                                                                                    </td>
+                                                                                ))}
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎤</span>
+                                                            </span>
+                                                        );
+                                                    }
+                                                } catch (e) { return <span key={index}>{part}</span>; }
                                             }
 
                                             // Fraction: [FRAC:num:den]
@@ -5193,7 +5433,65 @@ useEffect(() => {
                                     <div className="mb-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                                         <p className="text-xs font-bold text-blue-800 mb-2">📝 QUESTION PREVIEW:</p>
                                         <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                                // Table: [TABLE:RxC]
+                                                if (part.startsWith('[TABLE:') && part.endsWith(']')) {
+                                                    try {
+                                                        const inner = part.slice(7, -1);
+                                                        const match = inner.match(/(\d+)x(\d+)/);
+                                                        if (match) {
+                                                            const rows = parseInt(match[1]);
+                                                            const cols = parseInt(match[2]);
+                                                            return (
+                                                                <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                                                    <tbody>
+                                                                        {[...Array(rows)].map((_, rowIdx) => (
+                                                                            <tr key={rowIdx}>
+                                                                                {[...Array(cols)].map((_, colIdx) => (
+                                                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                                                        &nbsp;
+                                                                                    </td>
+                                                                                ))}
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            );
+                                                        }
+                                                    } catch (e) { return <span key={index}>{part}</span>; }
+                                                }
+
+                                                // Matrix: [MATRIX:RxC]
+                                                if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
+                                                    try {
+                                                        const inner = part.slice(8, -1);
+                                                        const match = inner.match(/(\d+)x(\d+)/);
+                                                        if (match) {
+                                                            const rows = parseInt(match[1]);
+                                                            const cols = parseInt(match[2]);
+                                                            return (
+                                                                <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
+                                                                    <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
+                                                                    <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
+                                                                        <tbody>
+                                                                            {[...Array(rows)].map((_, rowIdx) => (
+                                                                                <tr key={rowIdx}>
+                                                                                    {[...Array(cols)].map((_, colIdx) => (
+                                                                                        <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                                                            &nbsp;
+                                                                                        </td>
+                                                                                    ))}
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                    <span style={{ fontSize: '2em', lineHeight: '1' }}>⎤</span>
+                                                                </span>
+                                                            );
+                                                        }
+                                                    } catch (e) { return <span key={index}>{part}</span>; }
+                                                }
+
                                                 // Check for formatting first
                                                 // Fraction: [FRAC:num:den]
                                                 if (part.startsWith('[FRAC:') && part.endsWith(']')) {
@@ -5317,7 +5615,7 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
                                             // Check for formatting first
                                             // Superscript formatting
                                             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
@@ -5329,6 +5627,64 @@ useEffect(() => {
                                             if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
                                                 const content = part.slice(5, -6);
                                                 return <sub key={index} data-text-index={index} className="text-sm">{content}</sub>;
+                                            }
+
+                                            // Table: [TABLE:RxC]
+                                            if (part.startsWith('[TABLE:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(7, -1);
+                                                    const match = inner.match(/(\d+)x(\d+)/);
+                                                    if (match) {
+                                                        const rows = parseInt(match[1]);
+                                                        const cols = parseInt(match[2]);
+                                                        return (
+                                                            <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                                                <tbody>
+                                                                    {[...Array(rows)].map((_, rowIdx) => (
+                                                                        <tr key={rowIdx}>
+                                                                            {[...Array(cols)].map((_, colIdx) => (
+                                                                                <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                                                    &nbsp;
+                                                                                </td>
+                                                                            ))}
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        );
+                                                    }
+                                                } catch (e) { return <span key={index}>{part}</span>; }
+                                            }
+
+                                            // Matrix: [MATRIX:RxC]
+                                            if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(8, -1);
+                                                    const match = inner.match(/(\d+)x(\d+)/);
+                                                    if (match) {
+                                                        const rows = parseInt(match[1]);
+                                                        const cols = parseInt(match[2]);
+                                                        return (
+                                                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
+                                                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
+                                                                <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
+                                                                    <tbody>
+                                                                        {[...Array(rows)].map((_, rowIdx) => (
+                                                                            <tr key={rowIdx}>
+                                                                                {[...Array(cols)].map((_, colIdx) => (
+                                                                                    <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                                                        &nbsp;
+                                                                                    </td>
+                                                                                ))}
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎤</span>
+                                                            </span>
+                                                        );
+                                                    }
+                                                } catch (e) { return <span key={index}>{part}</span>; }
                                             }
 
                                             // Fraction: [FRAC:num:den]
@@ -7889,6 +8245,24 @@ useEffect(() => {
                                                     title="Insert fraction (prompt)"
                                                 >
                                                     a⁄b
+                                                </button>
+                                                {/* Table */}
+                                                <button
+                                                    type="button"
+                                                    onClick={applyEditQuestionTable}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                    title="Insert table"
+                                                >
+                                                    ⊞
+                                                </button>
+                                                {/* Matrix */}
+                                                <button
+                                                    type="button"
+                                                    onClick={applyEditQuestionMatrix}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                    title="Insert matrix"
+                                                >
+                                                    ⎡⎤
                                                 </button>
 
                                             </div>

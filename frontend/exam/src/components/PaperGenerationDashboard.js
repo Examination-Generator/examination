@@ -126,7 +126,7 @@ export default function PaperGenerationDashboard() {
     const renderTextWithImages = (text, images = [], imagePositions = {}, context = 'preview') => {
         if (!text) return [];
         
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:\d+x\d+\]|\[MATRIX:\d+x\d+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
             // Fraction formatting
             if (part.startsWith('[FRAC:') && part.endsWith(']')) {
                 try {
@@ -147,6 +147,53 @@ export default function PaperGenerationDashboard() {
                     );
                 } catch (e) { return <span key={index}>{part}</span>; }
             }
+
+            // Table formatting
+            if (part.startsWith('[TABLE:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(7, -1);
+                    const [rows, cols] = inner.split('x').map(Number);
+                    return (
+                        <table key={index} style={{ border: '1px solid black', borderCollapse: 'collapse', margin: '10px 0' }}>
+                            <tbody>
+                                {Array.from({ length: rows }, (_, r) => (
+                                    <tr key={r}>
+                                        {Array.from({ length: cols }, (_, c) => (
+                                            <td key={c} style={{ border: '1px solid black', padding: '8px', minWidth: '60px', minHeight: '30px' }}>&nbsp;</td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    );
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
+            // Matrix formatting
+            if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(8, -1);
+                    const [rows, cols] = inner.split('x').map(Number);
+                    return (
+                        <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '0 5px' }}>
+                            <span style={{ fontSize: '3em', fontWeight: '100' }}>(</span>
+                            <table style={{ borderCollapse: 'collapse', margin: '0 5px' }}>
+                                <tbody>
+                                    {Array.from({ length: rows }, (_, r) => (
+                                        <tr key={r}>
+                                            {Array.from({ length: cols }, (_, c) => (
+                                                <td key={c} style={{ padding: '8px', minWidth: '40px', textAlign: 'center' }}>&nbsp;</td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            <span style={{ fontSize: '3em', fontWeight: '100' }}>)</span>
+                        </span>
+                    );
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
             // Superscript formatting
             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
                 return <sup key={index}>{part.slice(5, -6)}</sup>;
