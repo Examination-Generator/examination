@@ -152,20 +152,32 @@ export default function PaperGenerationDashboard() {
             if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                 try {
                     const inner = part.slice(7, -1);
-                    const [rows, cols] = inner.split('x').map(Number);
-                    return (
-                        <table key={index} style={{ border: '1px solid black', borderCollapse: 'collapse', margin: '10px 0' }}>
-                            <tbody>
-                                {Array.from({ length: rows }, (_, r) => (
-                                    <tr key={r}>
-                                        {Array.from({ length: cols }, (_, c) => (
-                                            <td key={c} style={{ border: '1px solid black', padding: '8px', minWidth: '60px', minHeight: '30px' }}>&nbsp;</td>
-                                        ))}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    );
+                    const parts = inner.split(':');
+                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                    if (dimensionMatch) {
+                        const rows = parseInt(dimensionMatch[1]);
+                        const cols = parseInt(dimensionMatch[2]);
+                        const cellData = parts[1] ? parts[1].split('|') : [];
+                        return (
+                            <table key={index} style={{ border: '1px solid black', borderCollapse: 'collapse', margin: '10px 0' }}>
+                                <tbody>
+                                    {Array.from({ length: rows }, (_, r) => (
+                                        <tr key={r}>
+                                            {Array.from({ length: cols }, (_, c) => {
+                                                const cellIndex = r * cols + c;
+                                                const cellValue = cellData[cellIndex] || '';
+                                                return (
+                                                    <td key={c} style={{ border: '1px solid black', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                        {cellValue || '\u00A0'}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        );
+                    }
                 } catch (e) { return <span key={index}>{part}</span>; }
             }
 
@@ -173,24 +185,36 @@ export default function PaperGenerationDashboard() {
             if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
                 try {
                     const inner = part.slice(8, -1);
-                    const [rows, cols] = inner.split('x').map(Number);
-                    return (
-                        <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '0 5px' }}>
-                            <span style={{ fontSize: '3em', fontWeight: '100' }}>(</span>
-                            <table style={{ borderCollapse: 'collapse', margin: '0 5px' }}>
-                                <tbody>
-                                    {Array.from({ length: rows }, (_, r) => (
-                                        <tr key={r}>
-                                            {Array.from({ length: cols }, (_, c) => (
-                                                <td key={c} style={{ padding: '8px', minWidth: '40px', textAlign: 'center' }}>&nbsp;</td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                            <span style={{ fontSize: '3em', fontWeight: '100' }}>)</span>
-                        </span>
-                    );
+                    const parts = inner.split(':');
+                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                    if (dimensionMatch) {
+                        const rows = parseInt(dimensionMatch[1]);
+                        const cols = parseInt(dimensionMatch[2]);
+                        const cellData = parts[1] ? parts[1].split('|') : [];
+                        return (
+                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '0 5px' }}>
+                                <span style={{ fontSize: '3em', fontWeight: '100' }}>(</span>
+                                <table style={{ borderCollapse: 'collapse', margin: '0 5px' }}>
+                                    <tbody>
+                                        {Array.from({ length: rows }, (_, r) => (
+                                            <tr key={r}>
+                                                {Array.from({ length: cols }, (_, c) => {
+                                                    const cellIndex = r * cols + c;
+                                                    const cellValue = cellData[cellIndex] || '';
+                                                    return (
+                                                        <td key={c} style={{ padding: '8px', minWidth: '40px', textAlign: 'center' }}>
+                                                            {cellValue || '\u00A0'}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                <span style={{ fontSize: '3em', fontWeight: '100' }}>)</span>
+                            </span>
+                        );
+                    }
                 } catch (e) { return <span key={index}>{part}</span>; }
             }
 

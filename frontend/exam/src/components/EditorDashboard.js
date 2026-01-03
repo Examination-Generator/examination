@@ -251,10 +251,12 @@ export default function EditorDashboard({ onLogout }) {
         setShowTableMatrixModal(true);
     };
 
-    const handleTableMatrixInsert = ({ rows, cols }) => {
+    const handleTableMatrixInsert = ({ rows, cols, data }) => {
         if (!tableMatrixTarget) return;
         const { textareaRef, setText } = tableMatrixTarget;
-        const token = tableMatrixType === 'table' ? `[TABLE:${rows}x${cols}]` : `[MATRIX:${rows}x${cols}]`;
+        const token = tableMatrixType === 'table' 
+            ? `[TABLE:${rows}x${cols}:${data}]` 
+            : `[MATRIX:${rows}x${cols}:${data}]`;
 
         const textarea = textareaRef?.current;
         if (!textarea) {
@@ -1117,20 +1119,26 @@ export default function EditorDashboard({ onLogout }) {
             if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                 try {
                     const inner = part.slice(7, -1); // Remove [TABLE: and ]
-                    const match = inner.match(/(\d+)x(\d+)/);
-                    if (match) {
-                        const rows = parseInt(match[1]);
-                        const cols = parseInt(match[2]);
+                    const parts = inner.split(':');
+                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                    if (dimensionMatch) {
+                        const rows = parseInt(dimensionMatch[1]);
+                        const cols = parseInt(dimensionMatch[2]);
+                        const cellData = parts[1] ? parts[1].split('|') : [];
                         return (
                             <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
                                 <tbody>
                                     {[...Array(rows)].map((_, rowIdx) => (
                                         <tr key={rowIdx}>
-                                            {[...Array(cols)].map((_, colIdx) => (
-                                                <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
-                                                    &nbsp;
-                                                </td>
-                                            ))}
+                                            {[...Array(cols)].map((_, colIdx) => {
+                                                const cellIndex = rowIdx * cols + colIdx;
+                                                const cellValue = cellData[cellIndex] || '';
+                                                return (
+                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                        {cellValue || '\u00A0'}
+                                                    </td>
+                                                );
+                                            })}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -1142,14 +1150,16 @@ export default function EditorDashboard({ onLogout }) {
                 }
             }
 
-            // Matrix: [MATRIX:RxC]
+            // Matrix: [MATRIX:RxC:data]
             if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
                 try {
                     const inner = part.slice(8, -1); // Remove [MATRIX: and ]
-                    const match = inner.match(/(\d+)x(\d+)/);
-                    if (match) {
-                        const rows = parseInt(match[1]);
-                        const cols = parseInt(match[2]);
+                    const parts = inner.split(':');
+                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                    if (dimensionMatch) {
+                        const rows = parseInt(dimensionMatch[1]);
+                        const cols = parseInt(dimensionMatch[2]);
+                        const cellData = parts[1] ? parts[1].split('|') : [];
                         return (
                             <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
                                 <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
@@ -1157,11 +1167,15 @@ export default function EditorDashboard({ onLogout }) {
                                     <tbody>
                                         {[...Array(rows)].map((_, rowIdx) => (
                                             <tr key={rowIdx}>
-                                                {[...Array(cols)].map((_, colIdx) => (
-                                                    <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
-                                                        &nbsp;
-                                                    </td>
-                                                ))}
+                                                {[...Array(cols)].map((_, colIdx) => {
+                                                    const cellIndex = rowIdx * cols + colIdx;
+                                                    const cellValue = cellData[cellIndex] || '';
+                                                    return (
+                                                        <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                            {cellValue || '\u00A0'}
+                                                        </td>
+                                                    );
+                                                })}
                                             </tr>
                                         ))}
                                     </tbody>
@@ -2853,24 +2867,30 @@ useEffect(() => {
         const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
 
         return parts.map((part, index) => {
-            // Table: [TABLE:RxC]
+            // Table: [TABLE:RxC:data]
             if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                 try {
                     const inner = part.slice(7, -1);
-                    const match = inner.match(/(\d+)x(\d+)/);
-                    if (match) {
-                        const rows = parseInt(match[1]);
-                        const cols = parseInt(match[2]);
+                    const parts = inner.split(':');
+                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                    if (dimensionMatch) {
+                        const rows = parseInt(dimensionMatch[1]);
+                        const cols = parseInt(dimensionMatch[2]);
+                        const cellData = parts[1] ? parts[1].split('|') : [];
                         return (
                             <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
                                 <tbody>
                                     {[...Array(rows)].map((_, rowIdx) => (
                                         <tr key={rowIdx}>
-                                            {[...Array(cols)].map((_, colIdx) => (
-                                                <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
-                                                    &nbsp;
-                                                </td>
-                                            ))}
+                                            {[...Array(cols)].map((_, colIdx) => {
+                                                const cellIndex = rowIdx * cols + colIdx;
+                                                const cellValue = cellData[cellIndex] || '';
+                                                return (
+                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                        {cellValue || '\u00A0'}
+                                                    </td>
+                                                );
+                                            })}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -2880,14 +2900,16 @@ useEffect(() => {
                 } catch (e) { return <span key={index}>{part}</span>; }
             }
 
-            // Matrix: [MATRIX:RxC]
+            // Matrix: [MATRIX:RxC:data]
             if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
                 try {
                     const inner = part.slice(8, -1);
-                    const match = inner.match(/(\d+)x(\d+)/);
-                    if (match) {
-                        const rows = parseInt(match[1]);
-                        const cols = parseInt(match[2]);
+                    const parts = inner.split(':');
+                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                    if (dimensionMatch) {
+                        const rows = parseInt(dimensionMatch[1]);
+                        const cols = parseInt(dimensionMatch[2]);
+                        const cellData = parts[1] ? parts[1].split('|') : [];
                         return (
                             <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
                                 <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
@@ -2895,11 +2917,15 @@ useEffect(() => {
                                     <tbody>
                                         {[...Array(rows)].map((_, rowIdx) => (
                                             <tr key={rowIdx}>
-                                                {[...Array(cols)].map((_, colIdx) => (
-                                                    <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
-                                                        &nbsp;
-                                                    </td>
-                                                ))}
+                                                {[...Array(cols)].map((_, colIdx) => {
+                                                    const cellIndex = rowIdx * cols + colIdx;
+                                                    const cellValue = cellData[cellIndex] || '';
+                                                    return (
+                                                        <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                            {cellValue || '\u00A0'}
+                                                        </td>
+                                                    );
+                                                })}
                                             </tr>
                                         ))}
                                     </tbody>
@@ -4923,24 +4949,30 @@ useEffect(() => {
                                                 return <sub key={index} className="text-sm">{content}</sub>;
                                             }
 
-                                            // Table: [TABLE:RxC]
+                                            // Table: [TABLE:RxC:data]
                                             if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                                                 try {
                                                     const inner = part.slice(7, -1);
-                                                    const match = inner.match(/(\d+)x(\d+)/);
-                                                    if (match) {
-                                                        const rows = parseInt(match[1]);
-                                                        const cols = parseInt(match[2]);
+                                                    const parts = inner.split(':');
+                                                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                                                    if (dimensionMatch) {
+                                                        const rows = parseInt(dimensionMatch[1]);
+                                                        const cols = parseInt(dimensionMatch[2]);
+                                                        const cellData = parts[1] ? parts[1].split('|') : [];
                                                         return (
                                                             <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
                                                                 <tbody>
                                                                     {[...Array(rows)].map((_, rowIdx) => (
                                                                         <tr key={rowIdx}>
-                                                                            {[...Array(cols)].map((_, colIdx) => (
-                                                                                <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
-                                                                                    &nbsp;
-                                                                                </td>
-                                                                            ))}
+                                                                            {[...Array(cols)].map((_, colIdx) => {
+                                                                                const cellIndex = rowIdx * cols + colIdx;
+                                                                                const cellValue = cellData[cellIndex] || '';
+                                                                                return (
+                                                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                                                        {cellValue || '\u00A0'}
+                                                                                    </td>
+                                                                                );
+                                                                            })}
                                                                         </tr>
                                                                     ))}
                                                                 </tbody>
@@ -4950,14 +4982,16 @@ useEffect(() => {
                                                 } catch (e) { return <span key={index}>{part}</span>; }
                                             }
 
-                                            // Matrix: [MATRIX:RxC]
+                                            // Matrix: [MATRIX:RxC:data]
                                             if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
                                                 try {
                                                     const inner = part.slice(8, -1);
-                                                    const match = inner.match(/(\d+)x(\d+)/);
-                                                    if (match) {
-                                                        const rows = parseInt(match[1]);
-                                                        const cols = parseInt(match[2]);
+                                                    const parts = inner.split(':');
+                                                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                                                    if (dimensionMatch) {
+                                                        const rows = parseInt(dimensionMatch[1]);
+                                                        const cols = parseInt(dimensionMatch[2]);
+                                                        const cellData = parts[1] ? parts[1].split('|') : [];
                                                         return (
                                                             <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
                                                                 <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
@@ -4965,11 +4999,15 @@ useEffect(() => {
                                                                     <tbody>
                                                                         {[...Array(rows)].map((_, rowIdx) => (
                                                                             <tr key={rowIdx}>
-                                                                                {[...Array(cols)].map((_, colIdx) => (
-                                                                                    <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
-                                                                                        &nbsp;
-                                                                                    </td>
-                                                                                ))}
+                                                                                {[...Array(cols)].map((_, colIdx) => {
+                                                                                    const cellIndex = rowIdx * cols + colIdx;
+                                                                                    const cellValue = cellData[cellIndex] || '';
+                                                                                    return (
+                                                                                        <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                                                            {cellValue || '\u00A0'}
+                                                                                        </td>
+                                                                                    );
+                                                                                })}
                                                                             </tr>
                                                                         ))}
                                                                     </tbody>
@@ -5434,24 +5472,30 @@ useEffect(() => {
                                         <p className="text-xs font-bold text-blue-800 mb-2">📝 QUESTION PREVIEW:</p>
                                         <div className="text-sm text-gray-700 whitespace-pre-wrap">
                                             {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
-                                                // Table: [TABLE:RxC]
+                                                // Table: [TABLE:RxC:data]
                                                 if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                                                     try {
                                                         const inner = part.slice(7, -1);
-                                                        const match = inner.match(/(\d+)x(\d+)/);
-                                                        if (match) {
-                                                            const rows = parseInt(match[1]);
-                                                            const cols = parseInt(match[2]);
+                                                        const parts = inner.split(':');
+                                                        const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                                                        if (dimensionMatch) {
+                                                            const rows = parseInt(dimensionMatch[1]);
+                                                            const cols = parseInt(dimensionMatch[2]);
+                                                            const cellData = parts[1] ? parts[1].split('|') : [];
                                                             return (
                                                                 <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
                                                                     <tbody>
                                                                         {[...Array(rows)].map((_, rowIdx) => (
                                                                             <tr key={rowIdx}>
-                                                                                {[...Array(cols)].map((_, colIdx) => (
-                                                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
-                                                                                        &nbsp;
-                                                                                    </td>
-                                                                                ))}
+                                                                                {[...Array(cols)].map((_, colIdx) => {
+                                                                                    const cellIndex = rowIdx * cols + colIdx;
+                                                                                    const cellValue = cellData[cellIndex] || '';
+                                                                                    return (
+                                                                                        <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                                                            {cellValue || '\u00A0'}
+                                                                                        </td>
+                                                                                    );
+                                                                                })}
                                                                             </tr>
                                                                         ))}
                                                                     </tbody>
@@ -5461,14 +5505,16 @@ useEffect(() => {
                                                     } catch (e) { return <span key={index}>{part}</span>; }
                                                 }
 
-                                                // Matrix: [MATRIX:RxC]
+                                                // Matrix: [MATRIX:RxC:data]
                                                 if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
                                                     try {
                                                         const inner = part.slice(8, -1);
-                                                        const match = inner.match(/(\d+)x(\d+)/);
-                                                        if (match) {
-                                                            const rows = parseInt(match[1]);
-                                                            const cols = parseInt(match[2]);
+                                                        const parts = inner.split(':');
+                                                        const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                                                        if (dimensionMatch) {
+                                                            const rows = parseInt(dimensionMatch[1]);
+                                                            const cols = parseInt(dimensionMatch[2]);
+                                                            const cellData = parts[1] ? parts[1].split('|') : [];
                                                             return (
                                                                 <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
                                                                     <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
@@ -5476,11 +5522,15 @@ useEffect(() => {
                                                                         <tbody>
                                                                             {[...Array(rows)].map((_, rowIdx) => (
                                                                                 <tr key={rowIdx}>
-                                                                                    {[...Array(cols)].map((_, colIdx) => (
-                                                                                        <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
-                                                                                            &nbsp;
-                                                                                        </td>
-                                                                                    ))}
+                                                                                    {[...Array(cols)].map((_, colIdx) => {
+                                                                                        const cellIndex = rowIdx * cols + colIdx;
+                                                                                        const cellValue = cellData[cellIndex] || '';
+                                                                                        return (
+                                                                                            <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                                                                {cellValue || '\u00A0'}
+                                                                                            </td>
+                                                                                        );
+                                                                                    })}
                                                                                 </tr>
                                                                             ))}
                                                                         </tbody>
@@ -5629,24 +5679,30 @@ useEffect(() => {
                                                 return <sub key={index} data-text-index={index} className="text-sm">{content}</sub>;
                                             }
 
-                                            // Table: [TABLE:RxC]
+                                            // Table: [TABLE:RxC:data]
                                             if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                                                 try {
                                                     const inner = part.slice(7, -1);
-                                                    const match = inner.match(/(\d+)x(\d+)/);
-                                                    if (match) {
-                                                        const rows = parseInt(match[1]);
-                                                        const cols = parseInt(match[2]);
+                                                    const parts = inner.split(':');
+                                                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                                                    if (dimensionMatch) {
+                                                        const rows = parseInt(dimensionMatch[1]);
+                                                        const cols = parseInt(dimensionMatch[2]);
+                                                        const cellData = parts[1] ? parts[1].split('|') : [];
                                                         return (
                                                             <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
                                                                 <tbody>
                                                                     {[...Array(rows)].map((_, rowIdx) => (
                                                                         <tr key={rowIdx}>
-                                                                            {[...Array(cols)].map((_, colIdx) => (
-                                                                                <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
-                                                                                    &nbsp;
-                                                                                </td>
-                                                                            ))}
+                                                                            {[...Array(cols)].map((_, colIdx) => {
+                                                                                const cellIndex = rowIdx * cols + colIdx;
+                                                                                const cellValue = cellData[cellIndex] || '';
+                                                                                return (
+                                                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                                                        {cellValue || '\u00A0'}
+                                                                                    </td>
+                                                                                );
+                                                                            })}
                                                                         </tr>
                                                                     ))}
                                                                 </tbody>
@@ -5656,14 +5712,16 @@ useEffect(() => {
                                                 } catch (e) { return <span key={index}>{part}</span>; }
                                             }
 
-                                            // Matrix: [MATRIX:RxC]
+                                            // Matrix: [MATRIX:RxC:data]
                                             if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
                                                 try {
                                                     const inner = part.slice(8, -1);
-                                                    const match = inner.match(/(\d+)x(\d+)/);
-                                                    if (match) {
-                                                        const rows = parseInt(match[1]);
-                                                        const cols = parseInt(match[2]);
+                                                    const parts = inner.split(':');
+                                                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                                                    if (dimensionMatch) {
+                                                        const rows = parseInt(dimensionMatch[1]);
+                                                        const cols = parseInt(dimensionMatch[2]);
+                                                        const cellData = parts[1] ? parts[1].split('|') : [];
                                                         return (
                                                             <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
                                                                 <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
@@ -5671,11 +5729,15 @@ useEffect(() => {
                                                                     <tbody>
                                                                         {[...Array(rows)].map((_, rowIdx) => (
                                                                             <tr key={rowIdx}>
-                                                                                {[...Array(cols)].map((_, colIdx) => (
-                                                                                    <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
-                                                                                        &nbsp;
-                                                                                    </td>
-                                                                                ))}
+                                                                                {[...Array(cols)].map((_, colIdx) => {
+                                                                                    const cellIndex = rowIdx * cols + colIdx;
+                                                                                    const cellValue = cellData[cellIndex] || '';
+                                                                                    return (
+                                                                                        <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                                                            {cellValue || '\u00A0'}
+                                                                                        </td>
+                                                                                    );
+                                                                                })}
                                                                             </tr>
                                                                         ))}
                                                                     </tbody>
