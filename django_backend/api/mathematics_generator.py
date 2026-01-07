@@ -34,24 +34,24 @@ from .models import Paper, Topic, Question, Subject
 class KCSEMathematicsPaper1Generator:
     """
     KCSE Mathematics Paper 1 Generator
-    Section I: 16 questions (12x3mk, 3x4mk, 1x2mk) = 50 marks
+    Section I: Flexible distribution totaling 50 marks
+      - 3-mark questions form the majority (at least 12)
+      - At least 2 questions of 4 marks
+      - At least 2 questions of 2 marks
+      - Total must equal 50 marks
     Section II: 8 questions (8x10mk, student selects 5) = 50 marks done
-    Total: 24 questions, strictly ordered by section
+    Total questions vary based on Section I distribution
     """
     
     # Section I Requirements
-    SECTION_I_3MARK_COUNT = 12
-    SECTION_I_4MARK_COUNT = 3
-    SECTION_I_2MARK_COUNT = 1
-    SECTION_I_TOTAL = 16
+    SECTION_I_3MARK_MIN = 12  # Minimum 3-mark questions (majority)
+    SECTION_I_4MARK_MIN = 2   # Minimum 4-mark questions
+    SECTION_I_2MARK_MIN = 2   # Minimum 2-mark questions
     SECTION_I_MARKS = 50
     
     # Section II Requirements
     SECTION_II_10MARK_COUNT = 8
     SECTION_II_TOTAL = 8
-    
-    # Total
-    TOTAL_QUESTIONS = 24
     
     def __init__(self, paper_id: str, selected_topic_ids: List[str]):
         """
@@ -138,55 +138,65 @@ class KCSEMathematicsPaper1Generator:
         
         print(f"\n[DATA LOADED - MATHEMATICS PAPER 1]")
         print(f"  Section I:")
-        print(f"    2-mark: {len(self.section_i_2mark)} (need {self.SECTION_I_2MARK_COUNT})")
-        print(f"    3-mark: {len(self.section_i_3mark)} (need {self.SECTION_I_3MARK_COUNT})")
-        print(f"    4-mark: {len(self.section_i_4mark)} (need {self.SECTION_I_4MARK_COUNT})")
+        print(f"    2-mark: {len(self.section_i_2mark)} (min {self.SECTION_I_2MARK_MIN})")
+        print(f"    3-mark: {len(self.section_i_3mark)} (min {self.SECTION_I_3MARK_MIN}, majority)")
+        print(f"    4-mark: {len(self.section_i_4mark)} (min {self.SECTION_I_4MARK_MIN})")
         print(f"  Section II:")
         print(f"    10-mark: {len(self.section_ii_10mark)} (need {self.SECTION_II_10MARK_COUNT})")
     
     def _select_section_i(self) -> bool:
-        """Select Section I questions: 12x3mk, 3x4mk, 1x2mk"""
-        # Check availability
-        if (len(self.section_i_2mark) < self.SECTION_I_2MARK_COUNT or
-            len(self.section_i_3mark) < self.SECTION_I_3MARK_COUNT or
-            len(self.section_i_4mark) < self.SECTION_I_4MARK_COUNT):
+        """
+        Select Section I questions with flexible distribution to reach 50 marks.
+        - 3-mark questions form majority (at least 12)
+        - At least 2 questions of 4 marks
+        - At least 2 questions of 2 marks
+        - Total must equal 50 marks
+        """
+        # Check minimum availability
+        if (len(self.section_i_2mark) < self.SECTION_I_2MARK_MIN or
+            len(self.section_i_3mark) < self.SECTION_I_3MARK_MIN or
+            len(self.section_i_4mark) < self.SECTION_I_4MARK_MIN):
             return False
         
-        selected = []
-        
-        # Select 1 x 2-mark
         available_2 = [q for q in self.section_i_2mark if q.id not in self.used_ids]
-        if len(available_2) < self.SECTION_I_2MARK_COUNT:
-            return False
-        selected.extend(available_2[:self.SECTION_I_2MARK_COUNT])
-        
-        # Select 12 x 3-mark
         available_3 = [q for q in self.section_i_3mark if q.id not in self.used_ids]
-        if len(available_3) < self.SECTION_I_3MARK_COUNT:
-            return False
-        selected.extend(available_3[:self.SECTION_I_3MARK_COUNT])
-        
-        # Select 3 x 4-mark
         available_4 = [q for q in self.section_i_4mark if q.id not in self.used_ids]
-        if len(available_4) < self.SECTION_I_4MARK_COUNT:
-            return False
-        selected.extend(available_4[:self.SECTION_I_4MARK_COUNT])
         
-        # Verify total
-        total_marks = sum(q.marks for q in selected)
-        if len(selected) != self.SECTION_I_TOTAL or total_marks != self.SECTION_I_MARKS:
+        if (len(available_2) < self.SECTION_I_2MARK_MIN or
+            len(available_3) < self.SECTION_I_3MARK_MIN or
+            len(available_4) < self.SECTION_I_4MARK_MIN):
             return False
         
-        # Accept selection
-        self.selected_section_i = selected
-        for q in selected:
-            self.used_ids.add(q.id)
+        # Try different combinations to reach exactly 50 marks
+        # Start with minimum requirements and add more to reach 50
+        for count_3 in range(self.SECTION_I_3MARK_MIN, min(len(available_3), 20) + 1):
+            for count_4 in range(self.SECTION_I_4MARK_MIN, min(len(available_4), 10) + 1):
+                for count_2 in range(self.SECTION_I_2MARK_MIN, min(len(available_2), 10) + 1):
+                    total_marks = (count_3 * 3) + (count_4 * 4) + (count_2 * 2)
+                    
+                    if total_marks == self.SECTION_I_MARKS:
+                        # Found valid combination
+                        selected = []
+                        selected.extend(available_2[:count_2])
+                        selected.extend(available_3[:count_3])
+                        selected.extend(available_4[:count_4])
+                        
+                        # Verify 3-mark questions form majority
+                        if count_3 >= count_2 and count_3 >= count_4:
+                            self.selected_section_i = selected
+                            for q in selected:
+                                self.used_ids.add(q.id)
+                            
+                            print(f"\n[SECTION I SELECTED]")
+                            print(f"  2-mark questions: {count_2}")
+                            print(f"  3-mark questions: {count_3} (majority)")
+                            print(f"  4-mark questions: {count_4}")
+                            print(f"  Total questions: {len(selected)}")
+                            print(f"  Total marks: {total_marks}")
+                            
+                            return True
         
-        print(f"\n[SECTION I SELECTED]")
-        print(f"  Questions: {len(selected)}")
-        print(f"  Total marks: {total_marks}")
-        
-        return True
+        return False
     
     def _select_section_ii(self) -> bool:
         """Select Section II questions: 8x10mk"""
@@ -302,10 +312,9 @@ class KCSEMathematicsPaper1Generator:
                 'generation_attempts': self.attempts,
                 'generation_time_seconds': round(generation_time, 2),
                 'validation': {
-                    'section_i_count_ok': len(self.selected_section_i) == 16,
                     'section_i_marks_ok': sum(q.marks for q in self.selected_section_i) == 50,
                     'section_ii_count_ok': len(self.selected_section_ii) == 8,
-                    'total_questions_ok': len(all_questions) == 24,
+                    'section_ii_marks_ok': sum(q.marks for q in self.selected_section_ii) == 80,
                 }
             }
         }
