@@ -9379,7 +9379,7 @@ useEffect(() => {
                             {/* By Paper */}
                             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
                                 <h3 className="text-lg font-bold mb-4">Questions by Paper</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-96 overflow-y-auto">
                                     {Object.entries(stats.byPaper).map(([paperKey, counts]) => (
                                         <div key={paperKey} className="border-2 border-gray-200 rounded-lg p-4 hover:border-purple-500 transition bg-gradient-to-br from-purple-50 to-white">
                                             <div className="mb-2">
