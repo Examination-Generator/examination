@@ -242,6 +242,22 @@ class Topic(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_step = models.BooleanField(
+        default=False
+    )
+    is_comprehension = models.BooleanField(
+        default=False
+        )
+    
+    is_summary = models.BooleanField(
+        default=False
+    )
+    is_lugha = models.BooleanField(
+        default=False
+    )
+    is_isimu = models.BooleanField(
+        default=False
+    )
     
     class Meta:
         db_table = 'topics'

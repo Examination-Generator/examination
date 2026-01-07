@@ -121,9 +121,22 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
                     endpoint = `${API_BASE_URL}/papers/english-paper/generate`;
                     paperType = 'english-paper';
                     console.log('DETECTED: English Paper (using dedicated english endpoint)');
-            } else {
-                console.log('DETECTED: Standard Paper (using general endpoint)');
-            }
+                } else if (paperName.includes('kiswahili') || subjectName.includes('kiswahili') || paperName.includes('karatasi')) {
+                    endpoint = `${API_BASE_URL}/papers/kiswahili-paper/generate`;
+                    paperType = 'kiswahili-paper';
+                    console.log('DETECTED: Kiswahili Paper (using dedicated kiswahili endpoint)');
+                }else if (paperName.includes('business') || subjectName.includes('business')) {
+                    endpoint = `${API_BASE_URL}/papers/business-paper/generate`;
+                    paperType = 'business-paper';
+                    console.log('DETECTED: Business Paper (using dedicated business endpoint)');
+                }else if(paperName.includes('cre') || subjectName.includes('cre')){
+                    endpoint = `${API_BASE_URL}/papers/cre-paper/generate`;
+                    paperType = 'christian-religious-education-paper';
+                    console.log('DETECTED: Christian Religious Education Paper (using dedicated CRE endpoint)');
+
+                } else {
+                    console.log('DETECTED: Standard Paper (using general endpoint)');
+                }
         }
         
         // Normalize topic request body per endpoint
@@ -142,7 +155,7 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
             isBiologyPaper1 = isBiology && isPaper1 && !isPaper2;
         }
 
-        const endpointUsesSelectedTopics = isBiologyPaper1 || endpoint.includes('/biology-paper2/') || endpoint.includes('/biology-paper');
+        const endpointUsesSelectedTopics = isBiologyPaper1 || endpoint.includes('/biology-paper2/') || endpoint.includes('/biology-paper'); 
 
         if (endpointUsesSelectedTopics) {
             requestBody = {
@@ -370,6 +383,48 @@ export const validateEnglishPaperPool = async (paperId, topicIds) => {
         return await response.json();
     } catch (error) {
         console.error('English validation error:', error);
+        throw error;
+    }
+};
+
+export const validateKiswahiliPaperPool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/kiswahili-paper/validate`;
+        const requestBody = { paper_id: paperId, topic_ids: topicIds };
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Validation API error (kiswahili):', text);
+            throw new Error(friendlyErrorMessage(text));
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Kiswahili validation error:', error);
+        throw error;
+    }
+};
+
+export const validateCREPaperPool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/cre-paper/validate`;
+        const requestBody = { paper_id: paperId, topic_ids: topicIds };
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Validation API error (cre):', text);
+            throw new Error(friendlyErrorMessage(text));
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('CRE validation error:', error);
         throw error;
     }
 };

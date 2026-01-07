@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import FractionModal from './FractionModal';
+import TableMatrixModal from './TableMatrixModal';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import * as subjectService from '../services/subjectService';
@@ -7,6 +9,8 @@ import * as authService from '../services/authService';
 import { useError } from '../contexts/ErrorContext';
 import { useSearchQuestions } from '../hooks/useQuestions';
 import { useDebounce } from '../hooks/useDebounce';
+import SymbolPicker from './SymbolPicker';
+
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api' ;
 
@@ -126,17 +130,232 @@ export default function EditorDashboard({ onLogout }) {
     const { showError, showSuccess } = useError();
     
         
-        // Edit answer/line configurations and edit-specific flags
-        const [editQuestionAnswerLines, setEditQuestionAnswerLines] = useState([]);
-        const [editAnswerAnswerLines, setEditAnswerAnswerLines] = useState([]);
+    // Edit answer/line configurations and edit-specific flags
+    const [editQuestionAnswerLines, setEditQuestionAnswerLines] = useState([]);
+    const [editAnswerAnswerLines, setEditAnswerAnswerLines] = useState([]);
 
-        // Edit-specific flags (missing earlier) — initialize here
-        const [editIsNested, setEditIsNested] = useState(false);
-        const [editIsEssayQuestion, setEditIsEssayQuestion] = useState(false);
-        const [editIsGraphQuestion, setEditIsGraphQuestion] = useState(false);
-        const [editIsMapQuestion, setEditIsMapQuestion] = useState(false);
+    // Edit-specific flags (missing earlier) — initialize here
+    const [editIsNested, setEditIsNested] = useState(false);
+    const [editIsEssayQuestion, setEditIsEssayQuestion] = useState(false);
+    const [editIsGraphQuestion, setEditIsGraphQuestion] = useState(false);
+    const [editIsMapQuestion, setEditIsMapQuestion] = useState(false);
 
-        // Initialize edit fields when a question is selected for editing
+    //more edit functions
+    const [showSymbolPicker, setShowSymbolPicker] = useState(false);
+    const [symbolPickerTarget, setSymbolPickerTarget] = useState('question'); // 'question' or 'answer'
+
+    // For Edit mode
+    const [showEditSymbolPicker, setShowEditSymbolPicker] = useState(false);
+    const [editSymbolPickerTarget, setEditSymbolPickerTarget] = useState('question');
+
+    // Enhanced formatting function with superscript and subscript support
+    const applyAdvancedFormatting = (format, textareaRef, setText, section) => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+
+        if (!selectedText) {
+            showError('Please select text to format');
+            return;
+        }
+
+        let formattedText = '';
+
+        switch (format) {
+            case 'superscript':
+                // Use [SUP]...[/SUP] tags for rendering
+                formattedText = `[SUP]${selectedText}[/SUP]`;
+                break;
+            case 'subscript':
+                // Use [SUB]...[/SUB] tags for rendering
+                formattedText = `[SUB]${selectedText}[/SUB]`;
+                break;
+            case 'bold':
+                formattedText = `**${selectedText}**`;
+                break;
+            case 'italic':
+                formattedText = `*${selectedText}*`;
+                break;
+            case 'underline':
+                formattedText = `__${selectedText}__`;
+                break;
+            default:
+                return;
+        }
+
+        const newText = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+        setText(newText);
+
+        setTimeout(() => {
+            textarea.focus();
+            const newCursorPos = start + formattedText.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
+    };
+
+    // Fraction modal state and handlers (replaces prompt-based insertion)
+    const [showFractionModal, setShowFractionModal] = useState(false);
+    const [fractionTarget, setFractionTarget] = useState(null);
+
+    const openFractionModal = (textareaRef, setText, currentText, targetName = '') => {
+        setFractionTarget({ textareaRef, setText, currentText, targetName });
+        setShowFractionModal(true);
+    };
+
+    const handleFractionInsert = ({ whole, numerator, denominator }) => {
+        if (!fractionTarget) return;
+        const { textareaRef, setText } = fractionTarget;
+        const token = (whole && whole.trim() !== '')
+            ? `[MIX:${whole.trim()}:${numerator.trim()}:${denominator.trim()}]`
+            : `[FRAC:${numerator.trim()}:${denominator.trim()}]`;
+
+        const textarea = textareaRef?.current;
+        if (!textarea) {
+            setText(prev => prev + token);
+            setShowFractionModal(false);
+            return;
+        }
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newText = textarea.value.substring(0, start) + token + textarea.value.substring(end);
+        setText(newText);
+
+        setTimeout(() => {
+            textarea.focus();
+            const pos = start + token.length;
+            textarea.setSelectionRange(pos, pos);
+        }, 0);
+
+        setShowFractionModal(false);
+    };
+
+    // Question formatting with superscript/subscript
+    const applyQuestionFormattingAdvanced = (format) => {
+        applyAdvancedFormatting(format, questionTextareaRef, setQuestionText, 'question');
+    };
+
+    const applyQuestionFraction = () => openFractionModal(questionTextareaRef, setQuestionText, questionText, 'question');
+
+    // Table/Matrix modal state and handlers
+    const [showTableMatrixModal, setShowTableMatrixModal] = useState(false);
+    const [tableMatrixTarget, setTableMatrixTarget] = useState(null);
+    const [tableMatrixType, setTableMatrixType] = useState('table'); // 'table' or 'matrix'
+
+    const openTableMatrixModal = (textareaRef, setText, currentText, type) => {
+        setTableMatrixTarget({ textareaRef, setText, currentText });
+        setTableMatrixType(type);
+        setShowTableMatrixModal(true);
+    };
+
+    const handleTableMatrixInsert = ({ rows, cols, data }) => {
+        if (!tableMatrixTarget) return;
+        const { textareaRef, setText } = tableMatrixTarget;
+        const token = tableMatrixType === 'table' 
+            ? `[TABLE:${rows}x${cols}:${data}]` 
+            : `[MATRIX:${rows}x${cols}:${data}]`;
+
+        const textarea = textareaRef?.current;
+        if (!textarea) {
+            setText(prev => prev + token);
+            setShowTableMatrixModal(false);
+            return;
+        }
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const newText = textarea.value.substring(0, start) + token + textarea.value.substring(end);
+        setText(newText);
+
+        setTimeout(() => {
+            textarea.focus();
+            const pos = start + token.length;
+            textarea.setSelectionRange(pos, pos);
+        }, 0);
+
+        setShowTableMatrixModal(false);
+    };
+
+    const applyQuestionTable = () => openTableMatrixModal(questionTextareaRef, setQuestionText, questionText, 'table');
+    const applyQuestionMatrix = () => openTableMatrixModal(questionTextareaRef, setQuestionText, questionText, 'matrix');
+    const applyEditQuestionTable = () => openTableMatrixModal(editQuestionTextareaRef, setEditQuestionText, editQuestionText, 'table');
+    const applyEditQuestionMatrix = () => openTableMatrixModal(editQuestionTextareaRef, setEditQuestionText, editQuestionText, 'matrix');
+
+    // Answer formatting with superscript/subscript
+    const applyAnswerFormattingAdvanced = (format) => {
+        applyAdvancedFormatting(format, answerTextareaRef, setAnswerText, 'answer');
+    };
+
+    const applyAnswerFraction = () => openFractionModal(answerTextareaRef, setAnswerText, answerText, 'answer');
+
+    // Edit mode formatting
+    const applyEditQuestionFormattingAdvanced = (format) => {
+        applyAdvancedFormatting(format, editQuestionTextareaRef, setEditQuestionText, 'editQuestion');
+    };
+
+    const applyEditQuestionFraction = () => openFractionModal(editQuestionTextareaRef, setEditQuestionText, editQuestionText, 'editQuestion');
+
+    const applyEditAnswerFormattingAdvanced = (format) => {
+        applyAdvancedFormatting(format, editAnswerTextareaRef, setEditAnswerText, 'editAnswer');
+    };
+
+    const applyEditAnswerFraction = () => openFractionModal(editAnswerTextareaRef, setEditAnswerText, editAnswerText, 'editAnswer');
+
+    // Symbol insertion function
+    const insertSymbol = (symbol, targetType) => {
+        const textareaRef = targetType === 'question' ? questionTextareaRef : answerTextareaRef;
+        const setText = targetType === 'question' ? setQuestionText : setAnswerText;
+        const text = targetType === 'question' ? questionText : answerText;
+        
+        const textarea = textareaRef.current;
+        if (!textarea) {
+            // If no textarea ref, append to end
+            setText(prev => prev + symbol);
+            return;
+        }
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        
+        const newText = text.substring(0, start) + symbol + text.substring(end);
+        setText(newText);
+
+        setTimeout(() => {
+            textarea.focus();
+            const newCursorPos = start + symbol.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
+    };
+
+    // Edit mode symbol insertion
+    const insertEditSymbol = (symbol, targetType) => {
+        const textareaRef = targetType === 'question' ? editQuestionTextareaRef : editAnswerTextareaRef;
+        const setText = targetType === 'question' ? setEditQuestionText : setEditAnswerText;
+        const text = targetType === 'question' ? editQuestionText : editAnswerText;
+        
+        const textarea = textareaRef.current;
+        if (!textarea) {
+            setText(prev => prev + symbol);
+            return;
+        }
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        
+        const newText = text.substring(0, start) + symbol + text.substring(end);
+        setText(newText);
+
+        setTimeout(() => {
+            textarea.focus();
+            const newCursorPos = start + symbol.length;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+        }, 0);
+    };
+
+    // Initialize edit fields when a question is selected for editing
         useEffect(() => {
             if (!selectedQuestion) {
                 setEditQuestionAnswerLines([]);
@@ -894,7 +1113,128 @@ export default function EditorDashboard({ onLogout }) {
     const renderTextWithImages = (text, images = [], imagePositions = {}, answerLines = [], onRemoveImage = null, onRemoveLines = null, context = 'preview') => {
         if (!text) return [];
         
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+        // Enhanced regex pattern to include SUP, SUB, FRAC, MIX, TABLE, and MATRIX tags
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+            // Table: [TABLE:RxC]
+            if (part.startsWith('[TABLE:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(7, -1); // Remove [TABLE: and ]
+                    const parts = inner.split(':');
+                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                    if (dimensionMatch) {
+                        const rows = parseInt(dimensionMatch[1]);
+                        const cols = parseInt(dimensionMatch[2]);
+                        const cellData = parts[1] ? parts[1].split('|') : [];
+                        return (
+                            <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                <tbody>
+                                    {[...Array(rows)].map((_, rowIdx) => (
+                                        <tr key={rowIdx}>
+                                            {[...Array(cols)].map((_, colIdx) => {
+                                                const cellIndex = rowIdx * cols + colIdx;
+                                                const cellValue = cellData[cellIndex] || '';
+                                                return (
+                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                        {cellValue || '\u00A0'}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        );
+                    }
+                } catch (e) {
+                    return <span key={index}>{part}</span>;
+                }
+            }
+
+            // Matrix: [MATRIX:RxC:data]
+            if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(8, -1); // Remove [MATRIX: and ]
+                    const parts = inner.split(':');
+                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                    if (dimensionMatch) {
+                        const rows = parseInt(dimensionMatch[1]);
+                        const cols = parseInt(dimensionMatch[2]);
+                        const cellData = parts[1] ? parts[1].split('|') : [];
+                        return (
+                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
+                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
+                                <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
+                                    <tbody>
+                                        {[...Array(rows)].map((_, rowIdx) => (
+                                            <tr key={rowIdx}>
+                                                {[...Array(cols)].map((_, colIdx) => {
+                                                    const cellIndex = rowIdx * cols + colIdx;
+                                                    const cellValue = cellData[cellIndex] || '';
+                                                    return (
+                                                        <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                            {cellValue || '\u00A0'}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎤</span>
+                            </span>
+                        );
+                    }
+                } catch (e) {
+                    return <span key={index}>{part}</span>;
+                }
+            }
+
+            // Fraction: [FRAC:num:den]
+            if (part.startsWith('[FRAC:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(6, -1);
+                    const [num, den] = inner.split(':');
+                    return (
+                        <span key={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                            <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                        </span>
+                    );
+                } catch (e) {
+                    return <span key={index}>{part}</span>;
+                }
+            }
+
+            // Mixed fraction: [MIX:whole:num:den]
+            if (part.startsWith('[MIX:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(5, -1);
+                    const [whole, num, den] = inner.split(':');
+                    return (
+                        <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                            <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                            </span>
+                        </span>
+                    );
+                } catch (e) {
+                    return <span key={index}>{part}</span>;
+                }
+            }
+            // Superscript formatting
+            if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
+                const content = part.slice(5, -6); // Remove [SUP] and [/SUP]
+                return <sup key={index} className="text-sm">{content}</sup>;
+            }
+            
+            // Subscript formatting
+            if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
+                const content = part.slice(5, -6); // Remove [SUB] and [/SUB]
+                return <sub key={index} className="text-sm">{content}</sub>;
+            }
+            
             // Bold formatting
             if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
                 const content = part.slice(2, -2);
@@ -2524,9 +2864,110 @@ useEffect(() => {
         if (!text) return null;
 
         // Split by markdown patterns while preserving image placeholders
-        const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
+        const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
 
         return parts.map((part, index) => {
+            // Table: [TABLE:RxC:data]
+            if (part.startsWith('[TABLE:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(7, -1);
+                    const parts = inner.split(':');
+                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                    if (dimensionMatch) {
+                        const rows = parseInt(dimensionMatch[1]);
+                        const cols = parseInt(dimensionMatch[2]);
+                        const cellData = parts[1] ? parts[1].split('|') : [];
+                        return (
+                            <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                <tbody>
+                                    {[...Array(rows)].map((_, rowIdx) => (
+                                        <tr key={rowIdx}>
+                                            {[...Array(cols)].map((_, colIdx) => {
+                                                const cellIndex = rowIdx * cols + colIdx;
+                                                const cellValue = cellData[cellIndex] || '';
+                                                return (
+                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                        {cellValue || '\u00A0'}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        );
+                    }
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
+            // Matrix: [MATRIX:RxC:data]
+            if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(8, -1);
+                    const parts = inner.split(':');
+                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                    if (dimensionMatch) {
+                        const rows = parseInt(dimensionMatch[1]);
+                        const cols = parseInt(dimensionMatch[2]);
+                        const cellData = parts[1] ? parts[1].split('|') : [];
+                        return (
+                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
+                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
+                                <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
+                                    <tbody>
+                                        {[...Array(rows)].map((_, rowIdx) => (
+                                            <tr key={rowIdx}>
+                                                {[...Array(cols)].map((_, colIdx) => {
+                                                    const cellIndex = rowIdx * cols + colIdx;
+                                                    const cellValue = cellData[cellIndex] || '';
+                                                    return (
+                                                        <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                            {cellValue || '\u00A0'}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎤</span>
+                            </span>
+                        );
+                    }
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
+            // Fraction: [FRAC:num:den]
+            if (part.startsWith('[FRAC:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(6, -1);
+                    const [num, den] = inner.split(':');
+                    return (
+                        <span key={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                            <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                        </span>
+                    );
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
+            // Mixed fraction: [MIX:whole:num:den]
+            if (part.startsWith('[MIX:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(5, -1);
+                    const [whole, num, den] = inner.split(':');
+                    return (
+                        <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                            <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                            </span>
+                        </span>
+                    );
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
             // Bold: **text**
             if (part.startsWith('**') && part.endsWith('**')) {
                 const content = part.slice(2, -2);
@@ -3922,6 +4363,8 @@ useEffect(() => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
+            <FractionModal open={showFractionModal} onClose={() => setShowFractionModal(false)} onInsert={handleFractionInsert} />
+            <TableMatrixModal open={showTableMatrixModal} onClose={() => setShowTableMatrixModal(false)} onInsert={handleTableMatrixInsert} type={tableMatrixType} />
             {/* Header */}
             <header className="bg-white shadow-md">
                 <div className="max-w-8xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -4348,7 +4791,64 @@ useEffect(() => {
                                             >
                                                 U
                                             </button>
+                                            {/* Superscript */}
+                                            <button
+                                                type="button"
+                                                onClick={() => applyQuestionFormattingAdvanced('superscript')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                                title="Superscript (Select text first) - e.g., x²"
+                                            >
+                                                x<sup className="text-[8px]">2</sup>
+                                            </button>
+                                            {/* Subscript */}
+                                            <button
+                                                type="button"
+                                                onClick={() => applyQuestionFormattingAdvanced('subscript')}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                                title="Subscript (Select text first) - e.g., H₂O"
+                                            >
+                                                H<sub className="text-[8px]">2</sub>
+                                            </button>
+                                            {/* Fraction */}
+                                            <button
+                                                type="button"
+                                                onClick={applyQuestionFraction}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                title="Insert fraction (prompt for numerator/denominator)"
+                                            >
+                                                a⁄b
+                                            </button>
+                                            {/* Table */}
+                                            <button
+                                                type="button"
+                                                onClick={applyQuestionTable}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                title="Insert table"
+                                            >
+                                                ⊞
+                                            </button>
+                                            {/* Matrix */}
+                                            <button
+                                                type="button"
+                                                onClick={applyQuestionMatrix}
+                                                className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                title="Insert matrix"
+                                            >
+                                                ⎡⎤
+                                            </button>
                                         </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSymbolPickerTarget('question');
+                                                setShowSymbolPicker(true);
+                                            }}
+                                            className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                            title="Insert special symbols (π, α, β, ∫, etc.)"
+                                        >
+                                            <span className="text-lg leading-none">Ω</span>
+                                            <span>Symbols</span>
+                                        </button>
 
                                         {/* Answer Lines Button */}
                                         <button
@@ -4378,6 +4878,24 @@ useEffect(() => {
                                             </svg>
                                             <span>{isQuestionListening ? 'Recording...' : 'Mic'}</span>
                                         </button>
+
+                                        {/* Symbol Picker Modal for Question */}
+                                        {showSymbolPicker && (
+                                            <SymbolPicker
+                                                onInsert={(symbol) => insertSymbol(symbol, symbolPickerTarget)}
+                                                onClose={() => setShowSymbolPicker(false)}
+                                                targetType={symbolPickerTarget}
+                                            />
+                                        )}
+
+                                        {/* Symbol Picker Modal for Edit Mode */}
+                                        {showEditSymbolPicker && (
+                                            <SymbolPicker
+                                                onInsert={(symbol) => insertEditSymbol(symbol, editSymbolPickerTarget)}
+                                                onClose={() => setShowEditSymbolPicker(false)}
+                                                targetType={editSymbolPickerTarget}
+                                            />
+                                        )}
                                     </div>
                                 </div>
 
@@ -4417,8 +4935,120 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
                                             // Check for formatting first
+                                            // Superscript formatting
+                                            if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
+                                                const content = part.slice(5, -6);
+                                                return <sup key={index} className="text-sm">{content}</sup>;
+                                            }
+
+                                            // Subscript formatting
+                                            if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
+                                                const content = part.slice(5, -6);
+                                                return <sub key={index} className="text-sm">{content}</sub>;
+                                            }
+
+                                            // Table: [TABLE:RxC:data]
+                                            if (part.startsWith('[TABLE:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(7, -1);
+                                                    const parts = inner.split(':');
+                                                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                                                    if (dimensionMatch) {
+                                                        const rows = parseInt(dimensionMatch[1]);
+                                                        const cols = parseInt(dimensionMatch[2]);
+                                                        const cellData = parts[1] ? parts[1].split('|') : [];
+                                                        return (
+                                                            <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                                                <tbody>
+                                                                    {[...Array(rows)].map((_, rowIdx) => (
+                                                                        <tr key={rowIdx}>
+                                                                            {[...Array(cols)].map((_, colIdx) => {
+                                                                                const cellIndex = rowIdx * cols + colIdx;
+                                                                                const cellValue = cellData[cellIndex] || '';
+                                                                                return (
+                                                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                                                        {cellValue || '\u00A0'}
+                                                                                    </td>
+                                                                                );
+                                                                            })}
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        );
+                                                    }
+                                                } catch (e) { return <span key={index}>{part}</span>; }
+                                            }
+
+                                            // Matrix: [MATRIX:RxC:data]
+                                            if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(8, -1);
+                                                    const parts = inner.split(':');
+                                                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                                                    if (dimensionMatch) {
+                                                        const rows = parseInt(dimensionMatch[1]);
+                                                        const cols = parseInt(dimensionMatch[2]);
+                                                        const cellData = parts[1] ? parts[1].split('|') : [];
+                                                        return (
+                                                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
+                                                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
+                                                                <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
+                                                                    <tbody>
+                                                                        {[...Array(rows)].map((_, rowIdx) => (
+                                                                            <tr key={rowIdx}>
+                                                                                {[...Array(cols)].map((_, colIdx) => {
+                                                                                    const cellIndex = rowIdx * cols + colIdx;
+                                                                                    const cellValue = cellData[cellIndex] || '';
+                                                                                    return (
+                                                                                        <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                                                            {cellValue || '\u00A0'}
+                                                                                        </td>
+                                                                                    );
+                                                                                })}
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎤</span>
+                                                            </span>
+                                                        );
+                                                    }
+                                                } catch (e) { return <span key={index}>{part}</span>; }
+                                            }
+
+                                            // Fraction: [FRAC:num:den]
+                                            if (part.startsWith('[FRAC:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(6, -1);
+                                                    const [num, den] = inner.split(':');
+                                                    return (
+                                                        <span key={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                                            <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                        </span>
+                                                    );
+                                                } catch (e) { return <span key={index}>{part}</span>; }
+                                            }
+
+                                            // Mixed fraction: [MIX:whole:num:den]
+                                            if (part.startsWith('[MIX:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(5, -1);
+                                                    const [whole, num, den] = inner.split(':');
+                                                    return (
+                                                        <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                            <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                                                            <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                            </span>
+                                                        </span>
+                                                    );
+                                                } catch (e) { return <span key={index}>{part}</span>; }
+                                            }
                                             // Bold: **text**
                                             if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
                                                 const content = part.slice(2, -2);
@@ -4841,8 +5471,109 @@ useEffect(() => {
                                     <div className="mb-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                                         <p className="text-xs font-bold text-blue-800 mb-2">📝 QUESTION PREVIEW:</p>
                                         <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                                // Table: [TABLE:RxC:data]
+                                                if (part.startsWith('[TABLE:') && part.endsWith(']')) {
+                                                    try {
+                                                        const inner = part.slice(7, -1);
+                                                        const parts = inner.split(':');
+                                                        const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                                                        if (dimensionMatch) {
+                                                            const rows = parseInt(dimensionMatch[1]);
+                                                            const cols = parseInt(dimensionMatch[2]);
+                                                            const cellData = parts[1] ? parts[1].split('|') : [];
+                                                            return (
+                                                                <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                                                    <tbody>
+                                                                        {[...Array(rows)].map((_, rowIdx) => (
+                                                                            <tr key={rowIdx}>
+                                                                                {[...Array(cols)].map((_, colIdx) => {
+                                                                                    const cellIndex = rowIdx * cols + colIdx;
+                                                                                    const cellValue = cellData[cellIndex] || '';
+                                                                                    return (
+                                                                                        <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                                                            {cellValue || '\u00A0'}
+                                                                                        </td>
+                                                                                    );
+                                                                                })}
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            );
+                                                        }
+                                                    } catch (e) { return <span key={index}>{part}</span>; }
+                                                }
+
+                                                // Matrix: [MATRIX:RxC:data]
+                                                if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
+                                                    try {
+                                                        const inner = part.slice(8, -1);
+                                                        const parts = inner.split(':');
+                                                        const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                                                        if (dimensionMatch) {
+                                                            const rows = parseInt(dimensionMatch[1]);
+                                                            const cols = parseInt(dimensionMatch[2]);
+                                                            const cellData = parts[1] ? parts[1].split('|') : [];
+                                                            return (
+                                                                <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
+                                                                    <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
+                                                                    <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
+                                                                        <tbody>
+                                                                            {[...Array(rows)].map((_, rowIdx) => (
+                                                                                <tr key={rowIdx}>
+                                                                                    {[...Array(cols)].map((_, colIdx) => {
+                                                                                        const cellIndex = rowIdx * cols + colIdx;
+                                                                                        const cellValue = cellData[cellIndex] || '';
+                                                                                        return (
+                                                                                            <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                                                                {cellValue || '\u00A0'}
+                                                                                            </td>
+                                                                                        );
+                                                                                    })}
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                    <span style={{ fontSize: '2em', lineHeight: '1' }}>⎤</span>
+                                                                </span>
+                                                            );
+                                                        }
+                                                    } catch (e) { return <span key={index}>{part}</span>; }
+                                                }
+
                                                 // Check for formatting first
+                                                // Fraction: [FRAC:num:den]
+                                                if (part.startsWith('[FRAC:') && part.endsWith(']')) {
+                                                    try {
+                                                        const inner = part.slice(6, -1);
+                                                        const [num, den] = inner.split(':');
+                                                        return (
+                                                            <span key={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                            </span>
+                                                        );
+                                                    } catch (e) { return <span key={index}>{part}</span>; }
+                                                }
+
+                                                // Mixed fraction: [MIX:whole:num:den]
+                                                if (part.startsWith('[MIX:') && part.endsWith(']')) {
+                                                    try {
+                                                        const inner = part.slice(5, -1);
+                                                        const [whole, num, den] = inner.split(':');
+                                                        return (
+                                                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                                <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                                                                <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                                                    <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                                                    <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                                </span>
+                                                            </span>
+                                                        );
+                                                    } catch (e) { return <span key={index}>{part}</span>; }
+                                                }
+
                                                 // Bold: **text**
                                                 if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
                                                     const content = part.slice(2, -2);
@@ -4934,8 +5665,121 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
                                             // Check for formatting first
+                                            // Superscript formatting
+                                            if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
+                                                const content = part.slice(5, -6);
+                                                return <sup key={index} data-text-index={index} className="text-sm">{content}</sup>;
+                                            }
+
+                                            // Subscript formatting
+                                            if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
+                                                const content = part.slice(5, -6);
+                                                return <sub key={index} data-text-index={index} className="text-sm">{content}</sub>;
+                                            }
+
+                                            // Table: [TABLE:RxC:data]
+                                            if (part.startsWith('[TABLE:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(7, -1);
+                                                    const parts = inner.split(':');
+                                                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                                                    if (dimensionMatch) {
+                                                        const rows = parseInt(dimensionMatch[1]);
+                                                        const cols = parseInt(dimensionMatch[2]);
+                                                        const cellData = parts[1] ? parts[1].split('|') : [];
+                                                        return (
+                                                            <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                                                <tbody>
+                                                                    {[...Array(rows)].map((_, rowIdx) => (
+                                                                        <tr key={rowIdx}>
+                                                                            {[...Array(cols)].map((_, colIdx) => {
+                                                                                const cellIndex = rowIdx * cols + colIdx;
+                                                                                const cellValue = cellData[cellIndex] || '';
+                                                                                return (
+                                                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                                                        {cellValue || '\u00A0'}
+                                                                                    </td>
+                                                                                );
+                                                                            })}
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        );
+                                                    }
+                                                } catch (e) { return <span key={index}>{part}</span>; }
+                                            }
+
+                                            // Matrix: [MATRIX:RxC:data]
+                                            if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(8, -1);
+                                                    const parts = inner.split(':');
+                                                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                                                    if (dimensionMatch) {
+                                                        const rows = parseInt(dimensionMatch[1]);
+                                                        const cols = parseInt(dimensionMatch[2]);
+                                                        const cellData = parts[1] ? parts[1].split('|') : [];
+                                                        return (
+                                                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
+                                                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
+                                                                <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
+                                                                    <tbody>
+                                                                        {[...Array(rows)].map((_, rowIdx) => (
+                                                                            <tr key={rowIdx}>
+                                                                                {[...Array(cols)].map((_, colIdx) => {
+                                                                                    const cellIndex = rowIdx * cols + colIdx;
+                                                                                    const cellValue = cellData[cellIndex] || '';
+                                                                                    return (
+                                                                                        <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                                                            {cellValue || '\u00A0'}
+                                                                                        </td>
+                                                                                    );
+                                                                                })}
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎤</span>
+                                                            </span>
+                                                        );
+                                                    }
+                                                } catch (e) { return <span key={index}>{part}</span>; }
+                                            }
+
+                                            // Fraction: [FRAC:num:den]
+                                            if (part.startsWith('[FRAC:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(6, -1);
+                                                    const [num, den] = inner.split(':');
+                                                    return (
+                                                        <span key={index} data-text-index={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                                            <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                        </span>
+                                                    );
+                                                } catch (e) { return <span key={index}>{part}</span>; }
+                                            }
+
+                                            // Mixed fraction: [MIX:whole:num:den]
+                                            if (part.startsWith('[MIX:') && part.endsWith(']')) {
+                                                try {
+                                                    const inner = part.slice(5, -1);
+                                                    const [whole, num, den] = inner.split(':');
+                                                    return (
+                                                        <span key={index} data-text-index={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                            <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                                                            <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
+                                                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                            </span>
+                                                        </span>
+                                                    );
+                                                } catch (e) { return <span key={index}>{part}</span>; }
+                                            }
+
                                             // Bold: **text**
                                             if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
                                                 const content = part.slice(2, -2);
@@ -5249,7 +6093,48 @@ useEffect(() => {
                                         >
                                             U
                                         </button>
+                                        {/* Superscript */}
+                                        <button
+                                            type="button"
+                                            onClick={() => applyAnswerFormattingAdvanced('superscript')}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                            title="Superscript"
+                                        >
+                                            x<sup className="text-[8px]">2</sup>
+                                        </button>
+
+                                        {/* Subscript */}
+                                        <button
+                                            type="button"
+                                            onClick={() => applyAnswerFormattingAdvanced('subscript')}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                            title="Subscript"
+                                        >
+                                            H<sub className="text-[8px]">2</sub>
+                                        </button>
+                                        {/* Fraction */}
+                                        <button
+                                            type="button"
+                                            onClick={applyAnswerFraction}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                            title="Insert fraction (prompt)"
+                                        >
+                                            a⁄b
+                                        </button>
                                     </div>
+                                    {/* Symbol Picker Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setSymbolPickerTarget('answer');
+                                            setShowSymbolPicker(true);
+                                        }}
+                                        className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded-lg transition text-sm flex items-center gap-1.5"
+                                        title="Insert special symbols"
+                                    >
+                                        <span className="text-lg leading-none">Ω</span>
+                                        <span>Symbols</span>
+                                    </button>
 
                                     {/* Answer Lines Button */}
                                     <button
@@ -5267,6 +6152,23 @@ useEffect(() => {
                                         <span>Lines</span>
                                     </button>
                                 </div>
+                                {/* Symbol Picker Modal for Question */}
+                                {showSymbolPicker && (
+                                    <SymbolPicker
+                                        onInsert={(symbol) => insertSymbol(symbol, symbolPickerTarget)}
+                                        onClose={() => setShowSymbolPicker(false)}
+                                        targetType={symbolPickerTarget}
+                                    />
+                                )}
+
+                                {/* Symbol Picker Modal for Edit Mode */}
+                                {showEditSymbolPicker && (
+                                    <SymbolPicker
+                                        onInsert={(symbol) => insertEditSymbol(symbol, editSymbolPickerTarget)}
+                                        onClose={() => setShowEditSymbolPicker(false)}
+                                        targetType={editSymbolPickerTarget}
+                                    />
+                                )}
                                 
                                 {/* Hidden textarea for form validation */}
                                 <textarea
@@ -7379,7 +8281,65 @@ useEffect(() => {
                                                 >
                                                     U
                                                 </button>
+                                                {/* Superscript */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditQuestionFormattingAdvanced('superscript')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                                    title="Superscript (Select text first) - e.g., x²"
+                                                >
+                                                    x<sup className="text-[8px]">2</sup>
+                                                </button>
+                                                {/* Subscript */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditQuestionFormattingAdvanced('subscript')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                                    title="Subscript (Select text first) - e.g., H₂O"
+                                                >
+                                                    H<sub className="text-[8px]">2</sub>
+                                                </button>
+                                                {/* Fraction */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditQuestionFraction()}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                    title="Insert fraction (prompt)"
+                                                >
+                                                    a⁄b
+                                                </button>
+                                                {/* Table */}
+                                                <button
+                                                    type="button"
+                                                    onClick={applyEditQuestionTable}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                    title="Insert table"
+                                                >
+                                                    ⊞
+                                                </button>
+                                                {/* Matrix */}
+                                                <button
+                                                    type="button"
+                                                    onClick={applyEditQuestionMatrix}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                    title="Insert matrix"
+                                                >
+                                                    ⎡⎤
+                                                </button>
+
                                             </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditSymbolPickerTarget('question');
+                                                    setShowEditSymbolPicker(true);
+                                                }}
+                                                className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                                title="Insert special symbols (π, α, β, ∫, etc.)"
+                                            >
+                                                <span className="text-lg leading-none">Ω</span>
+                                                <span>Symbols</span>
+                                            </button>
 
                                             {/* Answer Lines Button */}
                                             <button
@@ -7410,6 +8370,23 @@ useEffect(() => {
                                                 <span>{isEditQuestionListening ? 'Recording...' : 'Mic'}</span>
                                             </button>
                                         </div>
+                                        {/* Symbol Picker Modal for Question */}
+                                        {showSymbolPicker && (
+                                            <SymbolPicker
+                                                onInsert={(symbol) => insertSymbol(symbol, symbolPickerTarget)}
+                                                onClose={() => setShowSymbolPicker(false)}
+                                                targetType={symbolPickerTarget}
+                                            />
+                                        )}
+
+                                        {/* Symbol Picker Modal for Edit Mode */}
+                                        {showEditSymbolPicker && (
+                                            <SymbolPicker
+                                                onInsert={(symbol) => insertEditSymbol(symbol, editSymbolPickerTarget)}
+                                                onClose={() => setShowEditSymbolPicker(false)}
+                                                targetType={editSymbolPickerTarget}
+                                            />
+                                        )}
                                     </div>
                                     
                                     <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
@@ -7661,7 +8638,47 @@ useEffect(() => {
                                                 >
                                                     U
                                                 </button>
+                                                {/* Superscript */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditAnswerFormattingAdvanced('superscript')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                                    title="Superscript"
+                                                >
+                                                    x<sup className="text-[8px]">2</sup>
+                                                </button>
+
+                                                {/* Subscript */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditAnswerFormattingAdvanced('subscript')}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs relative"
+                                                    title="Subscript"
+                                                >
+                                                    H<sub className="text-[8px]">2</sub>
+                                                </button>
+                                                {/* Fraction */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => applyEditAnswerFraction()}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                    title="Insert fraction (prompt)"
+                                                >
+                                                    a⁄b
+                                                </button>
                                             </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditSymbolPickerTarget('answer');
+                                                    setShowEditSymbolPicker(true);
+                                                }}
+                                                className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                                title="Insert special symbols (π, α, β, ∫, etc.)"
+                                            >
+                                                <span className="text-lg leading-none">Ω</span>
+                                                <span>Symbols</span>
+                                            </button>
 
                                             {/* Answer Lines */}
                                             <button
@@ -7690,6 +8707,23 @@ useEffect(() => {
                                                 <span>{isEditAnswerListening ? 'Recording...' : 'Mic'}</span>
                                             </button>
                                         </div>
+                                        {/* Symbol Picker Modal for Question */}
+                                        {showSymbolPicker && (
+                                            <SymbolPicker
+                                                onInsert={(symbol) => insertSymbol(symbol, symbolPickerTarget)}
+                                                onClose={() => setShowSymbolPicker(false)}
+                                                targetType={symbolPickerTarget}
+                                            />
+                                        )}
+
+                                        {/* Symbol Picker Modal for Edit Mode */}
+                                        {showEditSymbolPicker && (
+                                            <SymbolPicker
+                                                onInsert={(symbol) => insertEditSymbol(symbol, editSymbolPickerTarget)}
+                                                onClose={() => setShowEditSymbolPicker(false)}
+                                                targetType={editSymbolPickerTarget}
+                                            />
+                                        )}
                                     </div>
                                     
                                     <div className="relative border-2 border-gray-300 rounded-lg bg-white overflow-hidden" style={{ height: '50vh' }}>
@@ -8345,7 +9379,7 @@ useEffect(() => {
                             {/* By Paper */}
                             <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
                                 <h3 className="text-lg font-bold mb-4">Questions by Paper</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-96 overflow-y-auto">
                                     {Object.entries(stats.byPaper).map(([paperKey, counts]) => (
                                         <div key={paperKey} className="border-2 border-gray-200 rounded-lg p-4 hover:border-purple-500 transition bg-gradient-to-br from-purple-50 to-white">
                                             <div className="mb-2">

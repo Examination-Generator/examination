@@ -7025,3 +7025,2719 @@ class EnglishPaper3Coverpage:
             'candidate_number_field': True,
             'date_field': True
         }
+
+
+class KiswahiliPaper2Coverpage:
+    """
+    Kiswahili Paper 2 Coverpage Template
+    Includes sectioned marking grid (4 sections: Ufhamu, Ufupisho, Matumizi ya Lugha, Isimu Jamii)
+    """
+    
+    @staticmethod
+    def generate_html(data):
+        """
+        Generate HTML for Kiswahili Paper 2 coverpage
+        
+        Args:
+            data (dict): Coverpage data with keys:
+                - school_name: Name of the school
+                - school_logo: Base64 encoded logo or URL
+                - exam_title: e.g., "MTIHANI WA MWISHO WA MUHULA 2025"
+                - paper_name: e.g., "KISWAHILI KARATASI YA PILI"
+                - section_1_marks: Marks for Ufhamu (default: 15)
+                - section_2_marks: Marks for Ufupisho (default: 15)
+                - section_3_marks: Marks for Matumizi ya Lugha (default: 40)
+                - section_4_marks: Marks for Isimu Jamii (default: 10)
+                - total_marks: Total marks (default: 80)
+                - time_allocation: Time in minutes
+                - total_pages: Total pages
+        
+        Returns:
+            str: HTML content for coverpage
+        """
+        
+        # Extract data with defaults
+        school_name = data.get('school_name', 'KITUO CHA MTIHANI')
+        school_logo = data.get('school_logo', '/exam.png')
+        logo_position = data.get('logo_position', 'center')
+        class_name = data.get('class_name', '')
+        exam_title = data.get('exam_title', 'MTIHANI WA MWISHO WA MUHULA 2025')
+        paper_name = data.get('paper_name', 'KISWAHILI KARATASI YA PILI')
+        
+        # Section configuration (from screenshot)
+        section_1_marks = data.get('section_1_marks', 15)  # Ufhamu
+        section_2_marks = data.get('section_2_marks', 15)  # Ufupisho
+        section_3_marks = data.get('section_3_marks', 40)  # Matumizi ya Lugha
+        section_4_marks = data.get('section_4_marks', 10)  # Isimu Jamii
+        total_marks = data.get('total_marks', 80)
+        time_allocation = data.get('time_allocation', '2 HOURS 30 MINUTES')
+        
+        # Calculate total pages
+        total_pages = data.get('total_pages', 16)
+        
+        instructions = data.get('instructions', [
+            'Andika jina lako na nambari yako ya mtihani katika nafasi zilizotolewa hapa juu.',
+            'Tia sahihi sasa kisha uandike tarehe ya mtihani katika nafasi zilizotolewa hapa juu.',
+            'Jibu maswali yote.',
+            'Majibu yako yaandikwe katika nafasi zilizotolewa katika kijitabu hiki cha maswali.',
+            'Punguzo la alama hata kwa swali moja halitakubalika.',
+            'Karatasi hii ina kurasa 12 zilizochapwa.',
+            'Wagombea wanafaa kuziangalia karatasi zote ili zithibitishe chapa zote zimefanyika kama zilivyoorodheshwa na kuwa hakuna maswali yote yanaonekana.',
+            'Wagombea wanapaswa kujibu maswali kwa Kiswahili sanifu.'
+        ])
+        
+        exam_date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        show_name = data.get('candidate_name_field', True)
+        show_number = data.get('candidate_number_field', True)
+        show_date = data.get('date_field', True)
+        
+        # Generate marking grid for Kiswahili Paper 2
+        marking_grid_html = KiswahiliPaper2Coverpage._generate_marking_grid(
+            section_1_marks, section_2_marks, section_3_marks, section_4_marks, total_marks
+        )
+        
+        # Build HTML
+        html = f"""
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{paper_name} - Ukurasa wa Mbele</title>
+    <style>
+        @page {{
+            size: A4;
+            margin: 20mm;
+        }}
+        
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: black;
+            background: white;
+        }}
+        
+        .coverpage {{
+            width: 100%;
+            min-height: 100vh;
+            padding: 15mm;
+            display: flex;
+            flex-direction: column;
+            page-break-after: always;
+        }}
+        
+        .header {{
+            text-align: {logo_position};
+            margin-bottom: 15px;
+            border-bottom: 3px solid black;
+            padding-bottom: 10px;
+        }}
+        
+        .school-logo {{
+            max-width: 80px;
+            max-height: 80px;
+            margin-bottom: 5px;
+        }}
+        
+        .school-name {{
+            font-size: 16pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }}
+        
+        .class-name {{
+            font-size: 12pt;
+            font-weight: bold;
+            margin-top: 5px;
+        }}
+        
+        .exam-title {{
+            font-size: 13pt;
+            font-weight: bold;
+            text-align: center;
+            margin: 15px 0;
+            text-transform: uppercase;
+        }}
+        
+        .paper-title {{
+            font-size: 14pt;
+            font-weight: bold;
+            text-align: center;
+            margin: 15px 0;
+            text-transform: uppercase;
+        }}
+        
+        .paper-details {{
+            text-align: center;
+            margin: 15px 0;
+            font-size: 11pt;
+        }}
+        
+        .candidate-info {{
+            margin: 20px 0;
+            border: 2px solid black;
+            padding: 15px;
+        }}
+        
+        .info-row {{
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            align-items: center;
+        }}
+        
+        .info-label {{
+            font-weight: bold;
+            min-width: 150px;
+        }}
+        
+        .info-field {{
+            flex: 1;
+            border-bottom: 1px solid black;
+            min-height: 30px;
+            margin-left: 10px;
+        }}
+        
+        .instructions {{
+            margin: 20px 0;
+        }}
+        
+        .instructions-title {{
+            font-size: 13pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }}
+        
+        .instructions-list {{
+            list-style-position: outside;
+            padding-left: 25px;
+        }}
+        
+        .instructions-list li {{
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }}
+        
+        .marking-section {{
+            margin-top: 25px;
+            page-break-inside: avoid;
+        }}
+        
+        .marking-title {{
+            font-size: 11pt;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }}
+        
+        .marking-grid {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
+            max-width: 400px;
+        }}
+        
+        .marking-grid th,
+        .marking-grid td {{
+            border: 2px solid black;
+            padding: 10px;
+            text-align: center;
+            font-size: 11pt;
+        }}
+        
+        .marking-grid th {{
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }}
+        
+        .marking-grid .section-cell {{
+            text-align: center;
+            font-weight: bold;
+        }}
+        
+        .marking-grid .marks-cell {{
+            text-align: center;
+        }}
+        
+        .marking-grid .answer-cell {{
+            background-color: white;
+            min-height: 40px;
+        }}
+        
+        .marking-grid .total-row {{
+            font-weight: bold;
+            background-color: #f0f0f0;
+        }}
+        
+        @media print {{
+            .coverpage {{
+                page-break-after: always;
+            }}
+            
+            body {{
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="coverpage">
+        <!-- Header with Logo and School Name -->
+        <div class="header">
+            <img src="{school_logo}" alt="School Logo" class="school-logo">
+            <div class="school-name">{school_name}</div>
+            {f'<div class="class-name">{class_name}</div>' if class_name else ''}
+        </div>
+        
+        <!-- Exam Title -->
+        <div class="exam-title">{exam_title}</div>
+        
+        <!-- Paper Title -->
+        <div class="paper-title">{paper_name}</div>
+        
+        <!-- Paper Details (Time and Total Marks) -->
+        <div class="paper-details">
+            <strong>Muda:</strong> {time_allocation}<br>
+        </div>
+        
+        <!-- Candidate Information Box -->
+        <div class="candidate-info">
+            {f'''<div class="info-row">
+                <span class="info-label">Jina la Mwanafunzi:</span>
+                <div class="info-field"></div>
+            </div>''' if show_name else ''}
+            
+            {f'''<div class="info-row">
+                <span class="info-label">Nambari ya Mtihani:</span>
+                <div class="info-field"></div>
+            </div>''' if show_number else ''}
+            
+            {f'''<div class="info-row">
+                <span class="info-label">Tarehe:</span>
+                <div class="info-field"></div>
+            </div>''' if show_date else ''}
+            
+            <div class="info-row">
+                <span class="info-label">Sahihi ya Mwanafunzi:</span>
+                <div class="info-field"></div>
+            </div>
+        </div>
+        
+        <!-- Instructions -->
+        <div class="instructions">
+            <div class="instructions-title">Maagizo</div>
+            <ol class="instructions-list" type="a">
+"""
+        
+        # Add instructions
+        for instruction in instructions:
+            html += f'                <li>{instruction}</li>\n'
+        
+        html += f"""
+            </ol>
+        </div>
+        
+        <!-- Marking Grid Section -->
+        <div class="marking-section">
+            <div class="marking-title">Kwa matumizi ya mtahini peke yake</div>
+            {marking_grid_html}
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        return html
+    
+    @staticmethod
+    def _generate_marking_grid(section_1_marks, section_2_marks, section_3_marks, section_4_marks, total_marks):
+        """
+        Generate marking grid HTML for Kiswahili Paper 2
+        
+        Based on screenshot, the grid structure is:
+        - 4 sections: Ufhamu (15), Ufupisho (15), Matumizi ya Lugha (40), Isimu Jamii (10)
+        - Each row shows: Sehemu (Section) | Upeo (Range) | Alama (Marks)
+        - Total row (JUMLA) at bottom showing 80 marks
+        
+        Args:
+            section_1_marks (int): Marks for Ufhamu
+            section_2_marks (int): Marks for Ufupisho
+            section_3_marks (int): Marks for Matumizi ya Lugha
+            section_4_marks (int): Marks for Isimu Jamii
+            total_marks (int): Total marks for the paper
+        
+        Returns:
+            str: HTML for marking grid
+        """
+        
+        grid_html = f"""
+            <table class="marking-grid">
+                <thead>
+                    <tr>
+                        <th>Sehemu</th>
+                        <th>Upeo</th>
+                        <th>Alama</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="section-cell">1</td>
+                        <td class="marks-cell">{section_1_marks}</td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr>
+                        <td class="section-cell">2</td>
+                        <td class="marks-cell">{section_2_marks}</td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr>
+                        <td class="section-cell">3</td>
+                        <td class="marks-cell">{section_3_marks}</td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr>
+                        <td class="section-cell">4</td>
+                        <td class="marks-cell">{section_4_marks}</td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="2">JUMLA</td>
+                        <td>{total_marks}</td>
+                    </tr>
+                </tbody>
+            </table>
+        """
+        
+        return grid_html
+    
+    @staticmethod
+    def generate_default_coverpage_data(generated_paper, paper):
+        """
+        Generate default coverpage data for Kiswahili Paper 2
+        
+        Args:
+            generated_paper: GeneratedPaper instance
+            paper: Paper instance
+        
+        Returns:
+            dict: Default coverpage data for Kiswahili Paper 2
+        """
+        # Generate paper name
+        paper_name_upper = paper.name.upper()
+        subject_name_upper = paper.subject.name.upper()
+        
+        if subject_name_upper in paper_name_upper:
+            display_paper_name = paper_name_upper
+        else:
+            display_paper_name = f'{subject_name_upper} {paper_name_upper}'
+        
+        # Get metadata for section details
+        metadata = getattr(generated_paper, 'metadata', {}) or {}
+        section_1_marks = metadata.get('section_1_marks', 15)
+        section_2_marks = metadata.get('section_2_marks', 15)
+        section_3_marks = metadata.get('section_3_marks', 40)
+        section_4_marks = metadata.get('section_4_marks', 10)
+        
+        # Calculate total pages
+        total_pages = 16  # Standard for Kiswahili Paper 2
+        
+        return {
+            'school_name': 'KITUO CHA MTIHANI',
+            'school_logo': '/exam.png',
+            'logo_position': 'center',
+            'class_name': '',
+            'exam_title': 'MTIHANI WA MWISHO WA MUHULA 2025',
+            'paper_name': display_paper_name,
+            'paper_type': 'Karatasi ya Pili',
+            'section_1_marks': section_1_marks,
+            'section_2_marks': section_2_marks,
+            'section_3_marks': section_3_marks,
+            'section_4_marks': section_4_marks,
+            'total_marks': generated_paper.total_marks or 80,
+            'time_allocation': format_time_allocation(paper.time_allocation),
+            'total_pages': total_pages,
+            'instructions': [
+                'Andika jina lako na nambari yako ya mtihani katika nafasi zilizotolewa hapa juu.',
+                'Tia sahihi sasa kisha uandike tarehe ya mtihani katika nafasi zilizotolewa hapa juu.',
+                'Jibu maswali yote.',
+                'Majibu yako yaandikwe katika nafasi zilizotolewa katika kijitabu hiki cha maswali.',
+                'Punguzo la alama hata kwa swali moja halitakubalika.',
+                f'Karatasi hii ina kurasa {total_pages} zilizochapwa.',
+                'Wagombea wanafaa kuziangalia karatasi zote ili zithibitishe chapa zote zimefanyika kama zilivyoorodheshwa na kuwa hakuna maswali yote yanaonekana.',
+                'Wagombea wanapaswa kujibu maswali kwa Kiswahili sanifu.'
+            ],
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'candidate_name_field': True,
+            'candidate_number_field': True,
+            'date_field': True
+        }
+
+
+
+class KiswahiliPaper1Coverpage:
+    """
+    Kiswahili Paper 1 Coverpage Template
+    Question 1 is compulsory, choose 1 from remaining 3 questions
+    """
+    
+    @staticmethod
+    def generate_html(data):
+        """
+        Generate HTML for Kiswahili Paper 1 coverpage
+        
+        Args:
+            data (dict): Coverpage data with keys:
+                - school_name: Name of the school
+                - school_logo: Base64 encoded logo or URL
+                - exam_title: e.g., "MTIHANI WA MWISHO WA MUHULA 2025"
+                - paper_name: e.g., "KISWAHILI KARATASI YA KWANZA"
+                - question_1_marks: Marks for Question 1 (default: 20)
+                - question_2_4_marks: Marks for Questions 2-4 (default: 20)
+                - total_marks: Total marks (default: 40)
+                - time_allocation: Time in minutes
+                - total_pages: Total pages
+        
+        Returns:
+            str: HTML content for coverpage
+        """
+        
+        # Extract data with defaults
+        school_name = data.get('school_name', 'KITUO CHA MTIHANI')
+        school_logo = data.get('school_logo', '/exam.png')
+        logo_position = data.get('logo_position', 'center')
+        class_name = data.get('class_name', '')
+        exam_title = data.get('exam_title', 'MTIHANI WA MWISHO WA MUHULA 2025')
+        paper_name = data.get('paper_name', 'KISWAHILI KARATASI YA KWANZA')
+        
+        # Question configuration (from screenshot)
+        question_1_marks = data.get('question_1_marks', 20)  # Compulsory
+        question_2_4_marks = data.get('question_2_4_marks', 20)  # Choose 1 from 3
+        total_marks = data.get('total_marks', 40)
+        time_allocation = data.get('time_allocation', '2 HOURS 30 MINUTES')
+        
+        # Calculate total pages
+        total_pages = data.get('total_pages', 12)
+        
+        instructions = data.get('instructions', [
+            'Andika jina lako na nambari yako ya mtihani katika nafasi ulizoachiwa hapa juu.',
+            'Tia sahihi sasa uandike tarehe ya mtihani katika nafasi zilizoochiwa hapa juu.',
+            'Andika insha mbili. Insha ya kwanza ni ya lazima.',
+            'Kisha chagua insha nyingine moja kati ya hizo tatu zilizobakia.',
+            'Kila insha isipungue maneno 450.',
+            'Kila insha ina alama 20.',
+            'Jibu maswali kwenye andikwe kwa lugha ya Kiswahili.',
+            'Insha zote sharti zandikwe katika nafasi ulizoachibwa katika kijitabu hiki cha maswali.',
+            'Karatasi hii ina kurasa 12 zilizopigwa chapa.',
+            'Watahiniwa ni lazima wahakikishe kwamba kurasa zote za karatasi hii zimepigwa chapa sawasawa na kuwa maswali yote yamo.'
+        ])
+        
+        exam_date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        show_name = data.get('candidate_name_field', True)
+        show_number = data.get('candidate_number_field', True)
+        show_date = data.get('date_field', True)
+        
+        # Generate marking grid for Kiswahili Paper 1
+        marking_grid_html = KiswahiliPaper1Coverpage._generate_marking_grid(
+            question_1_marks, question_2_4_marks, total_marks
+        )
+        
+        # Build HTML
+        html = f"""
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{paper_name} - Ukurasa wa Mbele</title>
+    <style>
+        @page {{
+            size: A4;
+            margin: 20mm;
+        }}
+        
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: black;
+            background: white;
+        }}
+        
+        .coverpage {{
+            width: 100%;
+            min-height: 100vh;
+            padding: 15mm;
+            display: flex;
+            flex-direction: column;
+            page-break-after: always;
+        }}
+        
+        .header {{
+            text-align: {logo_position};
+            margin-bottom: 15px;
+            border-bottom: 3px solid black;
+            padding-bottom: 10px;
+        }}
+        
+        .school-logo {{
+            max-width: 80px;
+            max-height: 80px;
+            margin-bottom: 5px;
+        }}
+        
+        .school-name {{
+            font-size: 16pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }}
+        
+        .class-name {{
+            font-size: 12pt;
+            font-weight: bold;
+            margin-top: 5px;
+        }}
+        
+        .exam-title {{
+            font-size: 13pt;
+            font-weight: bold;
+            text-align: center;
+            margin: 15px 0;
+            text-transform: uppercase;
+        }}
+        
+        .paper-title {{
+            font-size: 14pt;
+            font-weight: bold;
+            text-align: center;
+            margin: 15px 0;
+            text-transform: uppercase;
+        }}
+        
+        .paper-details {{
+            text-align: center;
+            margin: 15px 0;
+            font-size: 11pt;
+        }}
+        
+        .candidate-info {{
+            margin: 20px 0;
+            border: 2px solid black;
+            padding: 15px;
+        }}
+        
+        .info-row {{
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            align-items: center;
+        }}
+        
+        .info-label {{
+            font-weight: bold;
+            min-width: 150px;
+        }}
+        
+        .info-field {{
+            flex: 1;
+            border-bottom: 1px solid black;
+            min-height: 30px;
+            margin-left: 10px;
+        }}
+        
+        .instructions {{
+            margin: 20px 0;
+        }}
+        
+        .instructions-title {{
+            font-size: 13pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }}
+        
+        .instructions-list {{
+            list-style-position: outside;
+            padding-left: 25px;
+        }}
+        
+        .instructions-list li {{
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }}
+        
+        .instructions-list li strong {{
+            font-weight: bold;
+        }}
+        
+        .marking-section {{
+            margin-top: 25px;
+            page-break-inside: avoid;
+        }}
+        
+        .marking-title {{
+            font-size: 11pt;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }}
+        
+        .marking-grid {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
+            max-width: 400px;
+        }}
+        
+        .marking-grid th,
+        .marking-grid td {{
+            border: 2px solid black;
+            padding: 10px;
+            text-align: center;
+            font-size: 11pt;
+        }}
+        
+        .marking-grid th {{
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }}
+        
+        .marking-grid .question-cell {{
+            text-align: center;
+            font-weight: bold;
+        }}
+        
+        .marking-grid .marks-cell {{
+            text-align: center;
+        }}
+        
+        .marking-grid .answer-cell {{
+            background-color: white;
+            min-height: 40px;
+        }}
+        
+        .marking-grid .total-row {{
+            font-weight: bold;
+            background-color: #f0f0f0;
+        }}
+        
+        @media print {{
+            .coverpage {{
+                page-break-after: always;
+            }}
+            
+            body {{
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="coverpage">
+        <!-- Header with Logo and School Name -->
+        <div class="header">
+            <img src="{school_logo}" alt="School Logo" class="school-logo">
+            <div class="school-name">{school_name}</div>
+            {f'<div class="class-name">{class_name}</div>' if class_name else ''}
+        </div>
+        
+        <!-- Exam Title -->
+        <div class="exam-title">{exam_title}</div>
+        
+        <!-- Paper Title -->
+        <div class="paper-title">{paper_name}</div>
+        
+        <!-- Paper Details (Time and Total Marks) -->
+        <div class="paper-details">
+            <strong>Muda:</strong> {time_allocation}<br>
+        </div>
+        
+        <!-- Candidate Information Box -->
+        <div class="candidate-info">
+            {f'''<div class="info-row">
+                <span class="info-label">Jina la Mwanafunzi:</span>
+                <div class="info-field"></div>
+            </div>''' if show_name else ''}
+            
+            {f'''<div class="info-row">
+                <span class="info-label">Nambari ya Mtihani:</span>
+                <div class="info-field"></div>
+            </div>''' if show_number else ''}
+            
+            {f'''<div class="info-row">
+                <span class="info-label">Tarehe:</span>
+                <div class="info-field"></div>
+            </div>''' if show_date else ''}
+            
+            <div class="info-row">
+                <span class="info-label">Sahihi ya Mwanafunzi:</span>
+                <div class="info-field"></div>
+            </div>
+        </div>
+        
+        <!-- Instructions -->
+        <div class="instructions">
+            <div class="instructions-title">Maagizo</div>
+            <ol class="instructions-list" type="a">
+"""
+        
+        # Add instructions with bold formatting for specific words
+        for instruction in instructions:
+            # Bold specific words like "mbili", "lazima", etc.
+            instruction_html = instruction
+            instruction_html = instruction_html.replace('mbili', '<strong>mbili</strong>')
+            instruction_html = instruction_html.replace('lazima', '<strong>lazima</strong>')
+            instruction_html = instruction_html.replace('Karatasi hii', '<strong>Karatasi hii')
+            instruction_html = instruction_html.replace('zilizopigwa chapa.', 'zilizopigwa chapa.</strong>')
+            instruction_html = instruction_html.replace('Watahiniwa ni lazima', '<strong>Watahiniwa ni lazima')
+            instruction_html = instruction_html.replace('maswali yote yamo.', 'maswali yote yamo.</strong>')
+            
+            html += f'                <li>{instruction_html}</li>\n'
+        
+        html += f"""
+            </ol>
+        </div>
+        
+        <!-- Marking Grid Section -->
+        <div class="marking-section">
+            <div class="marking-title">Kwa Matumizi ya Mtahini Pekee</div>
+            {marking_grid_html}
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        return html
+    
+    @staticmethod
+    def _generate_marking_grid(question_1_marks, question_2_4_marks, total_marks):
+        """
+        Generate marking grid HTML for Kiswahili Paper 1
+        
+        Based on screenshot, the grid structure is:
+        - Question 1 (Compulsory): 20 marks
+        - Choose ONE from Questions 2-4: 20 marks
+        - Total (Jumla): 40 marks
+        
+        Args:
+            question_1_marks (int): Marks for Question 1 (compulsory)
+            question_2_4_marks (int): Marks for one question from 2-4
+            total_marks (int): Total marks for the paper
+        
+        Returns:
+            str: HTML for marking grid
+        """
+        
+        grid_html = f"""
+            <table class="marking-grid">
+                <thead>
+                    <tr>
+                        <th>Swali</th>
+                        <th>Upeo</th>
+                        <th>Alama</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="question-cell">1</td>
+                        <td class="marks-cell">{question_1_marks}</td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr>
+                        <td class="question-cell"></td>
+                        <td class="marks-cell">{question_2_4_marks}</td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>Jumla</td>
+                        <td>{total_marks}</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        """
+        
+        return grid_html
+    
+    @staticmethod
+    def generate_default_coverpage_data(generated_paper, paper):
+        """
+        Generate default coverpage data for Kiswahili Paper 1
+        
+        Args:
+            generated_paper: GeneratedPaper instance
+            paper: Paper instance
+        
+        Returns:
+            dict: Default coverpage data for Kiswahili Paper 1
+        """
+        # Generate paper name
+        paper_name_upper = paper.name.upper()
+        subject_name_upper = paper.subject.name.upper()
+        
+        if subject_name_upper in paper_name_upper:
+            display_paper_name = paper_name_upper
+        else:
+            display_paper_name = f'{subject_name_upper} {paper_name_upper}'
+        
+        # Get metadata for question details
+        metadata = getattr(generated_paper, 'metadata', {}) or {}
+        question_1_marks = metadata.get('question_1_marks', 20)
+        question_2_4_marks = metadata.get('question_2_4_marks', 20)
+        
+        # Calculate total pages
+        total_pages = 12  # Standard for Kiswahili Paper 1
+        
+        return {
+            'school_name': 'KITUO CHA MTIHANI',
+            'school_logo': '/exam.png',
+            'logo_position': 'center',
+            'class_name': '',
+            'exam_title': 'MTIHANI WA MWISHO WA MUHULA 2025',
+            'paper_name': display_paper_name,
+            'paper_type': 'Karatasi ya Kwanza',
+            'question_1_marks': question_1_marks,
+            'question_2_4_marks': question_2_4_marks,
+            'total_marks': generated_paper.total_marks or 40,
+            'time_allocation': format_time_allocation(paper.time_allocation),
+            'total_pages': total_pages,
+            'instructions': [
+                'Andika jina lako na nambari yako ya mtihani katika nafasi ulizoachiwa hapa juu.',
+                'Tia sahihi sasa uandike tarehe ya mtihani katika nafasi zilizoochiwa hapa juu.',
+                'Andika insha mbili. Insha ya kwanza ni ya lazima.',
+                'Kisha chagua insha nyingine moja kati ya hizo tatu zilizobakia.',
+                'Kila insha isipungue maneno 450.',
+                'Kila insha ina alama 20.',
+                'Jibu maswali kwenye andikwe kwa lugha ya Kiswahili.',
+                'Insha zote sharti zandikwe katika nafasi ulizoachibwa katika kijitabu hiki cha maswali.',
+                'Karatasi hii ina kurasa 12 zilizopigwa chapa.',
+                'Watahiniwa ni lazima wahakikishe kwamba kurasa zote za karatasi hii zimepigwa chapa sawasawa na kuwa maswali yote yamo.'
+            ],
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'candidate_name_field': True,
+            'candidate_number_field': True,
+            'date_field': True
+        }
+
+
+
+class BusinessPaper1Coverpage:
+    """
+    Business Studies Paper 1 Coverpage Template
+    - 25 questions (Questions 1-25)
+    - Individual marking grid for each question
+    """
+    
+    @staticmethod
+    def generate_html(data):
+        """
+        Generate HTML for Business Studies Paper 1 coverpage
+        
+        Args:
+            data (dict): Coverpage data with keys:
+                - school_name: Name of the school
+                - school_logo: Base64 encoded logo or URL
+                - exam_title: e.g., "END TERM EXAMINATION 2025"
+                - paper_name: e.g., "BUSINESS STUDIES PAPER 1"
+                - total_marks: Total marks (default: 100)
+                - time_allocation: Time in minutes
+                - total_pages: Total pages
+        
+        Returns:
+            str: HTML content for coverpage
+        """
+        
+        # Extract data with defaults
+        school_name = data.get('school_name', 'EXAMINATION CENTRE')
+        school_logo = data.get('school_logo', '/exam.png')
+        logo_position = data.get('logo_position', 'center')
+        class_name = data.get('class_name', '')
+        exam_title = data.get('exam_title', 'END TERM EXAMINATION 2025')
+        paper_name = data.get('paper_name', 'BUSINESS STUDIES PAPER 1')
+        
+        total_marks = data.get('total_marks', 100)
+        time_allocation = data.get('time_allocation', '2 HOURS 30 MINUTES')
+        total_pages = data.get('total_pages', 16)
+        
+        instructions = data.get('instructions', [
+            'Write your name and index number in the spaces provided above.',
+            'Sign and write the date of examination in the spaces provided above.',
+            'Answer all the questions in the spaces provided in the question paper.',
+            'Non-programmable silent electronic calculators may be used.',
+            f'This paper consists of {total_pages} printed pages.',
+            'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
+            'Candidates should answer the questions in English.'
+        ])
+        
+        exam_date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        show_name = data.get('candidate_name_field', True)
+        show_number = data.get('candidate_number_field', True)
+        show_date = data.get('date_field', True)
+        
+        # Generate marking grid for Business Paper 1 (25 questions)
+        marking_grid_html = BusinessPaper1Coverpage._generate_marking_grid()
+        
+        # Build HTML
+        html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{paper_name} - Coverpage</title>
+    <style>
+        @page {{
+            size: A4;
+            margin: 20mm;
+        }}
+        
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: black;
+            background: white;
+        }}
+        
+        .coverpage {{
+            width: 100%;
+            min-height: 100vh;
+            padding: 15mm;
+            display: flex;
+            flex-direction: column;
+            page-break-after: always;
+        }}
+        
+        /* Header Section */
+        .header {{
+            text-align: center;
+            margin-bottom: 20px;
+        }}
+        
+        .logo-container {{
+            margin-bottom: 15px;
+        }}
+        
+        .logo-container.left {{
+            text-align: left;
+        }}
+        
+        .logo-container.center {{
+            text-align: center;
+        }}
+        
+        .logo-container.right {{
+            text-align: right;
+        }}
+        
+        .school-logo {{
+            max-width: 90px;
+            max-height: 90px;
+            object-fit: contain;
+        }}
+        
+        .school-name {{
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }}
+        
+        .class-name {{
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }}
+        
+        .exam-title {{
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }}
+        
+        .paper-details {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 5px;
+        }}
+        
+        .paper-name {{
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }}
+        
+        .time-allocation {{
+            font-size: 1.3rem;
+            margin-top: 5px;
+        }}
+        
+        /* Candidate Info Section */
+        .candidate-info {{
+            margin: 20px 0;
+            padding: 15px;
+            border: none;
+        }}
+        
+        .candidate-info-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px 20px;
+        }}
+        
+        .info-row {{
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-row-full {{
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-label {{
+            font-weight: bold;
+            font-size: 12px;
+            min-width: 40px;
+        }}
+        
+        .info-field {{
+            flex: 1;
+            border-bottom: 1px dotted black;
+            min-height: 25px;
+            padding: 2px 5px;
+        }}
+        
+        /* Instructions Section */
+        .instructions {{
+            margin-bottom: 20px;
+        }}
+        
+        .instructions-title {{
+            font-weight: bold;
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+        }}
+        
+        .instructions ol {{
+            margin-left: 20px;
+            font-size: 1.5rem;
+            line-height: 1.6;
+        }}
+        
+        .instructions li {{
+            margin-bottom: 8px;
+        }}
+        
+        .instructions li.bold {{
+            font-weight: bold;
+        }}
+        
+        /* Marking Grid Section */
+        .marking-grid-container {{
+            margin-top: auto;
+            padding-top: 20px;
+        }}
+        
+        .grid-title {{
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 12px;
+            text-align: center;
+            text-transform: uppercase;
+        }}
+        
+        .marking-grid {{
+            width: 100%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            border: 2px solid black;
+        }}
+        
+        .marking-grid td {{
+            border: 1px solid black;
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 8px 4px;
+            vertical-align: middle;
+        }}
+        
+        .question-label {{
+            background-color: #f5f5f5;
+            font-size: 10px;
+        }}
+        
+        .marks-cell {{
+            min-height: 35px;
+            background-color: white;
+        }}
+        
+        .total-marks-container {{
+            margin-top: 15px;
+            text-align: center;
+        }}
+        
+        .total-marks-box {{
+            display: inline-block;
+            border: 2px solid black;
+            padding: 10px 20px;
+        }}
+        
+        .total-marks-label {{
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 20px;
+        }}
+        
+        .total-marks-field {{
+            display: inline-block;
+            width: 80px;
+            height: 30px;
+            border: 1px solid black;
+            vertical-align: middle;
+        }}
+        
+        /* Print Styles */
+        @media print {{
+            body {{
+                margin: 0;
+                padding: 20mm;
+            }}
+            
+            .coverpage {{
+                page-break-after: always;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="coverpage">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-container {logo_position}">
+                <img src="{school_logo}" alt="School Logo" class="school-logo" onerror="this.src='/exam.png'">
+            </div>
+            <div class="school-name">{school_name}</div>
+            {f'<div class="class-name">{class_name}</div>' if class_name else ''}
+            <div class="exam-title">{exam_title}</div>
+            
+            <div class="paper-details">
+                <span class="paper-name">{paper_name}</span>
+            </div>
+            
+            <div class="time-allocation">{time_allocation}</div>
+        </div>
+        
+        <!-- Candidate Information -->
+        <div class="candidate-info">
+            <div class="candidate-info-grid">
+                {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
+                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
+                {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
+                <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
+            </div>
+        </div>
+        
+        <!-- Instructions -->
+        <div class="instructions">
+            <div class="instructions-title">Instructions to Candidates</div>
+            <ol type="a" style="font-style: italic;">
+"""
+        
+        # Add instructions
+        for idx, instruction in enumerate(instructions, 1):
+            # Make "all" and "This paper consists" bold
+            is_bold = 'all' in instruction.lower() or 'this paper consists' in instruction.lower()
+            class_attr = ' class="bold"' if is_bold else ''
+            html += f'                <li{class_attr}>{instruction}</li>\n'
+        
+        html += f"""
+            </ol>
+        </div>
+        
+        <!-- Marking Grid -->
+        <div class="marking-grid-container">
+            <div class="grid-title">For Examiner's Use Only</div>
+            {marking_grid_html}
+            
+            <!-- Total Marks Box -->
+            <div class="total-marks-container">
+                <div class="total-marks-box">
+                    <span class="total-marks-label">TOTAL MARKS</span>
+                    <span class="total-marks-field"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        return html
+    
+    @staticmethod
+    def _generate_marking_grid():
+        """
+        Generate marking grid HTML for Business Studies Paper 1
+        
+        Based on screenshot, the grid structure is:
+        - Row 1: Questions 1-13 with empty cells for marks
+        - Row 2: Questions 14-25 with empty cells for marks
+        
+        Returns:
+            str: HTML for marking grid
+        """
+        
+        grid_html = '<table class="marking-grid">\n'
+        
+        # Row 1: Question numbers 1-13
+        grid_html += '    <tr>\n'
+        grid_html += '        <td class="question-label">Question</td>\n'
+        for i in range(1, 14):
+            grid_html += f'        <td class="question-label">{i}</td>\n'
+        grid_html += '    </tr>\n'
+        
+        # Row 2: Marks cells for questions 1-13
+        grid_html += '    <tr>\n'
+        grid_html += '        <td class="question-label">Marks</td>\n'
+        for i in range(1, 14):
+            grid_html += '        <td class="marks-cell"></td>\n'
+        grid_html += '    </tr>\n'
+        
+        # Row 3: Question numbers 14-25
+        grid_html += '    <tr>\n'
+        grid_html += '        <td class="question-label">Question</td>\n'
+        for i in range(14, 26):
+            grid_html += f'        <td class="question-label">{i}</td>\n'
+        grid_html += '    </tr>\n'
+        
+        # Row 4: Marks cells for questions 14-25
+        grid_html += '    <tr>\n'
+        grid_html += '        <td class="question-label">Marks</td>\n'
+        for i in range(14, 26):
+            grid_html += '        <td class="marks-cell"></td>\n'
+        grid_html += '    </tr>\n'
+        
+        grid_html += '</table>\n'
+        
+        return grid_html
+    
+    @staticmethod
+    def generate_default_coverpage_data(generated_paper, paper):
+        """
+        Generate default coverpage data for Business Studies Paper 1
+        
+        Args:
+            generated_paper: GeneratedPaper instance
+            paper: Paper instance
+        
+        Returns:
+            dict: Default coverpage data for Business Paper 1
+        """
+        # Generate paper name
+        paper_name_upper = paper.name.upper()
+        subject_name_upper = paper.subject.name.upper()
+        
+        if subject_name_upper in paper_name_upper:
+            display_paper_name = paper_name_upper
+        else:
+            display_paper_name = f'{subject_name_upper} {paper_name_upper}'
+        
+        # Get metadata for question details
+        metadata = getattr(generated_paper, 'metadata', {}) or {}
+        
+        # Calculate total pages
+        total_pages = 16  # Standard for Business Paper 1
+        
+        return {
+            'school_name': 'EXAMINATION CENTRE',
+            'school_logo': '/exam.png',
+            'logo_position': 'center',
+            'class_name': '',
+            'exam_title': 'END TERM EXAMINATION 2025',
+            'paper_name': display_paper_name,
+            'paper_type': 'Paper 1',
+            'total_marks': generated_paper.total_marks or 100,
+            'time_allocation': format_time_allocation(paper.time_allocation),
+            'total_pages': total_pages,
+            'instructions': [
+                'Write your name and index number in the spaces provided above.',
+                'Sign and write the date of examination in the spaces provided above.',
+                'Answer all the questions in the spaces provided in the question paper.',
+                'Non-programmable silent electronic calculators may be used.',
+                f'This paper consists of {total_pages} printed pages.',
+                'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
+                'Candidates should answer the questions in English.'
+            ],
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'candidate_name_field': True,
+            'candidate_number_field': True,
+            'date_field': True
+        }
+
+
+
+class BusinessPaper2Coverpage:
+    """
+    Business Studies Paper 2 Coverpage Template
+    - 6 questions available
+    - Students answer 5 out of 6
+    - Each question: 20 marks
+    - Total: 100 marks
+    """
+    
+    @staticmethod
+    def generate_html(data):
+        """
+        Generate HTML for Business Studies Paper 2 coverpage
+        
+        Args:
+            data (dict): Coverpage data with keys:
+                - school_name: Name of the school
+                - school_logo: Base64 encoded logo or URL
+                - exam_title: e.g., "END TERM EXAMINATION 2025"
+                - paper_name: e.g., "BUSINESS STUDIES PAPER 2"
+                - total_marks: Total marks (default: 100)
+                - time_allocation: Time in minutes
+                - total_pages: Total pages
+        
+        Returns:
+            str: HTML content for coverpage
+        """
+        
+        # Extract data with defaults
+        school_name = data.get('school_name', 'EXAMINATION CENTRE')
+        school_logo = data.get('school_logo', '/exam.png')
+        logo_position = data.get('logo_position', 'center')
+        class_name = data.get('class_name', '')
+        exam_title = data.get('exam_title', 'END TERM EXAMINATION 2025')
+        paper_name = data.get('paper_name', 'BUSINESS STUDIES PAPER 2')
+        
+        total_marks = data.get('total_marks', 100)
+        time_allocation = data.get('time_allocation', '2 HOURS 30 MINUTES')
+        total_pages = data.get('total_pages', 18)
+        
+        instructions = data.get('instructions', [
+            'Write your name and index number in the spaces provided above.',
+            'Sign and write the date of examination in the spaces provided above.',
+            f'This paper consists of six questions.',
+            'Answer any five questions in the spaces provided after question 6.',
+            'All questions carry equal marks.',
+            'Non-programmable silent electronic calculators may be used.',
+            f'This paper consists of {total_pages} printed pages.',
+            'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
+            'Candidates should answer the questions in English.'
+        ])
+        
+        exam_date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        show_name = data.get('candidate_name_field', True)
+        show_number = data.get('candidate_number_field', True)
+        show_date = data.get('date_field', True)
+        
+        # Generate marking grid for Business Paper 2 (5 questions × 20 marks)
+        marking_grid_html = BusinessPaper2Coverpage._generate_marking_grid()
+        
+        # Build HTML
+        html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{paper_name} - Coverpage</title>
+    <style>
+        @page {{
+            size: A4;
+            margin: 20mm;
+        }}
+        
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: black;
+            background: white;
+        }}
+        
+        .coverpage {{
+            width: 100%;
+            min-height: 100vh;
+            padding: 15mm;
+            display: flex;
+            flex-direction: column;
+            page-break-after: always;
+        }}
+        
+        /* Header Section */
+        .header {{
+            text-align: center;
+            margin-bottom: 20px;
+        }}
+        
+        .logo-container {{
+            margin-bottom: 15px;
+        }}
+        
+        .logo-container.left {{
+            text-align: left;
+        }}
+        
+        .logo-container.center {{
+            text-align: center;
+        }}
+        
+        .logo-container.right {{
+            text-align: right;
+        }}
+        
+        .school-logo {{
+            max-width: 90px;
+            max-height: 90px;
+            object-fit: contain;
+        }}
+        
+        .school-name {{
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }}
+        
+        .class-name {{
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }}
+        
+        .exam-title {{
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }}
+        
+        .paper-details {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 5px;
+        }}
+        
+        .paper-name {{
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }}
+        
+        .time-allocation {{
+            font-size: 1.3rem;
+            margin-top: 5px;
+        }}
+        
+        /* Candidate Info Section */
+        .candidate-info {{
+            margin: 20px 0;
+            padding: 15px;
+            border: none;
+        }}
+        
+        .candidate-info-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px 20px;
+        }}
+        
+        .info-row {{
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-row-full {{
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-label {{
+            font-weight: bold;
+            font-size: 12px;
+            min-width: 40px;
+        }}
+        
+        .info-field {{
+            flex: 1;
+            border-bottom: 1px dotted black;
+            min-height: 25px;
+            padding: 2px 5px;
+        }}
+        
+        /* Instructions Section */
+        .instructions {{
+            margin-bottom: 20px;
+        }}
+        
+        .instructions-title {{
+            font-weight: bold;
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+        }}
+        
+        .instructions ol {{
+            margin-left: 20px;
+            font-size: 1.5rem;
+            line-height: 1.6;
+        }}
+        
+        .instructions li {{
+            margin-bottom: 8px;
+        }}
+        
+        .instructions li.bold {{
+            font-weight: bold;
+        }}
+        
+        /* Marking Grid Section */
+        .marking-grid-container {{
+            margin-top: auto;
+            padding-top: 20px;
+        }}
+        
+        .grid-title {{
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 12px;
+            text-align: center;
+            text-transform: uppercase;
+        }}
+        
+        .marking-grid {{
+            width: 60%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            border: 2px solid black;
+        }}
+        
+        .marking-grid th,
+        .marking-grid td {{
+            border: 1px solid black;
+            text-align: center;
+            font-size: 12px;
+            padding: 12px 8px;
+        }}
+        
+        .marking-grid th {{
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }}
+        
+        .question-row {{
+            height: 45px;
+        }}
+        
+        .total-row {{
+            background-color: #e0e0e0;
+            font-weight: bold;
+            font-size: 13px;
+        }}
+        
+        /* Print Styles */
+        @media print {{
+            body {{
+                margin: 0;
+                padding: 20mm;
+            }}
+            
+            .coverpage {{
+                page-break-after: always;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="coverpage">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-container {logo_position}">
+                <img src="{school_logo}" alt="School Logo" class="school-logo" onerror="this.src='/exam.png'">
+            </div>
+            <div class="school-name">{school_name}</div>
+            {f'<div class="class-name">{class_name}</div>' if class_name else ''}
+            <div class="exam-title">{exam_title}</div>
+            
+            <div class="paper-details">
+                <span class="paper-name">{paper_name}</span>
+            </div>
+            
+            <div class="time-allocation">{time_allocation}</div>
+        </div>
+        
+        <!-- Candidate Information -->
+        <div class="candidate-info">
+            <div class="candidate-info-grid">
+                {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
+                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
+                {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
+                <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
+            </div>
+        </div>
+        
+        <!-- Instructions -->
+        <div class="instructions">
+            <div class="instructions-title">Instructions to Candidates</div>
+            <ol type="a" style="font-style: italic;">
+"""
+        
+        # Add instructions
+        for idx, instruction in enumerate(instructions, 1):
+            # Make specific instructions bold
+            is_bold = ('six questions' in instruction.lower() or 
+                      'any five' in instruction.lower() or 
+                      'all questions' in instruction.lower() or
+                      'this paper consists' in instruction.lower())
+            class_attr = ' class="bold"' if is_bold else ''
+            html += f'                <li{class_attr}>{instruction}</li>\n'
+        
+        html += f"""
+            </ol>
+        </div>
+        
+        <!-- Marking Grid -->
+        <div class="marking-grid-container">
+            <div class="grid-title">For Examiner's Use Only</div>
+            {marking_grid_html}
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        return html
+    
+    @staticmethod
+    def _generate_marking_grid():
+        """
+        Generate marking grid HTML for Business Studies Paper 2
+        
+        Based on screenshot, the grid structure is:
+        - Header row: Question | Maximum Score | Candidate's Score
+        - 5 rows for the 5 questions answered (each 20 marks)
+        - Total Score row: 100 marks
+        
+        Returns:
+            str: HTML for marking grid
+        """
+        
+        grid_html = """
+            <table class="marking-grid">
+                <thead>
+                    <tr>
+                        <th>Question</th>
+                        <th>Maximum<br>Score</th>
+                        <th>Candidate's<br>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+"""
+        
+        # 5 question rows (student answers 5 out of 6 questions)
+        for i in range(5):
+            grid_html += """
+                    <tr class="question-row">
+                        <td></td>
+                        <td>20</td>
+                        <td></td>
+                    </tr>
+"""
+        
+        # Total Score row
+        grid_html += """
+                    <tr class="total-row">
+                        <td>Total Score</td>
+                        <td>100</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        """
+        
+        return grid_html
+    
+    @staticmethod
+    def generate_default_coverpage_data(generated_paper, paper):
+        """
+        Generate default coverpage data for Business Studies Paper 2
+        
+        Args:
+            generated_paper: GeneratedPaper instance
+            paper: Paper instance
+        
+        Returns:
+            dict: Default coverpage data for Business Paper 2
+        """
+        # Generate paper name
+        paper_name_upper = paper.name.upper()
+        subject_name_upper = paper.subject.name.upper()
+        
+        if subject_name_upper in paper_name_upper:
+            display_paper_name = paper_name_upper
+        else:
+            display_paper_name = f'{subject_name_upper} {paper_name_upper}'
+        
+        # Get metadata for question details
+        metadata = getattr(generated_paper, 'metadata', {}) or {}
+        
+        # Calculate total pages
+        total_pages = 18  # Standard for Business Paper 2
+        
+        return {
+            'school_name': 'EXAMINATION CENTRE',
+            'school_logo': '/exam.png',
+            'logo_position': 'center',
+            'class_name': '',
+            'exam_title': 'END TERM EXAMINATION 2025',
+            'paper_name': display_paper_name,
+            'paper_type': 'Paper 2',
+            'total_marks': generated_paper.total_marks or 100,
+            'time_allocation': format_time_allocation(paper.time_allocation),
+            'total_pages': total_pages,
+            'instructions': [
+                'Write your name and index number in the spaces provided above.',
+                'Sign and write the date of examination in the spaces provided above.',
+                f'This paper consists of six questions.',
+                'Answer any five questions in the spaces provided after question 6.',
+                'All questions carry equal marks.',
+                'Non-programmable silent electronic calculators may be used.',
+                f'This paper consists of {total_pages} printed pages.',
+                'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
+                'Candidates should answer the questions in English.'
+            ],
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'candidate_name_field': True,
+            'candidate_number_field': True,
+            'date_field': True
+        }
+
+
+
+class CREPaper1Coverpage:
+    """
+    Christian Religious Education Paper 1 Coverpage Template
+    - 6 questions available
+    - Students answer 5 out of 6
+    - Each question: 20 marks
+    - Total: 100 marks
+    """
+    
+    @staticmethod
+    def generate_html(data):
+        """
+        Generate HTML for CRE Paper 1 coverpage
+        
+        Args:
+            data (dict): Coverpage data with keys:
+                - school_name: Name of the school
+                - school_logo: Base64 encoded logo or URL
+                - exam_title: e.g., "END TERM EXAMINATION 2025"
+                - paper_name: e.g., "CHRISTIAN RELIGIOUS EDUCATION PAPER 1"
+                - total_marks: Total marks (default: 100)
+                - time_allocation: Time in minutes
+                - total_pages: Total pages
+        
+        Returns:
+            str: HTML content for coverpage
+        """
+        
+        # Extract data with defaults
+        school_name = data.get('school_name', 'EXAMINATION CENTRE')
+        school_logo = data.get('school_logo', '/exam.png')
+        logo_position = data.get('logo_position', 'center')
+        class_name = data.get('class_name', '')
+        exam_title = data.get('exam_title', 'END TERM EXAMINATION 2025')
+        paper_name = data.get('paper_name', 'CHRISTIAN RELIGIOUS EDUCATION PAPER 1')
+        
+        total_marks = data.get('total_marks', 100)
+        time_allocation = data.get('time_allocation', '2 HOURS 30 MINUTES')
+        total_pages = data.get('total_pages', 16)
+        
+        instructions = data.get('instructions', [
+            'Write your name and index number in the spaces provided above.',
+            'Sign and write the date of examination in the spaces provided above.',
+            f'This paper consists of six questions.',
+            'Answer five questions in the spaces provided at the end of question 6.',
+            'Each question carries 20 marks.',
+            f'This paper consists of {total_pages} printed pages.',
+            'Candidates should answer from the Atlas provided.',
+            'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
+            'Candidates should answer the questions in English.'
+        ])
+        
+        exam_date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        show_name = data.get('candidate_name_field', True)
+        show_number = data.get('candidate_number_field', True)
+        show_date = data.get('date_field', True)
+        
+        # Generate marking grid for CRE Paper 1
+        marking_grid_html = CREPaper1Coverpage._generate_marking_grid()
+        
+        # Build HTML
+        html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{paper_name} - Coverpage</title>
+    <style>
+        @page {{
+            size: A4;
+            margin: 20mm;
+        }}
+        
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: black;
+            background: white;
+        }}
+        
+        .coverpage {{
+            width: 100%;
+            min-height: 100vh;
+            padding: 15mm;
+            display: flex;
+            flex-direction: column;
+            page-break-after: always;
+        }}
+        
+        /* Header Section */
+        .header {{
+            text-align: center;
+            margin-bottom: 20px;
+        }}
+        
+        .logo-container {{
+            margin-bottom: 15px;
+        }}
+        
+        .logo-container.left {{
+            text-align: left;
+        }}
+        
+        .logo-container.center {{
+            text-align: center;
+        }}
+        
+        .logo-container.right {{
+            text-align: right;
+        }}
+        
+        .school-logo {{
+            max-width: 90px;
+            max-height: 90px;
+            object-fit: contain;
+        }}
+        
+        .school-name {{
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }}
+        
+        .class-name {{
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }}
+        
+        .exam-title {{
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }}
+        
+        .paper-details {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 5px;
+        }}
+        
+        .paper-name {{
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }}
+        
+        .time-allocation {{
+            font-size: 1.3rem;
+            margin-top: 5px;
+        }}
+        
+        /* Candidate Info Section */
+        .candidate-info {{
+            margin: 20px 0;
+            padding: 15px;
+            border: none;
+        }}
+        
+        .candidate-info-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px 20px;
+        }}
+        
+        .info-row {{
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-row-full {{
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-label {{
+            font-weight: bold;
+            font-size: 12px;
+            min-width: 40px;
+        }}
+        
+        .info-field {{
+            flex: 1;
+            border-bottom: 1px dotted black;
+            min-height: 25px;
+            padding: 2px 5px;
+        }}
+        
+        /* Instructions Section */
+        .instructions {{
+            margin-bottom: 20px;
+        }}
+        
+        .instructions-title {{
+            font-weight: bold;
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+        }}
+        
+        .instructions ol {{
+            margin-left: 20px;
+            font-size: 1.5rem;
+            line-height: 1.6;
+        }}
+        
+        .instructions li {{
+            margin-bottom: 8px;
+        }}
+        
+        .instructions li.bold {{
+            font-weight: bold;
+        }}
+        
+        /* Marking Grid Section */
+        .marking-grid-container {{
+            margin-top: auto;
+            padding-top: 20px;
+        }}
+        
+        .grid-title {{
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 12px;
+            text-align: center;
+            text-transform: uppercase;
+        }}
+        
+        .marking-grid {{
+            width: 70%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            border: 2px solid black;
+        }}
+        
+        .marking-grid th,
+        .marking-grid td {{
+            border: 1px solid black;
+            text-align: center;
+            font-size: 12px;
+            padding: 10px 8px;
+        }}
+        
+        .marking-grid th {{
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }}
+        
+        .question-row {{
+            height: 40px;
+        }}
+        
+        .score-row {{
+            background-color: #f5f5f5;
+            font-weight: bold;
+            height: 40px;
+        }}
+        
+        /* Print Styles */
+        @media print {{
+            body {{
+                margin: 0;
+                padding: 20mm;
+            }}
+            
+            .coverpage {{
+                page-break-after: always;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="coverpage">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-container {logo_position}">
+                <img src="{school_logo}" alt="School Logo" class="school-logo" onerror="this.src='/exam.png'">
+            </div>
+            <div class="school-name">{school_name}</div>
+            {f'<div class="class-name">{class_name}</div>' if class_name else ''}
+            <div class="exam-title">{exam_title}</div>
+            
+            <div class="paper-details">
+                <span class="paper-name">{paper_name}</span>
+            </div>
+            
+            <div class="time-allocation">{time_allocation}</div>
+        </div>
+        
+        <!-- Candidate Information -->
+        <div class="candidate-info">
+            <div class="candidate-info-grid">
+                {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
+                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
+                {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
+                <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
+            </div>
+        </div>
+        
+        <!-- Instructions -->
+        <div class="instructions">
+            <div class="instructions-title">Instructions to candidates</div>
+            <ol type="a">
+"""
+        
+        # Add instructions
+        for idx, instruction in enumerate(instructions, 1):
+            # Make specific instructions bold
+            is_bold = ('six questions' in instruction.lower() or 
+                      'answer five' in instruction.lower() or 
+                      'each question carries' in instruction.lower() or
+                      'this paper consists' in instruction.lower())
+            class_attr = ' class="bold"' if is_bold else ''
+            html += f'                <li{class_attr}>{instruction}</li>\n'
+        
+        html += f"""
+            </ol>
+        </div>
+        
+        <!-- Marking Grid -->
+        <div class="marking-grid-container">
+            <div class="grid-title">For Examiner's Use Only</div>
+            {marking_grid_html}
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        return html
+    
+    @staticmethod
+    def _generate_marking_grid():
+        """
+        Generate marking grid HTML for CRE Paper 1
+        
+        Based on screenshot, the grid structure is:
+        - First row: "Question" header with 5 empty columns and "Candidate's Total Score"
+        - Second row: "Candidate's Score" with 5 empty columns (for the 5 answered questions)
+        
+        Returns:
+            str: HTML for marking grid
+        """
+        
+        grid_html = """
+            <table class="marking-grid">
+                <thead>
+                    <tr>
+                        <th>Question</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th>Candidate's<br>Total Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="score-row">
+                        <td>Candidate's<br>Score</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        """
+        
+        return grid_html
+    
+    @staticmethod
+    def generate_default_coverpage_data(generated_paper, paper):
+        """
+        Generate default coverpage data for CRE Paper 1
+        
+        Args:
+            generated_paper: GeneratedPaper instance
+            paper: Paper instance
+        
+        Returns:
+            dict: Default coverpage data for CRE Paper 1
+        """
+        # Generate paper name
+        paper_name_upper = paper.name.upper()
+        subject_name_upper = paper.subject.name.upper()
+        
+        if subject_name_upper in paper_name_upper:
+            display_paper_name = paper_name_upper
+        else:
+            display_paper_name = f'{subject_name_upper} {paper_name_upper}'
+        
+        # Get metadata for question details
+        metadata = getattr(generated_paper, 'metadata', {}) or {}
+        
+        # Calculate total pages
+        total_pages = 16  # Standard for CRE Paper 1
+        
+        return {
+            'school_name': 'EXAMINATION CENTRE',
+            'school_logo': '/exam.png',
+            'logo_position': 'center',
+            'class_name': '',
+            'exam_title': 'END TERM EXAMINATION 2025',
+            'paper_name': display_paper_name,
+            'paper_type': 'Paper 1',
+            'total_marks': generated_paper.total_marks or 100,
+            'time_allocation': format_time_allocation(paper.time_allocation),
+            'total_pages': total_pages,
+            'instructions': [
+                'Write your name and index number in the spaces provided above.',
+                'Sign and write the date of examination in the spaces provided above.',
+                f'This paper consists of six questions.',
+                'Answer five questions in the spaces provided at the end of question 6.',
+                'Each question carries 20 marks.',
+                f'This paper consists of {total_pages} printed pages.',
+                'Candidates should answer from the Atlas provided.',
+                'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
+                'Candidates should answer the questions in English.'
+            ],
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'candidate_name_field': True,
+            'candidate_number_field': True,
+            'date_field': True
+        }
+
+
+
+class CREPaper2Coverpage:
+    """
+    Christian Religious Education Paper 2 Coverpage Template
+    - 6 questions available
+    - Students answer 5 out of 6
+    - Each question: 20 marks
+    - Total: 100 marks
+    """
+    
+    @staticmethod
+    def generate_html(data):
+        """
+        Generate HTML for CRE Paper 2 coverpage
+        
+        Args:
+            data (dict): Coverpage data with keys:
+                - school_name: Name of the school
+                - school_logo: Base64 encoded logo or URL
+                - exam_title: e.g., "END TERM EXAMINATION 2025"
+                - paper_name: e.g., "CHRISTIAN RELIGIOUS EDUCATION PAPER 2"
+                - total_marks: Total marks (default: 100)
+                - time_allocation: Time in minutes
+                - total_pages: Total pages
+        
+        Returns:
+            str: HTML content for coverpage
+        """
+        
+        # Extract data with defaults
+        school_name = data.get('school_name', 'EXAMINATION CENTRE')
+        school_logo = data.get('school_logo', '/exam.png')
+        logo_position = data.get('logo_position', 'center')
+        class_name = data.get('class_name', '')
+        exam_title = data.get('exam_title', 'END TERM EXAMINATION 2025')
+        paper_name = data.get('paper_name', 'CHRISTIAN RELIGIOUS EDUCATION PAPER 2')
+        
+        total_marks = data.get('total_marks', 100)
+        time_allocation = data.get('time_allocation', '2 HOURS 30 MINUTES')
+        total_pages = data.get('total_pages', 16)
+        
+        instructions = data.get('instructions', [
+            'Write your name and index number in the spaces provided above.',
+            'Sign and write the date of examination in the spaces provided above.',
+            f'This paper consists of six questions.',
+            'Answer any five questions in the spaces provided at the end of question 6.',
+            'Each question carries 20 marks.',
+            f'This paper consists of {total_pages} printed pages.',
+            'Do not remove any pages from this booklet.',
+            'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
+            'Candidates should answer the questions in English.'
+        ])
+        
+        exam_date = data.get('date', datetime.now().strftime('%Y-%m-%d'))
+        show_name = data.get('candidate_name_field', True)
+        show_number = data.get('candidate_number_field', True)
+        show_date = data.get('date_field', True)
+        
+        # Generate marking grid for CRE Paper 2
+        marking_grid_html = CREPaper2Coverpage._generate_marking_grid()
+        
+        # Build HTML
+        html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{paper_name} - Coverpage</title>
+    <style>
+        @page {{
+            size: A4;
+            margin: 20mm;
+        }}
+        
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: black;
+            background: white;
+        }}
+        
+        .coverpage {{
+            width: 100%;
+            min-height: 100vh;
+            padding: 15mm;
+            display: flex;
+            flex-direction: column;
+            page-break-after: always;
+        }}
+        
+        /* Header Section */
+        .header {{
+            text-align: center;
+            margin-bottom: 20px;
+        }}
+        
+        .logo-container {{
+            margin-bottom: 15px;
+        }}
+        
+        .logo-container.left {{
+            text-align: left;
+        }}
+        
+        .logo-container.center {{
+            text-align: center;
+        }}
+        
+        .logo-container.right {{
+            text-align: right;
+        }}
+        
+        .school-logo {{
+            max-width: 90px;
+            max-height: 90px;
+            object-fit: contain;
+        }}
+        
+        .school-name {{
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }}
+        
+        .class-name {{
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }}
+        
+        .exam-title {{
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }}
+        
+        .paper-details {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 5px;
+        }}
+        
+        .paper-name {{
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }}
+        
+        .time-allocation {{
+            font-size: 1.3rem;
+            margin-top: 5px;
+        }}
+        
+        /* Candidate Info Section */
+        .candidate-info {{
+            margin: 20px 0;
+            padding: 15px;
+            border: none;
+        }}
+        
+        .candidate-info-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px 20px;
+        }}
+        
+        .info-row {{
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-row-full {{
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-label {{
+            font-weight: bold;
+            font-size: 12px;
+            min-width: 40px;
+        }}
+        
+        .info-field {{
+            flex: 1;
+            border-bottom: 1px dotted black;
+            min-height: 25px;
+            padding: 2px 5px;
+        }}
+        
+        /* Instructions Section */
+        .instructions {{
+            margin-bottom: 20px;
+        }}
+        
+        .instructions-title {{
+            font-weight: bold;
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+        }}
+        
+        .instructions ol {{
+            margin-left: 20px;
+            font-size: 1.5rem;
+            line-height: 1.6;
+        }}
+        
+        .instructions li {{
+            margin-bottom: 8px;
+        }}
+        
+        .instructions li.bold {{
+            font-weight: bold;
+        }}
+        
+        /* Marking Grid Section */
+        .marking-grid-container {{
+            margin-top: auto;
+            padding-top: 20px;
+        }}
+        
+        .grid-title {{
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 12px;
+            text-align: center;
+            text-transform: uppercase;
+        }}
+        
+        .marking-grid {{
+            width: 70%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            border: 2px solid black;
+        }}
+        
+        .marking-grid th,
+        .marking-grid td {{
+            border: 1px solid black;
+            text-align: center;
+            font-size: 12px;
+            padding: 10px 8px;
+        }}
+        
+        .marking-grid th {{
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }}
+        
+        .question-row {{
+            height: 40px;
+        }}
+        
+        .score-row {{
+            background-color: #f5f5f5;
+            font-weight: bold;
+            height: 40px;
+        }}
+        
+        /* Print Styles */
+        @media print {{
+            body {{
+                margin: 0;
+                padding: 20mm;
+            }}
+            
+            .coverpage {{
+                page-break-after: always;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="coverpage">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-container {logo_position}">
+                <img src="{school_logo}" alt="School Logo" class="school-logo" onerror="this.src='/exam.png'">
+            </div>
+            <div class="school-name">{school_name}</div>
+            {f'<div class="class-name">{class_name}</div>' if class_name else ''}
+            <div class="exam-title">{exam_title}</div>
+            
+            <div class="paper-details">
+                <span class="paper-name">{paper_name}</span>
+            </div>
+            
+            <div class="time-allocation">{time_allocation}</div>
+        </div>
+        
+        <!-- Candidate Information -->
+        <div class="candidate-info">
+            <div class="candidate-info-grid">
+                {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
+                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
+                {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
+                <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
+            </div>
+        </div>
+        
+        <!-- Instructions -->
+        <div class="instructions">
+            <div class="instructions-title">Instructions to candidates</div>
+            <ol type="a">
+"""
+        
+        # Add instructions
+        for idx, instruction in enumerate(instructions, 1):
+            # Make specific instructions bold
+            is_bold = ('six questions' in instruction.lower() or 
+                      'answer any five' in instruction.lower() or 
+                      'each question carries' in instruction.lower() or
+                      'this paper consists' in instruction.lower() or
+                      'do not remove' in instruction.lower())
+            class_attr = ' class="bold"' if is_bold else ''
+            html += f'                <li{class_attr}>{instruction}</li>\n'
+        
+        html += f"""
+            </ol>
+        </div>
+        
+        <!-- Marking Grid -->
+        <div class="marking-grid-container">
+            <div class="grid-title">For Examiner's Use Only</div>
+            {marking_grid_html}
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        return html
+    
+    @staticmethod
+    def _generate_marking_grid():
+        """
+        Generate marking grid HTML for CRE Paper 2
+        
+        Based on screenshot, the grid structure is:
+        - First row: "Question" header with 5 empty columns and "Candidate's Total Score"
+        - Second row: "Candidate's Score" with 5 empty columns (for the 5 answered questions)
+        
+        Returns:
+            str: HTML for marking grid
+        """
+        
+        grid_html = """
+            <table class="marking-grid">
+                <thead>
+                    <tr>
+                        <th>Question</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th>Candidate's<br>Total Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="score-row">
+                        <td>Candidate's<br>Score</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        """
+        
+        return grid_html
+    
+    @staticmethod
+    def generate_default_coverpage_data(generated_paper, paper):
+        """
+        Generate default coverpage data for CRE Paper 2
+        
+        Args:
+            generated_paper: GeneratedPaper instance
+            paper: Paper instance
+        
+        Returns:
+            dict: Default coverpage data for CRE Paper 2
+        """
+        # Generate paper name
+        paper_name_upper = paper.name.upper()
+        subject_name_upper = paper.subject.name.upper()
+        
+        if subject_name_upper in paper_name_upper:
+            display_paper_name = paper_name_upper
+        else:
+            display_paper_name = f'{subject_name_upper} {paper_name_upper}'
+        
+        # Get metadata for question details
+        metadata = getattr(generated_paper, 'metadata', {}) or {}
+        
+        # Calculate total pages
+        total_pages = 16  # Standard for CRE Paper 2
+        
+        return {
+            'school_name': 'EXAMINATION CENTRE',
+            'school_logo': '/exam.png',
+            'logo_position': 'center',
+            'class_name': '',
+            'exam_title': 'END TERM EXAMINATION 2025',
+            'paper_name': display_paper_name,
+            'paper_type': 'Paper 2',
+            'total_marks': generated_paper.total_marks or 100,
+            'time_allocation': format_time_allocation(paper.time_allocation),
+            'total_pages': total_pages,
+            'instructions': [
+                'Write your name and index number in the spaces provided above.',
+                'Sign and write the date of examination in the spaces provided above.',
+                f'This paper consists of six questions.',
+                'Answer any five questions in the spaces provided at the end of question 6.',
+                'Each question carries 20 marks.',
+                f'This paper consists of {total_pages} printed pages.',
+                'Do not remove any pages from this booklet.',
+                'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
+                'Candidates should answer the questions in English.'
+            ],
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'candidate_name_field': True,
+            'candidate_number_field': True,
+            'date_field': True
+        }

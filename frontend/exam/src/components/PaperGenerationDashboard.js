@@ -126,7 +126,108 @@ export default function PaperGenerationDashboard() {
     const renderTextWithImages = (text, images = [], imagePositions = {}, context = 'preview') => {
         if (!text) return [];
         
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:\d+x\d+\]|\[MATRIX:\d+x\d+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+            // Fraction formatting
+            if (part.startsWith('[FRAC:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(6, -1);
+                    const [num, den] = inner.split(':');
+                    return (
+                        <span key={index}><sup style={{display:'block',fontSize:'0.9em'}}>{num}</sup><span style={{display:'block',borderTop:'1px solid',paddingTop:'1px',fontSize:'0.9em'}}>{den}</span></span>
+                    );
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
+            if (part.startsWith('[MIX:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(5, -1);
+                    const [whole, num, den] = inner.split(':');
+                    return (
+                        <span key={index}>{whole} <span style={{display:'inline-block',verticalAlign:'middle',textAlign:'center'}}><sup style={{display:'block',fontSize:'0.9em'}}>{num}</sup><span style={{display:'block',borderTop:'1px solid',paddingTop:'1px',fontSize:'0.9em'}}>{den}</span></span></span>
+                    );
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
+            // Table formatting
+            if (part.startsWith('[TABLE:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(7, -1);
+                    const parts = inner.split(':');
+                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                    if (dimensionMatch) {
+                        const rows = parseInt(dimensionMatch[1]);
+                        const cols = parseInt(dimensionMatch[2]);
+                        const cellData = parts[1] ? parts[1].split('|') : [];
+                        return (
+                            <table key={index} style={{ border: '1px solid black', borderCollapse: 'collapse', margin: '10px 0' }}>
+                                <tbody>
+                                    {Array.from({ length: rows }, (_, r) => (
+                                        <tr key={r}>
+                                            {Array.from({ length: cols }, (_, c) => {
+                                                const cellIndex = r * cols + c;
+                                                const cellValue = cellData[cellIndex] || '';
+                                                return (
+                                                    <td key={c} style={{ border: '1px solid black', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                        {cellValue || '\u00A0'}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        );
+                    }
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
+            // Matrix formatting
+            if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
+                try {
+                    const inner = part.slice(8, -1);
+                    const parts = inner.split(':');
+                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                    if (dimensionMatch) {
+                        const rows = parseInt(dimensionMatch[1]);
+                        const cols = parseInt(dimensionMatch[2]);
+                        const cellData = parts[1] ? parts[1].split('|') : [];
+                        return (
+                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '0 5px' }}>
+                                <span style={{ fontSize: '3em', fontWeight: '100' }}>(</span>
+                                <table style={{ borderCollapse: 'collapse', margin: '0 5px' }}>
+                                    <tbody>
+                                        {Array.from({ length: rows }, (_, r) => (
+                                            <tr key={r}>
+                                                {Array.from({ length: cols }, (_, c) => {
+                                                    const cellIndex = r * cols + c;
+                                                    const cellValue = cellData[cellIndex] || '';
+                                                    return (
+                                                        <td key={c} style={{ padding: '8px', minWidth: '40px', textAlign: 'center' }}>
+                                                            {cellValue || '\u00A0'}
+                                                        </td>
+                                                    );
+                                                })}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                <span style={{ fontSize: '3em', fontWeight: '100' }}>)</span>
+                            </span>
+                        );
+                    }
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
+            // Superscript formatting
+            if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
+                return <sup key={index}>{part.slice(5, -6)}</sup>;
+            }
+
+            // Subscript formatting
+            if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
+                return <sub key={index}>{part.slice(5, -6)}</sub>;
+            }
+
             // Bold formatting
             if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
                 return <strong key={index}>{part.slice(2, -2)}</strong>;
