@@ -43,11 +43,12 @@ class KCSEMathematicsPaper1Generator:
     Total questions vary based on Section I distribution
     """
     
-    # Section I Requirements
-    SECTION_I_3MARK_MIN = 12  # Minimum 3-mark questions (majority)
-    SECTION_I_4MARK_MIN = 2   # Minimum 4-mark questions
-    SECTION_I_2MARK_MIN = 2   # Minimum 2-mark questions
-    SECTION_I_MARKS = 50
+    # Section I Requirements (KCSE Standard: 16 questions = 50 marks)
+    SECTION_I_2MARK_COUNT = 1   # 1×2mk = 2 marks
+    SECTION_I_3MARK_COUNT = 12  # 12×3mk = 36 marks (majority)
+    SECTION_I_4MARK_COUNT = 3   # 3×4mk = 12 marks
+    SECTION_I_TOTAL = 16        # Total: 16 questions
+    SECTION_I_MARKS = 50        # Total: 50 marks
     
     # Section II Requirements
     SECTION_II_10MARK_COUNT = 8
@@ -138,107 +139,56 @@ class KCSEMathematicsPaper1Generator:
         
         print(f"\n[DATA LOADED - MATHEMATICS PAPER 1]")
         print(f"  Section I:")
-        print(f"    2-mark: {len(self.section_i_2mark)} (min {self.SECTION_I_2MARK_MIN})")
-        print(f"    3-mark: {len(self.section_i_3mark)} (min {self.SECTION_I_3MARK_MIN}, majority)")
-        print(f"    4-mark: {len(self.section_i_4mark)} (min {self.SECTION_I_4MARK_MIN})")
+        print(f"    2-mark: {len(self.section_i_2mark)} (need {self.SECTION_I_2MARK_COUNT})")
+        print(f"    3-mark: {len(self.section_i_3mark)} (need {self.SECTION_I_3MARK_COUNT}, majority)")
+        print(f"    4-mark: {len(self.section_i_4mark)} (need {self.SECTION_I_4MARK_COUNT})")
         print(f"  Section II:")
         print(f"    10-mark: {len(self.section_ii_10mark)} (need {self.SECTION_II_10MARK_COUNT})")
     
     def _select_section_i(self) -> bool:
         """
-        Select Section I questions with counter-based strategy to reach 50 marks.
-        Paper 1: Min 2×2mk, 2×4mk, 12×3mk = 48 marks, need 2 more (add 1×2mk) = 50 marks
+        Select Section I questions: 1×2mk + 12×3mk + 3×4mk = 16 questions, 50 marks
         """
-        # Check minimum availability
-        if (len(self.section_i_2mark) < self.SECTION_I_2MARK_MIN or
-            len(self.section_i_3mark) < self.SECTION_I_3MARK_MIN or
-            len(self.section_i_4mark) < self.SECTION_I_4MARK_MIN):
+        # Check availability
+        if (len(self.section_i_2mark) < self.SECTION_I_2MARK_COUNT or
+            len(self.section_i_3mark) < self.SECTION_I_3MARK_COUNT or
+            len(self.section_i_4mark) < self.SECTION_I_4MARK_COUNT):
             return False
         
         available_2 = [q for q in self.section_i_2mark if q.id not in self.used_ids]
         available_3 = [q for q in self.section_i_3mark if q.id not in self.used_ids]
         available_4 = [q for q in self.section_i_4mark if q.id not in self.used_ids]
         
-        if (len(available_2) < self.SECTION_I_2MARK_MIN or
-            len(available_3) < self.SECTION_I_3MARK_MIN or
-            len(available_4) < self.SECTION_I_4MARK_MIN):
+        if (len(available_2) < self.SECTION_I_2MARK_COUNT or
+            len(available_3) < self.SECTION_I_3MARK_COUNT or
+            len(available_4) < self.SECTION_I_4MARK_COUNT):
             return False
         
-        # Select minimum requirements first
+        # Select exact counts needed
         selected = []
-        idx_2 = 0
-        idx_3 = 0
-        idx_4 = 0
         
-        # Add minimum 2-mark
-        for i in range(self.SECTION_I_2MARK_MIN):
-            selected.append(available_2[idx_2])
-            idx_2 += 1
+        # Add 1 × 2-mark
+        for i in range(self.SECTION_I_2MARK_COUNT):
+            selected.append(available_2[i])
         
-        # Add minimum 4-mark
-        for i in range(self.SECTION_I_4MARK_MIN):
-            selected.append(available_4[idx_4])
-            idx_4 += 1
+        # Add 12 × 3-mark
+        for i in range(self.SECTION_I_3MARK_COUNT):
+            selected.append(available_3[i])
         
-        # Add minimum 3-mark
-        for i in range(self.SECTION_I_3MARK_MIN):
-            selected.append(available_3[idx_3])
-            idx_3 += 1
+        # Add 3 × 4-mark
+        for i in range(self.SECTION_I_4MARK_COUNT):
+            selected.append(available_4[i])
         
-        # Calculate remaining marks needed
-        current_marks = (idx_2 * 2) + (idx_3 * 3) + (idx_4 * 4)
-        remaining = self.SECTION_I_MARKS - current_marks
+        # Verify totals
+        total_marks = (self.SECTION_I_2MARK_COUNT * 2) + (self.SECTION_I_3MARK_COUNT * 3) + (self.SECTION_I_4MARK_COUNT * 4)
         
-        # Fill remaining marks intelligently
-        while remaining > 0:
-            added = False
-            
-            # Try exact matches first
-            if remaining == 2 and idx_2 < len(available_2):
-                selected.append(available_2[idx_2])
-                idx_2 += 1
-                remaining -= 2
-                added = True
-            elif remaining == 3 and idx_3 < len(available_3):
-                selected.append(available_3[idx_3])
-                idx_3 += 1
-                remaining -= 3
-                added = True
-            elif remaining == 4 and idx_4 < len(available_4):
-                selected.append(available_4[idx_4])
-                idx_4 += 1
-                remaining -= 4
-                added = True
-            # For larger amounts, prefer 3-mark to maintain majority
-            elif remaining > 4 and idx_3 < len(available_3):
-                selected.append(available_3[idx_3])
-                idx_3 += 1
-                remaining -= 3
-                added = True
-            elif remaining > 4 and idx_4 < len(available_4):
-                selected.append(available_4[idx_4])
-                idx_4 += 1
-                remaining -= 4
-                added = True
-            elif remaining > 4 and idx_2 < len(available_2):
-                selected.append(available_2[idx_2])
-                idx_2 += 1
-                remaining -= 2
-                added = True
-            
-            if not added:
-                break
-        
-        # Verify result
-        total_marks = (idx_2 * 2) + (idx_3 * 3) + (idx_4 * 4)
-        
-        if total_marks == self.SECTION_I_MARKS and idx_3 >= idx_2 and idx_3 >= idx_4:
+        if len(selected) == self.SECTION_I_TOTAL and total_marks == self.SECTION_I_MARKS:
             self.selected_section_i = selected
             for q in selected:
                 self.used_ids.add(q.id)
             
             print(f"\n[SECTION I SELECTED - PAPER 1]")
-            print(f"  2-mark: {idx_2}, 3-mark: {idx_3} (majority), 4-mark: {idx_4}")
+            print(f"  2-mark: {self.SECTION_I_2MARK_COUNT}, 3-mark: {self.SECTION_I_3MARK_COUNT} (majority), 4-mark: {self.SECTION_I_4MARK_COUNT}")
             print(f"  Total: {len(selected)} questions, {total_marks} marks")
             return True
         
