@@ -146,7 +146,7 @@ class KCSEMathematicsPaper1Generator:
     
     def _select_section_i(self) -> bool:
         """
-        Select Section I questions with flexible distribution to reach 50 marks.
+        Select Section I questions with counter-based strategy to reach 50 marks.
         - 3-mark questions form majority (at least 12)
         - At least 2 questions of 4 marks
         - At least 2 questions of 2 marks
@@ -167,34 +167,89 @@ class KCSEMathematicsPaper1Generator:
             len(available_4) < self.SECTION_I_4MARK_MIN):
             return False
         
-        # Try different combinations to reach exactly 50 marks
-        # Start with minimum requirements and add more to reach 50
-        for count_3 in range(self.SECTION_I_3MARK_MIN, min(len(available_3), 20) + 1):
-            for count_4 in range(self.SECTION_I_4MARK_MIN, min(len(available_4), 10) + 1):
-                for count_2 in range(self.SECTION_I_2MARK_MIN, min(len(available_2), 10) + 1):
-                    total_marks = (count_3 * 3) + (count_4 * 4) + (count_2 * 2)
-                    
-                    if total_marks == self.SECTION_I_MARKS:
-                        # Found valid combination
-                        selected = []
-                        selected.extend(available_2[:count_2])
-                        selected.extend(available_3[:count_3])
-                        selected.extend(available_4[:count_4])
-                        
-                        # Verify 3-mark questions form majority
-                        if count_3 >= count_2 and count_3 >= count_4:
-                            self.selected_section_i = selected
-                            for q in selected:
-                                self.used_ids.add(q.id)
-                            
-                            print(f"\n[SECTION I SELECTED]")
-                            print(f"  2-mark questions: {count_2}")
-                            print(f"  3-mark questions: {count_3} (majority)")
-                            print(f"  4-mark questions: {count_4}")
-                            print(f"  Total questions: {len(selected)}")
-                            print(f"  Total marks: {total_marks}")
-                            
-                            return True
+        # Counter-based selection strategy
+        selected = []
+        marks_counter = 0
+        count_2 = 0
+        count_3 = 0
+        count_4 = 0
+        
+        # Start by adding minimum required questions
+        # Add minimum 2-mark questions
+        for i in range(self.SECTION_I_2MARK_MIN):
+            if i < len(available_2):
+                selected.append(available_2[i])
+                marks_counter += 2
+                count_2 += 1
+        
+        # Add minimum 4-mark questions
+        for i in range(self.SECTION_I_4MARK_MIN):
+            if i < len(available_4):
+                selected.append(available_4[i])
+                marks_counter += 4
+                count_4 += 1
+        
+        # Add minimum 3-mark questions
+        for i in range(self.SECTION_I_3MARK_MIN):
+            if i < len(available_3):
+                selected.append(available_3[i])
+                marks_counter += 3
+                count_3 += 1
+        
+        # Now fill remaining marks to reach exactly 50
+        # Priority: 3-mark (to maintain majority), then 4-mark, then 2-mark
+        while marks_counter < self.SECTION_I_MARKS:
+            remaining = self.SECTION_I_MARKS - marks_counter
+            
+            # Try 3-mark first (to maintain majority)
+            if remaining >= 3 and count_3 < len(available_3):
+                selected.append(available_3[count_3])
+                marks_counter += 3
+                count_3 += 1
+            # Try 4-mark
+            elif remaining >= 4 and count_4 < len(available_4):
+                selected.append(available_4[count_4])
+                marks_counter += 4
+                count_4 += 1
+            # Try 2-mark
+            elif remaining >= 2 and count_2 < len(available_2):
+                selected.append(available_2[count_2])
+                marks_counter += 2
+                count_2 += 1
+            # If remaining is 1, try replacing last 3-mark with 4-mark or 2-mark with 3-mark
+            elif remaining == 1:
+                # Try replacing a 2-mark with 3-mark
+                if count_2 > self.SECTION_I_2MARK_MIN and count_3 < len(available_3):
+                    # Remove last 2-mark
+                    for i in range(len(selected) - 1, -1, -1):
+                        if selected[i].marks == 2:
+                            selected.pop(i)
+                            marks_counter -= 2
+                            count_2 -= 1
+                            break
+                    # Add 3-mark
+                    selected.append(available_3[count_3])
+                    marks_counter += 3
+                    count_3 += 1
+                else:
+                    break
+            else:
+                break
+        
+        # Verify we reached exactly 50 marks and 3-mark forms majority
+        if marks_counter == self.SECTION_I_MARKS and count_3 >= count_2 and count_3 >= count_4:
+            self.selected_section_i = selected
+            for q in selected:
+                self.used_ids.add(q.id)
+            
+            print(f"\n[SECTION I SELECTED]")
+            print(f"  2-mark questions: {count_2}")
+            print(f"  3-mark questions: {count_3} (majority)")
+            print(f"  4-mark questions: {count_4}")
+            print(f"  Total questions: {len(selected)}")
+            print(f"  Total marks: {marks_counter}")
+            
+            return True
         
         return False
     
@@ -434,48 +489,113 @@ class KCSEMathematicsPaper2Generator:
         print(f"    10-mark: {len(self.section_ii_10mark)} (need {self.SECTION_II_10MARK_COUNT})")
     
     def _select_section_i(self) -> bool:
-        """Select Section I questions: 12x3mk, 3x2mk, 2x4mk"""
-        # Check availability
+        """
+        Select Section I questions with counter-based strategy to reach 50 marks.
+        - 3-mark questions form majority (at least 12)
+        - At least 3 questions of 2 marks
+        - At least 2 questions of 4 marks
+        - Total must equal 50 marks
+        """
+        # Check minimum availability
         if (len(self.section_i_2mark) < self.SECTION_I_2MARK_COUNT or
             len(self.section_i_3mark) < self.SECTION_I_3MARK_COUNT or
             len(self.section_i_4mark) < self.SECTION_I_4MARK_COUNT):
             return False
         
-        selected = []
-        
-        # Select 3 x 2-mark
         available_2 = [q for q in self.section_i_2mark if q.id not in self.used_ids]
-        if len(available_2) < self.SECTION_I_2MARK_COUNT:
-            return False
-        selected.extend(available_2[:self.SECTION_I_2MARK_COUNT])
-        
-        # Select 12 x 3-mark
         available_3 = [q for q in self.section_i_3mark if q.id not in self.used_ids]
-        if len(available_3) < self.SECTION_I_3MARK_COUNT:
-            return False
-        selected.extend(available_3[:self.SECTION_I_3MARK_COUNT])
-        
-        # Select 2 x 4-mark
         available_4 = [q for q in self.section_i_4mark if q.id not in self.used_ids]
-        if len(available_4) < self.SECTION_I_4MARK_COUNT:
-            return False
-        selected.extend(available_4[:self.SECTION_I_4MARK_COUNT])
         
-        # Verify total
-        total_marks = sum(q.marks for q in selected)
-        if len(selected) != self.SECTION_I_TOTAL or total_marks != self.SECTION_I_MARKS:
+        if (len(available_2) < self.SECTION_I_2MARK_COUNT or
+            len(available_3) < self.SECTION_I_3MARK_COUNT or
+            len(available_4) < self.SECTION_I_4MARK_COUNT):
             return False
         
-        # Accept selection
-        self.selected_section_i = selected
-        for q in selected:
-            self.used_ids.add(q.id)
+        # Counter-based selection strategy
+        selected = []
+        marks_counter = 0
+        count_2 = 0
+        count_3 = 0
+        count_4 = 0
         
-        print(f"\n[SECTION I SELECTED]")
-        print(f"  Questions: {len(selected)}")
-        print(f"  Total marks: {total_marks}")
+        # Start by adding minimum required questions
+        # Add minimum 2-mark questions
+        for i in range(self.SECTION_I_2MARK_COUNT):
+            if i < len(available_2):
+                selected.append(available_2[i])
+                marks_counter += 2
+                count_2 += 1
         
-        return True
+        # Add minimum 4-mark questions
+        for i in range(self.SECTION_I_4MARK_COUNT):
+            if i < len(available_4):
+                selected.append(available_4[i])
+                marks_counter += 4
+                count_4 += 1
+        
+        # Add minimum 3-mark questions
+        for i in range(self.SECTION_I_3MARK_COUNT):
+            if i < len(available_3):
+                selected.append(available_3[i])
+                marks_counter += 3
+                count_3 += 1
+        
+        # Now fill remaining marks to reach exactly 50
+        # Priority: 3-mark (to maintain majority), then 4-mark, then 2-mark
+        while marks_counter < self.SECTION_I_MARKS:
+            remaining = self.SECTION_I_MARKS - marks_counter
+            
+            # Try 3-mark first (to maintain majority)
+            if remaining >= 3 and count_3 < len(available_3):
+                selected.append(available_3[count_3])
+                marks_counter += 3
+                count_3 += 1
+            # Try 4-mark
+            elif remaining >= 4 and count_4 < len(available_4):
+                selected.append(available_4[count_4])
+                marks_counter += 4
+                count_4 += 1
+            # Try 2-mark
+            elif remaining >= 2 and count_2 < len(available_2):
+                selected.append(available_2[count_2])
+                marks_counter += 2
+                count_2 += 1
+            # If remaining is 1, try replacing last 3-mark with 4-mark or 2-mark with 3-mark
+            elif remaining == 1:
+                # Try replacing a 2-mark with 3-mark
+                if count_2 > self.SECTION_I_2MARK_COUNT and count_3 < len(available_3):
+                    # Remove last 2-mark
+                    for i in range(len(selected) - 1, -1, -1):
+                        if selected[i].marks == 2:
+                            selected.pop(i)
+                            marks_counter -= 2
+                            count_2 -= 1
+                            break
+                    # Add 3-mark
+                    selected.append(available_3[count_3])
+                    marks_counter += 3
+                    count_3 += 1
+                else:
+                    break
+            else:
+                break
+        
+        # Verify we reached exactly 50 marks and 3-mark forms majority
+        if marks_counter == self.SECTION_I_MARKS and count_3 >= count_2 and count_3 >= count_4:
+            self.selected_section_i = selected
+            for q in selected:
+                self.used_ids.add(q.id)
+            
+            print(f"\n[SECTION I SELECTED]")
+            print(f"  2-mark questions: {count_2}")
+            print(f"  3-mark questions: {count_3} (majority)")
+            print(f"  4-mark questions: {count_4}")
+            print(f"  Total questions: {len(selected)}")
+            print(f"  Total marks: {marks_counter}")
+            
+            return True
+        
+        return False
     
     def _select_section_ii(self) -> bool:
         """Select Section II questions: 8x10mk"""
