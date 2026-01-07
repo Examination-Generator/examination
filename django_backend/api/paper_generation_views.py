@@ -1962,13 +1962,16 @@ def validate_mathematics_paper_pool(request):
         else:
             return Response({"can_generate": False, "message": "Invalid paper_number for Mathematics (must be 1 or 2)"}, status=status.HTTP_400_BAD_REQUEST)
         generator.load_data()
-        valid_nested = generator._select_nested_questions()
-        valid_standalone = generator._select_standalone_questions()
-        can_generate = valid_nested and valid_standalone
+        
+        # Mathematics generators use _select_section_i and _select_section_ii instead of _select_nested_questions
+        valid_section_i = generator._select_section_i()
+        valid_section_ii = generator._select_section_ii()
+        can_generate = valid_section_i and valid_section_ii
+        
         return Response({
             "can_generate": can_generate,
-            "nested_count": len(getattr(generator, "nested_questions", [])),
-            "standalone_count": sum(len(getattr(generator, f"standalone_{m}mark", [])) for m in range(1, 5)),
+            "section_i_count": len(generator.selected_section_i) if valid_section_i else 0,
+            "section_ii_count": len(generator.selected_section_ii) if valid_section_ii else 0,
             "message": "Pool is valid" if can_generate else "Pool is insufficient for Mathematics Paper generation"
         })
     except Exception as e:
