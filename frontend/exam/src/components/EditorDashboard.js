@@ -299,6 +299,8 @@ export default function EditorDashboard({ onLogout }) {
     const applyQuestionMatrix = () => openTableMatrixModal(questionTextareaRef, setQuestionText, questionText, 'matrix');
     const applyEditQuestionTable = () => openTableMatrixModal(editQuestionTextareaRef, setEditQuestionText, editQuestionText, 'table');
     const applyEditQuestionMatrix = () => openTableMatrixModal(editQuestionTextareaRef, setEditQuestionText, editQuestionText, 'matrix');
+    const applyEditAnswerTable = () => openTableMatrixModal(editAnswerTextareaRef, setEditAnswerText, editAnswerText, 'table');
+    const applyEditAnswerMatrix = () => openTableMatrixModal(editAnswerTextareaRef, setEditAnswerText, editAnswerText, 'matrix');
 
     // Answer formatting with superscript/subscript
     const applyAnswerFormattingAdvanced = (format) => {
@@ -6427,6 +6429,24 @@ useEffect(() => {
                                         >
                                             a⁄b
                                         </button>
+                                        {/* Table */}
+                                        <button
+                                            type="button"
+                                            onClick={() => openTableMatrixModal(answerTextareaRef, setAnswerText, answerText, 'table')}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                            title="Insert table"
+                                        >
+                                            ⊞
+                                        </button>
+                                        {/* Matrix */}
+                                        <button
+                                            type="button"
+                                            onClick={() => openTableMatrixModal(answerTextareaRef, setAnswerText, answerText, 'matrix')}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                            title="Insert matrix"
+                                        >
+                                            ⎡⎤
+                                        </button>
                                     </div>
                                     {/* Symbol Picker Button */}
                                     <button
@@ -8971,6 +8991,24 @@ useEffect(() => {
                                                     title="Insert fraction (prompt)"
                                                 >
                                                     a⁄b
+                                                </button>
+                                                {/* Table */}
+                                                <button
+                                                    type="button"
+                                                    onClick={applyEditAnswerTable}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                    title="Insert table"
+                                                >
+                                                    ⊞
+                                                </button>
+                                                {/* Matrix */}
+                                                <button
+                                                    type="button"
+                                                    onClick={applyEditAnswerMatrix}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                    title="Insert matrix"
+                                                >
+                                                    ⎡⎤
                                                 </button>
                                             </div>
                                             <button
