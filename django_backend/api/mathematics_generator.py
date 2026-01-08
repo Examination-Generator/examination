@@ -313,6 +313,7 @@ class KCSEMathematicsPaper1Generator:
                 'section_i_marks': sum(q.marks for q in self.selected_section_i),
                 'section_ii_questions': len(self.selected_section_ii),
                 'section_ii_marks': sum(q.marks for q in self.selected_section_ii),
+                'total_marks': sum(q.marks for q in all_questions) - 30,  # Student does 50 marks from 80 available in Section II,
                 'generation_attempts': self.attempts,
                 'generation_time_seconds': round(generation_time, 2),
                 'validation': {
@@ -603,6 +604,7 @@ class KCSEMathematicsPaper2Generator:
                 'section_ii_questions': len(self.selected_section_ii),
                 'section_ii_marks': sum(q.marks for q in self.selected_section_ii),
                 'generation_attempts': self.attempts,
+                'total_marks': sum(q.marks for q in all_questions) - 30,  # Student does 50 marks from 80 available in Section II,
                 'generation_time_seconds': round(generation_time, 2),
                 'validation': {
                     'section_i_marks_ok': sum(q.marks for q in self.selected_section_i) == 50,
