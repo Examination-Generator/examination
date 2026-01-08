@@ -195,24 +195,21 @@ class KCSEMathematicsPaper1Generator:
         return False
     
     def _select_section_ii(self) -> bool:
-        """Select Section II questions: 8x10mk"""
+        """Select Section II questions: 8x10mk
+        Section II (10-mark) is independent from Section I (2,3,4-mark) - no overlap possible"""
         # Check availability
         if len(self.section_ii_10mark) < self.SECTION_II_10MARK_COUNT:
             return False
         
-        # Select 8 x 10-mark
-        available = [q for q in self.section_ii_10mark if q.id not in self.used_ids]
-        if len(available) < self.SECTION_II_10MARK_COUNT:
-            return False
-        
-        selected = available[:self.SECTION_II_10MARK_COUNT]
+        # Select 8 x 10-mark directly (no used_ids check - different mark pool)
+        selected = self.section_ii_10mark[:self.SECTION_II_10MARK_COUNT]
         
         # Accept selection
         self.selected_section_ii = selected
         for q in selected:
             self.used_ids.add(q.id)
         
-        print(f"\n[SECTION II SELECTED]")
+        print(f"\n[SECTION II SELECTED - PAPER 1]")
         print(f"  Questions: {len(selected)}")
         print(f"  Total marks: {sum(q.marks for q in selected)}")
         
