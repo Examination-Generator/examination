@@ -25,7 +25,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
 from .models import Paper, Topic, Question, Subject, GeneratedPaper
-from page_number_extrctor import extract_paper_number_from_name
+from .page_number_extrctor import extract_paper_number_from_name
 
 class KCSECREPaperGenerator:
     """
