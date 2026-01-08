@@ -335,8 +335,8 @@ class KCSEMathematicsPaper2Generator:
     
     # Section I Requirements
     SECTION_I_3MARK_COUNT = 12  # 3-mark questions form majority
-    SECTION_I_2MARK_COUNT = 3   # 3 questions of 2 marks
-    SECTION_I_4MARK_COUNT = 2   # 2 questions of 4 marks
+    SECTION_I_2MARK_COUNT = 1   # 1 question of 2 marks
+    SECTION_I_4MARK_COUNT = 3   # 3 questions of 4 marks
     SECTION_I_MARKS = 50
     
     # Section II Requirements
