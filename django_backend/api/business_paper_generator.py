@@ -25,6 +25,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
 from .models import Paper, Topic, Question, Subject, GeneratedPaper
+from .page_number_extrctor import extract_paper_number_from_name
 
 
 class KCSEBusinessPaper1Generator:
@@ -663,13 +664,19 @@ def validate_business_paper_pool(request):
         
         paper_id = data.get('paper_id')
         selected_topic_ids = data.get('topic_ids', [])
-        paper_number = data.get('paper_number', 1)
+        paper_number = None
+        
         
         if not paper_id or not selected_topic_ids:
             return JsonResponse({
                 'can_generate': False,
                 'message': 'Missing paper_id or selected_topic_ids'
             }, status=400)
+        
+        if paper_id :
+            paper = Paper.objects.get(id=paper_id)
+            paper_name = paper.name.lower()
+            paper_number = extract_paper_number_from_name(paper_name)
         
         # Load paper and topics
         paper = Paper.objects.select_related('subject').get(
@@ -793,12 +800,17 @@ def generate_business_paper(request):
         
         paper_id = data.get('paper_id')
         selected_topic_ids = data.get('topic_ids', [])
-        paper_number = data.get('paper_number', 1)
+        paper_number = None
         
         if not paper_id or not selected_topic_ids:
             return JsonResponse({
                 'message': 'Missing paper_id or selected_topic_ids'
             }, status=400)
+        
+        if paper_id :
+            paper = Paper.objects.get(id=paper_id)
+            paper_name = paper.name.lower()
+            paper_number = extract_paper_number_from_name(paper_name)
         
         if paper_number not in [1, 2]:
             return JsonResponse({
