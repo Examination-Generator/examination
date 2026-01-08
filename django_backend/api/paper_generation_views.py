@@ -58,6 +58,7 @@ from .coverpage_templates import (
     MarkingSchemeCoverpage, 
     format_time_allocation
 )
+from .page_number_extrctor import extract_paper_number_from_name
 
 logger = logging.getLogger(__name__)
 
@@ -1509,7 +1510,12 @@ def generate_mathematics_paper(request):
     """
     try:
         paper_id = request.data.get("paper_id")
-        paper_number = int(request.data.get("paper_number", 1))
+        paper_number  = None
+        if paper_id:
+            paper = Paper.objects.get(id=paper_id)
+            paper_name = paper.name.lower()
+            paper_number = extract_paper_number_from_name(paper_name)
+               
         selected_topic_ids = request.data.get("topic_ids", [])
         if not paper_id or not selected_topic_ids:
             return Response({"success": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
@@ -1948,10 +1954,20 @@ def validate_mathematics_paper_pool(request):
     Body: { "paper_id": ..., "paper_number": 1|2, "selected_topic_ids": [...] }
     """
     paper_id = request.data.get("paper_id")
-    paper_number = int(request.data.get("paper_number", 1))
+    # paper_number = int(request.data.get("paper_number", 1))
     selected_topic_ids = request.data.get("topic_ids", [])
     if not paper_id or not selected_topic_ids:
         return Response({"can_generate": False, "message": "Missing paper_id or selected_topic_ids"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    paper_number  = None
+    if paper_id:
+        try:
+            paper = Paper.objects.get(id=paper_id)
+            paper_name = paper.name.lower()
+            paper_number = extract_paper_number_from_name(paper_name)
+        except Paper.DoesNotExist:
+            return Response({"can_generate": False, "message": f"Paper with ID {paper_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+    
     try:
         if paper_number == 1:
             from .mathematics_generator import KCSEMathematicsPaper1Generator
