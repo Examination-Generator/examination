@@ -45,16 +45,6 @@ class KCSECREPaperGenerator:
     STUDENT_ANSWERS = 5
     TOTAL_MARKS = 100
     
-    # Fixed topic order for Paper 1 (case-insensitive matching)
-    TOPIC_ORDER_KEYWORDS = [
-        ['bible', 'creation'],           # 1. Bible/Creation
-        ['abraham', 'moses'],            # 2. Abraham/Moses
-        ['kingship', 'elijah'],          # 3. Kingship/Elijah
-        ['amos', 'prophetic'],           # 4. Amos/Prophetic messages
-        ['nehemiah', 'jeremiah'],        # 5. Nehemiah/Jeremiah
-        ['african', 'culture']           # 6. African culture
-    ]
-    
     def __init__(self, paper_id: str, selected_topic_ids: List[str], user=None):
         """Initialize generator"""
         self.paper_id = paper_id
@@ -70,6 +60,9 @@ class KCSECREPaperGenerator:
         # Question pools by topic
         self.questions_by_topic = {}  # topic_id -> [questions]
         
+        # Topic ordering map (populated during load_data)
+        self.topic_order_map = {}  # topic_id -> order_index
+        
         # Selection tracking
         self.selected_questions = []
         self.selected_question_ids = []
@@ -80,19 +73,13 @@ class KCSECREPaperGenerator:
         self.generation_start_time = None
         self.selection_strategy = None
     
-    def _get_topic_order(self, topic_name: str) -> int:
-        """Get the order index for a topic based on predefined keywords.
-        Returns order index (0-5) or 999 if no match found.
+    def _get_topic_order(self, topic) -> int:
+        """Get the order index for a topic from the topic_order_map.
+        Uses the topic's ID to look up its order.
+        Returns the mapped order or 999 if not found.
         """
-        topic_lower = topic_name.lower()
-        
-        for order_index, keywords in enumerate(self.TOPIC_ORDER_KEYWORDS):
-            # Check if any keyword matches the topic name
-            if any(keyword in topic_lower for keyword in keywords):
-                return order_index
-        
-        # If no match, place at end
-        return 999
+        topic_id = str(topic.id)
+        return self.topic_order_map.get(topic_id, 999)
     
     def load_data(self):
         """Load all questions from database for selected topics"""
@@ -112,6 +99,34 @@ class KCSECREPaperGenerator:
         
         if not self.topics:
             raise ValueError("No valid topics found for the selected IDs")
+        
+        # Build topic order map based on topic names (fixed order for CRE Paper 1)
+        # Order: Bible/Creation -> Abraham/Moses -> Kingship/Elijah -> 
+        #        Amos/Prophetic -> Nehemiah/Jeremiah -> African Culture
+        topic_order_keywords = [
+            ['bible', 'creation'],           # 1. Bible/Creation
+            ['abraham', 'moses'],            # 2. Abraham/Moses
+            ['kingship', 'elijah'],          # 3. Kingship/Elijah
+            ['amos', 'prophetic'],           # 4. Amos/Prophetic messages
+            ['nehemiah', 'jeremiah'],        # 5. Nehemiah/Jeremiah
+            ['african', 'culture']           # 6. African culture
+        ]
+        
+        for topic in self.topics:
+            topic_lower = topic.name.lower()
+            topic_id = str(topic.id)
+            
+            # Find matching order based on keywords
+            order_found = False
+            for order_index, keywords in enumerate(topic_order_keywords):
+                if any(keyword in topic_lower for keyword in keywords):
+                    self.topic_order_map[topic_id] = order_index
+                    order_found = True
+                    break
+            
+            # If no match, assign high number to place at end
+            if not order_found:
+                self.topic_order_map[topic_id] = 999
         
         # Load ALL questions for selected topics
         self.all_questions = list(Question.objects.filter(
@@ -333,10 +348,10 @@ class KCSECREPaperGenerator:
     def _build_result(self, generation_time: float) -> Dict:
         """Build result with paper structure"""
         
-        # Sort questions by predefined topic order instead of random shuffle
+        # Sort questions by topic order (using topic_order_map)
         # Order: Bible/Creation -> Abraham/Moses -> Kingship/Elijah -> 
         #        Amos/Prophetic -> Nehemiah/Jeremiah -> African Culture
-        self.selected_questions.sort(key=lambda q: self._get_topic_order(q.topic.name))
+        self.selected_questions.sort(key=lambda q: self._get_topic_order(q.topic))
         
         # Build questions data
         questions_data = []
