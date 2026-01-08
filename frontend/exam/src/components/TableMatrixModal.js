@@ -140,15 +140,19 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
     
     // Handle cell selection for merging
     const handleCellMouseDown = (rowIndex, colIndex, e) => {
+        // Don't interfere with input field interactions
+        if (e.target.tagName === 'INPUT') return;
+        
         if (e.button !== 0) return; // Only left click
         if (isCellMerged(rowIndex, colIndex)) return; // Don't select merged cells
         
+        e.preventDefault(); // Prevent text selection
         setIsSelecting(true);
         setSelectionStart({ row: rowIndex, col: colIndex });
         setSelectedCells([{ row: rowIndex, col: colIndex }]);
     };
     
-    const handleCellMouseEnter = (rowIndex, colIndex) => {
+    const handleCellMouseEnter = (rowIndex, colIndex, e) => {
         if (!isSelecting || !selectionStart) return;
         if (isCellMerged(rowIndex, colIndex)) return;
         
@@ -171,6 +175,29 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
     
     const handleMouseUp = () => {
         setIsSelecting(false);
+    };
+    
+    // Handle clicking directly on cell background (not input)
+    const handleCellClick = (rowIndex, colIndex, e) => {
+        // Only handle clicks on the cell itself, not the input
+        if (e.target.tagName === 'INPUT') return;
+        
+        if (isCellMerged(rowIndex, colIndex)) return;
+        
+        // Toggle selection for single cell
+        const isAlreadySelected = selectedCells.some(cell => cell.row === rowIndex && cell.col === colIndex);
+        
+        if (e.ctrlKey || e.metaKey) {
+            // Add or remove from selection with Ctrl/Cmd key
+            if (isAlreadySelected) {
+                setSelectedCells(selectedCells.filter(cell => !(cell.row === rowIndex && cell.col === colIndex)));
+            } else {
+                setSelectedCells([...selectedCells, { row: rowIndex, col: colIndex }]);
+            }
+        } else {
+            // Single selection
+            setSelectedCells([{ row: rowIndex, col: colIndex }]);
+        }
     };
     
     // Merge selected cells
@@ -331,34 +358,50 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
                         
                         {/* Merge/Unmerge controls */}
                         {type === 'table' && (
-                            <div className="flex gap-2 mb-3">
-                                <button
-                                    onClick={handleMergeCells}
-                                    disabled={selectedCells.length < 2}
-                                    className={`px-3 py-1 rounded text-sm ${
-                                        selectedCells.length < 2 
-                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-                                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                                    }`}
-                                >
-                                    Merge Selected Cells
-                                </button>
-                                <button
-                                    onClick={handleUnmergeCells}
-                                    disabled={selectedCells.length !== 1}
-                                    className={`px-3 py-1 rounded text-sm ${
-                                        selectedCells.length !== 1 
-                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-                                            : 'bg-orange-600 text-white hover:bg-orange-700'
-                                    }`}
-                                >
-                                    Unmerge Cell
-                                </button>
-                                {selectedCells.length > 0 && (
-                                    <span className="text-sm text-gray-600 self-center">
-                                        {selectedCells.length} cell(s) selected
-                                    </span>
-                                )}
+                            <div className="flex flex-col gap-2 mb-3">
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleMergeCells}
+                                        disabled={selectedCells.length < 2}
+                                        className={`px-3 py-1 rounded text-sm ${
+                                            selectedCells.length < 2 
+                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                                        }`}
+                                    >
+                                        Merge Selected Cells
+                                    </button>
+                                    <button
+                                        onClick={handleUnmergeCells}
+                                        disabled={selectedCells.length !== 1}
+                                        className={`px-3 py-1 rounded text-sm ${
+                                            selectedCells.length !== 1 
+                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                                                : 'bg-orange-600 text-white hover:bg-orange-700'
+                                        }`}
+                                    >
+                                        Unmerge Cell
+                                    </button>
+                                    <button
+                                        onClick={() => setSelectedCells([])}
+                                        disabled={selectedCells.length === 0}
+                                        className={`px-3 py-1 rounded text-sm ${
+                                            selectedCells.length === 0
+                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                                                : 'bg-gray-500 text-white hover:bg-gray-600'
+                                        }`}
+                                    >
+                                        Clear Selection
+                                    </button>
+                                    {selectedCells.length > 0 && (
+                                        <span className="text-sm text-gray-600 self-center">
+                                            {selectedCells.length} cell(s) selected
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-blue-600">
+                                    💡 Click on cell borders to select. Drag to select multiple cells. Hold Ctrl/Cmd and click to select individual cells.
+                                </p>
                             </div>
                         )}
                         
@@ -383,23 +426,42 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
                                                         colSpan={mergeInfo.colspan}
                                                         rowSpan={mergeInfo.rowspan}
                                                         className={`border border-gray-400 p-0 relative ${
-                                                            isSelected ? 'bg-blue-100' : ''
+                                                            isSelected ? 'bg-blue-100 border-2 border-blue-500' : ''
                                                         }`}
                                                         style={{
                                                             width: `${colWidths[colIndex]}px`,
                                                             height: `${rowHeights[rowIndex]}px`,
-                                                            position: 'relative'
+                                                            position: 'relative',
+                                                            cursor: 'pointer'
                                                         }}
                                                         onMouseDown={(e) => handleCellMouseDown(rowIndex, colIndex, e)}
-                                                        onMouseEnter={() => handleCellMouseEnter(rowIndex, colIndex)}
+                                                        onMouseEnter={(e) => handleCellMouseEnter(rowIndex, colIndex, e)}
+                                                        onClick={(e) => handleCellClick(rowIndex, colIndex, e)}
                                                     >
+                                                        {/* Selection indicator overlay */}
+                                                        {isSelected && (
+                                                            <div 
+                                                                className="absolute inset-0 pointer-events-none"
+                                                                style={{
+                                                                    border: '2px solid #3b82f6',
+                                                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                                                    zIndex: 1
+                                                                }}
+                                                            />
+                                                        )}
+                                                        
                                                         <input
                                                             type="text"
                                                             value={cell}
                                                             onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                                                            className="w-full h-full p-2 text-center border-0 focus:outline-none focus:ring-1 focus:ring-green-500 bg-transparent"
+                                                            className="w-full h-full p-2 text-center border-0 focus:outline-none focus:ring-2 focus:ring-green-500 bg-transparent relative z-10"
                                                             placeholder={type === 'matrix' ? 'x' : ''}
-                                                            onMouseDown={(e) => e.stopPropagation()}
+                                                            onFocus={(e) => {
+                                                                // Select this cell when focusing input
+                                                                if (!isSelected) {
+                                                                    setSelectedCells([{ row: rowIndex, col: colIndex }]);
+                                                                }
+                                                            }}
                                                         />
                                                         
                                                         {/* Right border resize handle */}
