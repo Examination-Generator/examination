@@ -45,6 +45,16 @@ class KCSECREPaperGenerator:
     STUDENT_ANSWERS = 5
     TOTAL_MARKS = 100
     
+    # Fixed topic order for Paper 1 (case-insensitive matching)
+    TOPIC_ORDER_KEYWORDS = [
+        ['bible', 'creation'],           # 1. Bible/Creation
+        ['abraham', 'moses'],            # 2. Abraham/Moses
+        ['kingship', 'elijah'],          # 3. Kingship/Elijah
+        ['amos', 'prophetic'],           # 4. Amos/Prophetic messages
+        ['nehemiah', 'jeremiah'],        # 5. Nehemiah/Jeremiah
+        ['african', 'culture']           # 6. African culture
+    ]
+    
     def __init__(self, paper_id: str, selected_topic_ids: List[str], user=None):
         """Initialize generator"""
         self.paper_id = paper_id
@@ -69,6 +79,20 @@ class KCSECREPaperGenerator:
         self.attempts = 0
         self.generation_start_time = None
         self.selection_strategy = None
+    
+    def _get_topic_order(self, topic_name: str) -> int:
+        """Get the order index for a topic based on predefined keywords.
+        Returns order index (0-5) or 999 if no match found.
+        """
+        topic_lower = topic_name.lower()
+        
+        for order_index, keywords in enumerate(self.TOPIC_ORDER_KEYWORDS):
+            # Check if any keyword matches the topic name
+            if any(keyword in topic_lower for keyword in keywords):
+                return order_index
+        
+        # If no match, place at end
+        return 999
     
     def load_data(self):
         """Load all questions from database for selected topics"""
@@ -309,8 +333,10 @@ class KCSECREPaperGenerator:
     def _build_result(self, generation_time: float) -> Dict:
         """Build result with paper structure"""
         
-        # Shuffle selected questions for final ordering
-        random.shuffle(self.selected_questions)
+        # Sort questions by predefined topic order instead of random shuffle
+        # Order: Bible/Creation -> Abraham/Moses -> Kingship/Elijah -> 
+        #        Amos/Prophetic -> Nehemiah/Jeremiah -> African Culture
+        self.selected_questions.sort(key=lambda q: self._get_topic_order(q.topic.name))
         
         # Build questions data
         questions_data = []
