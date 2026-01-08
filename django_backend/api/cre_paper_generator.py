@@ -25,7 +25,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
 from .models import Paper, Topic, Question, Subject, GeneratedPaper
-
+from page_number_extrctor import extract_paper_number_from_name
 
 class KCSECREPaperGenerator:
     """
@@ -554,10 +554,7 @@ def generate_cre_paper(request):
         paper_name = paper.name.upper()
         
         # Determine paper number (1 or 2)
-        if '2' in paper_name or 'II' in paper_name or 'TWO' in paper_name:
-            paper_number = 2
-        else:
-            paper_number = 1
+        paper_number = extract_paper_number_from_name(paper_name)
         
         # Generate unique code
         timestamp = datetime.now().strftime('%y%m%d%H%M%S')
