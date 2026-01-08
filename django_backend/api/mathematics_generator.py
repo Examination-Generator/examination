@@ -427,28 +427,6 @@ class KCSEMathematicsPaper2Generator:
     
     def _select_section_i(self) -> bool:
         """
-        Select Section I questions with counter-based strategy to reach 50 marks.
-        - 3-mark questions form majority (at least 12)
-        - At least 3 questions of 2 marks
-        - At least 2 questions of 4 marks
-        - Total must equal 50 marks
-        """
-        # Check minimum availability
-        if (len(self.section_i_2mark) < self.SECTION_I_2MARK_COUNT or
-            len(self.section_i_3mark) < self.SECTION_I_3MARK_COUNT or
-            len(self.section_i_4mark) < self.SECTION_I_4MARK_COUNT):
-            return False
-        
-        available_2 = [q for q in self.section_i_2mark if q.id not in self.used_ids]
-        available_3 = [q for q in self.section_i_3mark if q.id not in self.used_ids]
-        available_4 = [q for q in self.section_i_4mark if q.id not in self.used_ids]
-        
-        if (len(available_2) < self.SECTION_I_2MARK_COUNT or
-            len(available_3) < self.SECTION_I_3MARK_COUNT or
-            len(available_4) < self.SECTION_I_4MARK_COUNT):
-            return False
-    def _select_section_i(self) -> bool:
-        """
         Select Section I questions for Paper 2.
         Paper 2: 3×2mk + 2×4mk + 12×3mk = 6+8+36 = 50 marks exactly
         """
@@ -503,12 +481,8 @@ class KCSEMathematicsPaper2Generator:
         if len(self.section_ii_10mark) < self.SECTION_II_10MARK_COUNT:
             return False
         
-        # Select 8 x 10-mark
-        available = [q for q in self.section_ii_10mark if q.id not in self.used_ids]
-        if len(available) < self.SECTION_II_10MARK_COUNT:
-            return False
-        
-        selected = available[:self.SECTION_II_10MARK_COUNT]
+        # Select 8 x 10-mark (no used_ids check needed - Section II questions are separate from Section I)
+        selected = self.section_ii_10mark[:self.SECTION_II_10MARK_COUNT]
         
         # Accept selection
         self.selected_section_ii = selected
