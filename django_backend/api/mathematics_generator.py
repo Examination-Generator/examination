@@ -116,20 +116,18 @@ class KCSEMathematicsPaper1Generator:
         if not self.all_questions:
             raise ValueError("No questions found for selected topics")
         
-        # Separate questions by section and marks
+        # Separate questions by marks only (Section II = 10mk, Section I = 2,3,4mk)
         for q in self.all_questions:
-            section_name = q.section.name.upper() if q.section else ""
-            
-            if "SECTION I" in section_name or "SECTION 1" in section_name:
-                if q.marks == 2:
-                    self.section_i_2mark.append(q)
-                elif q.marks == 3:
-                    self.section_i_3mark.append(q)
-                elif q.marks == 4:
-                    self.section_i_4mark.append(q)
-            elif "SECTION II" in section_name or "SECTION 2" in section_name:
-                if q.marks == 10:
-                    self.section_ii_10mark.append(q)
+            # Section I: 2, 3, 4 mark questions
+            if q.marks == 2:
+                self.section_i_2mark.append(q)
+            elif q.marks == 3:
+                self.section_i_3mark.append(q)
+            elif q.marks == 4:
+                self.section_i_4mark.append(q)
+            # Section II: Only 10-mark questions (no section name check)
+            elif q.marks == 10:
+                self.section_ii_10mark.append(q)
         
         # Shuffle for randomness
         random.shuffle(self.section_i_2mark)
@@ -138,12 +136,17 @@ class KCSEMathematicsPaper1Generator:
         random.shuffle(self.section_ii_10mark)
         
         print(f"\n[DATA LOADED - MATHEMATICS PAPER 1]")
+        print(f"  Total questions loaded: {len(self.all_questions)}")
+        print(f"  Topics: {', '.join([t.name for t in self.topics])}")
         print(f"  Section I:")
         print(f"    2-mark: {len(self.section_i_2mark)} (need {self.SECTION_I_2MARK_COUNT})")
         print(f"    3-mark: {len(self.section_i_3mark)} (need {self.SECTION_I_3MARK_COUNT}, majority)")
         print(f"    4-mark: {len(self.section_i_4mark)} (need {self.SECTION_I_4MARK_COUNT})")
-        print(f"  Section II:")
+        print(f"  Section II (INDEPENDENT POOL):")
         print(f"    10-mark: {len(self.section_ii_10mark)} (need {self.SECTION_II_10MARK_COUNT})")
+        if self.section_ii_10mark:
+            sec2_topics = set([q.topic.name for q in self.section_ii_10mark])
+            print(f"    Section II topics: {', '.join(sec2_topics)}")
     
     def _select_section_i(self) -> bool:
         """
@@ -196,12 +199,14 @@ class KCSEMathematicsPaper1Generator:
     
     def _select_section_ii(self) -> bool:
         """Select Section II questions: 8x10mk
-        Section II (10-mark) is independent from Section I (2,3,4-mark) - no overlap possible"""
+        INDEPENDENT selection - can use ANY topics, including those in Section I
+        No filtering by used_ids - Section II (10mk) can't overlap with Section I (2,3,4mk)"""
         # Check availability
         if len(self.section_ii_10mark) < self.SECTION_II_10MARK_COUNT:
+            print(f"  [FAILED] Section II needs {self.SECTION_II_10MARK_COUNT} questions, only {len(self.section_ii_10mark)} available")
             return False
         
-        # Select 8 x 10-mark directly (no used_ids check - different mark pool)
+        # Select 8 x 10-mark directly from ALL available (no topic/id filtering)
         selected = self.section_ii_10mark[:self.SECTION_II_10MARK_COUNT]
         
         # Accept selection
@@ -209,9 +214,15 @@ class KCSEMathematicsPaper1Generator:
         for q in selected:
             self.used_ids.add(q.id)
         
+        # Show topic distribution
+        selected_topics = [q.topic.name for q in selected]
+        unique_topics = set(selected_topics)
+        
         print(f"\n[SECTION II SELECTED - PAPER 1]")
         print(f"  Questions: {len(selected)}")
         print(f"  Total marks: {sum(q.marks for q in selected)}")
+        print(f"  Topics used: {', '.join(unique_topics)}")
+        print(f"  INDEPENDENT from Section I - can share topics")
         
         return True
     
@@ -393,20 +404,18 @@ class KCSEMathematicsPaper2Generator:
         if not self.all_questions:
             raise ValueError("No questions found for selected topics")
         
-        # Separate questions by section and marks
+        # Separate questions by marks only (Section II = 10mk, Section I = 2,3,4mk)
         for q in self.all_questions:
-            section_name = q.section.name.upper() if q.section else ""
-            
-            if "SECTION I" in section_name or "SECTION 1" in section_name:
-                if q.marks == 2:
-                    self.section_i_2mark.append(q)
-                elif q.marks == 3:
-                    self.section_i_3mark.append(q)
-                elif q.marks == 4:
-                    self.section_i_4mark.append(q)
-            elif "SECTION II" in section_name or "SECTION 2" in section_name:
-                if q.marks == 10:
-                    self.section_ii_10mark.append(q)
+            # Section I: 2, 3, 4 mark questions
+            if q.marks == 2:
+                self.section_i_2mark.append(q)
+            elif q.marks == 3:
+                self.section_i_3mark.append(q)
+            elif q.marks == 4:
+                self.section_i_4mark.append(q)
+            # Section II: Only 10-mark questions (no section name check)
+            elif q.marks == 10:
+                self.section_ii_10mark.append(q)
         
         # Shuffle for randomness
         random.shuffle(self.section_i_2mark)
@@ -415,12 +424,17 @@ class KCSEMathematicsPaper2Generator:
         random.shuffle(self.section_ii_10mark)
         
         print(f"\n[DATA LOADED - MATHEMATICS PAPER 2]")
+        print(f"  Total questions loaded: {len(self.all_questions)}")
+        print(f"  Topics: {', '.join([t.name for t in self.topics])}")
         print(f"  Section I:")
         print(f"    2-mark: {len(self.section_i_2mark)} (need {self.SECTION_I_2MARK_COUNT})")
         print(f"    3-mark: {len(self.section_i_3mark)} (need {self.SECTION_I_3MARK_COUNT})")
         print(f"    4-mark: {len(self.section_i_4mark)} (need {self.SECTION_I_4MARK_COUNT})")
-        print(f"  Section II:")
+        print(f"  Section II (INDEPENDENT POOL):")
         print(f"    10-mark: {len(self.section_ii_10mark)} (need {self.SECTION_II_10MARK_COUNT})")
+        if self.section_ii_10mark:
+            sec2_topics = set([q.topic.name for q in self.section_ii_10mark])
+            print(f"    Section II topics: {', '.join(sec2_topics)}")
     
     def _select_section_i(self) -> bool:
         """
@@ -473,12 +487,15 @@ class KCSEMathematicsPaper2Generator:
         return False
     
     def _select_section_ii(self) -> bool:
-        """Select Section II questions: 8x10mk"""
+        """Select Section II questions: 8x10mk
+        INDEPENDENT selection - can use ANY topics, including those in Section I
+        No filtering by used_ids - Section II (10mk) can't overlap with Section I (2,3,4mk)"""
         # Check availability
         if len(self.section_ii_10mark) < self.SECTION_II_10MARK_COUNT:
+            print(f"  [FAILED] Section II needs {self.SECTION_II_10MARK_COUNT} questions, only {len(self.section_ii_10mark)} available")
             return False
         
-        # Select 8 x 10-mark (no used_ids check needed - Section II questions are separate from Section I)
+        # Select 8 x 10-mark directly from ALL available (no topic/id filtering)
         selected = self.section_ii_10mark[:self.SECTION_II_10MARK_COUNT]
         
         # Accept selection
@@ -486,9 +503,15 @@ class KCSEMathematicsPaper2Generator:
         for q in selected:
             self.used_ids.add(q.id)
         
-        print(f"\n[SECTION II SELECTED]")
+        # Show topic distribution
+        selected_topics = [q.topic.name for q in selected]
+        unique_topics = set(selected_topics)
+        
+        print(f"\n[SECTION II SELECTED - PAPER 2]")
         print(f"  Questions: {len(selected)}")
         print(f"  Total marks: {sum(q.marks for q in selected)}")
+        print(f"  Topics used: {', '.join(unique_topics)}")
+        print(f"  INDEPENDENT from Section I - can share topics")
         
         return True
     
