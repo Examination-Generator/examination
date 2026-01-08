@@ -328,8 +328,8 @@ class KCSEMathematicsPaper1Generator:
 class KCSEMathematicsPaper2Generator:
     """
     KCSE Mathematics Paper 2 Generator
-    Section I: 17 questions (3×2mk + 12×3mk + 2×4mk) = 50 marks
-    Section II: 8 questions (8×10mk, student selects 5) = 50 marks done
+    Section I: 17 questions (1x2mk + 12x3mk + 3x4mk) = 50 marks
+    Section II: 8 questions (8x10mk, student selects 5) = 50 marks done
     Total: 25 questions, strictly ordered by section
     """
     
@@ -440,7 +440,7 @@ class KCSEMathematicsPaper2Generator:
     def _select_section_i(self) -> bool:
         """
         Select Section I questions for Paper 2.
-        Paper 2: 3×2mk + 2×4mk + 12×3mk = 6+8+36 = 50 marks exactly
+        Paper 2: 1x2mk + 3x4mk + 12x3mk = 2+12+36 = 50 marks exactly
         """
         # Check minimum availability
         if (len(self.section_i_2mark) < self.SECTION_I_2MARK_COUNT or
