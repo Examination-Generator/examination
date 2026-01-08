@@ -26,115 +26,47 @@ from .coverpage_templates import (
     BiologyPaper2MarkingSchemeCoverpage
 )
 import re
+from .page_number_extrctor import extract_paper_number_from_name
 
 
 def get_coverpage_class(paper_data, is_marking_scheme=False):
-    """
-    Determine the appropriate coverpage class based on paper data
-    
-    Args:
-        paper_data (dict): Paper information containing paper_type, subject, etc.
-        is_marking_scheme (bool): Whether this is for a marking scheme
-    
-    Returns:
-        class: Appropriate coverpage class
-    """
     # Extract paper type information
-    paper_type = paper_data.get('paper_type', '').upper()
+    # paper_type = paper_data.get('paper_type', '').upper()
     paper_name = paper_data.get('paper_name', '').upper()
     subject_name = paper_data.get('subject_name', '').upper()
+    paper_number = extract_paper_number_from_name(paper_name)
     
-    # Detect Biology Paper 2
-    is_biology_paper2 = ('BIOLOGY' in paper_name or 'BIOLOGY' in subject_name) and \
-                       ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PAPER II' in paper_name)
-    
-    # Detect Physics Paper 1
-    is_physics_paper1 = ('PHYSICS' in paper_name or 'PHYSICS' in subject_name) and \
-                       ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'PAPER I' in paper_name)
-    
-    # Detect Chemistry Paper 1
-    is_chemistry_paper1 = ('CHEMISTRY' in paper_name or 'CHEMISTRY' in subject_name) and \
-                         ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'PAPER I' in paper_name)
-    
-    # Detect Chemistry Paper 2
-    is_chemistry_paper2 = ('CHEMISTRY' in paper_name or 'CHEMISTRY' in subject_name) and \
-                         ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PAPER II' in paper_name)
-    
-    # Detect Mathematics Paper 1
-    is_mathematics_paper1 = ('MATHEMATICS' in paper_name or 'MATHEMATICS' in subject_name) and \
-                            ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'PAPER I' in paper_name)
-    
-    # Detect Mathematics Paper 2
-    is_mathematics_paper2 = ('MATHEMATICS' in paper_name or 'MATHEMATICS' in subject_name) and \
-                            ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PAPER II' in paper_name)
-                            
-    # Detect kiswahili paper 2
-    is_kiswahili_paper2 = ('KISWAHILI' in paper_name or 'KISWAHILI' in subject_name) and \
-                          ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PILI' in paper_name)
-                          
-    is_kiswahili_paper1 = ('KISWAHILI' in paper_name or 'KISWAHILI' in subject_name) and \
-                          ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'KWANZA' in paper_name)
-                          
-    # detech CRE paper 2
-    is_CRE_paper2 = ('cre' in paper_name or 'cre' in subject_name or 'CRE' in paper_name or 'CRE' in subject_name) and \
-                    ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PAPER II' in paper_name)
-                    
-    is_CRE_paper1 = ('cre' in paper_name or 'cre' in subject_name or 'CRE' in paper_name or 'CRE' in subject_name) and \
-                    ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'PAPER I' in paper_name)
-                    
-    # Detect Geography Paper 2
-    is_geography_paper2 = ('GEOGRAPHY' in paper_name or 'GEOGRAPHY' in subject_name) and \
-                          ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PAPER II' in paper_name)
-                          
-    is_geography_paper1 = ('GEOGRAPHY' in paper_name or 'GEOGRAPHY' in subject_name) and \
-                          ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'PAPER I' in paper_name)
-                          
-    # Detect Business Paper 1
-    is_business_paper1 = ('BUSINESS' in paper_name or 'BUSINESS' in subject_name) and \
-                         ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'PAPER I' in paper_name)
-                         
-    # Detect Business Paper 2
-    is_business_paper2 = ('BUSINESS' in paper_name or 'BUSINESS' in subject_name) and \
-                         ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PAPER II' in paper_name)
-    
-    # Return appropriate coverpage class
+    # Define mappings at module level or class level
+    PAPER_1_COVERS = {
+        'BIOLOGY': BiologyPaper1Coverpage,
+        'PHYSICS': PhysicsPaper1Coverpage,
+        'CHEMISTRY': ChemistryPaper1Coverpage,
+        'MATHEMATICS': MathematicsPaper1Coverpage,
+        'KISWAHILI': KiswahiliPaper1Coverpage,
+        'CRE': CREPaper1Coverpage,
+        'GEOGRAPHY': GeographyPaper1Coverpage,
+        'BUSINESS': BusinessPaper1Coverpage,
+    }
+
+    PAPER_2_COVERS = {
+        'BIOLOGY': BiologyPaper2Coverpage,
+        'CHEMISTRY': ChemistryPaper2Coverpage,
+        'MATHEMATICS': MathematicsPaper2Coverpage,
+        'KISWAHILI': KiswahiliPaper2Coverpage,
+        'CRE': CREPaper2Coverpage,
+        'GEOGRAPHY': GeographyPaper2Coverpage,
+        'BUSINESS': BusinessPaper2Coverpage,
+    }
+
+    # Then your function becomes:
     if is_marking_scheme:
-        if is_biology_paper2 or is_chemistry_paper2:
-            return BiologyPaper2MarkingSchemeCoverpage
-        else:
-            return MarkingSchemeCoverpage
-    else:
-        if is_biology_paper2:
-            return BiologyPaper2Coverpage
-        elif is_physics_paper1:
-            return PhysicsPaper1Coverpage
-        elif is_chemistry_paper1:
-            return ChemistryPaper1Coverpage
-        elif is_chemistry_paper2:
-            return ChemistryPaper2Coverpage
-        elif is_mathematics_paper1:
-            return MathematicsPaper1Coverpage
-        elif is_mathematics_paper2:
-            return MathematicsPaper2Coverpage
-        elif is_kiswahili_paper1:
-            return KiswahiliPaper1Coverpage
-        elif is_kiswahili_paper2:
-            return KiswahiliPaper2Coverpage
-        elif is_CRE_paper1:
-            return CREPaper1Coverpage
-        elif is_CRE_paper2:
-            return CREPaper2Coverpage
-        elif is_geography_paper1:
-            return GeographyPaper1Coverpage
-        elif is_geography_paper2:
-            return GeographyPaper2Coverpage
-        elif is_business_paper1:
-            return BusinessPaper1Coverpage
-        elif is_business_paper2:
-            return BusinessPaper2Coverpage
-        else:
-            # Default to Biology Paper 1 for standard papers
-            return BiologyPaper1Coverpage
+        return BiologyPaper2MarkingSchemeCoverpage if subject_name == 'BIOLOGY' else MarkingSchemeCoverpage
+
+    if paper_number == 1:
+        return PAPER_1_COVERS.get(subject_name, BiologyPaper1Coverpage)
+    elif paper_number == 2:
+        return PAPER_2_COVERS.get(subject_name, BiologyPaper2Coverpage)
+        
 
 
 def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpage_class=None):
