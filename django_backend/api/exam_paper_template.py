@@ -7,65 +7,66 @@ Updated to dynamically select the correct coverpage class based on paper type
 from .coverpage_templates import (
     BiologyPaper1Coverpage, 
     BiologyPaper2Coverpage, 
+    BiologyPaper2MarkingSchemeCoverpage,
+    BusinessPaper1Coverpage,
+    BusinessPaper2Coverpage,
     PhysicsPaper1Coverpage,
+    PhysicsPaper2Coverpage,
     ChemistryPaper1Coverpage,
     ChemistryPaper2Coverpage,
+    MathematicsPaper1Coverpage,
+    MathematicsPaper2Coverpage,
+    CREPaper1Coverpage,
+    CREPaper2Coverpage,
+    GeographyPaper1Coverpage,
+    GeographyPaper2Coverpage,
+    KiswahiliPaper1Coverpage,
+    KiswahiliPaper2Coverpage,
     MarkingSchemeCoverpage,
     BiologyPaper2MarkingSchemeCoverpage
 )
 import re
+from .page_number_extrctor import extract_paper_number_from_name
 
 
 def get_coverpage_class(paper_data, is_marking_scheme=False):
-    """
-    Determine the appropriate coverpage class based on paper data
-    
-    Args:
-        paper_data (dict): Paper information containing paper_type, subject, etc.
-        is_marking_scheme (bool): Whether this is for a marking scheme
-    
-    Returns:
-        class: Appropriate coverpage class
-    """
     # Extract paper type information
-    paper_type = paper_data.get('paper_type', '').upper()
+    # paper_type = paper_data.get('paper_type', '').upper()
     paper_name = paper_data.get('paper_name', '').upper()
     subject_name = paper_data.get('subject_name', '').upper()
+    paper_number = extract_paper_number_from_name(paper_name)
     
-    # Detect Biology Paper 2
-    is_biology_paper2 = ('BIOLOGY' in paper_name or 'BIOLOGY' in subject_name) and \
-                       ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PAPER II' in paper_name)
-    
-    # Detect Physics Paper 1
-    is_physics_paper1 = ('PHYSICS' in paper_name or 'PHYSICS' in subject_name) and \
-                       ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'PAPER I' in paper_name)
-    
-    # Detect Chemistry Paper 1
-    is_chemistry_paper1 = ('CHEMISTRY' in paper_name or 'CHEMISTRY' in subject_name) and \
-                         ('PAPER 1' in paper_type or 'PAPER 1' in paper_name or 'PAPER I' in paper_name)
-    
-    # Detect Chemistry Paper 2
-    is_chemistry_paper2 = ('CHEMISTRY' in paper_name or 'CHEMISTRY' in subject_name) and \
-                         ('PAPER 2' in paper_type or 'PAPER 2' in paper_name or 'PAPER II' in paper_name)
-    
-    # Return appropriate coverpage class
+    # Define mappings at module level or class level
+    PAPER_1_COVERS = {
+        'BIOLOGY': BiologyPaper1Coverpage,
+        'PHYSICS': PhysicsPaper1Coverpage,
+        'CHEMISTRY': ChemistryPaper1Coverpage,
+        'MATHEMATICS': MathematicsPaper1Coverpage,
+        'KISWAHILI': KiswahiliPaper1Coverpage,
+        'CRE': CREPaper1Coverpage,
+        'GEOGRAPHY': GeographyPaper1Coverpage,
+        'BUSINESS': BusinessPaper1Coverpage,
+    }
+
+    PAPER_2_COVERS = {
+        'BIOLOGY': BiologyPaper2Coverpage,
+        'CHEMISTRY': ChemistryPaper2Coverpage,
+        'MATHEMATICS': MathematicsPaper2Coverpage,
+        'KISWAHILI': KiswahiliPaper2Coverpage,
+        'CRE': CREPaper2Coverpage,
+        'GEOGRAPHY': GeographyPaper2Coverpage,
+        'BUSINESS': BusinessPaper2Coverpage,
+    }
+
+    # Then your function becomes:
     if is_marking_scheme:
-        if is_biology_paper2 or is_chemistry_paper2:
-            return BiologyPaper2MarkingSchemeCoverpage
-        else:
-            return MarkingSchemeCoverpage
-    else:
-        if is_biology_paper2:
-            return BiologyPaper2Coverpage
-        elif is_physics_paper1:
-            return PhysicsPaper1Coverpage
-        elif is_chemistry_paper1:
-            return ChemistryPaper1Coverpage
-        elif is_chemistry_paper2:
-            return ChemistryPaper2Coverpage
-        else:
-            # Default to Biology Paper 1 for standard papers
-            return BiologyPaper1Coverpage
+        return BiologyPaper2MarkingSchemeCoverpage if subject_name == 'BIOLOGY' else MarkingSchemeCoverpage
+
+    if paper_number == 1:
+        return PAPER_1_COVERS.get(subject_name, BiologyPaper1Coverpage)
+    elif paper_number == 2:
+        return PAPER_2_COVERS.get(subject_name, BiologyPaper2Coverpage)
+        
 
 
 def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpage_class=None):
@@ -487,8 +488,8 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
 
 def _process_question_text(text, images=None, answer_lines=None):
     """
-    Process question text to render images and answer lines
-    (Same implementation as before)
+    Process question text to render images, answer lines, tables, matrices, fractions, 
+    superscript, subscript, and other formatting
     """
     if not text:
         return ""
@@ -504,8 +505,8 @@ def _process_question_text(text, images=None, answer_lines=None):
         for line in answer_lines:
             lines_dict[float(line.get('id', 0))] = line
     
-    # Split text by formatting, images, and lines
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])'
+    # Enhanced pattern to include SUP, SUB, FRAC, MIX, TABLE, and MATRIX tags
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])'
     parts = re.split(pattern, text)
     
     result = []
@@ -513,26 +514,151 @@ def _process_question_text(text, images=None, answer_lines=None):
     for part in parts:
         if not part:
             continue
+        
+        # Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
+        if part.startswith('[TABLE:') and part.endswith(']'):
+            try:
+                inner = part[7:-1]  # Remove [TABLE: and ]
+                parts_list = inner.split(':')
+                dimension_match = re.match(r'(\d+)x(\d+)', parts_list[0])
+                if dimension_match:
+                    rows = int(dimension_match.group(1))
+                    cols = int(dimension_match.group(2))
+                    cell_data = parts_list[1].split('|') if len(parts_list) > 1 else []
+                    
+                    # Parse optional widths and heights
+                    col_widths = [60] * cols
+                    row_heights = [30] * rows
+                    
+                    # Look for width data (W:width1,width2,...)
+                    try:
+                        width_index = parts_list.index('W')
+                        if width_index != -1 and len(parts_list) > width_index + 1:
+                            col_widths = [int(w) or 60 for w in parts_list[width_index + 1].split(',')]
+                    except (ValueError, IndexError):
+                        pass
+                    
+                    # Look for height data (H:height1,height2,...)
+                    try:
+                        height_index = parts_list.index('H')
+                        if height_index != -1 and len(parts_list) > height_index + 1:
+                            row_heights = [int(h) or 30 for h in parts_list[height_index + 1].split(',')]
+                    except (ValueError, IndexError):
+                        pass
+                    
+                    # Build HTML table
+                    table_html = '<table style="border: 1px solid #000; border-collapse: collapse; margin: 8px 0; display: inline-table;"><tbody>'
+                    
+                    for row_idx in range(rows):
+                        table_html += '<tr>'
+                        for col_idx in range(cols):
+                            cell_index = row_idx * cols + col_idx
+                            cell_value = cell_data[cell_index] if cell_index < len(cell_data) else ''
+                            width = col_widths[col_idx] if col_idx < len(col_widths) else 60
+                            height = row_heights[row_idx] if row_idx < len(row_heights) else 30
+                            
+                            table_html += f'<td style="border: 1px solid #000; padding: 8px; width: {width}px; height: {height}px; min-width: 60px; min-height: 30px;">{cell_value or "&nbsp;"}</td>'
+                        table_html += '</tr>'
+                    
+                    table_html += '</tbody></table>'
+                    result.append(table_html)
+                    continue
+            except Exception:
+                result.append(part)
+                continue
+        
+        # Matrix: [MATRIX:RxC:data]
+        if part.startswith('[MATRIX:') and part.endswith(']'):
+            try:
+                inner = part[8:-1]  # Remove [MATRIX: and ]
+                parts_list = inner.split(':')
+                dimension_match = re.match(r'(\d+)x(\d+)', parts_list[0])
+                if dimension_match:
+                    rows = int(dimension_match.group(1))
+                    cols = int(dimension_match.group(2))
+                    cell_data = parts_list[1].split('|') if len(parts_list) > 1 else []
+                    
+                    # Build HTML matrix with brackets
+                    matrix_html = '<span style="display: inline-flex; align-items: center; margin: 8px 4px; font-size: 1.2em;">'
+                    matrix_html += '<span style="font-size: 2em; line-height: 1;">⎡</span>'
+                    matrix_html += '<table style="border-collapse: collapse; margin: 0 4px;"><tbody>'
+                    
+                    for row_idx in range(rows):
+                        matrix_html += '<tr>'
+                        for col_idx in range(cols):
+                            cell_index = row_idx * cols + col_idx
+                            cell_value = cell_data[cell_index] if cell_index < len(cell_data) else ''
+                            matrix_html += f'<td style="padding: 4px 8px; text-align: center; min-width: 40px;">{cell_value or "&nbsp;"}</td>'
+                        matrix_html += '</tr>'
+                    
+                    matrix_html += '</tbody></table>'
+                    matrix_html += '<span style="font-size: 2em; line-height: 1;">⎤</span>'
+                    matrix_html += '</span>'
+                    result.append(matrix_html)
+                    continue
+            except Exception:
+                result.append(part)
+                continue
+        
+        # Fraction: [FRAC:num:den]
+        if part.startswith('[FRAC:') and part.endswith(']'):
+            try:
+                inner = part[6:-1]
+                num, den = inner.split(':')
+                frac_html = f'<span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den}</span></span>'
+                result.append(frac_html)
+                continue
+            except Exception:
+                result.append(part)
+                continue
+        
+        # Mixed fraction: [MIX:whole:num:den]
+        if part.startswith('[MIX:') and part.endswith(']'):
+            try:
+                inner = part[5:-1]
+                whole, num, den = inner.split(':')
+                mix_html = f'<span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 0.95em;">{whole}</span><span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den}</span></span></span>'
+                result.append(mix_html)
+                continue
+            except Exception:
+                result.append(part)
+                continue
+        
+        # Superscript: [SUP]content[/SUP]
+        if part.startswith('[SUP]') and part.endswith('[/SUP]'):
+            content = part[5:-6]
+            result.append(f'<sup style="font-size: 0.75em;">{content}</sup>')
+            continue
+            
+        # Subscript: [SUB]content[/SUB]
+        if part.startswith('[SUB]') and part.endswith('[/SUB]'):
+            content = part[5:-6]
+            result.append(f'<sub style="font-size: 0.75em;">{content}</sub>')
+            continue
             
         # Bold: **text**
         if part.startswith('**') and part.endswith('**') and len(part) > 4:
             content = part[2:-2]
             result.append(f'<strong>{content}</strong>')
+            continue
             
         # Italic: *text* (not **)
-        elif part.startswith('*') and part.endswith('*') and not part.startswith('**') and len(part) > 2:
+        if part.startswith('*') and part.endswith('*') and not part.startswith('**') and len(part) > 2:
             content = part[1:-1]
             result.append(f'<em>{content}</em>')
+            continue
             
         # Underline: __text__
-        elif part.startswith('__') and part.endswith('__') and len(part) > 4:
+        if part.startswith('__') and part.endswith('__') and len(part) > 4:
             content = part[2:-2]
             result.append(f'<u>{content}</u>')
+            continue
             
         # Single underscore italic: _text_
-        elif part.startswith('_') and part.endswith('_') and not part.startswith('__') and len(part) > 2:
+        if part.startswith('_') and part.endswith('_') and not part.startswith('__') and len(part) > 2:
             content = part[1:-1]
             result.append(f'<em>{content}</em>')
+            continue
             
         # Answer lines: [LINES:id]
         elif part.startswith('[LINES:') and part.endswith(']'):

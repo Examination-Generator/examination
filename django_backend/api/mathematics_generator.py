@@ -34,24 +34,25 @@ from .models import Paper, Topic, Question, Subject
 class KCSEMathematicsPaper1Generator:
     """
     KCSE Mathematics Paper 1 Generator
-    Section I: 16 questions (12x3mk, 3x4mk, 1x2mk) = 50 marks
+    Section I: Flexible distribution totaling 50 marks
+      - 3-mark questions form the majority (at least 12)
+      - At least 2 questions of 4 marks
+      - At least 2 questions of 2 marks
+      - Total must equal 50 marks
     Section II: 8 questions (8x10mk, student selects 5) = 50 marks done
-    Total: 24 questions, strictly ordered by section
+    Total questions vary based on Section I distribution
     """
     
-    # Section I Requirements
-    SECTION_I_3MARK_COUNT = 12
-    SECTION_I_4MARK_COUNT = 3
-    SECTION_I_2MARK_COUNT = 1
-    SECTION_I_TOTAL = 16
-    SECTION_I_MARKS = 50
+    # Section I Requirements (KCSE Standard: 16 questions = 50 marks)
+    SECTION_I_2MARK_COUNT = 1   # 1×2mk = 2 marks
+    SECTION_I_3MARK_COUNT = 12  # 12×3mk = 36 marks (majority)
+    SECTION_I_4MARK_COUNT = 3   # 3×4mk = 12 marks
+    SECTION_I_TOTAL = 16        # Total: 16 questions
+    SECTION_I_MARKS = 50        # Total: 50 marks
     
     # Section II Requirements
     SECTION_II_10MARK_COUNT = 8
     SECTION_II_TOTAL = 8
-    
-    # Total
-    TOTAL_QUESTIONS = 24
     
     def __init__(self, paper_id: str, selected_topic_ids: List[str]):
         """
@@ -115,20 +116,18 @@ class KCSEMathematicsPaper1Generator:
         if not self.all_questions:
             raise ValueError("No questions found for selected topics")
         
-        # Separate questions by section and marks
+        # Separate questions by marks only (Section II = 10mk, Section I = 2,3,4mk)
         for q in self.all_questions:
-            section_name = q.section.name.upper() if q.section else ""
-            
-            if "SECTION I" in section_name or "SECTION 1" in section_name:
-                if q.marks == 2:
-                    self.section_i_2mark.append(q)
-                elif q.marks == 3:
-                    self.section_i_3mark.append(q)
-                elif q.marks == 4:
-                    self.section_i_4mark.append(q)
-            elif "SECTION II" in section_name or "SECTION 2" in section_name:
-                if q.marks == 10:
-                    self.section_ii_10mark.append(q)
+            # Section I: 2, 3, 4 mark questions
+            if q.marks == 2:
+                self.section_i_2mark.append(q)
+            elif q.marks == 3:
+                self.section_i_3mark.append(q)
+            elif q.marks == 4:
+                self.section_i_4mark.append(q)
+            # Section II: Only 10-mark questions (no section name check)
+            elif q.marks == 10:
+                self.section_ii_10mark.append(q)
         
         # Shuffle for randomness
         random.shuffle(self.section_i_2mark)
@@ -137,78 +136,93 @@ class KCSEMathematicsPaper1Generator:
         random.shuffle(self.section_ii_10mark)
         
         print(f"\n[DATA LOADED - MATHEMATICS PAPER 1]")
+        print(f"  Total questions loaded: {len(self.all_questions)}")
+        print(f"  Topics: {', '.join([t.name for t in self.topics])}")
         print(f"  Section I:")
         print(f"    2-mark: {len(self.section_i_2mark)} (need {self.SECTION_I_2MARK_COUNT})")
-        print(f"    3-mark: {len(self.section_i_3mark)} (need {self.SECTION_I_3MARK_COUNT})")
+        print(f"    3-mark: {len(self.section_i_3mark)} (need {self.SECTION_I_3MARK_COUNT}, majority)")
         print(f"    4-mark: {len(self.section_i_4mark)} (need {self.SECTION_I_4MARK_COUNT})")
-        print(f"  Section II:")
+        print(f"  Section II (INDEPENDENT POOL):")
         print(f"    10-mark: {len(self.section_ii_10mark)} (need {self.SECTION_II_10MARK_COUNT})")
+        if self.section_ii_10mark:
+            sec2_topics = set([q.topic.name for q in self.section_ii_10mark])
+            print(f"    Section II topics: {', '.join(sec2_topics)}")
     
     def _select_section_i(self) -> bool:
-        """Select Section I questions: 12x3mk, 3x4mk, 1x2mk"""
+        """
+        Select Section I questions: 1×2mk + 12×3mk + 3×4mk = 16 questions, 50 marks
+        """
         # Check availability
         if (len(self.section_i_2mark) < self.SECTION_I_2MARK_COUNT or
             len(self.section_i_3mark) < self.SECTION_I_3MARK_COUNT or
             len(self.section_i_4mark) < self.SECTION_I_4MARK_COUNT):
             return False
         
+        available_2 = [q for q in self.section_i_2mark if q.id not in self.used_ids]
+        available_3 = [q for q in self.section_i_3mark if q.id not in self.used_ids]
+        available_4 = [q for q in self.section_i_4mark if q.id not in self.used_ids]
+        
+        if (len(available_2) < self.SECTION_I_2MARK_COUNT or
+            len(available_3) < self.SECTION_I_3MARK_COUNT or
+            len(available_4) < self.SECTION_I_4MARK_COUNT):
+            return False
+        
+        # Select exact counts needed
         selected = []
         
-        # Select 1 x 2-mark
-        available_2 = [q for q in self.section_i_2mark if q.id not in self.used_ids]
-        if len(available_2) < self.SECTION_I_2MARK_COUNT:
-            return False
-        selected.extend(available_2[:self.SECTION_I_2MARK_COUNT])
+        # Add 1 × 2-mark
+        for i in range(self.SECTION_I_2MARK_COUNT):
+            selected.append(available_2[i])
         
-        # Select 12 x 3-mark
-        available_3 = [q for q in self.section_i_3mark if q.id not in self.used_ids]
-        if len(available_3) < self.SECTION_I_3MARK_COUNT:
-            return False
-        selected.extend(available_3[:self.SECTION_I_3MARK_COUNT])
+        # Add 12 × 3-mark
+        for i in range(self.SECTION_I_3MARK_COUNT):
+            selected.append(available_3[i])
         
-        # Select 3 x 4-mark
-        available_4 = [q for q in self.section_i_4mark if q.id not in self.used_ids]
-        if len(available_4) < self.SECTION_I_4MARK_COUNT:
-            return False
-        selected.extend(available_4[:self.SECTION_I_4MARK_COUNT])
+        # Add 3 × 4-mark
+        for i in range(self.SECTION_I_4MARK_COUNT):
+            selected.append(available_4[i])
         
-        # Verify total
-        total_marks = sum(q.marks for q in selected)
-        if len(selected) != self.SECTION_I_TOTAL or total_marks != self.SECTION_I_MARKS:
-            return False
+        # Verify totals
+        total_marks = (self.SECTION_I_2MARK_COUNT * 2) + (self.SECTION_I_3MARK_COUNT * 3) + (self.SECTION_I_4MARK_COUNT * 4)
         
-        # Accept selection
-        self.selected_section_i = selected
-        for q in selected:
-            self.used_ids.add(q.id)
+        if len(selected) == self.SECTION_I_TOTAL and total_marks == self.SECTION_I_MARKS:
+            self.selected_section_i = selected
+            for q in selected:
+                self.used_ids.add(q.id)
+            
+            print(f"\n[SECTION I SELECTED - PAPER 1]")
+            print(f"  2-mark: {self.SECTION_I_2MARK_COUNT}, 3-mark: {self.SECTION_I_3MARK_COUNT} (majority), 4-mark: {self.SECTION_I_4MARK_COUNT}")
+            print(f"  Total: {len(selected)} questions, {total_marks} marks")
+            return True
         
-        print(f"\n[SECTION I SELECTED]")
-        print(f"  Questions: {len(selected)}")
-        print(f"  Total marks: {total_marks}")
-        
-        return True
+        return False
     
     def _select_section_ii(self) -> bool:
-        """Select Section II questions: 8x10mk"""
+        """Select Section II questions: 8x10mk
+        INDEPENDENT selection - can use ANY topics, including those in Section I
+        No filtering by used_ids - Section II (10mk) can't overlap with Section I (2,3,4mk)"""
         # Check availability
         if len(self.section_ii_10mark) < self.SECTION_II_10MARK_COUNT:
+            print(f"  [FAILED] Section II needs {self.SECTION_II_10MARK_COUNT} questions, only {len(self.section_ii_10mark)} available")
             return False
         
-        # Select 8 x 10-mark
-        available = [q for q in self.section_ii_10mark if q.id not in self.used_ids]
-        if len(available) < self.SECTION_II_10MARK_COUNT:
-            return False
-        
-        selected = available[:self.SECTION_II_10MARK_COUNT]
+        # Select 8 x 10-mark directly from ALL available (no topic/id filtering)
+        selected = self.section_ii_10mark[:self.SECTION_II_10MARK_COUNT]
         
         # Accept selection
         self.selected_section_ii = selected
         for q in selected:
             self.used_ids.add(q.id)
         
-        print(f"\n[SECTION II SELECTED]")
+        # Show topic distribution
+        selected_topics = [q.topic.name for q in selected]
+        unique_topics = set(selected_topics)
+        
+        print(f"\n[SECTION II SELECTED - PAPER 1]")
         print(f"  Questions: {len(selected)}")
         print(f"  Total marks: {sum(q.marks for q in selected)}")
+        print(f"  Topics used: {', '.join(unique_topics)}")
+        print(f"  INDEPENDENT from Section I - can share topics")
         
         return True
     
@@ -299,13 +313,13 @@ class KCSEMathematicsPaper1Generator:
                 'section_i_marks': sum(q.marks for q in self.selected_section_i),
                 'section_ii_questions': len(self.selected_section_ii),
                 'section_ii_marks': sum(q.marks for q in self.selected_section_ii),
+                'total_marks': sum(q.marks for q in all_questions) - 30,  # Student does 50 marks from 80 available in Section II,
                 'generation_attempts': self.attempts,
                 'generation_time_seconds': round(generation_time, 2),
                 'validation': {
-                    'section_i_count_ok': len(self.selected_section_i) == 16,
                     'section_i_marks_ok': sum(q.marks for q in self.selected_section_i) == 50,
                     'section_ii_count_ok': len(self.selected_section_ii) == 8,
-                    'total_questions_ok': len(all_questions) == 24,
+                    'section_ii_marks_ok': sum(q.marks for q in self.selected_section_ii) == 80,
                 }
             }
         }
@@ -314,24 +328,20 @@ class KCSEMathematicsPaper1Generator:
 class KCSEMathematicsPaper2Generator:
     """
     KCSE Mathematics Paper 2 Generator
-    Section I: 16 questions (12x3mk, 3x2mk, 2x4mk) = 50 marks
+    Section I: 17 questions (1x2mk + 12x3mk + 3x4mk) = 50 marks
     Section II: 8 questions (8x10mk, student selects 5) = 50 marks done
-    Total: 24 questions, strictly ordered by section
+    Total: 25 questions, strictly ordered by section
     """
     
     # Section I Requirements
-    SECTION_I_3MARK_COUNT = 12
-    SECTION_I_2MARK_COUNT = 3
-    SECTION_I_4MARK_COUNT = 2
-    SECTION_I_TOTAL = 17  # Changed from 16 to 17
+    SECTION_I_3MARK_COUNT = 12  # 3-mark questions form majority
+    SECTION_I_2MARK_COUNT = 1   # 1 question of 2 marks
+    SECTION_I_4MARK_COUNT = 3   # 3 questions of 4 marks
     SECTION_I_MARKS = 50
     
     # Section II Requirements
     SECTION_II_10MARK_COUNT = 8
     SECTION_II_TOTAL = 8
-    
-    # Total
-    TOTAL_QUESTIONS = 25  # Changed from 24 to 25
     
     def __init__(self, paper_id: str, selected_topic_ids: List[str]):
         """
@@ -395,20 +405,18 @@ class KCSEMathematicsPaper2Generator:
         if not self.all_questions:
             raise ValueError("No questions found for selected topics")
         
-        # Separate questions by section and marks
+        # Separate questions by marks only (Section II = 10mk, Section I = 2,3,4mk)
         for q in self.all_questions:
-            section_name = q.section.name.upper() if q.section else ""
-            
-            if "SECTION I" in section_name or "SECTION 1" in section_name:
-                if q.marks == 2:
-                    self.section_i_2mark.append(q)
-                elif q.marks == 3:
-                    self.section_i_3mark.append(q)
-                elif q.marks == 4:
-                    self.section_i_4mark.append(q)
-            elif "SECTION II" in section_name or "SECTION 2" in section_name:
-                if q.marks == 10:
-                    self.section_ii_10mark.append(q)
+            # Section I: 2, 3, 4 mark questions
+            if q.marks == 2:
+                self.section_i_2mark.append(q)
+            elif q.marks == 3:
+                self.section_i_3mark.append(q)
+            elif q.marks == 4:
+                self.section_i_4mark.append(q)
+            # Section II: Only 10-mark questions (no section name check)
+            elif q.marks == 10:
+                self.section_ii_10mark.append(q)
         
         # Shuffle for randomness
         random.shuffle(self.section_i_2mark)
@@ -417,78 +425,94 @@ class KCSEMathematicsPaper2Generator:
         random.shuffle(self.section_ii_10mark)
         
         print(f"\n[DATA LOADED - MATHEMATICS PAPER 2]")
+        print(f"  Total questions loaded: {len(self.all_questions)}")
+        print(f"  Topics: {', '.join([t.name for t in self.topics])}")
         print(f"  Section I:")
         print(f"    2-mark: {len(self.section_i_2mark)} (need {self.SECTION_I_2MARK_COUNT})")
         print(f"    3-mark: {len(self.section_i_3mark)} (need {self.SECTION_I_3MARK_COUNT})")
         print(f"    4-mark: {len(self.section_i_4mark)} (need {self.SECTION_I_4MARK_COUNT})")
-        print(f"  Section II:")
+        print(f"  Section II (INDEPENDENT POOL):")
         print(f"    10-mark: {len(self.section_ii_10mark)} (need {self.SECTION_II_10MARK_COUNT})")
+        if self.section_ii_10mark:
+            sec2_topics = set([q.topic.name for q in self.section_ii_10mark])
+            print(f"    Section II topics: {', '.join(sec2_topics)}")
     
     def _select_section_i(self) -> bool:
-        """Select Section I questions: 12x3mk, 3x2mk, 2x4mk"""
-        # Check availability
+        """
+        Select Section I questions for Paper 2.
+        Paper 2: 1x2mk + 3x4mk + 12x3mk = 2+12+36 = 50 marks exactly
+        """
+        # Check minimum availability
         if (len(self.section_i_2mark) < self.SECTION_I_2MARK_COUNT or
             len(self.section_i_3mark) < self.SECTION_I_3MARK_COUNT or
             len(self.section_i_4mark) < self.SECTION_I_4MARK_COUNT):
             return False
         
+        available_2 = [q for q in self.section_i_2mark if q.id not in self.used_ids]
+        available_3 = [q for q in self.section_i_3mark if q.id not in self.used_ids]
+        available_4 = [q for q in self.section_i_4mark if q.id not in self.used_ids]
+        
+        if (len(available_2) < self.SECTION_I_2MARK_COUNT or
+            len(available_3) < self.SECTION_I_3MARK_COUNT or
+            len(available_4) < self.SECTION_I_4MARK_COUNT):
+            return False
+        
+        # Select exactly the required counts (Paper 2 needs no additional questions)
         selected = []
         
-        # Select 3 x 2-mark
-        available_2 = [q for q in self.section_i_2mark if q.id not in self.used_ids]
-        if len(available_2) < self.SECTION_I_2MARK_COUNT:
-            return False
-        selected.extend(available_2[:self.SECTION_I_2MARK_COUNT])
+        # Add 3 × 2-mark
+        for i in range(self.SECTION_I_2MARK_COUNT):
+            selected.append(available_2[i])
         
-        # Select 12 x 3-mark
-        available_3 = [q for q in self.section_i_3mark if q.id not in self.used_ids]
-        if len(available_3) < self.SECTION_I_3MARK_COUNT:
-            return False
-        selected.extend(available_3[:self.SECTION_I_3MARK_COUNT])
+        # Add 2 × 4-mark
+        for i in range(self.SECTION_I_4MARK_COUNT):
+            selected.append(available_4[i])
         
-        # Select 2 x 4-mark
-        available_4 = [q for q in self.section_i_4mark if q.id not in self.used_ids]
-        if len(available_4) < self.SECTION_I_4MARK_COUNT:
-            return False
-        selected.extend(available_4[:self.SECTION_I_4MARK_COUNT])
+        # Add 12 × 3-mark
+        for i in range(self.SECTION_I_3MARK_COUNT):
+            selected.append(available_3[i])
         
-        # Verify total
-        total_marks = sum(q.marks for q in selected)
-        if len(selected) != self.SECTION_I_TOTAL or total_marks != self.SECTION_I_MARKS:
-            return False
+        # Verify total (should be exactly 50)
+        total_marks = (self.SECTION_I_2MARK_COUNT * 2) + (self.SECTION_I_3MARK_COUNT * 3) + (self.SECTION_I_4MARK_COUNT * 4)
         
-        # Accept selection
-        self.selected_section_i = selected
-        for q in selected:
-            self.used_ids.add(q.id)
+        if total_marks == self.SECTION_I_MARKS:
+            self.selected_section_i = selected
+            for q in selected:
+                self.used_ids.add(q.id)
+            
+            print(f"\n[SECTION I SELECTED - PAPER 2]")
+            print(f"  2-mark: {self.SECTION_I_2MARK_COUNT}, 3-mark: {self.SECTION_I_3MARK_COUNT} (majority), 4-mark: {self.SECTION_I_4MARK_COUNT}")
+            print(f"  Total: {len(selected)} questions, {total_marks} marks")
+            return True
         
-        print(f"\n[SECTION I SELECTED]")
-        print(f"  Questions: {len(selected)}")
-        print(f"  Total marks: {total_marks}")
-        
-        return True
+        return False
     
     def _select_section_ii(self) -> bool:
-        """Select Section II questions: 8x10mk"""
+        """Select Section II questions: 8x10mk
+        INDEPENDENT selection - can use ANY topics, including those in Section I
+        No filtering by used_ids - Section II (10mk) can't overlap with Section I (2,3,4mk)"""
         # Check availability
         if len(self.section_ii_10mark) < self.SECTION_II_10MARK_COUNT:
+            print(f"  [FAILED] Section II needs {self.SECTION_II_10MARK_COUNT} questions, only {len(self.section_ii_10mark)} available")
             return False
         
-        # Select 8 x 10-mark
-        available = [q for q in self.section_ii_10mark if q.id not in self.used_ids]
-        if len(available) < self.SECTION_II_10MARK_COUNT:
-            return False
-        
-        selected = available[:self.SECTION_II_10MARK_COUNT]
+        # Select 8 x 10-mark directly from ALL available (no topic/id filtering)
+        selected = self.section_ii_10mark[:self.SECTION_II_10MARK_COUNT]
         
         # Accept selection
         self.selected_section_ii = selected
         for q in selected:
             self.used_ids.add(q.id)
         
-        print(f"\n[SECTION II SELECTED]")
+        # Show topic distribution
+        selected_topics = [q.topic.name for q in selected]
+        unique_topics = set(selected_topics)
+        
+        print(f"\n[SECTION II SELECTED - PAPER 2]")
         print(f"  Questions: {len(selected)}")
         print(f"  Total marks: {sum(q.marks for q in selected)}")
+        print(f"  Topics used: {', '.join(unique_topics)}")
+        print(f"  INDEPENDENT from Section I - can share topics")
         
         return True
     
@@ -580,12 +604,12 @@ class KCSEMathematicsPaper2Generator:
                 'section_ii_questions': len(self.selected_section_ii),
                 'section_ii_marks': sum(q.marks for q in self.selected_section_ii),
                 'generation_attempts': self.attempts,
+                'total_marks': sum(q.marks for q in all_questions) - 30,  # Student does 50 marks from 80 available in Section II,
                 'generation_time_seconds': round(generation_time, 2),
                 'validation': {
-                    'section_i_count_ok': len(self.selected_section_i) == 17,  
                     'section_i_marks_ok': sum(q.marks for q in self.selected_section_i) == 50,
                     'section_ii_count_ok': len(self.selected_section_ii) == 8,
-                    'total_questions_ok': len(all_questions) == 25,  
+                    'section_ii_marks_ok': sum(q.marks for q in self.selected_section_ii) == 80,
                 }
             }
         }

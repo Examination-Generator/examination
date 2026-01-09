@@ -126,7 +126,7 @@ export default function PaperGenerationDashboard() {
     const renderTextWithImages = (text, images = [], imagePositions = {}, context = 'preview') => {
         if (!text) return [];
         
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:\d+x\d+\]|\[MATRIX:\d+x\d+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
             // Fraction formatting
             if (part.startsWith('[FRAC:') && part.endsWith(']')) {
                 try {
@@ -148,7 +148,7 @@ export default function PaperGenerationDashboard() {
                 } catch (e) { return <span key={index}>{part}</span>; }
             }
 
-            // Table formatting
+            // Table formatting: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
             if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                 try {
                     const inner = part.slice(7, -1);
@@ -158,16 +158,72 @@ export default function PaperGenerationDashboard() {
                         const rows = parseInt(dimensionMatch[1]);
                         const cols = parseInt(dimensionMatch[2]);
                         const cellData = parts[1] ? parts[1].split('|') : [];
+                        
+                        let colWidths = Array(cols).fill(60);
+                        let rowHeights = Array(rows).fill(30);
+                        let mergedCells = {};
+                        
+                        const widthIndex = parts.findIndex(p => p === 'W');
+                        if (widthIndex !== -1 && parts[widthIndex + 1]) {
+                            colWidths = parts[widthIndex + 1].split(',').map(w => parseInt(w) || 60);
+                        }
+                        
+                        const heightIndex = parts.findIndex(p => p === 'H');
+                        if (heightIndex !== -1 && parts[heightIndex + 1]) {
+                            rowHeights = parts[heightIndex + 1].split(',').map(h => parseInt(h) || 30);
+                        }
+                        
+                        const mergeIndex = parts.findIndex(p => p === 'M');
+                        if (mergeIndex !== -1 && parts[mergeIndex + 1]) {
+                            const mergeData = parts[mergeIndex + 1].split(';');
+                            mergeData.forEach(m => {
+                                const [r, c, colspan, rowspan] = m.split(',').map(n => parseInt(n));
+                                if (!mergedCells[r]) mergedCells[r] = {};
+                                mergedCells[r][c] = { colspan, rowspan };
+                            });
+                        }
+                        
+                        const isCellMerged = (rowIdx, colIdx) => {
+                            for (let r = 0; r <= rowIdx; r++) {
+                                for (let c = 0; c <= colIdx; c++) {
+                                    const cell = mergedCells[r]?.[c];
+                                    if (cell && (cell.colspan > 1 || cell.rowspan > 1)) {
+                                        const endRow = r + (cell.rowspan || 1) - 1;
+                                        const endCol = c + (cell.colspan || 1) - 1;
+                                        if (rowIdx >= r && rowIdx <= endRow && colIdx >= c && colIdx <= endCol) {
+                                            if (r === rowIdx && c === colIdx) return false;
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                            return false;
+                        };
+                        
                         return (
                             <table key={index} style={{ border: '1px solid black', borderCollapse: 'collapse', margin: '10px 0' }}>
                                 <tbody>
                                     {Array.from({ length: rows }, (_, r) => (
                                         <tr key={r}>
                                             {Array.from({ length: cols }, (_, c) => {
+                                                if (isCellMerged(r, c)) return null;
                                                 const cellIndex = r * cols + c;
                                                 const cellValue = cellData[cellIndex] || '';
+                                                const mergeInfo = mergedCells[r]?.[c] || { colspan: 1, rowspan: 1 };
                                                 return (
-                                                    <td key={c} style={{ border: '1px solid black', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                    <td 
+                                                        key={c}
+                                                        colSpan={mergeInfo.colspan}
+                                                        rowSpan={mergeInfo.rowspan}
+                                                        style={{ 
+                                                            border: '1px solid black', 
+                                                            padding: '8px',
+                                                            width: `${colWidths[c]}px`,
+                                                            height: `${rowHeights[r]}px`,
+                                                            minWidth: '60px', 
+                                                            minHeight: '30px' 
+                                                        }}
+                                                    >
                                                         {cellValue || '\u00A0'}
                                                     </td>
                                                 );

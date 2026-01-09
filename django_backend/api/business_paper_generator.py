@@ -25,6 +25,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
 from .models import Paper, Topic, Question, Subject, GeneratedPaper
+from .page_number_extrctor import extract_paper_number_from_name
 
 
 class KCSEBusinessPaper1Generator:
@@ -333,17 +334,15 @@ class KCSEBusinessPaper1Generator:
 class KCSEBusinessPaper2Generator:
     """
     Business Studies Paper 2 Generator
-    - 6 questions, each 20 marks
-    - Each question has two parts:
-      * Part a: 12 marks (from one topic)
-      * Part b: 8 marks (from different topic)
-    - Students answer 5 out of 6 questions
+    - 6 questions, each 20 marks (student answers 5 = 100 marks)
+    - Each question has two parts totaling 20 marks:
+      * Question Type 1: part (a) 12 marks + part (b) 8 marks = 20 marks
+      * Question Type 2: part (a) 10 marks + part (b) 10 marks = 20 marks
+    - Strategy: Prioritize (12+8) structure, use (10+10) when needed
     """
     
     REQUIRED_QUESTIONS = 6
     MARKS_PER_QUESTION = 20
-    PART_A_MARKS = 12
-    PART_B_MARKS = 8
     TOTAL_MARKS = REQUIRED_QUESTIONS * MARKS_PER_QUESTION  # 120 marks total
     STUDENT_ANSWERS = 5  # Choose 5 out of 6
     STUDENT_MAX_MARKS = STUDENT_ANSWERS * MARKS_PER_QUESTION  # 100 marks
@@ -361,8 +360,9 @@ class KCSEBusinessPaper2Generator:
         self.all_questions = []
         
         # Question pools by marks
-        self.questions_12_marks = []  # For part a
-        self.questions_8_marks = []   # For part b
+        self.questions_12_marks = []  # For part a of (12+8) questions
+        self.questions_8_marks = []   # For part b of (12+8) questions
+        self.questions_10_marks = []  # For both parts of (10+10) questions
         
         # Selection tracking
         self.selected_questions = []  # List of combined questions
@@ -408,79 +408,97 @@ class KCSEBusinessPaper2Generator:
                 self.questions_12_marks.append(q)
             elif q.marks == 8:
                 self.questions_8_marks.append(q)
+            elif q.marks == 10:
+                self.questions_10_marks.append(q)
         
         # Shuffle for randomness
         random.shuffle(self.questions_12_marks)
         random.shuffle(self.questions_8_marks)
+        random.shuffle(self.questions_10_marks)
         
         print(f"\n[DATA LOADED - BUSINESS PAPER 2]")
         print(f"  Total topics: {len(self.topics)}")
         print(f"  Total questions: {len(self.all_questions)}")
-        print(f"  12-mark questions: {len(self.questions_12_marks)}")
-        print(f"  8-mark questions: {len(self.questions_8_marks)}")
-        
-        # Check if we have enough questions
-        if len(self.questions_12_marks) < self.REQUIRED_QUESTIONS:
-            raise ValueError(
-                f"Insufficient 12-mark questions. "
-                f"Need {self.REQUIRED_QUESTIONS}, have {len(self.questions_12_marks)}"
-            )
-        
-        if len(self.questions_8_marks) < self.REQUIRED_QUESTIONS:
-            raise ValueError(
-                f"Insufficient 8-mark questions. "
-                f"Need {self.REQUIRED_QUESTIONS}, have {len(self.questions_8_marks)}"
-            )
+        print(f"  12-mark questions: {len(self.questions_12_marks)} (for part a)")
+        print(f"  8-mark questions: {len(self.questions_8_marks)} (for part b)")
+        print(f"  10-mark questions: {len(self.questions_10_marks)} (for both parts)")
+        print(f"  Question types: (12+8)=20 OR (10+10)=20")
+
     
     def _select_6_combined_questions(self) -> bool:
         """
-        Select 6 combined questions, each with:
-        - Part a: 12 marks (from one topic)
-        - Part b: 8 marks (from different topic)
+        Select 6 combined questions, each totaling 20 marks:
+        - Type 1: part (a) 12 marks + part (b) 8 marks = 20 marks
+        - Type 2: part (a) 10 marks + part (b) 10 marks = 20 marks
+        
+        Strategy:
+        1. Create as many (12+8) questions as possible (equal counts needed)
+        2. Fill remaining with (10+10) questions (need even count of 10-marks)
         """
-        # Select 6 questions of 12 marks
-        selected_12_marks = random.sample(self.questions_12_marks, self.REQUIRED_QUESTIONS)
-        
-        # Select 6 questions of 8 marks
-        selected_8_marks = random.sample(self.questions_8_marks, self.REQUIRED_QUESTIONS)
-        
-        # Combine into 6 questions, ensuring part a and part b are from different topics
         combined_questions = []
-        used_8_mark_indices = set()
+        used_12_ids = set()
+        used_8_ids = set()
+        used_10_ids = set()
         
-        for q_12 in selected_12_marks:
-            # Find an 8-mark question from a different topic
-            paired = False
+        # Step 1: Create (12mk + 8mk) questions
+        # Need equal number of 12-mark and 8-mark questions for pairing
+        available_12 = [q for q in self.questions_12_marks if q.id not in used_12_ids]
+        available_8 = [q for q in self.questions_8_marks if q.id not in used_8_ids]
+        
+        questions_12_8 = min(len(available_12), len(available_8))
+        
+        for i in range(questions_12_8):
+            q_12 = available_12[i]
+            q_8 = available_8[i]
             
-            for idx, q_8 in enumerate(selected_8_marks):
-                if idx in used_8_mark_indices:
-                    continue
+            combined_questions.append({
+                'part_a': q_12,
+                'part_b': q_8,
+                'total_marks': q_12.marks + q_8.marks,
+                'question_type': '12+8'
+            })
+            used_12_ids.add(q_12.id)
+            used_8_ids.add(q_8.id)
+        
+        # Step 2: If we need more questions, use (10mk + 10mk)
+        questions_needed = self.REQUIRED_QUESTIONS - len(combined_questions)
+        
+        if questions_needed > 0:
+            available_10 = [q for q in self.questions_10_marks if q.id not in used_10_ids]
+            # Need even number of 10-marks (2 per question)
+            questions_10_10 = min(questions_needed, len(available_10) // 2)
+            
+            for i in range(questions_10_10):
+                part_a = available_10[i * 2]
+                part_b = available_10[i * 2 + 1]
                 
-                # Ensure different topics
-                if q_8.topic_id != q_12.topic_id:
-                    combined_questions.append({
-                        'part_a': q_12,
-                        'part_b': q_8,
-                        'total_marks': q_12.marks + q_8.marks
-                    })
-                    used_8_mark_indices.add(idx)
-                    paired = True
-                    break
-            
-            if not paired:
-                # Could not pair this 12-mark question with an 8-mark from different topic
-                return False
+                combined_questions.append({
+                    'part_a': part_a,
+                    'part_b': part_b,
+                    'total_marks': part_a.marks + part_b.marks,
+                    'question_type': '10+10'
+                })
+                used_10_ids.add(part_a.id)
+                used_10_ids.add(part_b.id)
         
+        # Check if we have exactly 6 questions
         if len(combined_questions) != self.REQUIRED_QUESTIONS:
+            print(f"  [FAILED] Need {self.REQUIRED_QUESTIONS} questions, created {len(combined_questions)}")
+            print(f"    Available: 12mk={len(available_12)}, 8mk={len(available_8)}, 10mk={len(self.questions_10_marks)}")
             return False
         
         self.selected_questions = combined_questions
         
+        # Show question structure
+        type_12_8 = sum(1 for q in combined_questions if q['question_type'] == '12+8')
+        type_10_10 = sum(1 for q in combined_questions if q['question_type'] == '10+10')
+        
         print(f"\n[6 COMBINED QUESTIONS SELECTED]")
+        print(f"  Question types: (12+8)={type_12_8}, (10+10)={type_10_10}")
         for idx, cq in enumerate(combined_questions, start=1):
-            print(f"  Question {idx}:")
-            print(f"    Part a (12 marks): Topic '{cq['part_a'].topic.name}'")
-            print(f"    Part b (8 marks): Topic '{cq['part_b'].topic.name}'")
+            print(f"  Question {idx} [{cq['question_type']}]:")
+            print(f"    Part a ({cq['part_a'].marks} marks): Topic '{cq['part_a'].topic.name}'")
+            print(f"    Part b ({cq['part_b'].marks} marks): Topic '{cq['part_b'].topic.name}'")
         
         return True
     
@@ -494,7 +512,7 @@ class KCSEBusinessPaper2Generator:
         print(f"{'='*70}")
         print(f"Requirements:")
         print(f"  Total Questions: {self.REQUIRED_QUESTIONS}")
-        print(f"  Marks per Question: {self.MARKS_PER_QUESTION} (12 + 8)")
+        print(f"  Marks per Question: {self.MARKS_PER_QUESTION} [(12+8) OR (10+10)]")
         print(f"  Student Answers: {self.STUDENT_ANSWERS} out of {self.REQUIRED_QUESTIONS}")
         print(f"  Student Max Marks: {self.STUDENT_MAX_MARKS}")
         
@@ -508,7 +526,7 @@ class KCSEBusinessPaper2Generator:
             # Select 6 combined questions
             if not self._select_6_combined_questions():
                 if attempt % 10 == 0:
-                    print(f"[ATTEMPT {attempt}] Failed to combine 6 questions from different topics")
+                    print(f"[ATTEMPT {attempt}] Failed to create 6 questions")
                 continue
             
             # Success!
@@ -524,7 +542,8 @@ class KCSEBusinessPaper2Generator:
         raise Exception(
             f"Failed to generate paper after {max_attempts} attempts. "
             f"Available: 12-mark={len(self.questions_12_marks)}, "
-            f"8-mark={len(self.questions_8_marks)}"
+            f"8-mark={len(self.questions_8_marks)}, "
+            f"10-mark={len(self.questions_10_marks)}"
         )
     
     def _build_result(self, generation_time: float) -> Dict:
@@ -663,13 +682,19 @@ def validate_business_paper_pool(request):
         
         paper_id = data.get('paper_id')
         selected_topic_ids = data.get('topic_ids', [])
-        paper_number = data.get('paper_number', 1)
+        paper_number = None
+        
         
         if not paper_id or not selected_topic_ids:
             return JsonResponse({
                 'can_generate': False,
                 'message': 'Missing paper_id or selected_topic_ids'
             }, status=400)
+        
+        if paper_id :
+            paper = Paper.objects.get(id=paper_id)
+            paper_name = paper.name.lower()
+            paper_number = extract_paper_number_from_name(paper_name)
         
         # Load paper and topics
         paper = Paper.objects.select_related('subject').get(
@@ -793,12 +818,17 @@ def generate_business_paper(request):
         
         paper_id = data.get('paper_id')
         selected_topic_ids = data.get('topic_ids', [])
-        paper_number = data.get('paper_number', 1)
+        paper_number = None
         
         if not paper_id or not selected_topic_ids:
             return JsonResponse({
                 'message': 'Missing paper_id or selected_topic_ids'
             }, status=400)
+        
+        if paper_id :
+            paper = Paper.objects.get(id=paper_id)
+            paper_name = paper.name.lower()
+            paper_number = extract_paper_number_from_name(paper_name)
         
         if paper_number not in [1, 2]:
             return JsonResponse({

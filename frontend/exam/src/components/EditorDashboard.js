@@ -251,12 +251,28 @@ export default function EditorDashboard({ onLogout }) {
         setShowTableMatrixModal(true);
     };
 
-    const handleTableMatrixInsert = ({ rows, cols, data }) => {
+    const handleTableMatrixInsert = ({ rows, cols, data, widths, heights, merged }) => {
         if (!tableMatrixTarget) return;
         const { textareaRef, setText } = tableMatrixTarget;
-        const token = tableMatrixType === 'table' 
-            ? `[TABLE:${rows}x${cols}:${data}]` 
+        
+        // Build token with new format including widths, heights, and merged cells
+        let token = tableMatrixType === 'table' 
+            ? `[TABLE:${rows}x${cols}:${data}`
             : `[MATRIX:${rows}x${cols}:${data}]`;
+        
+        // Add widths and heights for tables
+        if (tableMatrixType === 'table' && widths) {
+            token += `:W:${widths}`;
+        }
+        if (tableMatrixType === 'table' && heights) {
+            token += `:H:${heights}`;
+        }
+        if (tableMatrixType === 'table' && merged) {
+            token += `:M:${merged}`;
+        }
+        if (tableMatrixType === 'table') {
+            token += ']';
+        }
 
         const textarea = textareaRef?.current;
         if (!textarea) {
@@ -283,6 +299,8 @@ export default function EditorDashboard({ onLogout }) {
     const applyQuestionMatrix = () => openTableMatrixModal(questionTextareaRef, setQuestionText, questionText, 'matrix');
     const applyEditQuestionTable = () => openTableMatrixModal(editQuestionTextareaRef, setEditQuestionText, editQuestionText, 'table');
     const applyEditQuestionMatrix = () => openTableMatrixModal(editQuestionTextareaRef, setEditQuestionText, editQuestionText, 'matrix');
+    const applyEditAnswerTable = () => openTableMatrixModal(editAnswerTextareaRef, setEditAnswerText, editAnswerText, 'table');
+    const applyEditAnswerMatrix = () => openTableMatrixModal(editAnswerTextareaRef, setEditAnswerText, editAnswerText, 'matrix');
 
     // Answer formatting with superscript/subscript
     const applyAnswerFormattingAdvanced = (format) => {
@@ -1115,7 +1133,7 @@ export default function EditorDashboard({ onLogout }) {
         
         // Enhanced regex pattern to include SUP, SUB, FRAC, MIX, TABLE, and MATRIX tags
         return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
-            // Table: [TABLE:RxC]
+            // Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
             if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                 try {
                     const inner = part.slice(7, -1); // Remove [TABLE: and ]
@@ -1125,16 +1143,79 @@ export default function EditorDashboard({ onLogout }) {
                         const rows = parseInt(dimensionMatch[1]);
                         const cols = parseInt(dimensionMatch[2]);
                         const cellData = parts[1] ? parts[1].split('|') : [];
+                        
+                        // Parse optional widths, heights, and merged cells
+                        let colWidths = Array(cols).fill(60);
+                        let rowHeights = Array(rows).fill(30);
+                        let mergedCells = {};
+                        
+                        // Look for width data (W:width1,width2,...)
+                        const widthIndex = parts.findIndex(p => p === 'W');
+                        if (widthIndex !== -1 && parts[widthIndex + 1]) {
+                            colWidths = parts[widthIndex + 1].split(',').map(w => parseInt(w) || 60);
+                        }
+                        
+                        // Look for height data (H:height1,height2,...)
+                        const heightIndex = parts.findIndex(p => p === 'H');
+                        if (heightIndex !== -1 && parts[heightIndex + 1]) {
+                            rowHeights = parts[heightIndex + 1].split(',').map(h => parseInt(h) || 30);
+                        }
+                        
+                        // Look for merged cells data (M:r1,c1,colspan,rowspan;r2,c2,...)
+                        const mergeIndex = parts.findIndex(p => p === 'M');
+                        if (mergeIndex !== -1 && parts[mergeIndex + 1]) {
+                            const mergeData = parts[mergeIndex + 1].split(';');
+                            mergeData.forEach(m => {
+                                const [r, c, colspan, rowspan] = m.split(',').map(n => parseInt(n));
+                                if (!mergedCells[r]) mergedCells[r] = {};
+                                mergedCells[r][c] = { colspan, rowspan };
+                            });
+                        }
+                        
+                        // Helper to check if cell is merged (hidden)
+                        const isCellMerged = (rowIdx, colIdx) => {
+                            for (let r = 0; r <= rowIdx; r++) {
+                                for (let c = 0; c <= colIdx; c++) {
+                                    const cell = mergedCells[r]?.[c];
+                                    if (cell && (cell.colspan > 1 || cell.rowspan > 1)) {
+                                        const endRow = r + (cell.rowspan || 1) - 1;
+                                        const endCol = c + (cell.colspan || 1) - 1;
+                                        if (rowIdx >= r && rowIdx <= endRow && colIdx >= c && colIdx <= endCol) {
+                                            if (r === rowIdx && c === colIdx) return false;
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                            return false;
+                        };
+                        
                         return (
                             <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
                                 <tbody>
                                     {[...Array(rows)].map((_, rowIdx) => (
                                         <tr key={rowIdx}>
                                             {[...Array(cols)].map((_, colIdx) => {
+                                                if (isCellMerged(rowIdx, colIdx)) return null;
+                                                
                                                 const cellIndex = rowIdx * cols + colIdx;
                                                 const cellValue = cellData[cellIndex] || '';
+                                                const mergeInfo = mergedCells[rowIdx]?.[colIdx] || { colspan: 1, rowspan: 1 };
+                                                
                                                 return (
-                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                    <td 
+                                                        key={colIdx} 
+                                                        colSpan={mergeInfo.colspan}
+                                                        rowSpan={mergeInfo.rowspan}
+                                                        style={{ 
+                                                            border: '1px solid #000', 
+                                                            padding: '8px', 
+                                                            width: `${colWidths[colIdx]}px`,
+                                                            height: `${rowHeights[rowIdx]}px`,
+                                                            minWidth: '60px', 
+                                                            minHeight: '30px' 
+                                                        }}
+                                                    >
                                                         {cellValue || '\u00A0'}
                                                     </td>
                                                 );
@@ -2867,7 +2948,7 @@ useEffect(() => {
         const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
 
         return parts.map((part, index) => {
-            // Table: [TABLE:RxC:data]
+            // Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
             if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                 try {
                     const inner = part.slice(7, -1);
@@ -2877,16 +2958,75 @@ useEffect(() => {
                         const rows = parseInt(dimensionMatch[1]);
                         const cols = parseInt(dimensionMatch[2]);
                         const cellData = parts[1] ? parts[1].split('|') : [];
+                        
+                        // Parse optional widths, heights, and merged cells
+                        let colWidths = Array(cols).fill(60);
+                        let rowHeights = Array(rows).fill(30);
+                        let mergedCells = {};
+                        
+                        const widthIndex = parts.findIndex(p => p === 'W');
+                        if (widthIndex !== -1 && parts[widthIndex + 1]) {
+                            colWidths = parts[widthIndex + 1].split(',').map(w => parseInt(w) || 60);
+                        }
+                        
+                        const heightIndex = parts.findIndex(p => p === 'H');
+                        if (heightIndex !== -1 && parts[heightIndex + 1]) {
+                            rowHeights = parts[heightIndex + 1].split(',').map(h => parseInt(h) || 30);
+                        }
+                        
+                        const mergeIndex = parts.findIndex(p => p === 'M');
+                        if (mergeIndex !== -1 && parts[mergeIndex + 1]) {
+                            const mergeData = parts[mergeIndex + 1].split(';');
+                            mergeData.forEach(m => {
+                                const [r, c, colspan, rowspan] = m.split(',').map(n => parseInt(n));
+                                if (!mergedCells[r]) mergedCells[r] = {};
+                                mergedCells[r][c] = { colspan, rowspan };
+                            });
+                        }
+                        
+                        const isCellMerged = (rowIdx, colIdx) => {
+                            for (let r = 0; r <= rowIdx; r++) {
+                                for (let c = 0; c <= colIdx; c++) {
+                                    const cell = mergedCells[r]?.[c];
+                                    if (cell && (cell.colspan > 1 || cell.rowspan > 1)) {
+                                        const endRow = r + (cell.rowspan || 1) - 1;
+                                        const endCol = c + (cell.colspan || 1) - 1;
+                                        if (rowIdx >= r && rowIdx <= endRow && colIdx >= c && colIdx <= endCol) {
+                                            if (r === rowIdx && c === colIdx) return false;
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                            return false;
+                        };
+                        
                         return (
                             <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
                                 <tbody>
                                     {[...Array(rows)].map((_, rowIdx) => (
                                         <tr key={rowIdx}>
                                             {[...Array(cols)].map((_, colIdx) => {
+                                                if (isCellMerged(rowIdx, colIdx)) return null;
+                                                
                                                 const cellIndex = rowIdx * cols + colIdx;
                                                 const cellValue = cellData[cellIndex] || '';
+                                                const mergeInfo = mergedCells[rowIdx]?.[colIdx] || { colspan: 1, rowspan: 1 };
+                                                
                                                 return (
-                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                    <td 
+                                                        key={colIdx}
+                                                        colSpan={mergeInfo.colspan}
+                                                        rowSpan={mergeInfo.rowspan}
+                                                        style={{ 
+                                                            border: '1px solid #000', 
+                                                            padding: '8px',
+                                                            width: `${colWidths[colIdx]}px`,
+                                                            height: `${rowHeights[rowIdx]}px`,
+                                                            minWidth: '60px', 
+                                                            minHeight: '30px' 
+                                                        }}
+                                                    >
                                                         {cellValue || '\u00A0'}
                                                     </td>
                                                 );
@@ -4949,7 +5089,7 @@ useEffect(() => {
                                                 return <sub key={index} className="text-sm">{content}</sub>;
                                             }
 
-                                            // Table: [TABLE:RxC:data]
+                                            // Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
                                             if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                                                 try {
                                                     const inner = part.slice(7, -1);
@@ -4959,16 +5099,72 @@ useEffect(() => {
                                                         const rows = parseInt(dimensionMatch[1]);
                                                         const cols = parseInt(dimensionMatch[2]);
                                                         const cellData = parts[1] ? parts[1].split('|') : [];
+                                                        
+                                                        let colWidths = Array(cols).fill(60);
+                                                        let rowHeights = Array(rows).fill(30);
+                                                        let mergedCells = {};
+                                                        
+                                                        const widthIndex = parts.findIndex(p => p === 'W');
+                                                        if (widthIndex !== -1 && parts[widthIndex + 1]) {
+                                                            colWidths = parts[widthIndex + 1].split(',').map(w => parseInt(w) || 60);
+                                                        }
+                                                        
+                                                        const heightIndex = parts.findIndex(p => p === 'H');
+                                                        if (heightIndex !== -1 && parts[heightIndex + 1]) {
+                                                            rowHeights = parts[heightIndex + 1].split(',').map(h => parseInt(h) || 30);
+                                                        }
+                                                        
+                                                        const mergeIndex = parts.findIndex(p => p === 'M');
+                                                        if (mergeIndex !== -1 && parts[mergeIndex + 1]) {
+                                                            const mergeData = parts[mergeIndex + 1].split(';');
+                                                            mergeData.forEach(m => {
+                                                                const [r, c, colspan, rowspan] = m.split(',').map(n => parseInt(n));
+                                                                if (!mergedCells[r]) mergedCells[r] = {};
+                                                                mergedCells[r][c] = { colspan, rowspan };
+                                                            });
+                                                        }
+                                                        
+                                                        const isCellMerged = (rowIdx, colIdx) => {
+                                                            for (let r = 0; r <= rowIdx; r++) {
+                                                                for (let c = 0; c <= colIdx; c++) {
+                                                                    const cell = mergedCells[r]?.[c];
+                                                                    if (cell && (cell.colspan > 1 || cell.rowspan > 1)) {
+                                                                        const endRow = r + (cell.rowspan || 1) - 1;
+                                                                        const endCol = c + (cell.colspan || 1) - 1;
+                                                                        if (rowIdx >= r && rowIdx <= endRow && colIdx >= c && colIdx <= endCol) {
+                                                                            if (r === rowIdx && c === colIdx) return false;
+                                                                            return true;
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            return false;
+                                                        };
+                                                        
                                                         return (
                                                             <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
                                                                 <tbody>
                                                                     {[...Array(rows)].map((_, rowIdx) => (
                                                                         <tr key={rowIdx}>
                                                                             {[...Array(cols)].map((_, colIdx) => {
+                                                                                if (isCellMerged(rowIdx, colIdx)) return null;
                                                                                 const cellIndex = rowIdx * cols + colIdx;
                                                                                 const cellValue = cellData[cellIndex] || '';
+                                                                                const mergeInfo = mergedCells[rowIdx]?.[colIdx] || { colspan: 1, rowspan: 1 };
                                                                                 return (
-                                                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                                                    <td 
+                                                                                        key={colIdx}
+                                                                                        colSpan={mergeInfo.colspan}
+                                                                                        rowSpan={mergeInfo.rowspan}
+                                                                                        style={{ 
+                                                                                            border: '1px solid #000', 
+                                                                                            padding: '8px',
+                                                                                            width: `${colWidths[colIdx]}px`,
+                                                                                            height: `${rowHeights[rowIdx]}px`,
+                                                                                            minWidth: '60px', 
+                                                                                            minHeight: '30px' 
+                                                                                        }}
+                                                                                    >
                                                                                         {cellValue || '\u00A0'}
                                                                                     </td>
                                                                                 );
@@ -5472,7 +5668,7 @@ useEffect(() => {
                                         <p className="text-xs font-bold text-blue-800 mb-2">📝 QUESTION PREVIEW:</p>
                                         <div className="text-sm text-gray-700 whitespace-pre-wrap">
                                             {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
-                                                // Table: [TABLE:RxC:data]
+                                                // Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
                                                 if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                                                     try {
                                                         const inner = part.slice(7, -1);
@@ -5482,16 +5678,72 @@ useEffect(() => {
                                                             const rows = parseInt(dimensionMatch[1]);
                                                             const cols = parseInt(dimensionMatch[2]);
                                                             const cellData = parts[1] ? parts[1].split('|') : [];
+                                                            
+                                                            let colWidths = Array(cols).fill(60);
+                                                            let rowHeights = Array(rows).fill(30);
+                                                            let mergedCells = {};
+                                                            
+                                                            const widthIndex = parts.findIndex(p => p === 'W');
+                                                            if (widthIndex !== -1 && parts[widthIndex + 1]) {
+                                                                colWidths = parts[widthIndex + 1].split(',').map(w => parseInt(w) || 60);
+                                                            }
+                                                            
+                                                            const heightIndex = parts.findIndex(p => p === 'H');
+                                                            if (heightIndex !== -1 && parts[heightIndex + 1]) {
+                                                                rowHeights = parts[heightIndex + 1].split(',').map(h => parseInt(h) || 30);
+                                                            }
+                                                            
+                                                            const mergeIndex = parts.findIndex(p => p === 'M');
+                                                            if (mergeIndex !== -1 && parts[mergeIndex + 1]) {
+                                                                const mergeData = parts[mergeIndex + 1].split(';');
+                                                                mergeData.forEach(m => {
+                                                                    const [r, c, colspan, rowspan] = m.split(',').map(n => parseInt(n));
+                                                                    if (!mergedCells[r]) mergedCells[r] = {};
+                                                                    mergedCells[r][c] = { colspan, rowspan };
+                                                                });
+                                                            }
+                                                            
+                                                            const isCellMerged = (rowIdx, colIdx) => {
+                                                                for (let r = 0; r <= rowIdx; r++) {
+                                                                    for (let c = 0; c <= colIdx; c++) {
+                                                                        const cell = mergedCells[r]?.[c];
+                                                                        if (cell && (cell.colspan > 1 || cell.rowspan > 1)) {
+                                                                            const endRow = r + (cell.rowspan || 1) - 1;
+                                                                            const endCol = c + (cell.colspan || 1) - 1;
+                                                                            if (rowIdx >= r && rowIdx <= endRow && colIdx >= c && colIdx <= endCol) {
+                                                                                if (r === rowIdx && c === colIdx) return false;
+                                                                                return true;
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                                return false;
+                                                            };
+                                                            
                                                             return (
                                                                 <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
                                                                     <tbody>
                                                                         {[...Array(rows)].map((_, rowIdx) => (
                                                                             <tr key={rowIdx}>
                                                                                 {[...Array(cols)].map((_, colIdx) => {
+                                                                                    if (isCellMerged(rowIdx, colIdx)) return null;
                                                                                     const cellIndex = rowIdx * cols + colIdx;
                                                                                     const cellValue = cellData[cellIndex] || '';
+                                                                                    const mergeInfo = mergedCells[rowIdx]?.[colIdx] || { colspan: 1, rowspan: 1 };
                                                                                     return (
-                                                                                        <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                                                        <td 
+                                                                                            key={colIdx}
+                                                                                            colSpan={mergeInfo.colspan}
+                                                                                            rowSpan={mergeInfo.rowspan}
+                                                                                            style={{ 
+                                                                                                border: '1px solid #000', 
+                                                                                                padding: '8px',
+                                                                                                width: `${colWidths[colIdx]}px`,
+                                                                                                height: `${rowHeights[rowIdx]}px`,
+                                                                                                minWidth: '60px', 
+                                                                                                minHeight: '30px' 
+                                                                                            }}
+                                                                                        >
                                                                                             {cellValue || '\u00A0'}
                                                                                         </td>
                                                                                     );
@@ -5679,7 +5931,7 @@ useEffect(() => {
                                                 return <sub key={index} data-text-index={index} className="text-sm">{content}</sub>;
                                             }
 
-                                            // Table: [TABLE:RxC:data]
+                                            // Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
                                             if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                                                 try {
                                                     const inner = part.slice(7, -1);
@@ -5689,16 +5941,72 @@ useEffect(() => {
                                                         const rows = parseInt(dimensionMatch[1]);
                                                         const cols = parseInt(dimensionMatch[2]);
                                                         const cellData = parts[1] ? parts[1].split('|') : [];
+                                                        
+                                                        let colWidths = Array(cols).fill(60);
+                                                        let rowHeights = Array(rows).fill(30);
+                                                        let mergedCells = {};
+                                                        
+                                                        const widthIndex = parts.findIndex(p => p === 'W');
+                                                        if (widthIndex !== -1 && parts[widthIndex + 1]) {
+                                                            colWidths = parts[widthIndex + 1].split(',').map(w => parseInt(w) || 60);
+                                                        }
+                                                        
+                                                        const heightIndex = parts.findIndex(p => p === 'H');
+                                                        if (heightIndex !== -1 && parts[heightIndex + 1]) {
+                                                            rowHeights = parts[heightIndex + 1].split(',').map(h => parseInt(h) || 30);
+                                                        }
+                                                        
+                                                        const mergeIndex = parts.findIndex(p => p === 'M');
+                                                        if (mergeIndex !== -1 && parts[mergeIndex + 1]) {
+                                                            const mergeData = parts[mergeIndex + 1].split(';');
+                                                            mergeData.forEach(m => {
+                                                                const [r, c, colspan, rowspan] = m.split(',').map(n => parseInt(n));
+                                                                if (!mergedCells[r]) mergedCells[r] = {};
+                                                                mergedCells[r][c] = { colspan, rowspan };
+                                                            });
+                                                        }
+                                                        
+                                                        const isCellMerged = (rowIdx, colIdx) => {
+                                                            for (let r = 0; r <= rowIdx; r++) {
+                                                                for (let c = 0; c <= colIdx; c++) {
+                                                                    const cell = mergedCells[r]?.[c];
+                                                                    if (cell && (cell.colspan > 1 || cell.rowspan > 1)) {
+                                                                        const endRow = r + (cell.rowspan || 1) - 1;
+                                                                        const endCol = c + (cell.colspan || 1) - 1;
+                                                                        if (rowIdx >= r && rowIdx <= endRow && colIdx >= c && colIdx <= endCol) {
+                                                                            if (r === rowIdx && c === colIdx) return false;
+                                                                            return true;
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            return false;
+                                                        };
+                                                        
                                                         return (
                                                             <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
                                                                 <tbody>
                                                                     {[...Array(rows)].map((_, rowIdx) => (
                                                                         <tr key={rowIdx}>
                                                                             {[...Array(cols)].map((_, colIdx) => {
+                                                                                if (isCellMerged(rowIdx, colIdx)) return null;
                                                                                 const cellIndex = rowIdx * cols + colIdx;
                                                                                 const cellValue = cellData[cellIndex] || '';
+                                                                                const mergeInfo = mergedCells[rowIdx]?.[colIdx] || { colspan: 1, rowspan: 1 };
                                                                                 return (
-                                                                                    <td key={colIdx} style={{ border: '1px solid #000', padding: '8px', minWidth: '60px', minHeight: '30px' }}>
+                                                                                    <td 
+                                                                                        key={colIdx}
+                                                                                        colSpan={mergeInfo.colspan}
+                                                                                        rowSpan={mergeInfo.rowspan}
+                                                                                        style={{ 
+                                                                                            border: '1px solid #000', 
+                                                                                            padding: '8px',
+                                                                                            width: `${colWidths[colIdx]}px`,
+                                                                                            height: `${rowHeights[rowIdx]}px`,
+                                                                                            minWidth: '60px', 
+                                                                                            minHeight: '30px' 
+                                                                                        }}
+                                                                                    >
                                                                                         {cellValue || '\u00A0'}
                                                                                     </td>
                                                                                 );
@@ -6120,6 +6428,24 @@ useEffect(() => {
                                             title="Insert fraction (prompt)"
                                         >
                                             a⁄b
+                                        </button>
+                                        {/* Table */}
+                                        <button
+                                            type="button"
+                                            onClick={() => openTableMatrixModal(answerTextareaRef, setAnswerText, answerText, 'table')}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                            title="Insert table"
+                                        >
+                                            ⊞
+                                        </button>
+                                        {/* Matrix */}
+                                        <button
+                                            type="button"
+                                            onClick={() => openTableMatrixModal(answerTextareaRef, setAnswerText, answerText, 'matrix')}
+                                            className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                            title="Insert matrix"
+                                        >
+                                            ⎡⎤
                                         </button>
                                     </div>
                                     {/* Symbol Picker Button */}
@@ -8665,6 +8991,24 @@ useEffect(() => {
                                                     title="Insert fraction (prompt)"
                                                 >
                                                     a⁄b
+                                                </button>
+                                                {/* Table */}
+                                                <button
+                                                    type="button"
+                                                    onClick={applyEditAnswerTable}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                    title="Insert table"
+                                                >
+                                                    ⊞
+                                                </button>
+                                                {/* Matrix */}
+                                                <button
+                                                    type="button"
+                                                    onClick={applyEditAnswerMatrix}
+                                                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                                                    title="Insert matrix"
+                                                >
+                                                    ⎡⎤
                                                 </button>
                                             </div>
                                             <button
