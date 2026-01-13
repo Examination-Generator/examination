@@ -55,6 +55,9 @@ from .coverpage_templates import (
     KiswahiliPaper2Coverpage,
     BusinessPaper1Coverpage,
     BusinessPaper2Coverpage,
+    EnglishPaper1Coverpage,
+    EnglishPaper2Coverpage,
+    EnglishPaper3Coverpage,
     MarkingSchemeCoverpage, 
     format_time_allocation
 )
@@ -151,6 +154,13 @@ def _select_coverpage_class_and_default(generated_paper, paper, is_marking_schem
             if is_paper1():
                 return KCSEMathematicsPaper1Generator, KCSEMathematicsPaper1Generator.generate_default_coverpage_data(generated_paper, paper)
             return KCSEMathematicsPaper2Generator, KCSEMathematicsPaper2Generator.generate_default_coverpage_data(generated_paper, paper)
+        
+        if subject_name == 'ENGLISH':
+            if is_paper1():
+                return EnglishPaper1Coverpage, EnglishPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
+            elif is_paper3():
+                return EnglishPaper3Coverpage, EnglishPaper3Coverpage.generate_default_coverpage_data(generated_paper, paper)
+            return EnglishPaper2Coverpage, EnglishPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
 
     except Exception:
         # If any class doesn't expose expected helper, fallback to a safe default
