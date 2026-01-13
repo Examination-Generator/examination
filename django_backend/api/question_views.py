@@ -552,6 +552,39 @@ def get_question_stats(request):
         count=Count('id')
     ).order_by('-count')
     
+    # Get questions by subject and creator
+    by_subject_creator = Question.objects.filter(
+        is_active=True
+    ).select_related('subject', 'created_by').values(
+        'subject__name',
+        'created_by__id',
+        'created_by__full_name'
+    ).annotate(
+        count=Count('id')
+    ).order_by('subject__name', '-count')
+    
+    # Organize by subject with creator breakdown
+    subject_breakdown = {}
+    for item in by_subject_creator:
+        subject_name = item['subject__name']
+        if subject_name not in subject_breakdown:
+            subject_breakdown[subject_name] = {
+                'subjectName': subject_name,
+                'total': 0,
+                'creators': []
+            }
+        
+        creator_name = item['created_by__full_name'] or 'Unknown'
+        creator_id = item['created_by__id']
+        question_count = item['count']
+        
+        subject_breakdown[subject_name]['total'] += question_count
+        subject_breakdown[subject_name]['creators'].append({
+            'creatorId': str(creator_id) if creator_id else None,
+            'creatorName': creator_name,
+            'count': question_count
+        })
+    
     return success_response(
         'Statistics retrieved successfully',
         {
@@ -576,7 +609,8 @@ def get_question_stats(request):
                     'count': item['count']
                 }
                 for item in by_subject
-            ]
+            ],
+            'bySubjectWithCreators': list(subject_breakdown.values())
         }
     )
 

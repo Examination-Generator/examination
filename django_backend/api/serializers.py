@@ -452,6 +452,7 @@ class QuestionListSerializer(serializers.ModelSerializer):
     paper_name = serializers.SerializerMethodField()
     topic_name = serializers.SerializerMethodField()
     section_name = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
     
     def get_subject_name(self, obj):
         return obj.subject.name if obj.subject else None
@@ -471,6 +472,12 @@ class QuestionListSerializer(serializers.ModelSerializer):
     def get_section_name(self, obj):
         return obj.section.name if obj.section else None
     
+    def get_created_by_name(self, obj):
+        """Get the full name of the user who created the question"""
+        if obj.created_by:
+            return obj.created_by.full_name
+        return None
+    
     class Meta:
         model = Question
         fields = ['id', 'subject', 'subject_name', 'paper', 'paper_name', 
@@ -480,7 +487,8 @@ class QuestionListSerializer(serializers.ModelSerializer):
                   'question_image_positions', 'answer_image_positions',
                   'question_answer_lines', 'answer_answer_lines',
                   'marks', 'question_type', 'kcse_question_type', 'paper2_category',
-                  'difficulty', 'is_nested', 'is_active', 'times_used', 'created_at']
+                  'difficulty', 'is_nested', 'is_active', 'times_used',
+                  'created_by', 'created_by_name', 'created_at']
         read_only_fields = ['id', 'created_at', 'times_used']
 
 
