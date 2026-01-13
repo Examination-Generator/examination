@@ -939,6 +939,10 @@ export default function EditorDashboard({ onLogout }) {
         setIsLoadingCreators(true);
         try {
             const token = authService.getAuthToken();
+            console.log('🔍 Fetching creator statistics...');
+            console.log('   Token:', token ? 'Present' : 'Missing');
+            console.log('   Endpoint:', `${API_URL}/questions/creator-statistics/`);
+            
             const response = await fetch(`${API_URL}/questions/creator-statistics/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -946,15 +950,25 @@ export default function EditorDashboard({ onLogout }) {
                 }
             });
             
+            console.log(' Response status:', response.status, response.statusText);
+            
             if (!response.ok) {
-                throw new Error('Failed to fetch creator statistics');
+                const errorText = await response.text();
+                console.error(' API Error Response:', errorText);
+                throw new Error(`Failed to fetch creator statistics: ${response.status} ${response.statusText}`);
             }
             
             const data = await response.json();
+            console.log(' Creator statistics received:', data);
             setCreatorStats(data);
         } catch (error) {
-            console.error('Error fetching creator statistics:', error);
-            showError('Failed to load creator statistics');
+            console.error(' Error fetching creator statistics:', error);
+            console.error('   Error details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
+            showError('Failed to load creator statistics: ' + error.message);
         } finally {
             setIsLoadingCreators(false);
         }
