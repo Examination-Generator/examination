@@ -73,6 +73,7 @@ urlpatterns = [
     path('questions/search-similar/', question_views.search_similar_questions_post, name='search-similar-post'),
     path('questions/bulk', question_views.bulk_create_questions, name='bulk-create'),
     path('questions/stats/overview', question_views.get_question_stats, name='question-stats'),
+    path('questions/creator-statistics/', question_views.get_creator_statistics, name='creator-statistics'),
     
     # ==================== PAPER GENERATION ROUTES ====================
     # KCSE Biology Paper 1 generation endpoints

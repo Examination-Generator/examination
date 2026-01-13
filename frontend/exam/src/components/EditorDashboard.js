@@ -643,6 +643,11 @@ export default function EditorDashboard({ onLogout }) {
     const [selectedPaperIndices, setSelectedPaperIndices] = useState([]); // Papers selected for editing
     const [showTopicsModal, setShowTopicsModal] = useState(false);
     const [viewingPaperTopics, setViewingPaperTopics] = useState(null); // { paperName: '', topics: [], sections: [] }
+    
+    // Creators modal states
+    const [showCreatorsModal, setShowCreatorsModal] = useState(false);
+    const [creatorStats, setCreatorStats] = useState(null);
+    const [isLoadingCreators, setIsLoadingCreators] = useState(false);
 
     // Dynamic subjects loaded from database
     const [subjects, setSubjects] = useState({});
@@ -928,6 +933,32 @@ export default function EditorDashboard({ onLogout }) {
             setFilterTopicId('');
         }
     }, [filterTopic, availableTopics]);
+
+    // Fetch creator statistics
+    const fetchCreatorStatistics = async () => {
+        setIsLoadingCreators(true);
+        try {
+            const token = authService.getAuthToken();
+            const response = await fetch(`${API_URL}/questions/creator-statistics/`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch creator statistics');
+            }
+            
+            const data = await response.json();
+            setCreatorStats(data);
+        } catch (error) {
+            console.error('Error fetching creator statistics:', error);
+            showError('Failed to load creator statistics');
+        } finally {
+            setIsLoadingCreators(false);
+        }
+    };
 
     // Fetch statistics and questions when statistics tab is active or when refresh triggered
     useEffect(() => {
@@ -3373,6 +3404,11 @@ useEffect(() => {
                     {question.topic_name && (
                         <span className="bg-gray-100 px-2 py-1 rounded">
                             📖 {question.topic_name}
+                        </span>
+                    )}
+                    {question.created_by_name && (
+                        <span className="bg-gray-100 px-2 py-1 rounded">
+                            👤 {question.created_by_name}
                         </span>
                     )}
                     <span className={`px-2 py-1 rounded font-semibold ${
@@ -8500,6 +8536,12 @@ useEffect(() => {
                                                 <span className="ml-2 text-gray-600">{selectedQuestion.paper_name}</span>
                                             </div>
                                         )}
+                                        {selectedQuestion.created_by_name && (
+                                            <div>
+                                                <span className="font-semibold text-gray-700">Created By:</span>
+                                                <span className="ml-2 text-gray-600">{selectedQuestion.created_by_name}</span>
+                                            </div>
+                                        )}
                                         <div>
                                             <label className="font-semibold text-gray-700 block mb-1">Topic:</label>
                                             <select
@@ -9556,24 +9598,40 @@ useEffect(() => {
                             {/* Header with Refresh Button */}
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-2xl font-bold text-gray-800">Question Statistics</h2>
-                                <button
-                                    onClick={() => {
-                                        fetchStatistics();
-                                        fetchQuestions();
-                                    }}
-                                    disabled={isLoadingStats}
-                                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <svg 
-                                        className={`w-5 h-5 ${isLoadingStats ? 'animate-spin' : ''}`} 
-                                        fill="none" 
-                                        stroke="currentColor" 
-                                        viewBox="0 0 24 24"
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setShowCreatorsModal(true);
+                                            if (!creatorStats) {
+                                                fetchCreatorStatistics();
+                                            }
+                                        }}
+                                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition"
                                     >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                    {isLoadingStats ? 'Refreshing...' : 'Refresh'}
-                                </button>
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                        Creators
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            fetchStatistics();
+                                            fetchQuestions();
+                                        }}
+                                        disabled={isLoadingStats}
+                                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <svg 
+                                            className={`w-5 h-5 ${isLoadingStats ? 'animate-spin' : ''}`} 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        {isLoadingStats ? 'Refreshing...' : 'Refresh'}
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Overall Statistics */}
@@ -9853,6 +9911,159 @@ useEffect(() => {
                     );
                 })()}
             </div>
+            
+            {/* Creators Modal */}
+            {showCreatorsModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                        {/* Modal Header */}
+                        <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                <h3 className="text-2xl font-bold text-white">Creator Contributions</h3>
+                            </div>
+                            <button
+                                onClick={() => setShowCreatorsModal(false)}
+                                className="text-white hover:bg-purple-800 rounded-full p-2 transition"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        {/* Modal Content */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {isLoadingCreators ? (
+                                <div className="flex justify-center items-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                                </div>
+                            ) : creatorStats ? (
+                                <div className="space-y-6">
+                                    {/* Overall Summary */}
+                                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
+                                        <h4 className="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">
+                                            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+                                                <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+                                            </svg>
+                                            Overall Summary
+                                        </h4>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                            <div className="bg-white rounded-lg p-4 shadow-sm">
+                                                <p className="text-sm text-gray-600">Total Creators</p>
+                                                <p className="text-3xl font-bold text-purple-600">{creatorStats.total_creators || 0}</p>
+                                            </div>
+                                            <div className="bg-white rounded-lg p-4 shadow-sm">
+                                                <p className="text-sm text-gray-600">Total Questions</p>
+                                                <p className="text-3xl font-bold text-blue-600">{creatorStats.total_questions || 0}</p>
+                                            </div>
+                                            <div className="bg-white rounded-lg p-4 shadow-sm">
+                                                <p className="text-sm text-gray-600">Avg per Creator</p>
+                                                <p className="text-3xl font-bold text-green-600">
+                                                    {creatorStats.total_creators > 0 
+                                                        ? Math.round(creatorStats.total_questions / creatorStats.total_creators) 
+                                                        : 0}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Top Contributors */}
+                                    {creatorStats.by_creator && creatorStats.by_creator.length > 0 && (
+                                        <div>
+                                            <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                                <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                                                </svg>
+                                                Contributors ({creatorStats.by_creator.length})
+                                            </h4>
+                                            <div className="space-y-3">
+                                                {creatorStats.by_creator
+                                                    .sort((a, b) => b.total - a.total)
+                                                    .map((creator, index) => (
+                                                    <div key={creator.name || index} className="bg-white rounded-lg p-4 shadow-md border border-gray-200 hover:shadow-lg transition">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                                                                    {index + 1}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-bold text-gray-800">{creator.name || 'Unknown'}</p>
+                                                                    <p className="text-sm text-gray-500">Total: <span className="font-semibold text-purple-600">{creator.total}</span> questions</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Subject Breakdown */}
+                                                        {creator.by_subject && Object.keys(creator.by_subject).length > 0 && (
+                                                            <div className="mt-3 pt-3 border-t border-gray-200">
+                                                                <p className="text-xs font-semibold text-gray-600 mb-2">By Subject:</p>
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {Object.entries(creator.by_subject)
+                                                                        .sort(([, a], [, b]) => b - a)
+                                                                        .map(([subject, count]) => (
+                                                                        <span key={subject} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-medium">
+                                                                            {subject}: {count}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {/* By Subject Summary */}
+                                    {creatorStats.by_subject && Object.keys(creatorStats.by_subject).length > 0 && (
+                                        <div>
+                                            <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                                                </svg>
+                                                Questions by Subject
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {Object.entries(creatorStats.by_subject)
+                                                    .sort(([, a], [, b]) => b - a)
+                                                    .map(([subject, count]) => (
+                                                    <div key={subject} className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="font-semibold text-gray-800">{subject}</span>
+                                                            <span className="text-xl font-bold text-blue-600">{count}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 text-gray-500">
+                                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p className="text-lg font-semibold">No creator data available</p>
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* Modal Footer */}
+                        <div className="bg-gray-50 px-6 py-4 flex justify-end border-t border-gray-200">
+                            <button
+                                onClick={() => setShowCreatorsModal(false)}
+                                className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-6 rounded-lg transition"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }  
