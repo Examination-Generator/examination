@@ -8143,18 +8143,18 @@ class BusinessPaper1Coverpage:
         
         .instructions-title {{
             font-weight: bold;
-            font-size: 1.6rem;
+            font-size: 1.4rem;
             margin-bottom: 10px;
         }}
         
         .instructions ol {{
             margin-left: 20px;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             line-height: 1.6;
         }}
         
         .instructions li {{
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }}
         
         .instructions li.bold {{
@@ -8219,10 +8219,8 @@ class BusinessPaper1Coverpage:
         }}
         
         .total-marks-field {{
-            display: inline-block;
             width: 80px;
             height: 30px;
-            border: 1px solid black;
             vertical-align: middle;
         }}
         
