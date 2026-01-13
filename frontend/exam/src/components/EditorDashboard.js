@@ -960,7 +960,19 @@ export default function EditorDashboard({ onLogout }) {
             
             const data = await response.json();
             console.log(' Creator statistics received:', data);
-            setCreatorStats(data);
+            console.log('   Data structure:', {
+                hasData: !!data.data,
+                hasOverallSummary: !!data.overallSummary,
+                hasTopContributors: !!data.topContributors,
+                dataKeys: Object.keys(data)
+            });
+            
+            // Extract data from wrapper if it exists (success_response wraps data in 'data' field)
+            const statsData = data.data || data;
+            console.log('   Using stats data:', statsData);
+            console.log('   Stats data keys:', Object.keys(statsData));
+            
+            setCreatorStats(statsData);
         } catch (error) {
             console.error(' Error fetching creator statistics:', error);
             console.error('   Error details:', {
