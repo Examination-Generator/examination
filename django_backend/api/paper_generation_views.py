@@ -1432,8 +1432,14 @@ def generate_english_paper(request):
     """
     try:
         paper_id = request.data.get("paper_id")
-        paper_number = int(request.data.get("paper_number", 1))
+        paper_number = None
         selections = request.data.get("selections", {})
+        if paper_id:
+            paper = Paper.objects.get(id=paper_id)
+            paper_name = paper.name.lower()
+            paper_number = extract_paper_number_from_name(paper_name)
+            
+            
         if not paper_id:
             return Response({"success": False, "message": "Missing paper_id"}, status=status.HTTP_400_BAD_REQUEST)
         if paper_number == 1:
