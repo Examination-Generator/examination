@@ -57,16 +57,16 @@ class AutoMigrateMiddleware:
                 # Run migrations
                 call_command('migrate', '--noinput', verbosity=0)
                 
-                logger.info("[AUTO-MIGRATE] ✓ Migrations completed successfully!")
+                logger.info("[AUTO-MIGRATE]  Migrations completed successfully!")
             else:
-                logger.info("[AUTO-MIGRATE] ✓ No pending migrations. Database is up-to-date.")
+                logger.info("[AUTO-MIGRATE]  No pending migrations. Database is up-to-date.")
             
             # Verify tables exist
             from api.models import User
             user_count = User.objects.count()
-            logger.info(f"[AUTO-MIGRATE] ✓ Database verified. Users: {user_count}")
+            logger.info(f"[AUTO-MIGRATE]  Database verified. Users: {user_count}")
             
         except Exception as e:
-            logger.error(f"[AUTO-MIGRATE] ✗ Error during auto-migration: {e}")
+            logger.error(f"[AUTO-MIGRATE]  Error during auto-migration: {e}")
             # Don't raise exception - let the app continue
             # Users can manually run migrations via /api/database/initialize
