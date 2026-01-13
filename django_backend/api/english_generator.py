@@ -82,70 +82,119 @@ class KCSEEnglishPaper1Generator:
         )
         self.subject = self.paper.subject
         
-        if 'English' not in self.subject.name or 'Paper 1' not in self.paper.name:
-            raise ValueError("This generator is only for English Paper 1")
+        # if 'English' not in self.subject.name or 'Paper 1' not in self.paper.name:
+        #     raise ValueError("This generator is only for English Paper 1")
         
-        # Q1: Functional Writing (question_type: 'functional_writing')
-        self.functional_writing_tasks = list(Question.objects.filter(
+        # Get all topics for this subject
+        all_topics = Topic.objects.filter(
+            subject=self.subject,
+            is_active=True
+        )
+        
+        # SECTION 1 (Question 1): Functional Skills - look for "functional work" in topic name
+        functional_topics = all_topics.filter(
+            name__icontains='functional'
+        )
+        
+        # Q1: Functional Writing - select from functional topics
+        functional_query = Question.objects.filter(
             subject=self.subject,
             paper=self.paper,
             question_type='functional_writing',
             is_active=True
-        ).select_related('topic'))
+        )
+        if functional_topics.exists():
+            functional_query = functional_query.filter(topic__in=functional_topics)
         
-        # Q2: Cloze Test (question_type: 'cloze_test')
-        self.cloze_test_passages = list(Question.objects.filter(
+        self.functional_writing_tasks = list(functional_query.select_related('topic'))
+        
+        # SECTION 2 (Question 2): Cloze Test - look for "cloze" in topic name
+        cloze_topics = all_topics.filter(
+            name__icontains='cloze'
+        )
+        
+        # Q2: Cloze Test - select from cloze topics
+        cloze_query = Question.objects.filter(
             subject=self.subject,
             paper=self.paper,
             question_type='cloze_test',
             marks=self.Q2_CLOZE_TEST_MARKS,  # Must be exactly 10 marks (10 blanks)
             is_active=True
-        ))
+        )
+        if cloze_topics.exists():
+            cloze_query = cloze_query.filter(topic__in=cloze_topics)
         
-        # Q3a: Riddles (question_type: 'riddle')
-        self.riddles = list(Question.objects.filter(
+        self.cloze_test_passages = list(cloze_query)
+        
+        # SECTION 3 (Question 3): Oral Skills - look for "oral" in topic name
+        oral_topics = all_topics.filter(
+            name__icontains='oral'
+        )
+        
+        # Q3a: Riddles - select from oral topics
+        riddles_query = Question.objects.filter(
             subject=self.subject,
             paper=self.paper,
             question_type='riddle',
             marks=6,  # Riddle analysis typically 6 marks
             is_active=True
-        ))
+        )
+        if oral_topics.exists():
+            riddles_query = riddles_query.filter(topic__in=oral_topics)
         
-        # Q3b: Homophones (question_type: 'homophones')
-        self.homophone_sets = list(Question.objects.filter(
+        self.riddles = list(riddles_query)
+        
+        # Q3b: Homophones - select from oral topics
+        homophones_query = Question.objects.filter(
             subject=self.subject,
             paper=self.paper,
             question_type='homophones',
             marks=6,  # 6 words = 6 marks
             is_active=True
-        ))
+        )
+        if oral_topics.exists():
+            homophones_query = homophones_query.filter(topic__in=oral_topics)
         
-        # Q3c: Word Stress (question_type: 'word_stress')
-        self.word_stress_sets = list(Question.objects.filter(
+        self.homophone_sets = list(homophones_query)
+        
+        # Q3c: Word Stress - select from oral topics
+        word_stress_query = Question.objects.filter(
             subject=self.subject,
             paper=self.paper,
             question_type='word_stress',
             marks=3,  # 3 words = 3 marks
             is_active=True
-        ))
+        )
+        if oral_topics.exists():
+            word_stress_query = word_stress_query.filter(topic__in=oral_topics)
         
-        # Q3d: Discussion Leadership (question_type: 'discussion_skills')
-        self.discussion_scenarios = list(Question.objects.filter(
+        self.word_stress_sets = list(word_stress_query)
+        
+        # Q3d: Discussion Leadership - select from oral topics
+        discussion_query = Question.objects.filter(
             subject=self.subject,
             paper=self.paper,
             question_type='discussion_skills',
             marks=6,  # 3 points × 2 marks = 6
             is_active=True
-        ))
+        )
+        if oral_topics.exists():
+            discussion_query = discussion_query.filter(topic__in=oral_topics)
         
-        # Q3e: Telephone Etiquette (question_type: 'telephone_etiquette')
-        self.telephone_scenarios = list(Question.objects.filter(
+        self.discussion_scenarios = list(discussion_query)
+        
+        # Q3e: Telephone Etiquette - select from oral topics
+        telephone_query = Question.objects.filter(
             subject=self.subject,
             paper=self.paper,
             question_type='telephone_etiquette',
             marks=9,  # 3 marks identification + 6 marks correction
             is_active=True
-        ))
+        )
+        if oral_topics.exists():
+            telephone_query = telephone_query.filter(topic__in=oral_topics)
+        
+        self.telephone_scenarios = list(telephone_query)
         
         # Shuffle all
         random.shuffle(self.functional_writing_tasks)
@@ -157,29 +206,32 @@ class KCSEEnglishPaper1Generator:
         random.shuffle(self.telephone_scenarios)
         
         print(f"\n[PAPER 1 DATA LOADED]")
-        print(f"  Functional writing tasks: {len(self.functional_writing_tasks)}")
-        print(f"  Cloze test passages: {len(self.cloze_test_passages)}")
-        print(f"  Riddles: {len(self.riddles)}")
-        print(f"  Homophone sets: {len(self.homophone_sets)}")
-        print(f"  Word stress sets: {len(self.word_stress_sets)}")
-        print(f"  Discussion scenarios: {len(self.discussion_scenarios)}")
-        print(f"  Telephone scenarios: {len(self.telephone_scenarios)}")
+        print(f"  SECTION 1 - Functional Skills (from 'functional work' topics):")
+        print(f"    Functional writing tasks: {len(self.functional_writing_tasks)}")
+        print(f"  SECTION 2 - Cloze Test (from 'cloze' topics):")
+        print(f"    Cloze test passages: {len(self.cloze_test_passages)}")
+        print(f"  SECTION 3 - Oral Skills (from 'oral' topics):")
+        print(f"    Riddles: {len(self.riddles)}")
+        print(f"    Homophone sets: {len(self.homophone_sets)}")
+        print(f"    Word stress sets: {len(self.word_stress_sets)}")
+        print(f"    Discussion scenarios: {len(self.discussion_scenarios)}")
+        print(f"    Telephone scenarios: {len(self.telephone_scenarios)}")
         
         # Validate minimum requirements
         if len(self.functional_writing_tasks) < 1:
-            raise ValueError("Need at least 1 functional writing task")
+            raise ValueError("Need at least 1 functional writing task from 'functional work' topics")
         if len(self.cloze_test_passages) < 1:
-            raise ValueError("Need at least 1 cloze test passage")
+            raise ValueError("Need at least 1 cloze test passage from 'cloze' topics")
         if len(self.riddles) < 1:
-            raise ValueError("Need at least 1 riddle")
+            raise ValueError("Need at least 1 riddle from 'oral' topics")
         if len(self.homophone_sets) < 1:
-            raise ValueError("Need at least 1 homophone set")
+            raise ValueError("Need at least 1 homophone set from 'oral' topics")
         if len(self.word_stress_sets) < 1:
-            raise ValueError("Need at least 1 word stress set")
+            raise ValueError("Need at least 1 word stress set from 'oral' topics")
         if len(self.discussion_scenarios) < 1:
-            raise ValueError("Need at least 1 discussion scenario")
+            raise ValueError("Need at least 1 discussion scenario from 'oral' topics")
         if len(self.telephone_scenarios) < 1:
-            raise ValueError("Need at least 1 telephone scenario")
+            raise ValueError("Need at least 1 telephone scenario from 'oral' topics")
     
     def generate(self) -> Dict:
         """Generate English Paper 1"""

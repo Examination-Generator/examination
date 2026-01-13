@@ -508,6 +508,7 @@ export default function PaperGenerationDashboard() {
             const isMathematics = paperName.includes('mathematics') || paperName.includes('math') || subjectName.includes('mathematics') || subjectName.includes('math');
             const isGeography = paperName.includes('geography') || subjectName.includes('geography');
             const isEnglish = paperName.includes('english') || subjectName.includes('english');
+            const isAgriculture = paperName.includes('agriculture') || subjectName.includes('agriculture');
             const isPaper2 = (
                 paperName.includes('paper 2') ||
                 paperName.includes('paper ii') ||
@@ -636,6 +637,29 @@ export default function PaperGenerationDashboard() {
                         const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
                         const proceed = window.confirm(
                             `Mathematics Paper Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
+                        );
+                        if (!proceed) {
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                } catch (validationErr) {
+                    console.error('Validation failed:', validationErr);
+                    setError(`Validation failed: ${validationErr.message}`);
+                    setLoading(false);
+                    return;
+                }
+            }
+            // validate Agriculture
+            if (isAgriculture) {
+                console.log('Agriculture detected - Starting validation...');
+                try {
+                    const validation = await validateAgriculturePaperPool(selectedPaperId, selectedTopics);
+                    console.log('Validation result:', validation);
+                    if (validation.issues && validation.issues.length > 0) {
+                        const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
+                        const proceed = window.confirm(
+                            `Agriculture Paper Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
                         );
                         if (!proceed) {
                             setLoading(false);
