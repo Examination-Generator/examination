@@ -1,6 +1,6 @@
 from django.urls import path
 from django.http import JsonResponse
-from . import auth_views, physics_paper_generation, subject_views, question_views, database_views, paper_generation_views, georaphy_paper_generator,kiswahili_paper_generator, business_paper_generator,cre_paper_generator
+from . import auth_views, physics_paper_generation, subject_views, question_views, database_views, paper_generation_views, georaphy_paper_generator,kiswahili_paper_generator, business_paper_generator,cre_paper_generator,agriculture_paper_generator
 
 from . import biology_paper2_generation
 
@@ -126,7 +126,12 @@ urlpatterns = [
     # ==================== CHRISTIAN RELIGIOUS EDUCATION GENERATION ROUTES ====================
     path('papers/cre-paper/validate', cre_paper_generator.validate_cre_paper_pool, name='validate-cre-paper'),
     path('papers/cre-paper/generate', cre_paper_generator.generate_cre_paper, name='generate-cre-paper'),
+    
+    # ==================== AGRICULTURE GENERATION ROUTES ====================
+    path('papers/agriculture-paper/validate', agriculture_paper_generator.validate_agriculture_paper_pool, name='validate-agriculture-paper'),
+    path('papers/agriculture-paper/generate', agriculture_paper_generator.generate_agriculture_paper, name='generate-agriculture-paper'),
 ]
+
 
     
         
