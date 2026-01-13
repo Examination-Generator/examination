@@ -9,6 +9,7 @@ import {
     validateMathematicsPaperPool,
     validateGeographyPaperPool,
     validateEnglishPaperPool,
+    validateAgriculturePaperPool,
     listGeneratedPapers, 
     viewFullPaper, 
     getCoverpageData, 

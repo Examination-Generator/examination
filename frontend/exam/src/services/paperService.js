@@ -133,7 +133,10 @@ export const generatePaper = async (paperId, topicIds, paperData = null) => {
                     endpoint = `${API_BASE_URL}/papers/cre-paper/generate`;
                     paperType = 'christian-religious-education-paper';
                     console.log('DETECTED: Christian Religious Education Paper (using dedicated CRE endpoint)');
-
+                } else if (paperName.includes('agriculture') || subjectName.includes('agriculture')) {
+                    endpoint = `${API_BASE_URL}/papers/agriculture-paper/generate`;
+                    paperType = 'agriculture-paper';
+                    console.log('DETECTED: Agriculture Paper (using dedicated agriculture endpoint)');
                 } else {
                     console.log('DETECTED: Standard Paper (using general endpoint)');
                 }
@@ -425,6 +428,27 @@ export const validateCREPaperPool = async (paperId, topicIds) => {
         return await response.json();
     } catch (error) {
         console.error('CRE validation error:', error);
+        throw error;
+    }
+};
+
+export const validateAgriculturePaperPool = async (paperId, topicIds) => {
+    try {
+        const endpoint = `${API_BASE_URL}/papers/agriculture-paper/validate`;
+        const requestBody = { paper_id: paperId, topic_ids: topicIds };
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(requestBody)
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Validation API error (agriculture):', text);
+            throw new Error(friendlyErrorMessage(text));
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Agriculture validation error:', error);
         throw error;
     }
 };
