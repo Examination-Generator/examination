@@ -92,9 +92,9 @@ class KCSEEnglishPaper1Generator:
         # if 'English' not in self.subject.name or 'Paper 1' not in self.paper.name:
         #     raise ValueError("This generator is only for English Paper 1")
         
-        # Get all topics for this subject
+        # Get all topics for this paper
         all_topics = Topic.objects.filter(
-            subject=self.subject,
+            paper=self.paper,
             is_active=True
         )
         
@@ -105,7 +105,6 @@ class KCSEEnglishPaper1Generator:
         
         # Q1: Functional Writing - select from functional topics
         functional_query = Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             question_type='functional_writing',
             is_active=True
@@ -122,7 +121,6 @@ class KCSEEnglishPaper1Generator:
         
         # Q2: Cloze Test - select from cloze topics
         cloze_query = Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             question_type='cloze_test',
             marks=self.Q2_CLOZE_TEST_MARKS,  # Must be exactly 10 marks (10 blanks)
@@ -140,7 +138,6 @@ class KCSEEnglishPaper1Generator:
         
         # Q3a: Riddles - select from oral topics
         riddles_query = Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             question_type='riddle',
             marks=6,  # Riddle analysis typically 6 marks
@@ -153,7 +150,6 @@ class KCSEEnglishPaper1Generator:
         
         # Q3b: Homophones - select from oral topics
         homophones_query = Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             question_type='homophones',
             marks=6,  # 6 words = 6 marks
@@ -166,7 +162,6 @@ class KCSEEnglishPaper1Generator:
         
         # Q3c: Word Stress - select from oral topics
         word_stress_query = Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             question_type='word_stress',
             marks=3,  # 3 words = 3 marks
@@ -179,7 +174,6 @@ class KCSEEnglishPaper1Generator:
         
         # Q3d: Discussion Leadership - select from oral topics
         discussion_query = Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             question_type='discussion_skills',
             marks=6,  # 3 points × 2 marks = 6
@@ -192,7 +186,6 @@ class KCSEEnglishPaper1Generator:
         
         # Q3e: Telephone Etiquette - select from oral topics
         telephone_query = Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             question_type='telephone_etiquette',
             marks=9,  # 3 marks identification + 6 marks correction
@@ -206,7 +199,6 @@ class KCSEEnglishPaper1Generator:
         # ALTERNATIVE Q3 FORMATS: Load standalone oral questions if sub-sections not available
         # 30 marks single questions
         oral_30_query = Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             marks=30,
             is_active=True
@@ -217,7 +209,6 @@ class KCSEEnglishPaper1Generator:
         
         # 20 marks oral questions (to combine with 10 marks)
         oral_20_query = Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             marks=20,
             is_active=True
@@ -228,7 +219,6 @@ class KCSEEnglishPaper1Generator:
         
         # 15 marks oral questions (to combine two of them)
         oral_15_query = Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             marks=15,
             is_active=True
@@ -239,7 +229,6 @@ class KCSEEnglishPaper1Generator:
         
         # 10 marks oral questions (to combine with 20 marks)
         oral_10_query = Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             marks=10,
             is_active=True
@@ -549,7 +538,6 @@ class KCSEEnglishPaper2Generator:
         # Load comprehension passages and sub-questions
         comprehension_topics = self.selections.get('comprehension_topics', [])
         passage_filter = {
-            'subject': self.subject,
             'paper': self.paper,
             'question_type': 'comprehension_passage',
             'is_active': True,
@@ -573,7 +561,6 @@ class KCSEEnglishPaper2Generator:
         # Load literature excerpts and sub-questions
         literature_topics = self.selections.get('literature_topics', [])
         excerpt_filter = {
-            'subject': self.subject,
             'paper': self.paper,
             'question_type': 'literature_excerpt',
             'is_active': True,
@@ -597,7 +584,6 @@ class KCSEEnglishPaper2Generator:
         # Load poems and sub-questions
         poetry_topics = self.selections.get('poetry_topics', [])
         poem_filter = {
-            'subject': self.subject,
             'paper': self.paper,
             'question_type': 'poem',
             'is_active': True,
@@ -618,7 +604,6 @@ class KCSEEnglishPaper2Generator:
         # Load grammar items
         for grammar_type in self.grammar_items.keys():
             self.grammar_items[grammar_type] = list(Question.objects.filter(
-                subject=self.subject,
                 paper=self.paper,
                 question_type=f'grammar_{grammar_type}',
                 is_active=True
@@ -977,7 +962,6 @@ class KCSEEnglishPaper3Generator:
         
         # Q1a: Creative Story (question_type: 'creative_story')
         self.creative_story_prompts = list(Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             question_type='creative_story',
             marks=self.Q1_CREATIVE_MARKS,
@@ -986,7 +970,6 @@ class KCSEEnglishPaper3Generator:
         
         # Q1b: Creative Composition (question_type: 'creative_composition')
         self.creative_composition_prompts = list(Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             question_type='creative_composition',
             marks=self.Q1_CREATIVE_MARKS,
@@ -996,7 +979,6 @@ class KCSEEnglishPaper3Generator:
         # Q2: Compulsory Set Text Essay (question_type: 'compulsory_set_text_essay')
         compulsory_text_id = self.selections.get('compulsory_set_text_id')
         compulsory_filter = {
-            'subject': self.subject,
             'paper': self.paper,
             'question_type': 'compulsory_set_text_essay',
             'marks': self.Q2_COMPULSORY_SET_TEXT_MARKS,
@@ -1012,7 +994,6 @@ class KCSEEnglishPaper3Generator:
         # Q3a: Optional Short Story Essay (question_type: 'optional_short_story_essay')
         optional_texts = self.selections.get('optional_set_texts', [])
         short_story_filter = {
-            'subject': self.subject,
             'paper': self.paper,
             'question_type': 'optional_short_story_essay',
             'marks': self.Q3_OPTIONAL_SET_TEXT_MARKS,
@@ -1202,69 +1183,3 @@ class KCSEEnglishPaper3Generator:
         }
 
 
-# Example usage for all three papers
-if __name__ == '__main__':
-    
-    # Paper 1: Functional Skills
-    print("\n" + "="*70)
-    print("GENERATING ENGLISH PAPER 1")
-    print("="*70)
-    
-    paper1_generator = KCSEEnglishPaper1Generator(
-        paper_id='english-paper-1-uuid',
-        selections={}
-    )
-    
-    try:
-        paper1_generator.load_data()
-        paper1_result = paper1_generator.generate()
-        print(f"\n Paper 1 generated successfully: {paper1_result['statistics']['total_marks']} marks")
-    except Exception as e:
-        print(f"\n Paper 1 failed: {str(e)}")
-    
-    
-    # Paper 2: Comprehension, Literary Appreciation & Grammar
-    print("\n" + "="*70)
-    print("GENERATING ENGLISH PAPER 2")
-    print("="*70)
-    
-    paper2_selections = {
-        'comprehension_topics': [],  # Empty = use all
-        'literature_topics': [],
-        'poetry_topics': [],
-    }
-    
-    paper2_generator = KCSEEnglishPaper2Generator(
-        paper_id='english-paper-2-uuid',
-        selections=paper2_selections
-    )
-    
-    try:
-        paper2_generator.load_data()
-        paper2_result = paper2_generator.generate()
-        print(f"\n✓ Paper 2 generated successfully: {paper2_result['statistics']['total_marks']} marks")
-    except Exception as e:
-        print(f"\n✗ Paper 2 failed: {str(e)}")
-    
-    
-    # Paper 3: Creative Composition & Essays on Set Texts
-    print("\n" + "="*70)
-    print("GENERATING ENGLISH PAPER 3")
-    print("="*70)
-    
-    paper3_selections = {
-        'compulsory_set_text_id': 'a-dolls-house-uuid',
-        'optional_set_texts': []  # Empty = use all available
-    }
-    
-    paper3_generator = KCSEEnglishPaper3Generator(
-        paper_id='english-paper-3-uuid',
-        selections=paper3_selections
-    )
-    
-    try:
-        paper3_generator.load_data()
-        paper3_result = paper3_generator.generate()
-        print(f"\n Paper 3 generated successfully: {paper3_result['statistics']['total_marks']} marks")
-    except Exception as e:
-        print(f"\nPaper 3 failed: {str(e)}")
