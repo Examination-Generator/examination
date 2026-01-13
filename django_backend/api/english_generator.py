@@ -445,8 +445,13 @@ class KCSEEnglishPaper1Generator:
             'statistics': {
                 'total_marks': self.total_marks,
                 'generation_time_seconds': round(generation_time, 2)
-            }
+            },
+            'question_ids': {}
         }
+        
+        # Track all question IDs
+        result['question_ids']['functional_task'] = str(self.selected_functional_task.id)
+        result['question_ids']['cloze_passage'] = str(self.selected_cloze_passage.id)
         
         # Add Question 3 content based on format used
         if q3_format == 'sub_sections':
@@ -482,6 +487,12 @@ class KCSEEnglishPaper1Generator:
                     'answers': self.selected_telephone.answer_text
                 }
             }
+            # Add question IDs for sub-sections
+            result['question_ids']['riddle'] = str(self.selected_riddle.id)
+            result['question_ids']['homophones'] = str(self.selected_homophones.id)
+            result['question_ids']['word_stress'] = str(self.selected_word_stress.id)
+            result['question_ids']['discussion'] = str(self.selected_discussion.id)
+            result['question_ids']['telephone'] = str(self.selected_telephone.id)
         elif q3_format == 'single_30':
             result['questions']['question_3']['questions'] = [{
                 'id': str(self.selected_oral_questions[0].id),
@@ -489,6 +500,8 @@ class KCSEEnglishPaper1Generator:
                 'text': self.selected_oral_questions[0].question_text,
                 'answers': self.selected_oral_questions[0].answer_text
             }]
+            # Add question ID for single 30 marks question
+            result['question_ids']['oral_30'] = str(self.selected_oral_questions[0].id)
         elif q3_format in ['combo_20_10', 'combo_15_15']:
             result['questions']['question_3']['questions'] = [
                 {
@@ -499,6 +512,8 @@ class KCSEEnglishPaper1Generator:
                 }
                 for q in self.selected_oral_questions
             ]
+            # Add question IDs for combo questions
+            result['question_ids']['oral_combo'] = [str(q.id) for q in self.selected_oral_questions]
         
         return result
 
