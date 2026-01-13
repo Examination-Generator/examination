@@ -92,107 +92,139 @@ class KCSEEnglishPaper1Generator:
         # if 'English' not in self.subject.name or 'Paper 1' not in self.paper.name:
         #     raise ValueError("This generator is only for English Paper 1")
         
-        # Get all topics for this paper
-        all_topics = Topic.objects.filter(
-            paper=self.paper,
-            is_active=True
-        )
+        # Get topic IDs from selections (if provided)
+        selected_topic_ids = self.selections.get('topics', [])
         
-        # SECTION 1 (Question 1): Functional Skills - look for "functional work" in topic name
-        functional_topics = all_topics.filter(
-            name__icontains='functional'
-        )
+        # Get topics - either from selections or all topics for this paper
+        if selected_topic_ids:
+            all_topics = Topic.objects.filter(
+                id__in=selected_topic_ids,
+                paper=self.paper,
+                is_active=True
+            )
+        else:
+            all_topics = Topic.objects.filter(
+                paper=self.paper,
+                is_active=True
+            )
+        
+        # Categorize topics by checking their names
+        functional_topics = []
+        cloze_topics = []
+        oral_topics = []
+        
+        # Sub-categories for oral skills (Question 3 sub-sections)
+        riddle_topics = []
+        homophone_topics = []
+        word_stress_topics = []
+        discussion_topics = []
+        telephone_topics = []
+        
+        for topic in all_topics:
+            topic_name_lower = topic.name.lower()
+            
+            # Main categories
+            if 'functional' in topic_name_lower:
+                functional_topics.append(topic)
+            if 'cloze' in topic_name_lower:
+                cloze_topics.append(topic)
+            if 'oral' in topic_name_lower:
+                oral_topics.append(topic)
+            
+            # Oral sub-categories (check for specific keywords)
+            if 'riddle' in topic_name_lower:
+                riddle_topics.append(topic)
+            if 'homophone' in topic_name_lower:
+                homophone_topics.append(topic)
+            if 'stress' in topic_name_lower or 'word stress' in topic_name_lower:
+                word_stress_topics.append(topic)
+            if 'discussion' in topic_name_lower:
+                discussion_topics.append(topic)
+            if 'telephone' in topic_name_lower or 'phone' in topic_name_lower:
+                telephone_topics.append(topic)
         
         # Q1: Functional Writing - select from functional topics
         functional_query = Question.objects.filter(
             paper=self.paper,
-            question_type='functional_writing',
             is_active=True
         )
-        if functional_topics.exists():
+        if functional_topics:
             functional_query = functional_query.filter(topic__in=functional_topics)
         
         self.functional_writing_tasks = list(functional_query.select_related('topic'))
         
-        # SECTION 2 (Question 2): Cloze Test - look for "cloze" in topic name
-        cloze_topics = all_topics.filter(
-            name__icontains='cloze'
-        )
-        
         # Q2: Cloze Test - select from cloze topics
         cloze_query = Question.objects.filter(
             paper=self.paper,
-            question_type='cloze_test',
-            marks=self.Q2_CLOZE_TEST_MARKS,  # Must be exactly 10 marks (10 blanks)
             is_active=True
         )
-        if cloze_topics.exists():
+        if cloze_topics:
             cloze_query = cloze_query.filter(topic__in=cloze_topics)
         
         self.cloze_test_passages = list(cloze_query)
         
-        # SECTION 3 (Question 3): Oral Skills - look for "oral" in topic name
-        oral_topics = all_topics.filter(
-            name__icontains='oral'
-        )
-        
-        # Q3a: Riddles - select from oral topics
+        # Q3a: Riddles - select from riddle topics (check topic name for 'riddle')
         riddles_query = Question.objects.filter(
             paper=self.paper,
-            question_type='riddle',
-            marks=6,  # Riddle analysis typically 6 marks
             is_active=True
         )
-        if oral_topics.exists():
-            riddles_query = riddles_query.filter(topic__in=oral_topics)
+        if riddle_topics:
+            riddles_query = riddles_query.filter(topic__in=riddle_topics)
+        elif oral_topics:
+            # Fallback to general oral topics if no specific riddle topics
+            riddles_query = riddles_query.filter(topic__in=oral_topics, question_type='riddle')
         
         self.riddles = list(riddles_query)
         
-        # Q3b: Homophones - select from oral topics
+        # Q3b: Homophones - select from homophone topics (check topic name for 'homophone')
         homophones_query = Question.objects.filter(
             paper=self.paper,
-            question_type='homophones',
-            marks=6,  # 6 words = 6 marks
             is_active=True
         )
-        if oral_topics.exists():
-            homophones_query = homophones_query.filter(topic__in=oral_topics)
+        if homophone_topics:
+            homophones_query = homophones_query.filter(topic__in=homophone_topics)
+        elif oral_topics:
+            # Fallback to general oral topics if no specific homophone topics
+            homophones_query = homophones_query.filter(topic__in=oral_topics, question_type='homophones')
         
         self.homophone_sets = list(homophones_query)
         
-        # Q3c: Word Stress - select from oral topics
+        # Q3c: Word Stress - select from word stress topics (check topic name for 'stress')
         word_stress_query = Question.objects.filter(
             paper=self.paper,
-            question_type='word_stress',
-            marks=3,  # 3 words = 3 marks
             is_active=True
         )
-        if oral_topics.exists():
-            word_stress_query = word_stress_query.filter(topic__in=oral_topics)
+        if word_stress_topics:
+            word_stress_query = word_stress_query.filter(topic__in=word_stress_topics)
+        elif oral_topics:
+            # Fallback to general oral topics if no specific word stress topics
+            word_stress_query = word_stress_query.filter(topic__in=oral_topics, question_type='word_stress')
         
         self.word_stress_sets = list(word_stress_query)
         
-        # Q3d: Discussion Leadership - select from oral topics
+        # Q3d: Discussion Leadership - select from discussion topics (check topic name for 'discussion')
         discussion_query = Question.objects.filter(
             paper=self.paper,
-            question_type='discussion_skills',
-            marks=6,  # 3 points × 2 marks = 6
             is_active=True
         )
-        if oral_topics.exists():
-            discussion_query = discussion_query.filter(topic__in=oral_topics)
+        if discussion_topics:
+            discussion_query = discussion_query.filter(topic__in=discussion_topics)
+        elif oral_topics:
+            # Fallback to general oral topics if no specific discussion topics
+            discussion_query = discussion_query.filter(topic__in=oral_topics, question_type='discussion_skills')
         
         self.discussion_scenarios = list(discussion_query)
         
-        # Q3e: Telephone Etiquette - select from oral topics
+        # Q3e: Telephone Etiquette - select from telephone topics (check topic name for 'telephone'/'phone')
         telephone_query = Question.objects.filter(
             paper=self.paper,
-            question_type='telephone_etiquette',
-            marks=9,  # 3 marks identification + 6 marks correction
             is_active=True
         )
-        if oral_topics.exists():
-            telephone_query = telephone_query.filter(topic__in=oral_topics)
+        if telephone_topics:
+            telephone_query = telephone_query.filter(topic__in=telephone_topics)
+        elif oral_topics:
+            # Fallback to general oral topics if no specific telephone topics
+            telephone_query = telephone_query.filter(topic__in=oral_topics, question_type='telephone_etiquette')
         
         self.telephone_scenarios = list(telephone_query)
         
@@ -203,7 +235,7 @@ class KCSEEnglishPaper1Generator:
             marks=30,
             is_active=True
         )
-        if oral_topics.exists():
+        if oral_topics:
             oral_30_query = oral_30_query.filter(topic__in=oral_topics)
         self.oral_30_marks_questions = list(oral_30_query)
         
@@ -213,7 +245,7 @@ class KCSEEnglishPaper1Generator:
             marks=20,
             is_active=True
         )
-        if oral_topics.exists():
+        if oral_topics:
             oral_20_query = oral_20_query.filter(topic__in=oral_topics)
         self.oral_20_marks_questions = list(oral_20_query)
         
@@ -223,7 +255,7 @@ class KCSEEnglishPaper1Generator:
             marks=15,
             is_active=True
         )
-        if oral_topics.exists():
+        if oral_topics:
             oral_15_query = oral_15_query.filter(topic__in=oral_topics)
         self.oral_15_marks_questions = list(oral_15_query)
         
@@ -233,7 +265,7 @@ class KCSEEnglishPaper1Generator:
             marks=10,
             is_active=True
         )
-        if oral_topics.exists():
+        if oral_topics:
             oral_10_query = oral_10_query.filter(topic__in=oral_topics)
         self.oral_10_marks_questions = list(oral_10_query)
         
