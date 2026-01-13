@@ -9602,9 +9602,7 @@ useEffect(() => {
                                     <button
                                         onClick={() => {
                                             setShowCreatorsModal(true);
-                                            if (!creatorStats) {
-                                                fetchCreatorStatistics();
-                                            }
+                                            fetchCreatorStatistics();
                                         }}
                                         className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition"
                                     >
@@ -9924,14 +9922,26 @@ useEffect(() => {
                                 </svg>
                                 <h3 className="text-2xl font-bold text-white">Creator Contributions</h3>
                             </div>
-                            <button
-                                onClick={() => setShowCreatorsModal(false)}
-                                className="text-white hover:bg-purple-800 rounded-full p-2 transition"
-                            >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={fetchCreatorStatistics}
+                                    disabled={isLoadingCreators}
+                                    className="text-white hover:bg-purple-800 rounded-full p-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Refresh data"
+                                >
+                                    <svg className={`w-6 h-6 ${isLoadingCreators ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={() => setShowCreatorsModal(false)}
+                                    className="text-white hover:bg-purple-800 rounded-full p-2 transition"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                         
                         {/* Modal Content */}
@@ -9954,72 +9964,88 @@ useEffect(() => {
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                             <div className="bg-white rounded-lg p-4 shadow-sm">
                                                 <p className="text-sm text-gray-600">Total Creators</p>
-                                                <p className="text-3xl font-bold text-purple-600">{creatorStats.total_creators || 0}</p>
+                                                <p className="text-3xl font-bold text-purple-600">
+                                                    {creatorStats.overallSummary?.totalCreators || 0}
+                                                </p>
                                             </div>
                                             <div className="bg-white rounded-lg p-4 shadow-sm">
                                                 <p className="text-sm text-gray-600">Total Questions</p>
-                                                <p className="text-3xl font-bold text-blue-600">{creatorStats.total_questions || 0}</p>
+                                                <p className="text-3xl font-bold text-blue-600">
+                                                    {creatorStats.overallSummary?.totalQuestions || 0}
+                                                </p>
                                             </div>
                                             <div className="bg-white rounded-lg p-4 shadow-sm">
                                                 <p className="text-sm text-gray-600">Avg per Creator</p>
                                                 <p className="text-3xl font-bold text-green-600">
-                                                    {creatorStats.total_creators > 0 
-                                                        ? Math.round(creatorStats.total_questions / creatorStats.total_creators) 
-                                                        : 0}
+                                                    {creatorStats.overallSummary?.averagePerCreator || 0}
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
                                     
                                     {/* Top Contributors */}
-                                    {creatorStats.by_creator && creatorStats.by_creator.length > 0 && (
+                                    {creatorStats.topContributors && creatorStats.topContributors.length > 0 && (
                                         <div>
                                             <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                                                 <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
                                                     <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
                                                 </svg>
-                                                Contributors ({creatorStats.by_creator.length})
+                                                Top Contributors ({creatorStats.topContributors.length})
                                             </h4>
                                             <div className="space-y-3">
-                                                {creatorStats.by_creator
-                                                    .sort((a, b) => b.total - a.total)
-                                                    .map((creator, index) => (
-                                                    <div key={creator.name || index} className="bg-white rounded-lg p-4 shadow-md border border-gray-200 hover:shadow-lg transition">
-                                                        <div className="flex items-center justify-between mb-3">
+                                                {creatorStats.topContributors.map((creator, index) => (
+                                                    <div key={creator.creatorId || index} className="bg-white rounded-lg p-4 shadow-md border border-gray-200 hover:shadow-lg transition">
+                                                        <div className="flex items-start justify-between mb-3">
                                                             <div className="flex items-center gap-3">
                                                                 <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                                                                    {index + 1}
+                                                                    #{creator.rank}
                                                                 </div>
                                                                 <div>
-                                                                    <p className="font-bold text-gray-800">{creator.name || 'Unknown'}</p>
-                                                                    <p className="text-sm text-gray-500">Total: <span className="font-semibold text-purple-600">{creator.total}</span> questions</p>
+                                                                    <p className="font-bold text-gray-800">{creator.creatorName}</p>
+                                                                    {creator.phoneNumber && (
+                                                                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                                            </svg>
+                                                                            {creator.phoneNumber}
+                                                                        </p>
+                                                                    )}
                                                                 </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="text-2xl font-bold text-purple-600">{creator.totalQuestions}</p>
+                                                                <p className="text-xs text-gray-500">{creator.percentage}%</p>
                                                             </div>
                                                         </div>
                                                         
-                                                        {/* Subject Breakdown */}
-                                                        {creator.by_subject && Object.keys(creator.by_subject).length > 0 && (
-                                                            <div className="mt-3 pt-3 border-t border-gray-200">
-                                                                <p className="text-xs font-semibold text-gray-600 mb-2">By Subject:</p>
-                                                                <div className="flex flex-wrap gap-2">
-                                                                    {Object.entries(creator.by_subject)
-                                                                        .sort(([, a], [, b]) => b - a)
-                                                                        .map(([subject, count]) => (
-                                                                        <span key={subject} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-medium">
-                                                                            {subject}: {count}
-                                                                        </span>
-                                                                    ))}
+                                                        {/* Find subject breakdown for this creator */}
+                                                        {(() => {
+                                                            const creatorDetails = creatorStats.subjectBreakdownPerCreator?.find(
+                                                                c => c.creatorName === creator.creatorName
+                                                            );
+                                                            return creatorDetails && creatorDetails.subjects && creatorDetails.subjects.length > 0 && (
+                                                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                                                    <p className="text-xs font-semibold text-gray-600 mb-2">By Subject:</p>
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {creatorDetails.subjects
+                                                                            .sort((a, b) => b.count - a.count)
+                                                                            .map((subject, idx) => (
+                                                                            <span key={idx} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-medium">
+                                                                                {subject.subjectName}: {subject.count}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        )}
+                                                            );
+                                                        })()}
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
                                     )}
                                     
-                                    {/* By Subject Summary */}
-                                    {creatorStats.by_subject && Object.keys(creatorStats.by_subject).length > 0 && (
+                                    {/* Questions by Subject Summary */}
+                                    {creatorStats.questionsBySubject && creatorStats.questionsBySubject.length > 0 && (
                                         <div>
                                             <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                                                 <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
@@ -10028,13 +10054,29 @@ useEffect(() => {
                                                 Questions by Subject
                                             </h4>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                {Object.entries(creatorStats.by_subject)
-                                                    .sort(([, a], [, b]) => b - a)
-                                                    .map(([subject, count]) => (
-                                                    <div key={subject} className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="font-semibold text-gray-800">{subject}</span>
-                                                            <span className="text-xl font-bold text-blue-600">{count}</span>
+                                                {creatorStats.questionsBySubject
+                                                    .sort((a, b) => b.totalQuestions - a.totalQuestions)
+                                                    .map((subject, index) => (
+                                                    <div key={subject.subjectId || index} className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200 hover:shadow-md transition">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div className="flex-1">
+                                                                <h5 className="font-bold text-gray-800 text-lg">{subject.subjectName}</h5>
+                                                                <p className="text-sm text-gray-600 mt-1">
+                                                                    {subject.uniqueCreators} {subject.uniqueCreators === 1 ? 'creator' : 'creators'}
+                                                                </p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="text-2xl font-bold text-blue-600">{subject.totalQuestions}</p>
+                                                                <p className="text-xs text-blue-700">{subject.percentage}%</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-2 bg-white bg-opacity-50 rounded p-2">
+                                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                                                <div 
+                                                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                                                    style={{ width: `${subject.percentage}%` }}
+                                                                ></div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}

@@ -619,16 +619,7 @@ def get_question_stats(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_creator_statistics(request):
-    """
-    Get comprehensive creator statistics
-    GET /api/questions/creator-statistics/
     
-    Returns:
-    - Overall Summary: total creators, total questions, average per creator
-    - Top Contributors: all creators ranked by contributions
-    - Subject Breakdown per Creator: questions per subject for each creator
-    - Questions by Subject: summary organized by subject
-    """
     from django.db.models import Count, Q
     from django.contrib.auth import get_user_model
     
