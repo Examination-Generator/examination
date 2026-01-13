@@ -446,6 +446,7 @@ class KCSEEnglishPaper1Generator:
             },
             'statistics': {
                 'total_marks': self.total_marks,
+                'total_questions': 3,  # Q1, Q2, Q3
                 'generation_time_seconds': round(generation_time, 2)
             },
             'question_ids': {}
