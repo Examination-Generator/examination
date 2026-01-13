@@ -143,9 +143,10 @@ class KCSEEnglishPaper1Generator:
             if 'telephone' in topic_name_lower or 'phone' in topic_name_lower:
                 telephone_topics.append(topic)
         
-        # Q1: Functional Writing - select from functional topics
+        # Q1: Functional Writing - select from functional topics (20 marks)
         functional_query = Question.objects.filter(
             paper=self.paper,
+            marks=self.Q1_FUNCTIONAL_WRITING_MARKS,
             is_active=True
         )
         if functional_topics:
@@ -153,9 +154,10 @@ class KCSEEnglishPaper1Generator:
         
         self.functional_writing_tasks = list(functional_query.select_related('topic'))
         
-        # Q2: Cloze Test - select from cloze topics
+        # Q2: Cloze Test - select from cloze topics (10 marks)
         cloze_query = Question.objects.filter(
             paper=self.paper,
+            marks=self.Q2_CLOZE_TEST_MARKS,
             is_active=True
         )
         if cloze_topics:
