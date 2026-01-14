@@ -122,11 +122,11 @@ def _select_coverpage_class_and_default(generated_paper, paper, is_marking_schem
         if subject_name == 'BIOLOGY' and is_paper3():
             return BiologyPaper3Coverpage, BiologyPaper3Coverpage.generate_default_coverpage_data(generated_paper, paper)
 
-        # If it's explicitly a Paper 2 (and not chemistry/physics), prefer Biology Paper2
-        if is_paper2():
+        # If it's explicitly a Paper 2 for Biology specifically, use Biology Paper2
+        if subject_name == 'BIOLOGY' and is_paper2():
             return BiologyPaper2Coverpage, BiologyPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
 
-        # Fallback: if subject is biology use Biology Paper 1, otherwise fallback below
+        # Fallback: if subject is biology use Biology Paper 1, otherwise check other subjects below
         if subject_name == 'BIOLOGY':
             return BiologyPaper1Coverpage, BiologyPaper1Coverpage.generate_default_coverpage_data(generated_paper, paper)
         
