@@ -27,6 +27,7 @@ from django.views.decorators.http import require_http_methods
 from django.db import transaction
 
 from .models import Paper, Topic, Question, Section, Subject, GeneratedPaper
+from .page_number_extrctor import extract_paper_number_from_name
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -100,9 +101,9 @@ class KCSEPhysicsPaperGenerator:
                 is_active=True
             )
             self.subject = self.paper.subject
-            logger.info(f"✓ Paper loaded: {self.paper.name} ({self.subject.name})")
+            logger.info(f"Paper loaded: {self.paper.name} ({self.subject.name})")
         except Paper.DoesNotExist:
-            logger.error(f"✗ Paper not found: {self.paper_id}")
+            logger.error(f"Paper not found: {self.paper_id}")
             raise ValueError(f"Paper with id {self.paper_id} not found")
         
         # Load sections
@@ -732,24 +733,31 @@ def generate_physics_paper(request):
         
         paper_id = data.get('paper_id')
         selected_topic_ids = data.get('topic_ids', [])
-        paper_number = data.get('paper_number', 1)  # 1 or 2
+        if paper_id:
+            paper_number = extract_paper_number_from_name(Paper.objects.get(id=paper_id).name) 
         
         if not paper_id or not selected_topic_ids:
             return JsonResponse({
                 'message': 'Missing paper_id or selected_topic_ids'
             }, status=400)
         
-        if paper_number not in [1, 2]:
+        if paper_number not in [1, 2 ,3]:
             return JsonResponse({
-                'message': 'Invalid paper_number. Must be 1 or 2'
+                'message': 'Invalid paper_number. Must be 1, 2, or 3'
             }, status=400)
         
         # Get user from request if available
         user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
         
         # Generate unique code
-        timestamp = datetime.now().strftime('%y%m%d%H%M%S')
-        unique_code = f"PHY{paper_number}-{timestamp}"
+        current_year = datetime.now().year
+        paper = generator.paper
+        year_count = GeneratedPaper.objects.filter(
+            paper=paper,
+            created_at__year=current_year
+        ).count()
+        
+        unique_code = f"PHY{paper_number}-{current_year}-{year_count + 1:03d}"
         
         logger.info(f"[GENERATE] Starting Physics Paper {paper_number} generation")
         logger.info(f"[GENERATE] User: {user}")

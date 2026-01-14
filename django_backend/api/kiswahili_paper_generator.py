@@ -25,7 +25,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
 from .models import Paper, Topic, Question, Subject, GeneratedPaper
-
+from .page_number_extrctor import extract_paper_number_from_name
 
 class KCSEKiswahiliPaper1Generator:
     """
@@ -1075,18 +1075,24 @@ def generate_kiswahili_paper(request):
             except ValueError:
                 pass
         
-        if paper_number not in [1, 2]:
+        if paper_number not in [1, 2, 3]:
             return JsonResponse({
-                'message': f'Invalid paper_number {paper_number}. Must be 1 or 2. paper_name: {paper_name}. '
+                'message': f'Invalid paper_number {paper_number}. Must be 1, 2, or 3. paper_name: {paper_name}. '
                            f'Paper name should contain "KWANZA" (Paper 1) or "PILI" (Paper 2), '
                            f'or use Roman numerals (I, II) or Arabic numerals (1, 2).'
             }, status=400)
         
         user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
         
-        # Generate unique code
-        timestamp = datetime.now().strftime('%y%m%d%H%M%S')
-        unique_code = f"KIS{paper_number}-{timestamp}"
+        current_year = datetime.now().year
+        paper = generator.paper
+        year_count = GeneratedPaper.objects.filter(
+            paper=paper,
+            created_at__year=current_year
+        ).count()
+        
+        
+        unique_code = f"KIS{paper_number}-{current_year}-{year_count + 1:03d}"
         
         # Initialize appropriate generator
         if paper_number == 1:

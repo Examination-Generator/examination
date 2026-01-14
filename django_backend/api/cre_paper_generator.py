@@ -572,8 +572,13 @@ def generate_cre_paper(request):
         paper_number = extract_paper_number_from_name(paper_name)
         
         # Generate unique code
-        timestamp = datetime.now().strftime('%y%m%d%H%M%S')
-        unique_code = f"CRE{paper_number}-{timestamp}"
+        current_year = datetime.now().year
+        paper = generator.paper
+        year_count = GeneratedPaper.objects.filter(
+            paper=paper,
+            created_at__year=current_year
+        ).count()
+        unique_code = f"CRE{paper_number}-{current_year}-{year_count + 1:03d}"
         
         # Initialize generator (same logic for Paper 1 and Paper 2)
         generator = KCSECREPaperGenerator(

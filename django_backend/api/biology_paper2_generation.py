@@ -17,7 +17,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 
 from .models import Paper, Topic, Question, Subject, GeneratedPaper
-
+from .page_number_extrctor import extract_paper_number_from_name
 
 class KCSEBiologyPaper2Generator:
     """
@@ -553,7 +553,8 @@ def generate_biology_paper2(request):
         
         paper_id = data.get('paper_id')
         selected_topic_ids = data.get('selected_topics', [])
-        
+        paper_name = Paper.objects.get(id=paper_id).name
+        paper_number =  extract_paper_number_from_name(paper_name)
         if not paper_id or not selected_topic_ids:
             return JsonResponse({
                 'message': 'Missing paper_id or selected_topic_ids'
@@ -562,10 +563,6 @@ def generate_biology_paper2(request):
         # Get user from request if available
         user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
         
-        # Generate unique code (max 20 chars)
-        # Format: BIO2-YYMMDDHHMMSS (17 chars)
-        timestamp = datetime.now().strftime('%y%m%d%H%M%S')
-        unique_code = f"BIO2-{timestamp}"
         
         # Initialize generator
         generator = KCSEBiologyPaper2Generator(
@@ -577,6 +574,17 @@ def generate_biology_paper2(request):
         # Load data and generate
         generator.load_data()
         result = generator.generate()
+        # Create unique code
+        current_year = datetime.now().year
+        paper = generator.paper
+        
+        year_count = GeneratedPaper.objects.filter(
+            paper=paper,
+            created_at__year=current_year
+        ).count()
+        
+        unique_code = f"BIO{paper_number}-{current_year}-{year_count + 1:03d}"
+        
         
         # Create GeneratedPaper record
         generated_paper = GeneratedPaper.objects.create(

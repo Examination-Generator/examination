@@ -508,8 +508,13 @@ def generate_agriculture_paper(request):
         user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
         
         # Generate unique code
-        timestamp = datetime.now().strftime('%y%m%d%H%M%S')
-        unique_code = f"AGR{paper_number}-{timestamp}"
+        current_year = datetime.now().year
+        paper = generator.paper
+        year_count = GeneratedPaper.objects.filter(
+            paper=paper,
+            created_at__year=current_year
+        ).count()
+        unique_code = f"AGR{paper_number}-{current_year}-{year_count + 1:03d}"
         
         # Initialize generator
         generator = KCSEAgriculturePaperGenerator(
