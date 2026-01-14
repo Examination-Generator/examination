@@ -82,16 +82,19 @@ def _select_coverpage_class_and_default(generated_paper, paper, is_marking_schem
     metadata = getattr(generated_paper, 'metadata', {}) or {}
     paper_type = (metadata.get('paper_type') or '').upper()
     subject_name = (paper.subject.name or '').upper()
-    paper_name = (paper.name or '').upper()
+    paper_name = (paper.name or '').lower()
+    
+    # Use the extract_paper_number_from_name function for accurate paper number detection
+    paper_number = extract_paper_number_from_name(paper_name)
 
     def is_paper1():
-        return any(k in paper_type or k in paper_name for k in ('PAPER 1', 'PAPER I', 'KWANZA'))
+        return paper_number == 1
 
     def is_paper2():
-        return any(k in paper_type or k in paper_name for k in ('PAPER 2', 'PAPER II', 'PILI'))
+        return paper_number == 2
 
     def is_paper3():
-        return any(k in paper_type or k in paper_name for k in ('PAPER 3', 'PAPER III', 'TATU'))
+        return paper_number == 3
 
     # Prefer subject-specific classes first
     try:
