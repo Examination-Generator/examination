@@ -403,7 +403,8 @@ export default function PaperGenerationDashboard() {
             setHistoryLoading(true);
             const user = getCurrentUser();
             const data = await listGeneratedPapers({
-                paperId: selectedPaperId,
+                // Don't filter by paperId - show ALL generated papers for the user
+                // paperId: selectedPaperId,  // Removed to show all papers
                 userId: user?.id,
                 userOnly: true  // Only show current user's papers
             });
