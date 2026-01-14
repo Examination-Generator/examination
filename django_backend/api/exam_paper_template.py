@@ -112,20 +112,29 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     is_paper1 = coverpage_data.get('paper_type') == 'Paper 1'
     
     # Determine if continuous answer lines are needed
-    # Biology Paper 2, Geography Paper 1, Geography Paper 2, CRE Paper 1, and CRE Paper 2 need answer lines
+    # Biology Paper 2, Geography Paper 1, Geography Paper 2, CRE Paper 1, CRE Paper 2, and Kiswahili Paper 1 need answer lines
     paper_name = coverpage_data.get('paper_name', '').upper()
     needs_answer_lines = (
         ('BIOLOGY' in paper_name and is_paper2) or 
         ('GEOGRAPHY' in paper_name and (is_paper1 or is_paper2)) or
-        ('CRE' in paper_name or 'CHRISTIAN RELIGIOUS EDUCATION' in paper_name)
+        ('CRE' in paper_name or 'CHRISTIAN RELIGIOUS EDUCATION' in paper_name) or
+        ('KISWAHILI' in paper_name and is_paper1)
     )
     
     # Check if this is Business Paper 2 (special rendering with parts a and b)
     is_business_paper_2 = 'BUSINESS' in paper_name and is_paper2
     
-    # Determine number of answer line pages (3 for CRE, 2 for others)
+    # Check if this is Kiswahili Paper 1 (special rendering: all 4 questions on one page)
+    is_kiswahili_paper_1 = 'KISWAHILI' in paper_name and is_paper1
+    
+    # Determine number of answer line pages (4 for Kiswahili Paper 1, 3 for CRE, 2 for others)
     is_cre_paper = 'CRE' in paper_name or 'CHRISTIAN RELIGIOUS EDUCATION' in paper_name
-    answer_lines_page_count = 3 if is_cre_paper else 2
+    if is_kiswahili_paper_1:
+        answer_lines_page_count = 4
+    elif is_cre_paper:
+        answer_lines_page_count = 3
+    else:
+        answer_lines_page_count = 2
 
     # Dynamic page calculation
     if is_business_paper_2:
@@ -147,7 +156,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         total_pages = 1 + question_pages + answer_lines_pages
         questions_html = _generate_paper2_question_pages(questions, total_pages, coverpage_data, answer_lines_pages=answer_lines_pages)
     else:
-        # For Paper 1 with answer lines (Geography Paper 1, CRE Paper 1)
+        # For Paper 1 with answer lines (Geography Paper 1, CRE Paper 1, Kiswahili Paper 1)
         answer_lines_pages = answer_lines_page_count if needs_answer_lines else 0
         
         # CRE Paper 1: 5 questions on page 1, 1 question on page 2
@@ -155,6 +164,11 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             question_pages = 2  # Always 2 pages for CRE Paper 1 (5 questions + 1 question)
             total_pages = 1 + question_pages + answer_lines_pages
             questions_html = _generate_cre_paper1_pages(questions, total_pages, coverpage_data)
+        # Kiswahili Paper 1: All 4 questions on one page
+        elif is_kiswahili_paper_1:
+            question_pages = 1  # All 4 questions on one page
+            total_pages = 1 + question_pages + answer_lines_pages
+            questions_html = _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data)
         else:
             total_pages = 1 + ((len(questions) + 2) // 3) + answer_lines_pages
             questions_html = _generate_question_pages(questions, total_pages, coverpage_data)
@@ -1193,6 +1207,47 @@ def _generate_cre_paper1_pages(questions, total_pages, coverpage_data=None):
         pages_html.append(page_html)
     
     return '\n'.join(pages_html)
+
+
+def _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data=None):
+    """
+    Generate single question page for Kiswahili Paper 1
+    All 4 questions on one page, no answer spaces within questions
+    
+    Args:
+        questions: List of question dictionaries (should be 4 questions)
+        total_pages: Total pages in paper
+        coverpage_data: Metadata from coverpage
+    
+    Returns:
+        str: HTML for the single question page
+    """
+    current_page = 2
+    
+    # Generate all questions on one page
+    questions_html = ""
+    for q in questions:
+        processed_text = _process_question_text(
+            q.get('text', ''),
+            q.get('question_inline_images', []),
+            q.get('question_answer_lines', [])
+        )
+        
+        questions_html += f"""
+        <div class="question">
+            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
+        </div>
+"""
+    
+    page_html = f"""
+    <!-- Page {current_page} -->
+    <div class="exam-page page-break">
+        {questions_html}        
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+"""
+    
+    return page_html
 
 
 def _generate_question_pages(questions, total_pages, coverpage_data=None):
