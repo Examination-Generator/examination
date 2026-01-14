@@ -3303,8 +3303,8 @@ class ChemistryPaper2Coverpage:
         paper_name = data.get('paper_name', 'CHEMISTRY PAPER 2')
         
         # Question configuration (from screenshot)
-        total_questions = data.get('total_questions', 8)
-        question_marks = data.get('question_marks', [11, 12, 13, 13, 11, 10, 10, 10])
+        total_questions = data.get('total_questions', 7)  # Default to 7 for Chemistry Paper 2
+        question_marks = data.get('question_marks', [11, 12, 13, 12, 11, 11, 10])  # 7 questions totaling 80
         total_marks = data.get('total_marks', 80)
         time_allocation = data.get('time_allocation', '2 HOURS')
         
@@ -3681,6 +3681,8 @@ class ChemistryPaper2Coverpage:
         Returns:
             dict: Default coverpage data for Chemistry Paper 2
         """
+        from .models import Question
+        
         # Generate paper name
         paper_name_upper = paper.name.upper()
         subject_name_upper = paper.subject.name.upper()
@@ -3690,18 +3692,38 @@ class ChemistryPaper2Coverpage:
         else:
             display_paper_name = f'{subject_name_upper} {paper_name_upper}'
         
-        # Get metadata for question details
-        metadata = getattr(generated_paper, 'metadata', {}) or {}
-        total_questions = metadata.get('total_questions', 8)
+        # Get actual total questions from generated_paper
+        total_questions = generated_paper.total_questions if generated_paper.total_questions else 7
         
-        # Default marks distribution (based on screenshot)
-        question_marks = metadata.get('question_marks', [11, 12, 13, 13, 11, 10, 10, 10])
+        # Get actual marks from the questions in the generated paper
+        question_ids = generated_paper.question_ids or []
+        question_marks = []
+        
+        if question_ids:
+            # Load questions and get their marks in order
+            questions = Question.objects.filter(id__in=question_ids).in_bulk(field_name='id')
+            for qid in question_ids:
+                question = questions.get(qid)
+                if question:
+                    question_marks.append(question.marks)
+        
+        # Fallback to default marks if no questions found
+        if not question_marks:
+            default_marks_7 = [11, 12, 13, 12, 11, 11, 10]  # Total: 80 marks
+            default_marks_8 = [11, 12, 13, 13, 11, 10, 10, 10]  # Total: 90 marks
+            
+            if total_questions == 7:
+                question_marks = default_marks_7
+            elif total_questions == 8:
+                question_marks = default_marks_8
+            else:
+                avg_marks = (generated_paper.total_marks or 80) // total_questions
+                question_marks = [avg_marks] * total_questions
         
         # Calculate total pages
         # 1 page: Coverpage
-        # 8 questions: approximately 2 pages each = 16 pages
-        # Total: 1 + 16 = 17 pages (rounded to 16)
-        total_pages = 16
+        # Questions: approximately 2 pages each
+        total_pages = 1 + (total_questions * 2)
         
         return {
             'school_name': 'EXAMINATION CENTRE',
@@ -3712,7 +3734,7 @@ class ChemistryPaper2Coverpage:
             'paper_name': display_paper_name,
             'paper_type': 'Paper 2',
             'total_questions': total_questions,
-            'question_marks': question_marks,
+            'question_marks': question_marks[:total_questions],  # Ensure correct length
             'total_marks': generated_paper.total_marks or 80,
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
