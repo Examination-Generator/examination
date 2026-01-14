@@ -648,19 +648,33 @@ export const listGeneratedPapers = async (filters = {}) => {
         
         const url = `${API_BASE_URL}/papers/generated${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
         
+        console.log('📡 Fetching generated papers...');
+        console.log('   URL:', url);
+        console.log('   Filters:', filters);
+        console.log('   Query params:', queryParams.toString());
+        
         const response = await fetch(url, {
             method: 'GET',
             headers: getAuthHeaders(),
         });
         
+        console.log('   Response status:', response.status, response.statusText);
+        
         if (!response.ok) {
             const errorData = await response.json();
             const raw = errorData.error || `HTTP error! status: ${response.status}`;
-            console.error('Backend error (getPaperConfiguration):', raw);
+            console.error('Backend error (listGeneratedPapers):', raw);
             throw new Error(friendlyErrorMessage(raw));
         }
         
-        return await response.json();
+        const responseData = await response.json();
+        console.log('   Response data structure:', {
+            type: typeof responseData,
+            keys: Object.keys(responseData || {}),
+            generated_papers_count: responseData?.generated_papers?.length || 0
+        });
+        
+        return responseData;
     } catch (error) {
         console.error('Error fetching generated papers:', error);
         throw error;

@@ -402,15 +402,36 @@ export default function PaperGenerationDashboard() {
         try {
             setHistoryLoading(true);
             const user = getCurrentUser();
-            const data = await listGeneratedPapers({
-                // Don't filter by paperId - show ALL generated papers for the user
-                // paperId: selectedPaperId,  // Removed to show all papers
-                userId: user?.id,
-                userOnly: true  // Only show current user's papers
-            });
-            setGeneratedPapers(Array.isArray(data?.generated_papers) ? data.generated_papers : []);
+            console.log('🔍 Loading generated papers...');
+            console.log('Current user:', user);
+            
+            // Remove ALL filters to get all papers from backend
+            const data = await listGeneratedPapers({});
+            
+            console.log('📦 Raw API Response:', data);
+            console.log('Response type:', typeof data);
+            console.log('Response keys:', data ? Object.keys(data) : 'null');
+            console.log('generated_papers field:', data?.generated_papers);
+            console.log('generated_papers type:', typeof data?.generated_papers);
+            console.log('generated_papers length:', data?.generated_papers?.length);
+            
+            if (data?.generated_papers && Array.isArray(data.generated_papers)) {
+                console.log('✅ Found', data.generated_papers.length, 'papers');
+                console.log('Papers:', data.generated_papers.map(p => ({
+                    id: p.id,
+                    paper_name: p.paper_name,
+                    subject_name: p.subject_name,
+                    created_at: p.created_at,
+                    status: p.status
+                })));
+                setGeneratedPapers(data.generated_papers);
+            } else {
+                console.warn('⚠️ No generated_papers in response or not an array');
+                setGeneratedPapers([]);
+            }
         } catch (err) {
-            console.error('Failed to load generated papers:', err);
+            console.error('❌ Failed to load generated papers:', err);
+            console.error('Error details:', err.message);
             setGeneratedPapers([]);
         } finally {
             setHistoryLoading(false);
