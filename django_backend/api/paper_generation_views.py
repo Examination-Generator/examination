@@ -767,7 +767,6 @@ def view_full_paper(request, paper_id):
             for i in range(0, len(question_ids), 2):
                 if i + 1 < len(question_ids):
                     question_number = (i // 2) + 1  # 1, 2, 3, 4, 5, 6
-                    section_letter = chr(64 + question_number)  # A, B, C, D, E, F
                     
                     q_a_id = question_ids[i]
                     q_b_id = question_ids[i + 1]
@@ -779,7 +778,6 @@ def view_full_paper(request, paper_id):
                         # Create combined question with parts a and b
                         combined_question = {
                             'question_number': question_number,
-                            'section_name': f'SECTION {section_letter}',
                             'total_marks': q_a.marks + q_b.marks,
                             'is_combined': True,
                             'is_business_paper_2': True,
@@ -835,7 +833,6 @@ def view_full_paper(request, paper_id):
                         # Marking scheme with both parts
                         marking_scheme.append({
                             'question_number': question_number,
-                            'section_name': f'SECTION {section_letter}',
                             'is_combined': True,
                             'is_business_paper_2': True,
                             'total_marks': q_a.marks + q_b.marks,
