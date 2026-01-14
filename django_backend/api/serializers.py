@@ -318,10 +318,18 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
                     paper = existing_papers[paper_name]
                     updated_paper_names.add(paper_name)
                     
-                    # Update paper description if provided
+                    # Update paper fields if provided
                     if 'description' in paper_data:
                         paper.description = paper_data.get('description', '')
-                        paper.save()
+                    if 'duration_hours' in paper_data:
+                        paper.duration_hours = paper_data.get('duration_hours', 2)
+                    if 'duration_minutes' in paper_data:
+                        paper.duration_minutes = paper_data.get('duration_minutes', 0)
+                    if 'total_marks' in paper_data:
+                        paper.total_marks = paper_data.get('total_marks', 80)
+                    if 'time_allocation' in paper_data:
+                        paper.time_allocation = paper_data.get('time_allocation', 120)
+                    paper.save()
                     
                     # Get existing topics and sections
                     existing_topics = {topic.name: topic for topic in paper.topics.all()}
@@ -400,11 +408,21 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
                     logger.info(f"[SUBJECT UPDATE] Creating new paper: '{paper_name}' with {len(topics_data)} topic(s) and {len(sections_data)} section(s)")
                     updated_paper_names.add(paper_name)
                     
+                    # Extract duration and other paper fields
+                    duration_hours = paper_data.get('duration_hours', 2)
+                    duration_minutes = paper_data.get('duration_minutes', 0)
+                    total_marks = paper_data.get('total_marks', 80)
+                    time_allocation = paper_data.get('time_allocation', 120)
+                    
                     paper = Paper.objects.create(
                         subject=instance,
                         created_by=user,
                         name=paper_name,
-                        description=paper_data.get('description', '')
+                        description=paper_data.get('description', ''),
+                        duration_hours=duration_hours,
+                        duration_minutes=duration_minutes,
+                        total_marks=total_marks,
+                        time_allocation=time_allocation
                     )
                     
                     # Create sections

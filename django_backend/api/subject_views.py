@@ -405,7 +405,7 @@ def get_paper(request, subject_id, paper_id):
         )
     
     elif request.method == 'PUT':
-        # Update paper name
+        # Update paper fields (name, description, duration, marks, time)
         serializer = PaperSerializer(
             paper,
             data=request.data,

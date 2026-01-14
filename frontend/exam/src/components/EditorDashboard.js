@@ -4081,6 +4081,8 @@ useEffect(() => {
                 ? subject.papers.map(paper => ({
                     id: paper.id, // PRESERVE paper ID
                     name: paper.name || '',
+                    durationHours: paper.durationHours || 2,
+                    durationMinutes: paper.durationMinutes || 0,
                     // Topics can be objects {id, name} or strings - preserve both
                     topics: Array.isArray(paper.topics) && paper.topics.length > 0 
                         ? paper.topics.map(t => {
@@ -4100,7 +4102,7 @@ useEffect(() => {
                         })
                         : [] // Sections can be empty
                 }))
-                : [{ name: '', topics: [{ name: '' }], sections: [] }];
+                : [{ name: '', topics: [{ name: '' }], sections: [], durationHours: 2, durationMinutes: 0 }];
                 
             setEditSubjectData({
                 id: subject.id,
@@ -4248,7 +4250,7 @@ useEffect(() => {
     const handleAddEditPaper = () => {
         setEditSubjectData(prev => ({
             ...prev,
-            papers: [...prev.papers, { name: '', topics: [{ name: '' }], sections: [] }]
+            papers: [...prev.papers, { name: '', topics: [{ name: '' }], sections: [], durationHours: 2, durationMinutes: 0 }]
         }));
         // Auto-select the new paper for editing
         setSelectedPaperIndices(prev => [...prev, editSubjectData.papers.length]);
@@ -4290,6 +4292,23 @@ useEffect(() => {
             papers: prev.papers.map((paper, index) => 
                 index === paperIndex ? { ...paper, name: value } : paper
             )
+        }));
+    };
+
+    const handleEditPaperDurationChange = (paperIndex, field, value) => {
+        const numValue = parseInt(value) || 0;
+        setEditSubjectData(prev => ({
+            ...prev,
+            papers: prev.papers.map((paper, index) => {
+                if (index === paperIndex) {
+                    if (field === 'hours') {
+                        return { ...paper, durationHours: Math.max(0, Math.min(24, numValue)) };
+                    } else {
+                        return { ...paper, durationMinutes: Math.max(0, Math.min(59, numValue)) };
+                    }
+                }
+                return paper;
+            })
         }));
     };
 
@@ -4424,7 +4443,9 @@ useEffect(() => {
                 const paperData = {
                     name: paper.name.trim(),
                     topics: Array.from(topicsMap.values()),
-                    sections: Array.from(sectionsMap.values())
+                    sections: Array.from(sectionsMap.values()),
+                    durationHours: paper.durationHours || 2,
+                    durationMinutes: paper.durationMinutes || 0
                 };
                 
                 // Include ID for existing papers to preserve them
@@ -7749,6 +7770,42 @@ useEffect(() => {
                                                 {/* Only show edit fields if paper is selected or is a new paper */}
                                                 {(!isExistingPaper || isSelected) && (
                                                     <>
+                                                        {/* Paper Duration */}
+                                                        <div className="bg-blue-50 p-3 rounded-lg">
+                                                            <label className="block text-xs font-semibold text-gray-600 mb-2">
+                                                                Paper Duration *
+                                                            </label>
+                                                            <div className="flex items-center space-x-3">
+                                                                <div className="flex items-center space-x-2">
+                                                                    <label className="text-xs text-gray-600">Hours:</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        max="24"
+                                                                        value={paper.durationHours || 2}
+                                                                        onChange={(e) => handleEditPaperDurationChange(paperIndex, 'hours', e.target.value)}
+                                                                        className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm"
+                                                                        disabled={isExistingPaper && !isSelected}
+                                                                    />
+                                                                </div>
+                                                                <div className="flex items-center space-x-2">
+                                                                    <label className="text-xs text-gray-600">Minutes:</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        max="59"
+                                                                        value={paper.durationMinutes || 0}
+                                                                        onChange={(e) => handleEditPaperDurationChange(paperIndex, 'minutes', e.target.value)}
+                                                                        className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm"
+                                                                        disabled={isExistingPaper && !isSelected}
+                                                                    />
+                                                                </div>
+                                                                <div className="text-xs text-gray-600 font-medium">
+                                                                    = {paper.durationHours || 0}h {paper.durationMinutes || 0}m
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 mt-1">Recommended: 2h 00m for standard exams</p>
+                                                        </div>
 
                                             {/* Topics */}
                                             <div>
