@@ -196,7 +196,8 @@ class PaperSerializer(serializers.ModelSerializer):
     class Meta:
         model = Paper
         fields = ['id', 'name', 'description', 'is_active', 'subject', 
-                  'sections', 'topics', 'created_at']
+                  'sections', 'topics', 'time_allocation', 'total_marks',
+                  'duration_hours', 'duration_minutes', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 
@@ -206,7 +207,7 @@ class SubjectSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Subject
-        fields = ['id', 'name', 'description', 'duration_hours', 'duration_minutes', 'is_active', 'papers', 'created_at']
+        fields = ['id', 'name', 'description', 'is_active', 'papers', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 
@@ -217,12 +218,10 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
         required=False,
         allow_empty=True
     )
-    duration_hours = serializers.IntegerField(required=False, allow_null=True, min_value=0)
-    duration_minutes = serializers.IntegerField(required=False, allow_null=True, min_value=0, max_value=59)
     
     class Meta:
         model = Subject
-        fields = ['name', 'description', 'duration_hours', 'duration_minutes', 'papers']
+        fields = ['name', 'description', 'papers']
     
     def create(self, validated_data):
         papers_data = validated_data.pop('papers', [])
@@ -239,11 +238,17 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
             sections_data = paper_data.pop('sections', [])
             topics_data = paper_data.pop('topics', [])
             
+            # Extract duration fields if provided
+            duration_hours = paper_data.pop('duration_hours', 2)
+            duration_minutes = paper_data.pop('duration_minutes', 0)
+            
             paper = Paper.objects.create(
                 subject=subject,
                 created_by=user,
                 name=paper_data.get('name'),
-                description=paper_data.get('description', '')
+                description=paper_data.get('description', ''),
+                duration_hours=duration_hours,
+                duration_minutes=duration_minutes
             )
             
             # Create sections

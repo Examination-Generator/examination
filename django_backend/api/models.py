@@ -146,10 +146,6 @@ class Subject(models.Model):
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=True)
     
-    # Paper duration configuration
-    duration_hours = models.IntegerField(default=2, null=True, blank=True, help_text="Duration in hours for the paper")
-    duration_minutes = models.IntegerField(default=0, null=True, blank=True, help_text="Duration in minutes for the paper (0-59)")
-    
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(
         User,
@@ -190,6 +186,14 @@ class Paper(models.Model):
     time_allocation = models.IntegerField(
         default=120,
         help_text='Time allocation in minutes'
+    )
+    duration_hours = models.IntegerField(
+        default=2,
+        help_text='Duration in hours (for display purposes)'
+    )
+    duration_minutes = models.IntegerField(
+        default=0,
+        help_text='Additional minutes beyond hours (for display purposes, 0-59)'
     )
     
     is_active = models.BooleanField(default=True)

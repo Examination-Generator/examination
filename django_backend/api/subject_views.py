@@ -325,6 +325,15 @@ def add_paper(request, subject_id):
     """
     Add paper to subject
     POST /api/subjects/:id/papers
+    Expected payload:
+    {
+        "name": "Paper 1",
+        "description": "Paper description",
+        "duration_hours": 2,
+        "duration_minutes": 30,
+        "total_marks": 80,
+        "time_allocation": 150
+    }
     """
     try:
         subject = Subject.objects.get(id=subject_id)
@@ -336,6 +345,10 @@ def add_paper(request, subject_id):
     
     name = request.data.get('name')
     description = request.data.get('description', '')
+    duration_hours = request.data.get('duration_hours', 2)
+    duration_minutes = request.data.get('duration_minutes', 0)
+    total_marks = request.data.get('total_marks', 80)
+    time_allocation = request.data.get('time_allocation', 120)
     
     if not name:
         return error_response(
@@ -348,7 +361,11 @@ def add_paper(request, subject_id):
         name=name,
         description=description,
         subject=subject,
-        created_by=request.user
+        created_by=request.user,
+        duration_hours=duration_hours,
+        duration_minutes=duration_minutes,
+        total_marks=total_marks,
+        time_allocation=time_allocation
     )
     
     serializer = PaperSerializer(paper)
