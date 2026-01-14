@@ -111,21 +111,27 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     is_paper2 = coverpage_data.get('paper_type') == 'Paper 2'
     is_paper1 = coverpage_data.get('paper_type') == 'Paper 1'
     
+    # Get paper name and extract paper number using the helper function
+    paper_name = coverpage_data.get('paper_name', '').upper()
+    try:
+        paper_number = extract_paper_number_from_name(paper_name)
+    except ValueError:
+        paper_number = 1  # Default to Paper 1 if extraction fails
+    
     # Determine if continuous answer lines are needed
     # Biology Paper 2, Geography Paper 1, Geography Paper 2, CRE Paper 1, CRE Paper 2, and Kiswahili Paper 1 need answer lines
-    paper_name = coverpage_data.get('paper_name', '').upper()
     needs_answer_lines = (
         ('BIOLOGY' in paper_name and is_paper2) or 
         ('GEOGRAPHY' in paper_name and (is_paper1 or is_paper2)) or
         ('CRE' in paper_name or 'CHRISTIAN RELIGIOUS EDUCATION' in paper_name) or
-        ('KISWAHILI' in paper_name and is_paper1)
+        ('KISWAHILI' in paper_name and paper_number == 1)
     )
     
     # Check if this is Business Paper 2 (special rendering with parts a and b)
     is_business_paper_2 = 'BUSINESS' in paper_name and is_paper2
     
     # Check if this is Kiswahili Paper 1 (special rendering: all 4 questions on one page)
-    is_kiswahili_paper_1 = 'KISWAHILI' in paper_name and is_paper1
+    is_kiswahili_paper_1 = 'KISWAHILI' in paper_name and paper_number == 1
     
     # Determine number of answer line pages (4 for Kiswahili Paper 1, 3 for CRE, 2 for others)
     is_cre_paper = 'CRE' in paper_name or 'CHRISTIAN RELIGIOUS EDUCATION' in paper_name
