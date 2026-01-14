@@ -10,6 +10,15 @@ def extract_paper_number_from_name(paper_name: str) -> int:
     if re.search(r'\bII\b', paper_name_upper):
         return 2
     
+    if 'PILI' in paper_name_upper:
+        return 2
+    
+    if 'KWANZA' in paper_name_upper:
+        return 1
+    
+    if 'TATU' in paper_name_upper:
+        return 3
+    
     # Check for "PAPER I" (but not "PAPER II")
     if re.search(r'PAPER\s+I\b', paper_name_upper):
         return 1
