@@ -9101,7 +9101,7 @@ class CREPaper1Coverpage:
             flex: 1;
             border-bottom: 1px dotted black;
             min-height: 25px;
-            padding: 2px 5px;
+            padding: 2px 0px;
         }}
         
         /* Instructions Section */

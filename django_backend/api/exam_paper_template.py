@@ -137,15 +137,27 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         # Calculate answer line pages based on subject
         answer_lines_pages = answer_lines_page_count if needs_answer_lines else 0
         
-        # 1 cover + ceil(questions/2) + answer pages (if needed)
-        question_pages = (len(questions) + 1) // 2
+        # CRE papers have special pagination: 5 questions on page 1, 1 question on page 2
+        if is_cre_paper:
+            question_pages = 2  # Always 2 pages for CRE (5 questions + 1 question)
+        else:
+            # 1 cover + ceil(questions/2) + answer pages (if needed)
+            question_pages = (len(questions) + 1) // 2
+        
         total_pages = 1 + question_pages + answer_lines_pages
         questions_html = _generate_paper2_question_pages(questions, total_pages, coverpage_data, answer_lines_pages=answer_lines_pages)
     else:
         # For Paper 1 with answer lines (Geography Paper 1, CRE Paper 1)
         answer_lines_pages = answer_lines_page_count if needs_answer_lines else 0
-        total_pages = 1 + ((len(questions) + 2) // 3) + answer_lines_pages
-        questions_html = _generate_question_pages(questions, total_pages, coverpage_data)
+        
+        # CRE Paper 1: 5 questions on page 1, 1 question on page 2
+        if is_cre_paper:
+            question_pages = 2  # Always 2 pages for CRE Paper 1 (5 questions + 1 question)
+            total_pages = 1 + question_pages + answer_lines_pages
+            questions_html = _generate_cre_paper1_pages(questions, total_pages, coverpage_data)
+        else:
+            total_pages = 1 + ((len(questions) + 2) // 3) + answer_lines_pages
+            questions_html = _generate_question_pages(questions, total_pages, coverpage_data)
         
         # Add continuous answer lines for Geography Paper 1 and CRE Paper 1
         if answer_lines_pages > 0:
@@ -845,7 +857,26 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     # Check if this paper has sections (only Biology and Geography Paper 2)
     has_sections = ('BIOLOGY' in paper_name or 'GEOGRAPHY' in paper_name)
     
-    if has_sections:
+    # Check if this is CRE paper (special pagination: 5 questions on page 1, question 6 on page 2)
+    is_cre_paper = ('CRE' in paper_name or 'CHRISTIAN RELIGIOUS EDUCATION' in paper_name)
+    
+    if is_cre_paper:
+        # CRE papers: 5 questions on first page, 6th question on second page
+        first_page_questions = questions[:5] if len(questions) >= 5 else questions
+        second_page_questions = questions[5:] if len(questions) > 5 else []
+        
+        # Generate first page with 5 questions
+        if first_page_questions:
+            page_1_html = _generate_cre_question_page(first_page_questions, current_page, total_pages)
+            pages_html.append(page_1_html)
+            current_page += 1
+        
+        # Generate second page with 6th question
+        if second_page_questions:
+            page_2_html = _generate_cre_question_page(second_page_questions, current_page, total_pages)
+            pages_html.append(page_2_html)
+            current_page += 1
+    elif has_sections:
         # Papers with sections (Biology, Geography)
         section_a_count = metadata.get('section_a_questions', 5)
         try:
@@ -907,6 +938,43 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
         pages_html.append(answer_lines_html)
 
     return '\n'.join(pages_html)
+
+
+def _generate_cre_question_page(questions, page_number, total_pages):
+    """
+    Generate a single page for CRE papers with multiple questions
+    Designed to fit 5 questions on first page, then 6th question on second page
+    
+    Args:
+        questions: List of question dictionaries
+        page_number: Current page number
+        total_pages: Total pages in the paper
+    
+    Returns:
+        str: HTML for the page
+    """
+    questions_html = ""
+    for q in questions:
+        processed_text = _process_question_text(
+            q.get('text', ''),
+            q.get('question_inline_images', []),
+            q.get('question_answer_lines', [])
+        )
+        
+        questions_html += f"""
+        <div class="question">
+            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
+        </div>
+"""
+    
+    page_html = f"""
+    <!-- Page {page_number} -->
+    <div class="exam-page page-break">
+        {questions_html}        
+        <div class="page-number">Page {page_number} of {total_pages}</div>
+    </div>
+"""
+    return page_html
 
 
 def _generate_answer_lines_pages(num_pages, start_page, total_pages):
@@ -1044,6 +1112,80 @@ def _generate_answer_lines_continuation(num_lines, start_page, total_pages):
 """
         pages_html.append(page_html)
         current_page += 1
+    
+    return '\n'.join(pages_html)
+
+
+def _generate_cre_paper1_pages(questions, total_pages, coverpage_data=None):
+    """
+    Generate paginated question pages for CRE Paper 1
+    5 questions on first page, 6th question on second page
+    
+    Args:
+        questions: List of question dictionaries
+        total_pages: Total pages in paper
+        coverpage_data: Metadata from coverpage
+    
+    Returns:
+        str: HTML for all question pages
+    """
+    pages_html = []
+    current_page = 2
+    
+    # Split questions: first 5 on page 1, rest on page 2
+    first_page_questions = questions[:5] if len(questions) >= 5 else questions
+    second_page_questions = questions[5:] if len(questions) > 5 else []
+    
+    # Generate first page with 5 questions
+    if first_page_questions:
+        questions_html = ""
+        for q in first_page_questions:
+            processed_text = _process_question_text(
+                q.get('text', ''),
+                q.get('question_inline_images', []),
+                q.get('question_answer_lines', [])
+            )
+            
+            questions_html += f"""
+        <div class="question">
+            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
+        </div>
+"""
+        
+        page_html = f"""
+    <!-- Page {current_page} -->
+    <div class="exam-page page-break">
+        {questions_html}        
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+"""
+        pages_html.append(page_html)
+        current_page += 1
+    
+    # Generate second page with remaining questions (typically just question 6)
+    if second_page_questions:
+        questions_html = ""
+        for q in second_page_questions:
+            processed_text = _process_question_text(
+                q.get('text', ''),
+                q.get('question_inline_images', []),
+                q.get('question_answer_lines', [])
+            )
+            
+            questions_html += f"""
+        <div class="question">
+            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
+        </div>
+"""
+        
+        page_html = f"""
+    <!-- Page {current_page} -->
+    <div class="exam-page page-break">
+        {questions_html}        
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+"""
+        pages_html.append(page_html)
     
     return '\n'.join(pages_html)
 
