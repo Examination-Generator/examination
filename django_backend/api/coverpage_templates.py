@@ -329,6 +329,7 @@ class BiologyPaper1Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -880,6 +881,7 @@ class BiologyPaper2Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -2076,6 +2078,7 @@ class PhysicsPaper1Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -2563,6 +2566,7 @@ class PhysicsPaper2Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -3047,6 +3051,7 @@ class ChemistryPaper1Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -3495,6 +3500,7 @@ class ChemistryPaper2Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -3997,6 +4003,7 @@ class MathematicsPaper1Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -4481,6 +4488,7 @@ class MathematicsPaper2Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -4911,6 +4919,7 @@ class GeographyPaper1Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -5404,6 +5413,7 @@ class GeographyPaper2Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -5895,6 +5905,7 @@ class EnglishPaper1Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -6357,6 +6368,7 @@ class EnglishPaper2Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -6823,6 +6835,7 @@ class EnglishPaper3Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -8667,6 +8680,7 @@ class BusinessPaper2Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -9119,6 +9133,7 @@ class CREPaper1Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -9564,6 +9579,7 @@ class CREPaper2Coverpage:
             margin-left: 20px;
             font-size: 1.5rem;
             line-height: 1.6;
+            font-style: italic;
         }}
         
         .instructions li {{
@@ -9791,3 +9807,4 @@ class CREPaper2Coverpage:
             'candidate_number_field': True,
             'date_field': True
         }
+
