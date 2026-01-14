@@ -112,15 +112,20 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     is_paper1 = coverpage_data.get('paper_type') == 'Paper 1'
     
     # Determine if continuous answer lines are needed
-    # Biology Paper 2, Geography Paper 1, and Geography Paper 2 need answer lines
+    # Biology Paper 2, Geography Paper 1, Geography Paper 2, CRE Paper 1, and CRE Paper 2 need answer lines
     paper_name = coverpage_data.get('paper_name', '').upper()
     needs_answer_lines = (
         ('BIOLOGY' in paper_name and is_paper2) or 
-        ('GEOGRAPHY' in paper_name and (is_paper1 or is_paper2))
+        ('GEOGRAPHY' in paper_name and (is_paper1 or is_paper2)) or
+        ('CRE' in paper_name or 'CHRISTIAN RELIGIOUS EDUCATION' in paper_name)
     )
     
     # Check if this is Business Paper 2 (special rendering with parts a and b)
     is_business_paper_2 = 'BUSINESS' in paper_name and is_paper2
+    
+    # Determine number of answer line pages (3 for CRE, 2 for others)
+    is_cre_paper = 'CRE' in paper_name or 'CHRISTIAN RELIGIOUS EDUCATION' in paper_name
+    answer_lines_page_count = 3 if is_cre_paper else 2
 
     # Dynamic page calculation
     if is_business_paper_2:
@@ -130,19 +135,19 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         questions_html = _generate_business_paper2_pages(questions, total_pages, coverpage_data)
     elif is_paper2:
         # Calculate answer line pages based on subject
-        answer_lines_pages = 2 if needs_answer_lines else 0
+        answer_lines_pages = answer_lines_page_count if needs_answer_lines else 0
         
         # 1 cover + ceil(questions/2) + answer pages (if needed)
         question_pages = (len(questions) + 1) // 2
         total_pages = 1 + question_pages + answer_lines_pages
         questions_html = _generate_paper2_question_pages(questions, total_pages, coverpage_data, answer_lines_pages=answer_lines_pages)
     else:
-        # For Paper 1 with answer lines (Geography Paper 1)
-        answer_lines_pages = 2 if needs_answer_lines else 0
+        # For Paper 1 with answer lines (Geography Paper 1, CRE Paper 1)
+        answer_lines_pages = answer_lines_page_count if needs_answer_lines else 0
         total_pages = 1 + ((len(questions) + 2) // 3) + answer_lines_pages
         questions_html = _generate_question_pages(questions, total_pages, coverpage_data)
         
-        # Add continuous answer lines for Geography Paper 1
+        # Add continuous answer lines for Geography Paper 1 and CRE Paper 1
         if answer_lines_pages > 0:
             answer_lines_html = _generate_answer_lines_pages(answer_lines_pages, total_pages - answer_lines_pages + 1, total_pages)
             questions_html += answer_lines_html
