@@ -5095,12 +5095,17 @@ class GeographyPaper1Coverpage:
                     </tr>
 """
         
-        # Section B - with multiple rows based on screenshot
+        # Section B - Question 6 and any other TWO questions (from 7-10)
         grid_html += f"""
                     <tr>
-                        <td rowspan="2" class="section-label">B</td>
-                        <td>{section_b_question}</td>
-                        <td>{section_b_marks}</td>
+                        <td rowspan="3" class="section-label">B</td>
+                        <td>6</td>
+                        <td>25</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>7-10 (Any TWO)</td>
+                        <td>25</td>
                         <td></td>
                     </tr>
                     <tr>
@@ -5110,11 +5115,11 @@ class GeographyPaper1Coverpage:
                     </tr>
 """
         
-        # Total Score rows
+        # Total Score row
         grid_html += f"""
                     <tr class="total-row">
                         <td colspan="2">Total Score</td>
-                        <td>25</td>
+                        <td>{total_marks}</td>
                         <td></td>
                     </tr>
                 </tbody>
@@ -5589,16 +5594,16 @@ class GeographyPaper2Coverpage:
                     </tr>
 """
         
-        # Section B - with three rows based on screenshot
+        # Section B - Question 6 (compulsory) and any other TWO questions (from 7-10)
         grid_html += f"""
                     <tr>
                         <td rowspan="3" class="section-label">B</td>
-                        <td>{section_b_question}</td>
+                        <td>6</td>
                         <td>25</td>
                         <td></td>
                     </tr>
                     <tr>
-                        <td></td>
+                        <td>7-10 (Any TWO)</td>
                         <td>25</td>
                         <td></td>
                     </tr>
