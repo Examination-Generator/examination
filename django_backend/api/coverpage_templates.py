@@ -1227,13 +1227,6 @@ class BiologyPaper2MarkingSchemeCoverpage:
             'Check that all pages are printed and no answers are missing.'
         ]
         
-        # Generate marking grid (same structure as question paper)
-        marking_grid_html = BiologyPaper2Coverpage._generate_marking_grid(
-            section_a_questions, section_a_marks,
-            section_b_questions, section_b_marks,
-            total_marks
-        )
-        
         # Generate instruction items HTML
         instruction_items = "".join([f'<li style="margin-bottom: 8px;">{instruction}</li>' for instruction in instructions])
         
@@ -1374,49 +1367,6 @@ class BiologyPaper2MarkingSchemeCoverpage:
             line-height: 1.6;
         }}
         
-        .marking-grid-container {{
-            margin-top: auto;
-            padding-top: 40px;
-        }}
-        
-        .grid-title {{
-            font-weight: bold;
-            font-size: 13px;
-            margin-bottom: 10px;
-            text-align: center;
-        }}
-        
-        .marking-grid {{
-            width: 60%;
-            margin: 0 auto;
-            border-collapse: collapse;
-            border: 2px solid black;
-        }}
-        
-        .marking-grid th,
-        .marking-grid td {{
-            border: 1px solid black;
-            text-align: center;
-            font-size: 11px;
-            font-weight: bold;
-            padding: 8px;
-        }}
-        
-        .marking-grid th {{
-            background-color: #f0f0f0;
-        }}
-        
-        .section-label {{
-            font-size: 12px;
-            font-weight: bold;
-            vertical-align: middle;
-        }}
-        
-        .total-row {{
-            background-color: #f5f5f5;
-            font-weight: bold;
-        }}
-        
         @media print {{
             body {{
                 margin: 0;
@@ -1454,12 +1404,6 @@ class BiologyPaper2MarkingSchemeCoverpage:
             <ol>
                 {instruction_items}
             </ol>
-        </div>
-        
-        <!-- Marking Grid Section -->
-        <div class="marking-grid-container">
-            <div class="grid-title">For Examiner's Use Only</div>
-            {marking_grid_html}
         </div>
     </div>
 </body>
@@ -1543,9 +1487,6 @@ class MarkingSchemeCoverpage:
             f'This marking scheme consists of {total_pages} printed pages.',
             'Check that all pages are printed and no answers are missing.'
         ]
-        
-        # Generate marking grid (same as question paper)
-        marking_grid = generate_marking_table(total_questions)
         
         # Generate instruction items HTML (can't use list comprehension with backslash in f-string)
         instruction_items = "".join([f'<li style="margin-bottom: 8px;">{instruction}</li>' for instruction in instructions])
@@ -1698,84 +1639,6 @@ class MarkingSchemeCoverpage:
             font-size: 14px;
         }}
         
-        /* Marking Grid Section - at bottom */
-        .marking-grid-container {{
-            margin-top: auto;
-            padding-top: 20px;
-        }}
-        
-        .grid-title {{
-            font-weight: bold;
-            font-size: 13px;
-            margin-bottom: 10px;
-            text-align: center;
-        }}
-        
-        .marking-grid {{
-            width: 100%;
-            border-collapse: collapse;
-            border: 2px solid black;
-        }}
-        
-        .marking-grid td {{
-            border: 1px solid black;
-            text-align: center;
-            font-size: 10px;
-            font-weight: bold;
-            padding: 8px 4px;
-            height: 30px;
-        }}
-        
-        .question-number {{
-            min-width: 35px;
-            width: 35px;
-        }}
-        
-        /* Empty question cells (shown but no number) */
-        .empty-question-cell {{
-            min-width: 35px;
-            width: 35px;
-            background-color: white;
-            border: none !important;
-        }}
-        
-        /* Add spacing before second row */
-        .row-with-spacing td {{
-            border-top: 2px solid black;
-            padding-top: 8px;
-        }}
-        
-        /* Override border-top for empty and gap cells in spacing row */
-        .row-with-spacing .empty-question-cell,
-        .row-with-spacing .gap-cell {{
-            border-top: none !important;
-        }}
-        
-        /* Gap cell between questions and Grand Total */
-        .gap-cell {{
-            border: none !important;
-            background-color: white;
-            min-width: 15px;
-            width: 15px;
-        }}
-        
-        .grand-total-cell {{
-            background-color: #f0f0f0;
-            font-size: 10px;
-            font-weight: bold;
-            border: 2px solid black;
-            padding: 5px 10px;
-            min-width: 80px;
-        }}
-        
-        .total-box {{
-            min-width: 60px;
-            width: 60px;
-            min-height: 60px;
-            border: 2px solid black;
-            background-color: white;
-        }}
-        
         /* Print Styles */
         @media print {{
             body {{
@@ -1814,12 +1677,6 @@ class MarkingSchemeCoverpage:
             <ol style="margin-left: 20px; font-size: 12px; line-height: 1.6;">
                 {instruction_items}
             </ol>
-        </div>
-        
-        <!-- Marking Grid Section - at bottom -->
-        <div class="marking-grid-container" style="margin-top: auto; padding-top: 40px;">
-            <div class="grid-title" style="font-weight: bold; margin-bottom: 10px;">For Examiner's Use Only</div>
-            {marking_grid}
         </div>
     </div>
 </body>
