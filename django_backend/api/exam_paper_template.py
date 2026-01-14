@@ -109,16 +109,43 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     
     # Detect paper type from coverpage data
     is_paper2 = coverpage_data.get('paper_type') == 'Paper 2'
+    is_paper1 = coverpage_data.get('paper_type') == 'Paper 1'
+    
+    # Determine if continuous answer lines are needed
+    # Biology Paper 2, Geography Paper 1, and Geography Paper 2 need answer lines
+    paper_name = coverpage_data.get('paper_name', '').upper()
+    needs_answer_lines = (
+        ('BIOLOGY' in paper_name and is_paper2) or 
+        ('GEOGRAPHY' in paper_name and (is_paper1 or is_paper2))
+    )
+    
+    # Check if this is Business Paper 2 (special rendering with parts a and b)
+    is_business_paper_2 = 'BUSINESS' in paper_name and is_paper2
 
     # Dynamic page calculation
-    if is_paper2:
-        # 1 cover + ceil(questions/2) + 2 answer pages
+    if is_business_paper_2:
+        # Business Paper 2: 12 questions displayed as 6 questions with parts a and b
+        # Questions are paired: Q1(a)=Question 1, Q1(b)=Question 2, etc.
+        total_pages = 1 + ((len(questions) + 1) // 2)  # 1 coverpage + question pages
+        questions_html = _generate_business_paper2_pages(questions, total_pages, coverpage_data)
+    elif is_paper2:
+        # Calculate answer line pages based on subject
+        answer_lines_pages = 2 if needs_answer_lines else 0
+        
+        # 1 cover + ceil(questions/2) + answer pages (if needed)
         question_pages = (len(questions) + 1) // 2
-        total_pages = 1 + question_pages + 2
-        questions_html = _generate_paper2_question_pages(questions, total_pages, coverpage_data, answer_lines_pages=2)
+        total_pages = 1 + question_pages + answer_lines_pages
+        questions_html = _generate_paper2_question_pages(questions, total_pages, coverpage_data, answer_lines_pages=answer_lines_pages)
     else:
-        total_pages = 1 + ((len(questions) + 2) // 3)
+        # For Paper 1 with answer lines (Geography Paper 1)
+        answer_lines_pages = 2 if needs_answer_lines else 0
+        total_pages = 1 + ((len(questions) + 2) // 3) + answer_lines_pages
         questions_html = _generate_question_pages(questions, total_pages, coverpage_data)
+        
+        # Add continuous answer lines for Geography Paper 1
+        if answer_lines_pages > 0:
+            answer_lines_html = _generate_answer_lines_pages(answer_lines_pages, total_pages - answer_lines_pages + 1, total_pages)
+            questions_html += answer_lines_html
     
     # Combine everything
     full_html = f"""
@@ -728,6 +755,74 @@ def _process_question_text(text, images=None, answer_lines=None):
     return ''.join(result)
 
 
+def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None):
+    """
+    Generate paginated question pages for Business Paper 2
+    12 questions displayed as 6 questions with parts a and b
+    Q1(a) = Question 1, Q1(b) = Question 2, etc.
+    """
+    pages_html = []
+    current_page = 2
+    
+    # Group every 2 consecutive questions as one question with parts a and b
+    for i in range(0, len(questions), 2):
+        if i + 1 < len(questions):
+            question_number = (i // 2) + 1  # 1, 2, 3, 4, 5, 6
+            
+            q_a = questions[i]
+            q_b = questions[i + 1]
+            
+            # Process question texts with images and answer lines
+            q_a_text = _process_question_text(
+                q_a.get('text', ''),
+                q_a.get('question_inline_images', []),
+                q_a.get('question_answer_lines', [])
+            )
+            
+            q_b_text = _process_question_text(
+                q_b.get('text', ''),
+                q_b.get('question_inline_images', []),
+                q_b.get('question_answer_lines', [])
+            )
+            
+            # Calculate total marks for this combined question
+            total_marks = (q_a.get('marks', 0) or 0) + (q_b.get('marks', 0) or 0)
+            
+            # Generate page HTML with combined question
+            page_html = f"""
+    <div class="exam-page {'page-break' if current_page < total_pages else ''}">
+        <div class="question">
+            <div class="question-header">
+                <span class="question-number">{question_number}.</span>
+                <span class="marks-indicator">({total_marks} marks)</span>
+            </div>
+            
+            <div class="question-part">
+                <div class="question-text">
+                    <span class="part-label">(a)</span>
+                    <span class="marks-indicator">({q_a.get('marks', 0)} marks)</span>
+                    {q_a_text}
+                </div>
+            </div>
+            
+            <div class="question-part" style="margin-top: 30px;">
+                <div class="question-text">
+                    <span class="part-label">(b)</span>
+                    <span class="marks-indicator">({q_b.get('marks', 0)} marks)</span>
+                    {q_b_text}
+                </div>
+            </div>
+        </div>
+        
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+"""
+            pages_html.append(page_html)
+            current_page += 1
+    
+    return '\n'.join(pages_html)
+
+
 def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None, answer_lines_pages=2):
     """
     Generate paginated question pages for Biology Paper 2
@@ -779,21 +874,41 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     pages_html.append(section_b_html['html'])
     current_page = section_b_html['next_page']
 
-    # Insert two pages of dotted answer lines (no header)
+    # Insert pages of dotted answer lines (only if answer_lines_pages > 0)
+    if answer_lines_pages > 0:
+        answer_lines_html = _generate_answer_lines_pages(answer_lines_pages, current_page, total_pages)
+        pages_html.append(answer_lines_html)
+
+    return '\n'.join(pages_html)
+
+
+def _generate_answer_lines_pages(num_pages, start_page, total_pages):
+    """
+    Generate continuous answer line pages
+    
+    Args:
+        num_pages: Number of answer line pages to generate
+        start_page: Starting page number
+        total_pages: Total pages in the paper
+    
+    Returns:
+        str: HTML for answer line pages
+    """
+    pages_html = []
     lines_per_page = 25
-    for i in range(answer_lines_pages):
+    
+    for i in range(num_pages):
         lines_html = ''
         for _ in range(lines_per_page):
             lines_html += '<div class="answer-line dotted" style="height: 28px; margin: 8px 0;"></div>'
         page_html = f'''
     <div class="exam-page page-break">
         {lines_html}
-        <div class="page-number">Page {current_page} of {total_pages}</div>
+        <div class="page-number">Page {start_page + i} of {total_pages}</div>
     </div>
 '''
         pages_html.append(page_html)
-        current_page += 1
-
+    
     return '\n'.join(pages_html)
 
 
