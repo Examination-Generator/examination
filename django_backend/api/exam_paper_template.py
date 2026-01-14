@@ -888,7 +888,7 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
         section_b_questions = [q for q in questions if q['number'] > section_a_count]
 
         # Section A
-        section_a_marks = 40
+        section_a_marks = metadata.get('section_a_marks', 40)
         section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
         section_a_instruction = metadata.get('section_a_instruction', 'Answer ALL questions in this section')
         section_a_html = _generate_section_pages(
@@ -903,9 +903,14 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
         current_page = section_a_html['next_page']
 
         # Section B
-        section_b_marks = 40
+        section_b_marks = metadata.get('section_b_marks', 40)
         section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
-        section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
+        # Geography papers have special instruction for Section B
+        is_geography = 'GEOGRAPHY' in paper_name
+        if is_geography:
+            section_b_instruction = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section')
+        else:
+            section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
         section_b_html = _generate_section_pages(
             section_b_questions,
             section_b_title,
@@ -1193,7 +1198,7 @@ def _generate_cre_paper1_pages(questions, total_pages, coverpage_data=None):
 def _generate_question_pages(questions, total_pages, coverpage_data=None):
     """
     Generate paginated question pages for standard papers
-    (Same implementation as before)
+    Handles sections for Geography Paper 1
     """
     questions_per_page = 3
     pages_html = []
@@ -1201,11 +1206,23 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
     
     # Determine section boundaries from coverpage_data if available
     metadata = coverpage_data or {}
-    section_a_count = metadata.get('section_a_questions') or metadata.get('section_a_questions', 0)
-    try:
-        section_a_count = int(section_a_count)
-    except Exception:
-        section_a_count = 0
+    section_a_count = metadata.get('section_a_questions', 0)
+    
+    # Handle string format like "1-5" for Geography papers
+    if isinstance(section_a_count, str):
+        try:
+            # Extract the end number from "1-5" format
+            if '-' in section_a_count:
+                section_a_count = int(section_a_count.split('-')[1])
+            else:
+                section_a_count = int(section_a_count)
+        except Exception:
+            section_a_count = 0
+    else:
+        try:
+            section_a_count = int(section_a_count)
+        except Exception:
+            section_a_count = 0
 
     page_last_section = None
     for i in range(0, len(questions), questions_per_page):
@@ -1248,12 +1265,22 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
                     s_marks = metadata.get('section_b_marks', None)
 
                 s_marks_text = f" ({s_marks} MARKS)" if s_marks else ''
-                # Instruction text: by default we show 'Answer ALL questions in this section.'
-                instruction_text = metadata.get(f'section_{current_section.lower()}_instruction', 'Answer ALL questions in this section.')
+                # Instruction text: depends on section and paper type
+                paper_name = metadata.get('paper_name', '').upper()
+                is_geography = 'GEOGRAPHY' in paper_name
+                
+                if current_section == 'A':
+                    instruction_text = metadata.get('section_a_instruction', 'Answer ALL questions in this section.')
+                else:
+                    # Section B special instruction for Geography papers
+                    if is_geography:
+                        instruction_text = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section.')
+                    else:
+                        instruction_text = metadata.get('section_b_instruction', 'Answer ALL questions in this section.')
 
                 questions_html += f"""
         <div class=\"section-header\"> 
-           <!-- <h2>Section {current_section}</h2> -->
+            <h2>SECTION {current_section}{s_marks_text}</h2>
             <div class=\"section-instruction\" style=\"font-style: italic;\">{instruction_text}</div>
         </div>
 """

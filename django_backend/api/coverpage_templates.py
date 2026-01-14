@@ -4731,8 +4731,8 @@ class GeographyPaper1Coverpage:
         section_a_questions = data.get('section_a_questions', '1-5')
         section_a_marks = data.get('section_a_marks', 25)
         section_b_question = data.get('section_b_question', '6')
-        section_b_marks = data.get('section_b_marks', 25)
-        total_marks = data.get('total_marks', 50)
+        section_b_marks = data.get('section_b_marks', 75)
+        total_marks = data.get('total_marks', 100)
         time_allocation = data.get('time_allocation', '2 HOURS 45 MINUTES')
         
         # Calculate total pages
