@@ -145,6 +145,11 @@ class Subject(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=True)
+    
+    # Paper duration configuration
+    duration_hours = models.IntegerField(default=2, null=True, blank=True, help_text="Duration in hours for the paper")
+    duration_minutes = models.IntegerField(default=0, null=True, blank=True, help_text="Duration in minutes for the paper (0-59)")
+    
     is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(
         User,

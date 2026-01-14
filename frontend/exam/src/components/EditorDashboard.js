@@ -625,7 +625,7 @@ export default function EditorDashboard({ onLogout }) {
     
     // New Subject Form States
     const [newSubjectName, setNewSubjectName] = useState('');
-    const [newSubjectPapers, setNewSubjectPapers] = useState([{ name: '', topics: [''], sections: [''] }]);
+    const [newSubjectPapers, setNewSubjectPapers] = useState([{ name: '', topics: [''], sections: [''], durationHours: 2, durationMinutes: 0 }]);
 
     // CRUD States for Subject Management
     const [existingSubjects, setExistingSubjects] = useState([]);
@@ -3881,7 +3881,7 @@ useEffect(() => {
 
     // New Subject Management Functions
     const addPaper = () => {
-        setNewSubjectPapers([...newSubjectPapers, { name: '', topics: [''], sections: [''] }]);
+        setNewSubjectPapers([...newSubjectPapers, { name: '', topics: [''], sections: [''], durationHours: 2, durationMinutes: 0 }]);
     };
 
     const removePaper = (index) => {
@@ -3892,6 +3892,17 @@ useEffect(() => {
     const updatePaperName = (index, name) => {
         const updated = [...newSubjectPapers];
         updated[index].name = name;
+        setNewSubjectPapers(updated);
+    };
+
+    const updatePaperDuration = (index, field, value) => {
+        const updated = [...newSubjectPapers];
+        const numValue = parseInt(value) || 0;
+        if (field === 'hours') {
+            updated[index].durationHours = Math.max(0, Math.min(24, numValue));
+        } else if (field === 'minutes') {
+            updated[index].durationMinutes = Math.max(0, Math.min(59, numValue));
+        }
         setNewSubjectPapers(updated);
     };
 
@@ -4013,6 +4024,8 @@ useEffect(() => {
             name: newSubjectName.trim(),
             papers: validPapers.map(paper => ({
                 name: paper.name.trim(),
+                durationHours: paper.durationHours || 2,
+                durationMinutes: paper.durationMinutes || 0,
                 topics: paper.topics.filter(t => t.trim() !== ''),
                 sections: paper.sections.filter(s => s.trim() !== '').length > 0 
                     ? paper.sections.filter(s => s.trim() !== '')
@@ -4030,7 +4043,7 @@ useEffect(() => {
             
             // Reset form
             setNewSubjectName('');
-            setNewSubjectPapers([{ name: '', topics: [''], sections: [''] }]);
+            setNewSubjectPapers([{ name: '', topics: [''], sections: [''], durationHours: 2, durationMinutes: 0 }]);
             
             // Silent background refresh to ensure consistency (no UI disruption)
             setTimeout(() => {
@@ -7328,6 +7341,43 @@ useEffect(() => {
                                                 placeholder="e.g., Paper 1"
                                                 required
                                             />
+                                        </div>
+
+                                        {/* Paper Duration */}
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                Paper Duration *
+                                            </label>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex-1">
+                                                    <label className="block text-xs text-gray-600 mb-1">Hours</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="24"
+                                                        value={paper.durationHours || 2}
+                                                        onChange={(e) => updatePaperDuration(paperIndex, 'hours', e.target.value)}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <label className="block text-xs text-gray-600 mb-1">Minutes</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="59"
+                                                        value={paper.durationMinutes || 0}
+                                                        onChange={(e) => updatePaperDuration(paperIndex, 'minutes', e.target.value)}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="pt-5 text-sm text-gray-600">
+                                                    = {paper.durationHours || 0}h {paper.durationMinutes || 0}m
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-1">Default: 2 hours 00 minutes</p>
                                         </div>
 
                                         {/* Topics */}

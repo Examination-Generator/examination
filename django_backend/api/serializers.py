@@ -206,7 +206,7 @@ class SubjectSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Subject
-        fields = ['id', 'name', 'description', 'is_active', 'papers', 'created_at']
+        fields = ['id', 'name', 'description', 'duration_hours', 'duration_minutes', 'is_active', 'papers', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 
@@ -217,10 +217,12 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
         required=False,
         allow_empty=True
     )
+    duration_hours = serializers.IntegerField(required=False, allow_null=True, min_value=0)
+    duration_minutes = serializers.IntegerField(required=False, allow_null=True, min_value=0, max_value=59)
     
     class Meta:
         model = Subject
-        fields = ['name', 'description', 'papers']
+        fields = ['name', 'description', 'duration_hours', 'duration_minutes', 'papers']
     
     def create(self, validated_data):
         papers_data = validated_data.pop('papers', [])
