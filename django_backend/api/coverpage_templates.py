@@ -160,7 +160,7 @@ class BiologyPaper1Coverpage:
         total_pages = 1 + ((total_questions + 2) // 3)  # Coverpage + question pages
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             'Answer all the questions in this question paper.',
             'All answers must be written in the spaces provided.',
@@ -697,7 +697,7 @@ class BiologyPaper2Coverpage:
         total_pages = data.get('total_pages', 12)  # Default 12 printed pages for Paper 2
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             f'This paper consists of two sections: A and B.',
             f'Answer all questions in section A answer question 6 (compulsory) and either question 7 or 8 in the spaces provided after question 8.',
@@ -978,7 +978,7 @@ class BiologyPaper2Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Sign:</span><div class="info-field"></div></div>
             </div>
@@ -1142,7 +1142,7 @@ class BiologyPaper2Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 'This paper consists of two sections: A and B.',
                 'Answer all questions in section A answer question 6 (compulsory) and either question 7 or 8 in the spaces provided after question 8.',
@@ -1896,7 +1896,7 @@ class PhysicsPaper1Coverpage:
         time_allocation = data.get('time_allocation', '2 HOURS 30 MINUTES')
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             'This paper consists of two sections: A and B.',
             'Answer ALL questions in section A and ANY FIVE questions in section B.',
@@ -2174,7 +2174,7 @@ class PhysicsPaper1Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 {f'<div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>' if show_class else ''}
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Sign:</span><div class="info-field"></div></div>
@@ -2332,7 +2332,7 @@ class PhysicsPaper1Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 'This paper consists of two sections: A and B.',
                 'Answer ALL questions in Section A and ALL questions in Section B.',
@@ -2385,7 +2385,7 @@ class PhysicsPaper2Coverpage:
         total_pages = data.get('total_pages', 16)  # Default 16 printed pages
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             'This paper consists of two sections: A and B.',
             'Answer all the questions in Section A and B in the spaces provided.',
@@ -2653,7 +2653,7 @@ class PhysicsPaper2Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
@@ -2803,7 +2803,7 @@ class PhysicsPaper2Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 'This paper consists of two sections: A and B.',
                 'Answer all the questions in Section A and B in the spaces provided.',
@@ -2873,7 +2873,7 @@ class ChemistryPaper1Coverpage:
         total_pages = 1 + ((total_questions + 2) // 3)
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             'Answer all the questions in the spaces provided.',
             'ALL working MUST be clearly shown where necessary.',
@@ -3248,7 +3248,7 @@ class ChemistryPaper1Coverpage:
             'total_marks': generated_paper.total_marks,
             'time_allocation': format_time_allocation(paper.time_allocation),
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 'Answer ALL the questions in the spaces provided.',
                 'ALL working MUST be clearly shown where necessary.',
@@ -3312,7 +3312,7 @@ class ChemistryPaper2Coverpage:
         total_pages = data.get('total_pages', 16)  # Default 16 printed pages
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             'Answer all questions in the spaces provided below each question.',
             'All working must be clearly shown in the spaces provided in this booklet.',
@@ -3574,7 +3574,7 @@ class ChemistryPaper2Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
@@ -3717,7 +3717,7 @@ class ChemistryPaper2Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 'Answer all questions in the spaces provided below each question.',
                 'All working must be clearly shown in the spaces provided in this booklet.',
@@ -4697,7 +4697,7 @@ class GeographyPaper1Coverpage:
         total_pages = data.get('total_pages', 7)
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of the examination in the spaces provided above.',
             'This paper consists of two sections: A and B.',
             'Answer all the questions in section A.',
@@ -4969,7 +4969,7 @@ class GeographyPaper1Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
@@ -5121,7 +5121,7 @@ class GeographyPaper1Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of the examination in the spaces provided above.',
                 'This paper consists of two sections: A and B.',
                 'Answer all the questions in section A.',
@@ -5187,7 +5187,7 @@ class GeographyPaper2Coverpage:
         total_pages = data.get('total_pages', 11)
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             'This paper consists of two sections: A and B.',
             'Answer ALL questions in section A.',
@@ -5460,7 +5460,7 @@ class GeographyPaper2Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
@@ -5617,7 +5617,7 @@ class GeographyPaper2Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 'This paper consists of two sections: A and B.',
                 'Answer ALL questions in section A.',
@@ -5681,7 +5681,7 @@ class EnglishPaper1Coverpage:
         total_pages = data.get('total_pages', 8)
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             'Answer all the questions in this paper.',
             'All your answers must be written in the question paper.',
@@ -5942,7 +5942,7 @@ class EnglishPaper1Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
@@ -6081,7 +6081,7 @@ class EnglishPaper1Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 'Answer all the questions in this paper.',
                 'All your answers must be written in the question paper.',
@@ -6141,7 +6141,7 @@ class EnglishPaper2Coverpage:
         total_pages = data.get('total_pages', 8)
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             'Answer all the questions in this question paper.',
             'All your answers must be written in the spaces provided in this question paper.',
@@ -6402,7 +6402,7 @@ class EnglishPaper2Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
@@ -6541,7 +6541,7 @@ class EnglishPaper2Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 'Answer all the questions in this question paper.',
                 'All your answers must be written in the spaces provided in this question paper.',
@@ -6601,7 +6601,7 @@ class EnglishPaper3Coverpage:
         total_pages = data.get('total_pages', 16)
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             'Answer three questions only.',
             'Questions 1 and 2 are compulsory.',
@@ -6866,7 +6866,7 @@ class EnglishPaper3Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
@@ -7008,7 +7008,7 @@ class EnglishPaper3Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 'Answer three questions only.',
                 'Questions 1 and 2 are compulsory.',
@@ -7978,7 +7978,7 @@ class BusinessPaper1Coverpage:
         total_pages = data.get('total_pages', 16)
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             'Answer all the questions in the spaces provided in the question paper.',
             'Non-programmable silent electronic calculators may be used.',
@@ -8143,18 +8143,18 @@ class BusinessPaper1Coverpage:
         
         .instructions-title {{
             font-weight: bold;
-            font-size: 1.6rem;
+            font-size: 1.4rem;
             margin-bottom: 10px;
         }}
         
         .instructions ol {{
             margin-left: 20px;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             line-height: 1.6;
         }}
         
         .instructions li {{
-            margin-bottom: 8px;
+            margin-bottom: 4px;
         }}
         
         .instructions li.bold {{
@@ -8219,10 +8219,8 @@ class BusinessPaper1Coverpage:
         }}
         
         .total-marks-field {{
-            display: inline-block;
             width: 80px;
             height: 30px;
-            border: 1px solid black;
             vertical-align: middle;
         }}
         
@@ -8261,7 +8259,7 @@ class BusinessPaper1Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
@@ -8391,7 +8389,7 @@ class BusinessPaper1Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 'Answer all the questions in the spaces provided in the question paper.',
                 'Non-programmable silent electronic calculators may be used.',
@@ -8448,7 +8446,7 @@ class BusinessPaper2Coverpage:
         total_pages = data.get('total_pages', 18)
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             f'This paper consists of six questions.',
             'Answer any five questions in the spaces provided after question 6.',
@@ -8712,7 +8710,7 @@ class BusinessPaper2Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
@@ -8839,7 +8837,7 @@ class BusinessPaper2Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 f'This paper consists of six questions.',
                 'Answer any five questions in the spaces provided after question 6.',
@@ -8898,7 +8896,7 @@ class CREPaper1Coverpage:
         total_pages = data.get('total_pages', 16)
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             f'This paper consists of six questions.',
             'Answer five questions in the spaces provided at the end of question 6.',
@@ -9162,7 +9160,7 @@ class CREPaper1Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
@@ -9282,7 +9280,7 @@ class CREPaper1Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 f'This paper consists of six questions.',
                 'Answer five questions in the spaces provided at the end of question 6.',
@@ -9341,7 +9339,7 @@ class CREPaper2Coverpage:
         total_pages = data.get('total_pages', 16)
         
         instructions = data.get('instructions', [
-            'Write your name and index number in the spaces provided above.',
+            'Write your name and admission number in the spaces provided above.',
             'Sign and write the date of examination in the spaces provided above.',
             f'This paper consists of six questions.',
             'Answer any five questions in the spaces provided at the end of question 6.',
@@ -9605,7 +9603,7 @@ class CREPaper2Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">Index Number:</span><div class="info-field"></div></div>' if show_number else ''}
+                {f'<div class="info-row"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
                 <div class="info-row"><span class="info-label">Class:</span><div class="info-field"></div></div>
                 {f'<div class="info-row"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
                 <div class="info-row"><span class="info-label">Signature:</span><div class="info-field"></div></div>
@@ -9726,7 +9724,7 @@ class CREPaper2Coverpage:
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
             'instructions': [
-                'Write your name and index number in the spaces provided above.',
+                'Write your name and admission number in the spaces provided above.',
                 'Sign and write the date of examination in the spaces provided above.',
                 f'This paper consists of six questions.',
                 'Answer any five questions in the spaces provided at the end of question 6.',

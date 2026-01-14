@@ -62,6 +62,12 @@ class KCSEEnglishPaper1Generator:
         self.discussion_scenarios = []
         self.telephone_scenarios = []
         
+        # Alternative Question 3 formats (if no 30 marks combined sub-sections available)
+        self.oral_30_marks_questions = []  # Single 30 marks oral skills question
+        self.oral_20_marks_questions = []  # 20 marks oral questions (combine with 10)
+        self.oral_15_marks_questions = []  # 15 marks oral questions (combine two)
+        self.oral_10_marks_questions = []  # 10 marks oral questions (combine with 20)
+        
         # Selected content
         self.selected_functional_task = None
         self.selected_cloze_passage = None
@@ -70,6 +76,7 @@ class KCSEEnglishPaper1Generator:
         self.selected_word_stress = []
         self.selected_discussion = None
         self.selected_telephone = None
+        self.selected_oral_questions = []  # For alternative format
         
         self.attempts = 0
         self.total_marks = 0
@@ -82,70 +89,187 @@ class KCSEEnglishPaper1Generator:
         )
         self.subject = self.paper.subject
         
-        if 'English' not in self.subject.name or 'Paper 1' not in self.paper.name:
-            raise ValueError("This generator is only for English Paper 1")
+        # if 'English' not in self.subject.name or 'Paper 1' not in self.paper.name:
+        #     raise ValueError("This generator is only for English Paper 1")
         
-        # Q1: Functional Writing (question_type: 'functional_writing')
-        self.functional_writing_tasks = list(Question.objects.filter(
-            subject=self.subject,
-            paper=self.paper,
-            question_type='functional_writing',
-            is_active=True
-        ).select_related('topic'))
+        # Get topic IDs from selections (if provided)
+        selected_topic_ids = self.selections.get('topics', [])
         
-        # Q2: Cloze Test (question_type: 'cloze_test')
-        self.cloze_test_passages = list(Question.objects.filter(
-            subject=self.subject,
-            paper=self.paper,
-            question_type='cloze_test',
-            marks=self.Q2_CLOZE_TEST_MARKS,  # Must be exactly 10 marks (10 blanks)
-            is_active=True
-        ))
+        # Get topics - either from selections or all topics for this paper
+        if selected_topic_ids:
+            all_topics = Topic.objects.filter(
+                id__in=selected_topic_ids,
+                paper=self.paper,
+                is_active=True
+            )
+        else:
+            all_topics = Topic.objects.filter(
+                paper=self.paper,
+                is_active=True
+            )
         
-        # Q3a: Riddles (question_type: 'riddle')
-        self.riddles = list(Question.objects.filter(
-            subject=self.subject,
-            paper=self.paper,
-            question_type='riddle',
-            marks=6,  # Riddle analysis typically 6 marks
-            is_active=True
-        ))
+        # Categorize topics by checking their names
+        functional_topics = []
+        cloze_topics = []
+        oral_topics = []
         
-        # Q3b: Homophones (question_type: 'homophones')
-        self.homophone_sets = list(Question.objects.filter(
-            subject=self.subject,
-            paper=self.paper,
-            question_type='homophones',
-            marks=6,  # 6 words = 6 marks
-            is_active=True
-        ))
+        # Sub-categories for oral skills (Question 3 sub-sections)
+        riddle_topics = []
+        homophone_topics = []
+        word_stress_topics = []
+        discussion_topics = []
+        telephone_topics = []
         
-        # Q3c: Word Stress (question_type: 'word_stress')
-        self.word_stress_sets = list(Question.objects.filter(
-            subject=self.subject,
-            paper=self.paper,
-            question_type='word_stress',
-            marks=3,  # 3 words = 3 marks
-            is_active=True
-        ))
+        for topic in all_topics:
+            topic_name_lower = topic.name.lower()
+            
+            # Main categories
+            if 'functional' in topic_name_lower:
+                functional_topics.append(topic)
+            if 'cloze' in topic_name_lower:
+                cloze_topics.append(topic)
+            if 'oral' in topic_name_lower:
+                oral_topics.append(topic)
+            
+            # Oral sub-categories (check for specific keywords)
+            if 'riddle' in topic_name_lower:
+                riddle_topics.append(topic)
+            if 'homophone' in topic_name_lower:
+                homophone_topics.append(topic)
+            if 'stress' in topic_name_lower or 'word stress' in topic_name_lower:
+                word_stress_topics.append(topic)
+            if 'discussion' in topic_name_lower:
+                discussion_topics.append(topic)
+            if 'telephone' in topic_name_lower or 'phone' in topic_name_lower:
+                telephone_topics.append(topic)
         
-        # Q3d: Discussion Leadership (question_type: 'discussion_skills')
-        self.discussion_scenarios = list(Question.objects.filter(
-            subject=self.subject,
+        # Q1: Functional Writing - select from functional topics (20 marks)
+        functional_query = Question.objects.filter(
             paper=self.paper,
-            question_type='discussion_skills',
-            marks=6,  # 3 points × 2 marks = 6
+            marks=self.Q1_FUNCTIONAL_WRITING_MARKS,
             is_active=True
-        ))
+        )
+        if functional_topics:
+            functional_query = functional_query.filter(topic__in=functional_topics)
         
-        # Q3e: Telephone Etiquette (question_type: 'telephone_etiquette')
-        self.telephone_scenarios = list(Question.objects.filter(
-            subject=self.subject,
+        self.functional_writing_tasks = list(functional_query.select_related('topic'))
+        
+        # Q2: Cloze Test - select from cloze topics (10 marks)
+        cloze_query = Question.objects.filter(
             paper=self.paper,
-            question_type='telephone_etiquette',
-            marks=9,  # 3 marks identification + 6 marks correction
+            marks=self.Q2_CLOZE_TEST_MARKS,
             is_active=True
-        ))
+        )
+        if cloze_topics:
+            cloze_query = cloze_query.filter(topic__in=cloze_topics)
+        
+        self.cloze_test_passages = list(cloze_query)
+        
+        # Q3a: Riddles - select from riddle topics (check topic name for 'riddle')
+        riddles_query = Question.objects.filter(
+            paper=self.paper,
+            is_active=True
+        )
+        if riddle_topics:
+            riddles_query = riddles_query.filter(topic__in=riddle_topics)
+        elif oral_topics:
+            # Fallback to general oral topics if no specific riddle topics
+            riddles_query = riddles_query.filter(topic__in=oral_topics, question_type='riddle')
+        
+        self.riddles = list(riddles_query)
+        
+        # Q3b: Homophones - select from homophone topics (check topic name for 'homophone')
+        homophones_query = Question.objects.filter(
+            paper=self.paper,
+            is_active=True
+        )
+        if homophone_topics:
+            homophones_query = homophones_query.filter(topic__in=homophone_topics)
+        elif oral_topics:
+            # Fallback to general oral topics if no specific homophone topics
+            homophones_query = homophones_query.filter(topic__in=oral_topics, question_type='homophones')
+        
+        self.homophone_sets = list(homophones_query)
+        
+        # Q3c: Word Stress - select from word stress topics (check topic name for 'stress')
+        word_stress_query = Question.objects.filter(
+            paper=self.paper,
+            is_active=True
+        )
+        if word_stress_topics:
+            word_stress_query = word_stress_query.filter(topic__in=word_stress_topics)
+        elif oral_topics:
+            # Fallback to general oral topics if no specific word stress topics
+            word_stress_query = word_stress_query.filter(topic__in=oral_topics, question_type='word_stress')
+        
+        self.word_stress_sets = list(word_stress_query)
+        
+        # Q3d: Discussion Leadership - select from discussion topics (check topic name for 'discussion')
+        discussion_query = Question.objects.filter(
+            paper=self.paper,
+            is_active=True
+        )
+        if discussion_topics:
+            discussion_query = discussion_query.filter(topic__in=discussion_topics)
+        elif oral_topics:
+            # Fallback to general oral topics if no specific discussion topics
+            discussion_query = discussion_query.filter(topic__in=oral_topics, question_type='discussion_skills')
+        
+        self.discussion_scenarios = list(discussion_query)
+        
+        # Q3e: Telephone Etiquette - select from telephone topics (check topic name for 'telephone'/'phone')
+        telephone_query = Question.objects.filter(
+            paper=self.paper,
+            is_active=True
+        )
+        if telephone_topics:
+            telephone_query = telephone_query.filter(topic__in=telephone_topics)
+        elif oral_topics:
+            # Fallback to general oral topics if no specific telephone topics
+            telephone_query = telephone_query.filter(topic__in=oral_topics, question_type='telephone_etiquette')
+        
+        self.telephone_scenarios = list(telephone_query)
+        
+        # ALTERNATIVE Q3 FORMATS: Load standalone oral questions if sub-sections not available
+        # 30 marks single questions
+        oral_30_query = Question.objects.filter(
+            paper=self.paper,
+            marks=30,
+            is_active=True
+        )
+        if oral_topics:
+            oral_30_query = oral_30_query.filter(topic__in=oral_topics)
+        self.oral_30_marks_questions = list(oral_30_query)
+        
+        # 20 marks oral questions (to combine with 10 marks)
+        oral_20_query = Question.objects.filter(
+            paper=self.paper,
+            marks=20,
+            is_active=True
+        )
+        if oral_topics:
+            oral_20_query = oral_20_query.filter(topic__in=oral_topics)
+        self.oral_20_marks_questions = list(oral_20_query)
+        
+        # 15 marks oral questions (to combine two of them)
+        oral_15_query = Question.objects.filter(
+            paper=self.paper,
+            marks=15,
+            is_active=True
+        )
+        if oral_topics:
+            oral_15_query = oral_15_query.filter(topic__in=oral_topics)
+        self.oral_15_marks_questions = list(oral_15_query)
+        
+        # 10 marks oral questions (to combine with 20 marks)
+        oral_10_query = Question.objects.filter(
+            paper=self.paper,
+            marks=10,
+            is_active=True
+        )
+        if oral_topics:
+            oral_10_query = oral_10_query.filter(topic__in=oral_topics)
+        self.oral_10_marks_questions = list(oral_10_query)
         
         # Shuffle all
         random.shuffle(self.functional_writing_tasks)
@@ -155,31 +279,56 @@ class KCSEEnglishPaper1Generator:
         random.shuffle(self.word_stress_sets)
         random.shuffle(self.discussion_scenarios)
         random.shuffle(self.telephone_scenarios)
+        random.shuffle(self.oral_30_marks_questions)
+        random.shuffle(self.oral_20_marks_questions)
+        random.shuffle(self.oral_15_marks_questions)
+        random.shuffle(self.oral_10_marks_questions)
         
         print(f"\n[PAPER 1 DATA LOADED]")
-        print(f"  Functional writing tasks: {len(self.functional_writing_tasks)}")
-        print(f"  Cloze test passages: {len(self.cloze_test_passages)}")
-        print(f"  Riddles: {len(self.riddles)}")
-        print(f"  Homophone sets: {len(self.homophone_sets)}")
-        print(f"  Word stress sets: {len(self.word_stress_sets)}")
-        print(f"  Discussion scenarios: {len(self.discussion_scenarios)}")
-        print(f"  Telephone scenarios: {len(self.telephone_scenarios)}")
+        print(f"  SECTION 1 - Functional Skills (from 'functional' topics):")
+        print(f"    Functional writing tasks: {len(self.functional_writing_tasks)}")
+        print(f"  SECTION 2 - Cloze Test (from 'cloze' topics):")
+        print(f"    Cloze test passages: {len(self.cloze_test_passages)}")
+        print(f"  SECTION 3 - Oral Skills (from 'oral' topics):")
+        print(f"    Sub-sections format:")
+        print(f"      Riddles: {len(self.riddles)}")
+        print(f"      Homophone sets: {len(self.homophone_sets)}")
+        print(f"      Word stress sets: {len(self.word_stress_sets)}")
+        print(f"      Discussion scenarios: {len(self.discussion_scenarios)}")
+        print(f"      Telephone scenarios: {len(self.telephone_scenarios)}")
+        print(f"    Alternative formats (if sub-sections insufficient):")
+        print(f"      30 marks questions: {len(self.oral_30_marks_questions)}")
+        print(f"      20 marks questions: {len(self.oral_20_marks_questions)}")
+        print(f"      15 marks questions: {len(self.oral_15_marks_questions)}")
+        print(f"      10 marks questions: {len(self.oral_10_marks_questions)}")
         
-        # Validate minimum requirements
+        # Validate minimum requirements - now more flexible
         if len(self.functional_writing_tasks) < 1:
-            raise ValueError("Need at least 1 functional writing task")
+            raise ValueError("Need at least 1 functional writing task from 'functional' topics")
         if len(self.cloze_test_passages) < 1:
-            raise ValueError("Need at least 1 cloze test passage")
-        if len(self.riddles) < 1:
-            raise ValueError("Need at least 1 riddle")
-        if len(self.homophone_sets) < 1:
-            raise ValueError("Need at least 1 homophone set")
-        if len(self.word_stress_sets) < 1:
-            raise ValueError("Need at least 1 word stress set")
-        if len(self.discussion_scenarios) < 1:
-            raise ValueError("Need at least 1 discussion scenario")
-        if len(self.telephone_scenarios) < 1:
-            raise ValueError("Need at least 1 telephone scenario")
+            raise ValueError("Need at least 1 cloze test passage from 'cloze' topics")
+        
+        # For Question 3, check if we have EITHER sub-sections OR alternative formats
+        has_subsections = (
+            len(self.riddles) >= 1 and 
+            len(self.homophone_sets) >= 1 and 
+            len(self.word_stress_sets) >= 1 and 
+            len(self.discussion_scenarios) >= 1 and 
+            len(self.telephone_scenarios) >= 1
+        )
+        
+        has_30_marks = len(self.oral_30_marks_questions) >= 1
+        has_20_10_combo = len(self.oral_20_marks_questions) >= 1 and len(self.oral_10_marks_questions) >= 1
+        has_15_15_combo = len(self.oral_15_marks_questions) >= 2
+        
+        if not (has_subsections or has_30_marks or has_20_10_combo or has_15_15_combo):
+            raise ValueError(
+                "Need at least ONE of the following for Question 3 (Oral Skills):\n"
+                "  - Complete sub-sections (riddles, homophones, word stress, discussion, telephone)\n"
+                "  - At least 1 question worth 30 marks\n"
+                "  - At least 1 question worth 20 marks + 1 question worth 10 marks\n"
+                "  - At least 2 questions worth 15 marks each"
+            )
     
     def generate(self) -> Dict:
         """Generate English Paper 1"""
@@ -192,28 +341,63 @@ class KCSEEnglishPaper1Generator:
         # Select questions (no complex algorithm needed - straightforward selection)
         self.selected_functional_task = random.choice(self.functional_writing_tasks)
         self.selected_cloze_passage = random.choice(self.cloze_test_passages)
-        self.selected_riddle = random.choice(self.riddles)
-        self.selected_homophones = random.choice(self.homophone_sets)
-        self.selected_word_stress = random.choice(self.word_stress_sets)
-        self.selected_discussion = random.choice(self.discussion_scenarios)
-        self.selected_telephone = random.choice(self.telephone_scenarios)
+        
+        # Question 3: Select oral skills questions based on what's available
+        # Priority: 1) Sub-sections, 2) Single 30 marks, 3) 20+10 combo, 4) 15+15 combo
+        q3_marks = 0
+        q3_format = None
+        
+        # Try sub-sections format first (riddles, homophones, word stress, discussion, telephone)
+        if (len(self.riddles) >= 1 and len(self.homophone_sets) >= 1 and 
+            len(self.word_stress_sets) >= 1 and len(self.discussion_scenarios) >= 1 and 
+            len(self.telephone_scenarios) >= 1):
+            
+            self.selected_riddle = random.choice(self.riddles)
+            self.selected_homophones = random.choice(self.homophone_sets)
+            self.selected_word_stress = random.choice(self.word_stress_sets)
+            self.selected_discussion = random.choice(self.discussion_scenarios)
+            self.selected_telephone = random.choice(self.telephone_scenarios)
+            
+            q3_marks = (self.selected_riddle.marks + self.selected_homophones.marks + 
+                       self.selected_word_stress.marks + self.selected_discussion.marks + 
+                       self.selected_telephone.marks)
+            q3_format = 'sub_sections'
+            print(f"[Q3 FORMAT] Using sub-sections (riddles, homophones, etc.)")
+        
+        # Try single 30 marks question
+        elif len(self.oral_30_marks_questions) >= 1:
+            self.selected_oral_questions = [random.choice(self.oral_30_marks_questions)]
+            q3_marks = 30
+            q3_format = 'single_30'
+            print(f"[Q3 FORMAT] Using single 30 marks question")
+        
+        # Try 20 marks + 10 marks combination
+        elif len(self.oral_20_marks_questions) >= 1 and len(self.oral_10_marks_questions) >= 1:
+            q_20 = random.choice(self.oral_20_marks_questions)
+            q_10 = random.choice(self.oral_10_marks_questions)
+            self.selected_oral_questions = [q_20, q_10]
+            q3_marks = 30
+            q3_format = 'combo_20_10'
+            print(f"[Q3 FORMAT] Using 20 marks + 10 marks combination")
+        
+        # Try 15 marks + 15 marks combination
+        elif len(self.oral_15_marks_questions) >= 2:
+            self.selected_oral_questions = random.sample(self.oral_15_marks_questions, 2)
+            q3_marks = 30
+            q3_format = 'combo_15_15'
+            print(f"[Q3 FORMAT] Using 15 marks + 15 marks combination")
+        
+        else:
+            raise ValueError("No valid format available for Question 3 (Oral Skills)")
         
         # Calculate total marks
-        self.total_marks = (
-            self.selected_functional_task.marks +
-            self.selected_cloze_passage.marks +
-            self.selected_riddle.marks +
-            self.selected_homophones.marks +
-            self.selected_word_stress.marks +
-            self.selected_discussion.marks +
-            self.selected_telephone.marks
-        )
+        self.total_marks = self.selected_functional_task.marks + self.selected_cloze_passage.marks + q3_marks
         
         generation_time = time.time() - start_time
         
         print(f"\n[Q1: FUNCTIONAL WRITING] {self.selected_functional_task.marks} marks")
         print(f"[Q2: CLOZE TEST] {self.selected_cloze_passage.marks} marks")
-        print(f"[Q3: ORAL SKILLS] {self.selected_riddle.marks + self.selected_homophones.marks + self.selected_word_stress.marks + self.selected_discussion.marks + self.selected_telephone.marks} marks")
+        print(f"[Q3: ORAL SKILLS] {q3_marks} marks")
         print(f"\nTotal: {self.total_marks}/{self.TOTAL_MARKS} marks")
         
         if self.total_marks != self.TOTAL_MARKS:
@@ -223,11 +407,11 @@ class KCSEEnglishPaper1Generator:
         print(f"SUCCESS! Generated in {generation_time:.2f}s")
         print(f"{'='*70}")
         
-        return self._build_result(generation_time)
+        return self._build_result(generation_time, q3_format)
     
-    def _build_result(self, generation_time: float) -> Dict:
+    def _build_result(self, generation_time: float, q3_format: str) -> Dict:
         """Build Paper 1 result"""
-        return {
+        result = {
             'paper': {
                 'id': str(self.paper.id),
                 'name': self.paper.name,
@@ -257,45 +441,84 @@ class KCSEEnglishPaper1Generator:
                 'question_3': {
                     'type': 'oral_skills',
                     'marks': self.Q3_ORAL_SKILLS_MARKS,
-                    'sub_sections': {
-                        'a_riddle': {
-                            'id': str(self.selected_riddle.id),
-                            'marks': self.selected_riddle.marks,
-                            'text': self.selected_riddle.question_text,
-                            'answers': self.selected_riddle.answer_text
-                        },
-                        'b_homophones': {
-                            'id': str(self.selected_homophones.id),
-                            'marks': self.selected_homophones.marks,
-                            'text': self.selected_homophones.question_text,
-                            'answers': self.selected_homophones.answer_text
-                        },
-                        'c_word_stress': {
-                            'id': str(self.selected_word_stress.id),
-                            'marks': self.selected_word_stress.marks,
-                            'text': self.selected_word_stress.question_text,
-                            'answers': self.selected_word_stress.answer_text
-                        },
-                        'd_discussion': {
-                            'id': str(self.selected_discussion.id),
-                            'marks': self.selected_discussion.marks,
-                            'text': self.selected_discussion.question_text,
-                            'answers': self.selected_discussion.answer_text
-                        },
-                        'e_telephone': {
-                            'id': str(self.selected_telephone.id),
-                            'marks': self.selected_telephone.marks,
-                            'text': self.selected_telephone.question_text,
-                            'answers': self.selected_telephone.answer_text
-                        }
-                    }
+                    'format': q3_format
                 }
             },
             'statistics': {
                 'total_marks': self.total_marks,
+                'total_questions': 3,  # Q1, Q2, Q3
                 'generation_time_seconds': round(generation_time, 2)
-            }
+            },
+            'question_ids': []  # List of all question UUIDs used
         }
+        
+        # Track all question IDs in a list
+        result['question_ids'].append(str(self.selected_functional_task.id))
+        result['question_ids'].append(str(self.selected_cloze_passage.id))
+        
+        # Add Question 3 content based on format used
+        if q3_format == 'sub_sections':
+            result['questions']['question_3']['sub_sections'] = {
+                'a_riddle': {
+                    'id': str(self.selected_riddle.id),
+                    'marks': self.selected_riddle.marks,
+                    'text': self.selected_riddle.question_text,
+                    'answers': self.selected_riddle.answer_text
+                },
+                'b_homophones': {
+                    'id': str(self.selected_homophones.id),
+                    'marks': self.selected_homophones.marks,
+                    'text': self.selected_homophones.question_text,
+                    'answers': self.selected_homophones.answer_text
+                },
+                'c_word_stress': {
+                    'id': str(self.selected_word_stress.id),
+                    'marks': self.selected_word_stress.marks,
+                    'text': self.selected_word_stress.question_text,
+                    'answers': self.selected_word_stress.answer_text
+                },
+                'd_discussion': {
+                    'id': str(self.selected_discussion.id),
+                    'marks': self.selected_discussion.marks,
+                    'text': self.selected_discussion.question_text,
+                    'answers': self.selected_discussion.answer_text
+                },
+                'e_telephone': {
+                    'id': str(self.selected_telephone.id),
+                    'marks': self.selected_telephone.marks,
+                    'text': self.selected_telephone.question_text,
+                    'answers': self.selected_telephone.answer_text
+                }
+            }
+            # Add question IDs for sub-sections
+            result['question_ids'].append(str(self.selected_riddle.id))
+            result['question_ids'].append(str(self.selected_homophones.id))
+            result['question_ids'].append(str(self.selected_word_stress.id))
+            result['question_ids'].append(str(self.selected_discussion.id))
+            result['question_ids'].append(str(self.selected_telephone.id))
+        elif q3_format == 'single_30':
+            result['questions']['question_3']['questions'] = [{
+                'id': str(self.selected_oral_questions[0].id),
+                'marks': 30,
+                'text': self.selected_oral_questions[0].question_text,
+                'answers': self.selected_oral_questions[0].answer_text
+            }]
+            # Add question ID for single 30 marks question
+            result['question_ids'].append(str(self.selected_oral_questions[0].id))
+        elif q3_format in ['combo_20_10', 'combo_15_15']:
+            result['questions']['question_3']['questions'] = [
+                {
+                    'id': str(q.id),
+                    'marks': q.marks,
+                    'text': q.question_text,
+                    'answers': q.answer_text
+                }
+                for q in self.selected_oral_questions
+            ]
+            # Add question IDs for combo questions
+            result['question_ids'].extend([str(q.id) for q in self.selected_oral_questions])
+        
+        return result
 
 
 class KCSEEnglishPaper2Generator:
@@ -365,7 +588,6 @@ class KCSEEnglishPaper2Generator:
         # Load comprehension passages and sub-questions
         comprehension_topics = self.selections.get('comprehension_topics', [])
         passage_filter = {
-            'subject': self.subject,
             'paper': self.paper,
             'question_type': 'comprehension_passage',
             'is_active': True,
@@ -389,7 +611,6 @@ class KCSEEnglishPaper2Generator:
         # Load literature excerpts and sub-questions
         literature_topics = self.selections.get('literature_topics', [])
         excerpt_filter = {
-            'subject': self.subject,
             'paper': self.paper,
             'question_type': 'literature_excerpt',
             'is_active': True,
@@ -413,7 +634,6 @@ class KCSEEnglishPaper2Generator:
         # Load poems and sub-questions
         poetry_topics = self.selections.get('poetry_topics', [])
         poem_filter = {
-            'subject': self.subject,
             'paper': self.paper,
             'question_type': 'poem',
             'is_active': True,
@@ -434,7 +654,6 @@ class KCSEEnglishPaper2Generator:
         # Load grammar items
         for grammar_type in self.grammar_items.keys():
             self.grammar_items[grammar_type] = list(Question.objects.filter(
-                subject=self.subject,
                 paper=self.paper,
                 question_type=f'grammar_{grammar_type}',
                 is_active=True
@@ -793,7 +1012,6 @@ class KCSEEnglishPaper3Generator:
         
         # Q1a: Creative Story (question_type: 'creative_story')
         self.creative_story_prompts = list(Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             question_type='creative_story',
             marks=self.Q1_CREATIVE_MARKS,
@@ -802,7 +1020,6 @@ class KCSEEnglishPaper3Generator:
         
         # Q1b: Creative Composition (question_type: 'creative_composition')
         self.creative_composition_prompts = list(Question.objects.filter(
-            subject=self.subject,
             paper=self.paper,
             question_type='creative_composition',
             marks=self.Q1_CREATIVE_MARKS,
@@ -812,7 +1029,6 @@ class KCSEEnglishPaper3Generator:
         # Q2: Compulsory Set Text Essay (question_type: 'compulsory_set_text_essay')
         compulsory_text_id = self.selections.get('compulsory_set_text_id')
         compulsory_filter = {
-            'subject': self.subject,
             'paper': self.paper,
             'question_type': 'compulsory_set_text_essay',
             'marks': self.Q2_COMPULSORY_SET_TEXT_MARKS,
@@ -828,7 +1044,6 @@ class KCSEEnglishPaper3Generator:
         # Q3a: Optional Short Story Essay (question_type: 'optional_short_story_essay')
         optional_texts = self.selections.get('optional_set_texts', [])
         short_story_filter = {
-            'subject': self.subject,
             'paper': self.paper,
             'question_type': 'optional_short_story_essay',
             'marks': self.Q3_OPTIONAL_SET_TEXT_MARKS,
@@ -1018,69 +1233,3 @@ class KCSEEnglishPaper3Generator:
         }
 
 
-# Example usage for all three papers
-if __name__ == '__main__':
-    
-    # Paper 1: Functional Skills
-    print("\n" + "="*70)
-    print("GENERATING ENGLISH PAPER 1")
-    print("="*70)
-    
-    paper1_generator = KCSEEnglishPaper1Generator(
-        paper_id='english-paper-1-uuid',
-        selections={}
-    )
-    
-    try:
-        paper1_generator.load_data()
-        paper1_result = paper1_generator.generate()
-        print(f"\n Paper 1 generated successfully: {paper1_result['statistics']['total_marks']} marks")
-    except Exception as e:
-        print(f"\n Paper 1 failed: {str(e)}")
-    
-    
-    # Paper 2: Comprehension, Literary Appreciation & Grammar
-    print("\n" + "="*70)
-    print("GENERATING ENGLISH PAPER 2")
-    print("="*70)
-    
-    paper2_selections = {
-        'comprehension_topics': [],  # Empty = use all
-        'literature_topics': [],
-        'poetry_topics': [],
-    }
-    
-    paper2_generator = KCSEEnglishPaper2Generator(
-        paper_id='english-paper-2-uuid',
-        selections=paper2_selections
-    )
-    
-    try:
-        paper2_generator.load_data()
-        paper2_result = paper2_generator.generate()
-        print(f"\n✓ Paper 2 generated successfully: {paper2_result['statistics']['total_marks']} marks")
-    except Exception as e:
-        print(f"\n✗ Paper 2 failed: {str(e)}")
-    
-    
-    # Paper 3: Creative Composition & Essays on Set Texts
-    print("\n" + "="*70)
-    print("GENERATING ENGLISH PAPER 3")
-    print("="*70)
-    
-    paper3_selections = {
-        'compulsory_set_text_id': 'a-dolls-house-uuid',
-        'optional_set_texts': []  # Empty = use all available
-    }
-    
-    paper3_generator = KCSEEnglishPaper3Generator(
-        paper_id='english-paper-3-uuid',
-        selections=paper3_selections
-    )
-    
-    try:
-        paper3_generator.load_data()
-        paper3_result = paper3_generator.generate()
-        print(f"\n Paper 3 generated successfully: {paper3_result['statistics']['total_marks']} marks")
-    except Exception as e:
-        print(f"\nPaper 3 failed: {str(e)}")

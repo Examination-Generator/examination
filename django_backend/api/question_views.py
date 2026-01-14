@@ -552,6 +552,39 @@ def get_question_stats(request):
         count=Count('id')
     ).order_by('-count')
     
+    # Get questions by subject and creator
+    by_subject_creator = Question.objects.filter(
+        is_active=True
+    ).select_related('subject', 'created_by').values(
+        'subject__name',
+        'created_by__id',
+        'created_by__full_name'
+    ).annotate(
+        count=Count('id')
+    ).order_by('subject__name', '-count')
+    
+    # Organize by subject with creator breakdown
+    subject_breakdown = {}
+    for item in by_subject_creator:
+        subject_name = item['subject__name']
+        if subject_name not in subject_breakdown:
+            subject_breakdown[subject_name] = {
+                'subjectName': subject_name,
+                'total': 0,
+                'creators': []
+            }
+        
+        creator_name = item['created_by__full_name'] or 'Unknown'
+        creator_id = item['created_by__id']
+        question_count = item['count']
+        
+        subject_breakdown[subject_name]['total'] += question_count
+        subject_breakdown[subject_name]['creators'].append({
+            'creatorId': str(creator_id) if creator_id else None,
+            'creatorName': creator_name,
+            'count': question_count
+        })
+    
     return success_response(
         'Statistics retrieved successfully',
         {
@@ -576,10 +609,136 @@ def get_question_stats(request):
                     'count': item['count']
                 }
                 for item in by_subject
-            ]
+            ],
+            'bySubjectWithCreators': list(subject_breakdown.values())
         }
     )
 
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_creator_statistics(request):
+    
+    from django.db.models import Count, Q
+    from django.contrib.auth import get_user_model
+    
+    User = get_user_model()
+    
+    # Get all active questions with creator info
+    questions = Question.objects.filter(
+        is_active=True
+    ).select_related('created_by', 'subject')
+    
+    total_questions = questions.count()
+    
+    # Get all creators who have created questions
+    creator_stats = questions.values(
+        'created_by__id',
+        'created_by__full_name',
+        'created_by__phone_number'
+    ).annotate(
+        total_questions=Count('id')
+    ).order_by('-total_questions')
+    
+    total_creators = creator_stats.count()
+    average_per_creator = round(total_questions / total_creators, 2) if total_creators > 0 else 0
+    
+    # Build top contributors list
+    top_contributors = []
+    for idx, creator in enumerate(creator_stats, start=1):
+        creator_id = creator['created_by__id']
+        creator_name = creator['created_by__full_name'] or 'Unknown'
+        creator_phone = creator['created_by__phone_number']
+        question_count = creator['total_questions']
+        percentage = round((question_count / total_questions * 100), 2) if total_questions > 0 else 0
+        
+        top_contributors.append({
+            'rank': idx,
+            'creatorId': str(creator_id) if creator_id else None,
+            'creatorName': creator_name,
+            'phoneNumber': creator_phone,
+            'totalQuestions': question_count,
+            'percentage': percentage
+        })
+    
+    # Get subject breakdown per creator
+    creator_subject_breakdown = questions.values(
+        'created_by__id',
+        'created_by__full_name',
+        'subject__id',
+        'subject__name'
+    ).annotate(
+        count=Count('id')
+    ).order_by('created_by__full_name', 'subject__name')
+    
+    # Organize by creator
+    creators_with_subjects = {}
+    for item in creator_subject_breakdown:
+        creator_id = str(item['created_by__id']) if item['created_by__id'] else 'unknown'
+        creator_name = item['created_by__full_name'] or 'Unknown'
+        
+        if creator_id not in creators_with_subjects:
+            creators_with_subjects[creator_id] = {
+                'creatorId': creator_id if creator_id != 'unknown' else None,
+                'creatorName': creator_name,
+                'subjects': [],
+                'totalQuestions': 0
+            }
+        
+        creators_with_subjects[creator_id]['subjects'].append({
+            'subjectId': str(item['subject__id']),
+            'subjectName': item['subject__name'],
+            'count': item['count']
+        })
+        creators_with_subjects[creator_id]['totalQuestions'] += item['count']
+    
+    # Sort by total questions descending
+    subject_breakdown_per_creator = sorted(
+        creators_with_subjects.values(),
+        key=lambda x: x['totalQuestions'],
+        reverse=True
+    )
+    
+    # Get questions by subject
+    questions_by_subject = questions.values(
+        'subject__id',
+        'subject__name'
+    ).annotate(
+        total_questions=Count('id'),
+        unique_creators=Count('created_by__id', distinct=True)
+    ).order_by('-total_questions')
+    
+    subjects_summary = []
+    for subject in questions_by_subject:
+        subject_id = str(subject['subject__id'])
+        subject_name = subject['subject__name']
+        question_count = subject['total_questions']
+        creator_count = subject['unique_creators']
+        percentage = round((question_count / total_questions * 100), 2) if total_questions > 0 else 0
+        
+        subjects_summary.append({
+            'subjectId': subject_id,
+            'subjectName': subject_name,
+            'totalQuestions': question_count,
+            'uniqueCreators': creator_count,
+            'percentage': percentage
+        })
+    
+    return success_response(
+        'Creator statistics retrieved successfully',
+        {
+            'overallSummary': {
+                'totalCreators': total_creators,
+                'totalQuestions': total_questions,
+                'averagePerCreator': average_per_creator,
+                'generatedAt': timezone.now().isoformat()
+            },
+            'topContributors': top_contributors,
+            'subjectBreakdownPerCreator': subject_breakdown_per_creator,
+            'questionsBySubject': subjects_summary
+        }
+    )
 
 
 @api_view(['DELETE'])

@@ -625,7 +625,7 @@ export default function EditorDashboard({ onLogout }) {
     
     // New Subject Form States
     const [newSubjectName, setNewSubjectName] = useState('');
-    const [newSubjectPapers, setNewSubjectPapers] = useState([{ name: '', topics: [''], sections: [''] }]);
+    const [newSubjectPapers, setNewSubjectPapers] = useState([{ name: '', topics: [''], sections: [''], durationHours: 2, durationMinutes: 0 }]);
 
     // CRUD States for Subject Management
     const [existingSubjects, setExistingSubjects] = useState([]);
@@ -643,6 +643,11 @@ export default function EditorDashboard({ onLogout }) {
     const [selectedPaperIndices, setSelectedPaperIndices] = useState([]); // Papers selected for editing
     const [showTopicsModal, setShowTopicsModal] = useState(false);
     const [viewingPaperTopics, setViewingPaperTopics] = useState(null); // { paperName: '', topics: [], sections: [] }
+    
+    // Creators modal states
+    const [showCreatorsModal, setShowCreatorsModal] = useState(false);
+    const [creatorStats, setCreatorStats] = useState(null);
+    const [isLoadingCreators, setIsLoadingCreators] = useState(false);
 
     // Dynamic subjects loaded from database
     const [subjects, setSubjects] = useState({});
@@ -928,6 +933,58 @@ export default function EditorDashboard({ onLogout }) {
             setFilterTopicId('');
         }
     }, [filterTopic, availableTopics]);
+
+    // Fetch creator statistics
+    const fetchCreatorStatistics = async () => {
+        setIsLoadingCreators(true);
+        try {
+            const token = authService.getAuthToken();
+            console.log('🔍 Fetching creator statistics...');
+            console.log('   Token:', token ? 'Present' : 'Missing');
+            console.log('   Endpoint:', `${API_URL}/questions/creator-statistics/`);
+            
+            const response = await fetch(`${API_URL}/questions/creator-statistics/`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log(' Response status:', response.status, response.statusText);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(' API Error Response:', errorText);
+                throw new Error(`Failed to fetch creator statistics: ${response.status} ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log(' Creator statistics received:', data);
+            console.log('   Data structure:', {
+                hasData: !!data.data,
+                hasOverallSummary: !!data.overallSummary,
+                hasTopContributors: !!data.topContributors,
+                dataKeys: Object.keys(data)
+            });
+            
+            // Extract data from wrapper if it exists (success_response wraps data in 'data' field)
+            const statsData = data.data || data;
+            console.log('   Using stats data:', statsData);
+            console.log('   Stats data keys:', Object.keys(statsData));
+            
+            setCreatorStats(statsData);
+        } catch (error) {
+            console.error(' Error fetching creator statistics:', error);
+            console.error('   Error details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
+            showError('Failed to load creator statistics: ' + error.message);
+        } finally {
+            setIsLoadingCreators(false);
+        }
+    };
 
     // Fetch statistics and questions when statistics tab is active or when refresh triggered
     useEffect(() => {
@@ -3375,6 +3432,11 @@ useEffect(() => {
                             📖 {question.topic_name}
                         </span>
                     )}
+                    {question.created_by_name && (
+                        <span className="bg-gray-100 px-2 py-1 rounded">
+                            👤 {question.created_by_name}
+                        </span>
+                    )}
                     <span className={`px-2 py-1 rounded font-semibold ${
                         question.is_active !== false 
                             ? 'bg-green-100 text-green-700' 
@@ -3819,7 +3881,7 @@ useEffect(() => {
 
     // New Subject Management Functions
     const addPaper = () => {
-        setNewSubjectPapers([...newSubjectPapers, { name: '', topics: [''], sections: [''] }]);
+        setNewSubjectPapers([...newSubjectPapers, { name: '', topics: [''], sections: [''], durationHours: 2, durationMinutes: 0 }]);
     };
 
     const removePaper = (index) => {
@@ -3830,6 +3892,17 @@ useEffect(() => {
     const updatePaperName = (index, name) => {
         const updated = [...newSubjectPapers];
         updated[index].name = name;
+        setNewSubjectPapers(updated);
+    };
+
+    const updatePaperDuration = (index, field, value) => {
+        const updated = [...newSubjectPapers];
+        const numValue = parseInt(value) || 0;
+        if (field === 'hours') {
+            updated[index].durationHours = Math.max(0, Math.min(24, numValue));
+        } else if (field === 'minutes') {
+            updated[index].durationMinutes = Math.max(0, Math.min(59, numValue));
+        }
         setNewSubjectPapers(updated);
     };
 
@@ -3951,6 +4024,8 @@ useEffect(() => {
             name: newSubjectName.trim(),
             papers: validPapers.map(paper => ({
                 name: paper.name.trim(),
+                durationHours: paper.durationHours || 2,
+                durationMinutes: paper.durationMinutes || 0,
                 topics: paper.topics.filter(t => t.trim() !== ''),
                 sections: paper.sections.filter(s => s.trim() !== '').length > 0 
                     ? paper.sections.filter(s => s.trim() !== '')
@@ -3968,7 +4043,7 @@ useEffect(() => {
             
             // Reset form
             setNewSubjectName('');
-            setNewSubjectPapers([{ name: '', topics: [''], sections: [''] }]);
+            setNewSubjectPapers([{ name: '', topics: [''], sections: [''], durationHours: 2, durationMinutes: 0 }]);
             
             // Silent background refresh to ensure consistency (no UI disruption)
             setTimeout(() => {
@@ -4006,6 +4081,8 @@ useEffect(() => {
                 ? subject.papers.map(paper => ({
                     id: paper.id, // PRESERVE paper ID
                     name: paper.name || '',
+                    durationHours: paper.durationHours || 2,
+                    durationMinutes: paper.durationMinutes || 0,
                     // Topics can be objects {id, name} or strings - preserve both
                     topics: Array.isArray(paper.topics) && paper.topics.length > 0 
                         ? paper.topics.map(t => {
@@ -4025,7 +4102,7 @@ useEffect(() => {
                         })
                         : [] // Sections can be empty
                 }))
-                : [{ name: '', topics: [{ name: '' }], sections: [] }];
+                : [{ name: '', topics: [{ name: '' }], sections: [], durationHours: 2, durationMinutes: 0 }];
                 
             setEditSubjectData({
                 id: subject.id,
@@ -4173,7 +4250,7 @@ useEffect(() => {
     const handleAddEditPaper = () => {
         setEditSubjectData(prev => ({
             ...prev,
-            papers: [...prev.papers, { name: '', topics: [{ name: '' }], sections: [] }]
+            papers: [...prev.papers, { name: '', topics: [{ name: '' }], sections: [], durationHours: 2, durationMinutes: 0 }]
         }));
         // Auto-select the new paper for editing
         setSelectedPaperIndices(prev => [...prev, editSubjectData.papers.length]);
@@ -4215,6 +4292,23 @@ useEffect(() => {
             papers: prev.papers.map((paper, index) => 
                 index === paperIndex ? { ...paper, name: value } : paper
             )
+        }));
+    };
+
+    const handleEditPaperDurationChange = (paperIndex, field, value) => {
+        const numValue = parseInt(value) || 0;
+        setEditSubjectData(prev => ({
+            ...prev,
+            papers: prev.papers.map((paper, index) => {
+                if (index === paperIndex) {
+                    if (field === 'hours') {
+                        return { ...paper, durationHours: Math.max(0, Math.min(24, numValue)) };
+                    } else {
+                        return { ...paper, durationMinutes: Math.max(0, Math.min(59, numValue)) };
+                    }
+                }
+                return paper;
+            })
         }));
     };
 
@@ -4349,7 +4443,9 @@ useEffect(() => {
                 const paperData = {
                     name: paper.name.trim(),
                     topics: Array.from(topicsMap.values()),
-                    sections: Array.from(sectionsMap.values())
+                    sections: Array.from(sectionsMap.values()),
+                    durationHours: paper.durationHours || 2,
+                    durationMinutes: paper.durationMinutes || 0
                 };
                 
                 // Include ID for existing papers to preserve them
@@ -7268,6 +7364,43 @@ useEffect(() => {
                                             />
                                         </div>
 
+                                        {/* Paper Duration */}
+                                        <div className="mb-4">
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                Paper Duration *
+                                            </label>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex-1">
+                                                    <label className="block text-xs text-gray-600 mb-1">Hours</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="24"
+                                                        value={paper.durationHours || 2}
+                                                        onChange={(e) => updatePaperDuration(paperIndex, 'hours', e.target.value)}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="flex-1">
+                                                    <label className="block text-xs text-gray-600 mb-1">Minutes</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        max="59"
+                                                        value={paper.durationMinutes || 0}
+                                                        onChange={(e) => updatePaperDuration(paperIndex, 'minutes', e.target.value)}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="pt-5 text-sm text-gray-600">
+                                                    = {paper.durationHours || 0}h {paper.durationMinutes || 0}m
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-1">Default: 2 hours 00 minutes</p>
+                                        </div>
+
                                         {/* Topics */}
                                         <div className="mb-4">
                                             <div className="flex justify-between items-center mb-2">
@@ -7637,6 +7770,42 @@ useEffect(() => {
                                                 {/* Only show edit fields if paper is selected or is a new paper */}
                                                 {(!isExistingPaper || isSelected) && (
                                                     <>
+                                                        {/* Paper Duration */}
+                                                        <div className="bg-blue-50 p-3 rounded-lg">
+                                                            <label className="block text-xs font-semibold text-gray-600 mb-2">
+                                                                Paper Duration *
+                                                            </label>
+                                                            <div className="flex items-center space-x-3">
+                                                                <div className="flex items-center space-x-2">
+                                                                    <label className="text-xs text-gray-600">Hours:</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        max="24"
+                                                                        value={paper.durationHours || 2}
+                                                                        onChange={(e) => handleEditPaperDurationChange(paperIndex, 'hours', e.target.value)}
+                                                                        className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm"
+                                                                        disabled={isExistingPaper && !isSelected}
+                                                                    />
+                                                                </div>
+                                                                <div className="flex items-center space-x-2">
+                                                                    <label className="text-xs text-gray-600">Minutes:</label>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        max="59"
+                                                                        value={paper.durationMinutes || 0}
+                                                                        onChange={(e) => handleEditPaperDurationChange(paperIndex, 'minutes', e.target.value)}
+                                                                        className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm"
+                                                                        disabled={isExistingPaper && !isSelected}
+                                                                    />
+                                                                </div>
+                                                                <div className="text-xs text-gray-600 font-medium">
+                                                                    = {paper.durationHours || 0}h {paper.durationMinutes || 0}m
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 mt-1">Recommended: 2h 00m for standard exams</p>
+                                                        </div>
 
                                             {/* Topics */}
                                             <div>
@@ -8498,6 +8667,12 @@ useEffect(() => {
                                             <div>
                                                 <span className="font-semibold text-gray-700">Paper:</span>
                                                 <span className="ml-2 text-gray-600">{selectedQuestion.paper_name}</span>
+                                            </div>
+                                        )}
+                                        {selectedQuestion.created_by_name && (
+                                            <div>
+                                                <span className="font-semibold text-gray-700">Created By:</span>
+                                                <span className="ml-2 text-gray-600">{selectedQuestion.created_by_name}</span>
                                             </div>
                                         )}
                                         <div>
@@ -9556,24 +9731,38 @@ useEffect(() => {
                             {/* Header with Refresh Button */}
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-2xl font-bold text-gray-800">Question Statistics</h2>
-                                <button
-                                    onClick={() => {
-                                        fetchStatistics();
-                                        fetchQuestions();
-                                    }}
-                                    disabled={isLoadingStats}
-                                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <svg 
-                                        className={`w-5 h-5 ${isLoadingStats ? 'animate-spin' : ''}`} 
-                                        fill="none" 
-                                        stroke="currentColor" 
-                                        viewBox="0 0 24 24"
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setShowCreatorsModal(true);
+                                            fetchCreatorStatistics();
+                                        }}
+                                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition"
                                     >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                    {isLoadingStats ? 'Refreshing...' : 'Refresh'}
-                                </button>
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                        Creators
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            fetchStatistics();
+                                            fetchQuestions();
+                                        }}
+                                        disabled={isLoadingStats}
+                                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <svg 
+                                            className={`w-5 h-5 ${isLoadingStats ? 'animate-spin' : ''}`} 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        {isLoadingStats ? 'Refreshing...' : 'Refresh'}
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Overall Statistics */}
@@ -9853,6 +10042,203 @@ useEffect(() => {
                     );
                 })()}
             </div>
+            
+            {/* Creators Modal */}
+            {showCreatorsModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                        {/* Modal Header */}
+                        <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                </svg>
+                                <h3 className="text-2xl font-bold text-white">Creator Contributions</h3>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={fetchCreatorStatistics}
+                                    disabled={isLoadingCreators}
+                                    className="text-white hover:bg-purple-800 rounded-full p-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Refresh data"
+                                >
+                                    <svg className={`w-6 h-6 ${isLoadingCreators ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <button
+                                    onClick={() => setShowCreatorsModal(false)}
+                                    className="text-white hover:bg-purple-800 rounded-full p-2 transition"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* Modal Content */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {isLoadingCreators ? (
+                                <div className="flex justify-center items-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                                </div>
+                            ) : creatorStats ? (
+                                <div className="space-y-6">
+                                    {/* Overall Summary */}
+                                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
+                                        <h4 className="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">
+                                            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+                                                <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+                                            </svg>
+                                            Overall Summary
+                                        </h4>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                            <div className="bg-white rounded-lg p-4 shadow-sm">
+                                                <p className="text-sm text-gray-600">Total Creators</p>
+                                                <p className="text-3xl font-bold text-purple-600">
+                                                    {creatorStats.overallSummary?.totalCreators || 0}
+                                                </p>
+                                            </div>
+                                            <div className="bg-white rounded-lg p-4 shadow-sm">
+                                                <p className="text-sm text-gray-600">Total Questions</p>
+                                                <p className="text-3xl font-bold text-blue-600">
+                                                    {creatorStats.overallSummary?.totalQuestions || 0}
+                                                </p>
+                                            </div>
+                                            <div className="bg-white rounded-lg p-4 shadow-sm">
+                                                <p className="text-sm text-gray-600">Avg per Creator</p>
+                                                <p className="text-3xl font-bold text-green-600">
+                                                    {creatorStats.overallSummary?.averagePerCreator || 0}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Top Contributors */}
+                                    {creatorStats.topContributors && creatorStats.topContributors.length > 0 && (
+                                        <div>
+                                            <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                                <svg className="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                                                </svg>
+                                                Top Contributors ({creatorStats.topContributors.length})
+                                            </h4>
+                                            <div className="space-y-3">
+                                                {creatorStats.topContributors.map((creator, index) => (
+                                                    <div key={creator.creatorId || index} className="bg-white rounded-lg p-4 shadow-md border border-gray-200 hover:shadow-lg transition">
+                                                        <div className="flex items-start justify-between mb-3">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                                                                    #{creator.rank}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-bold text-gray-800">{creator.creatorName}</p>
+                                                                    {creator.phoneNumber && (
+                                                                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                                            </svg>
+                                                                            {creator.phoneNumber}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="text-2xl font-bold text-purple-600">{creator.totalQuestions}</p>
+                                                                <p className="text-xs text-gray-500">{creator.percentage}%</p>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {/* Find subject breakdown for this creator */}
+                                                        {(() => {
+                                                            const creatorDetails = creatorStats.subjectBreakdownPerCreator?.find(
+                                                                c => c.creatorName === creator.creatorName
+                                                            );
+                                                            return creatorDetails && creatorDetails.subjects && creatorDetails.subjects.length > 0 && (
+                                                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                                                    <p className="text-xs font-semibold text-gray-600 mb-2">By Subject:</p>
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {creatorDetails.subjects
+                                                                            .sort((a, b) => b.count - a.count)
+                                                                            .map((subject, idx) => (
+                                                                            <span key={idx} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-medium">
+                                                                                {subject.subjectName}: {subject.count}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Questions by Subject Summary */}
+                                    {creatorStats.questionsBySubject && creatorStats.questionsBySubject.length > 0 && (
+                                        <div>
+                                            <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                                <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                                                </svg>
+                                                Questions by Subject
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                {creatorStats.questionsBySubject
+                                                    .sort((a, b) => b.totalQuestions - a.totalQuestions)
+                                                    .map((subject, index) => (
+                                                    <div key={subject.subjectId || index} className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200 hover:shadow-md transition">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div className="flex-1">
+                                                                <h5 className="font-bold text-gray-800 text-lg">{subject.subjectName}</h5>
+                                                                <p className="text-sm text-gray-600 mt-1">
+                                                                    {subject.uniqueCreators} {subject.uniqueCreators === 1 ? 'creator' : 'creators'}
+                                                                </p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="text-2xl font-bold text-blue-600">{subject.totalQuestions}</p>
+                                                                <p className="text-xs text-blue-700">{subject.percentage}%</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-2 bg-white bg-opacity-50 rounded p-2">
+                                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                                                <div 
+                                                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                                                    style={{ width: `${subject.percentage}%` }}
+                                                                ></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 text-gray-500">
+                                    <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p className="text-lg font-semibold">No creator data available</p>
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* Modal Footer */}
+                        <div className="bg-gray-50 px-6 py-4 flex justify-end border-t border-gray-200">
+                            <button
+                                onClick={() => setShowCreatorsModal(false)}
+                                className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-6 rounded-lg transition"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }  

@@ -196,7 +196,8 @@ class PaperSerializer(serializers.ModelSerializer):
     class Meta:
         model = Paper
         fields = ['id', 'name', 'description', 'is_active', 'subject', 
-                  'sections', 'topics', 'created_at']
+                  'sections', 'topics', 'time_allocation', 'total_marks',
+                  'duration_hours', 'duration_minutes', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 
@@ -237,11 +238,17 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
             sections_data = paper_data.pop('sections', [])
             topics_data = paper_data.pop('topics', [])
             
+            # Extract duration fields if provided
+            duration_hours = paper_data.pop('duration_hours', 2)
+            duration_minutes = paper_data.pop('duration_minutes', 0)
+            
             paper = Paper.objects.create(
                 subject=subject,
                 created_by=user,
                 name=paper_data.get('name'),
-                description=paper_data.get('description', '')
+                description=paper_data.get('description', ''),
+                duration_hours=duration_hours,
+                duration_minutes=duration_minutes
             )
             
             # Create sections
@@ -311,10 +318,18 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
                     paper = existing_papers[paper_name]
                     updated_paper_names.add(paper_name)
                     
-                    # Update paper description if provided
+                    # Update paper fields if provided
                     if 'description' in paper_data:
                         paper.description = paper_data.get('description', '')
-                        paper.save()
+                    if 'duration_hours' in paper_data:
+                        paper.duration_hours = paper_data.get('duration_hours', 2)
+                    if 'duration_minutes' in paper_data:
+                        paper.duration_minutes = paper_data.get('duration_minutes', 0)
+                    if 'total_marks' in paper_data:
+                        paper.total_marks = paper_data.get('total_marks', 80)
+                    if 'time_allocation' in paper_data:
+                        paper.time_allocation = paper_data.get('time_allocation', 120)
+                    paper.save()
                     
                     # Get existing topics and sections
                     existing_topics = {topic.name: topic for topic in paper.topics.all()}
@@ -393,11 +408,21 @@ class SubjectCreateSerializer(serializers.ModelSerializer):
                     logger.info(f"[SUBJECT UPDATE] Creating new paper: '{paper_name}' with {len(topics_data)} topic(s) and {len(sections_data)} section(s)")
                     updated_paper_names.add(paper_name)
                     
+                    # Extract duration and other paper fields
+                    duration_hours = paper_data.get('duration_hours', 2)
+                    duration_minutes = paper_data.get('duration_minutes', 0)
+                    total_marks = paper_data.get('total_marks', 80)
+                    time_allocation = paper_data.get('time_allocation', 120)
+                    
                     paper = Paper.objects.create(
                         subject=instance,
                         created_by=user,
                         name=paper_name,
-                        description=paper_data.get('description', '')
+                        description=paper_data.get('description', ''),
+                        duration_hours=duration_hours,
+                        duration_minutes=duration_minutes,
+                        total_marks=total_marks,
+                        time_allocation=time_allocation
                     )
                     
                     # Create sections
@@ -452,6 +477,7 @@ class QuestionListSerializer(serializers.ModelSerializer):
     paper_name = serializers.SerializerMethodField()
     topic_name = serializers.SerializerMethodField()
     section_name = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
     
     def get_subject_name(self, obj):
         return obj.subject.name if obj.subject else None
@@ -471,6 +497,12 @@ class QuestionListSerializer(serializers.ModelSerializer):
     def get_section_name(self, obj):
         return obj.section.name if obj.section else None
     
+    def get_created_by_name(self, obj):
+        """Get the full name of the user who created the question"""
+        if obj.created_by:
+            return obj.created_by.full_name
+        return None
+    
     class Meta:
         model = Question
         fields = ['id', 'subject', 'subject_name', 'paper', 'paper_name', 
@@ -480,7 +512,8 @@ class QuestionListSerializer(serializers.ModelSerializer):
                   'question_image_positions', 'answer_image_positions',
                   'question_answer_lines', 'answer_answer_lines',
                   'marks', 'question_type', 'kcse_question_type', 'paper2_category',
-                  'difficulty', 'is_nested', 'is_active', 'times_used', 'created_at']
+                  'difficulty', 'is_nested', 'is_active', 'times_used',
+                  'created_by', 'created_by_name', 'created_at']
         read_only_fields = ['id', 'created_at', 'times_used']
 
 
