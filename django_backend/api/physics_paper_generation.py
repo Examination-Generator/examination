@@ -749,15 +749,7 @@ def generate_physics_paper(request):
         # Get user from request if available
         user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
         
-        # Generate unique code
-        current_year = datetime.now().year
-        paper = generator.paper
-        year_count = GeneratedPaper.objects.filter(
-            paper=paper,
-            created_at__year=current_year
-        ).count()
         
-        unique_code = f"PHY{paper_number}-{current_year}-{year_count + 1:03d}"
         
         logger.info(f"[GENERATE] Starting Physics Paper {paper_number} generation")
         logger.info(f"[GENERATE] User: {user}")
@@ -781,6 +773,16 @@ def generate_physics_paper(request):
         # Load data and generate
         generator.load_data()
         result = generator.generate()
+        
+        # Generate unique code
+        current_year = datetime.now().year
+        paper = generator.paper
+        year_count = GeneratedPaper.objects.filter(
+            paper=paper,
+            created_at__year=current_year
+        ).count()
+        
+        unique_code = f"PHY{paper_number}-{current_year}-{year_count + 1:03d}"
         
         # Create GeneratedPaper record
         with transaction.atomic():

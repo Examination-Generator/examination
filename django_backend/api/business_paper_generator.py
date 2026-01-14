@@ -837,9 +837,7 @@ def generate_business_paper(request):
         
         user = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
         
-        # Generate unique code
-        timestamp = datetime.now().strftime('%y%m%d%H%M%S')
-        unique_code = f"BUS{paper_number}-{timestamp}"
+        
         
         # Initialize appropriate generator
         if paper_number == 1:
@@ -858,6 +856,15 @@ def generate_business_paper(request):
         # Load data and generate
         generator.load_data()
         result = generator.generate()
+        
+        # Generate unique code
+        current_year = datetime.now().year
+        paper = generator.paper
+        year_count = GeneratedPaper.objects.filter(
+            paper=paper,
+            created_at__year=current_year
+        ).count()
+        unique_code = f"BUS{paper_number}-{current_year}-{year_count + 1:03d}"
         
         # Create GeneratedPaper record
         generated_paper = GeneratedPaper.objects.create(

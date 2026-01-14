@@ -1493,7 +1493,8 @@ def generate_geography_paper(request):
             )
         generator.load_data()
         result = generator.generate()
-        from datetime import datetime
+        
+        # Generate unique code
         current_year = datetime.now().year
         paper = generator.paper
         year_count = GeneratedPaper.objects.filter(
@@ -1501,6 +1502,8 @@ def generate_geography_paper(request):
             created_at__year=current_year
         ).count()
         unique_code = f"GEO{paper_number}-{current_year}-{year_count + 1:03d}"
+        
+        #save generated paper record
         generated_paper = GeneratedPaper.objects.create(
             paper=paper,
             unique_code=unique_code,
@@ -1586,11 +1589,14 @@ def generate_english_paper(request):
             return Response({"success": False, "message": "Invalid paper_number for English (must be 1, 2, or 3)"}, status=status.HTTP_400_BAD_REQUEST)
         generator.load_data()
         result = generator.generate()
-        from datetime import datetime
+        
+        # Generate unique code
         current_year = datetime.now().year
         paper = generator.paper
         year_count = GeneratedPaper.objects.filter(paper=paper, created_at__year=current_year).count()
         unique_code = f"EN{paper_number}-{current_year}-{year_count + 1:03d}"
+        
+        #save generated paper record
         generated_paper = GeneratedPaper.objects.create(
             paper=paper,
             unique_code=unique_code,
@@ -1666,11 +1672,12 @@ def generate_mathematics_paper(request):
             return Response({"success": False, "message": "Invalid paper_number for Mathematics (must be 1 or 2)"}, status=status.HTTP_400_BAD_REQUEST)
         generator.load_data()
         result = generator.generate()
-        from datetime import datetime
+        # Generate unique code
         current_year = datetime.now().year
         paper = generator.paper
         year_count = GeneratedPaper.objects.filter(paper=paper, created_at__year=current_year).count()
         unique_code = f"MA{paper_number}-{current_year}-{year_count + 1:03d}"
+        #save generated paper record
         generated_paper = GeneratedPaper.objects.create(
             paper=paper,
             unique_code=unique_code,
