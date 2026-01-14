@@ -736,9 +736,19 @@ def view_full_paper(request, paper_id):
         - Paper metadata
         - All questions in order (without answers)
         - Statistics
+        - Special rendering for Business Paper 2 (6 sections with paired questions a and b)
     """
     try:
         generated_paper = get_object_or_404(GeneratedPaper, id=paper_id)
+        
+        # Check if this is Business Paper 2
+        subject_name = generated_paper.paper.subject.name.upper()
+        paper_name = generated_paper.paper.name.lower()
+        paper_number = extract_paper_number_from_name(paper_name)
+        is_business_paper_2 = (
+            ('BUSINESS' in subject_name) and 
+            (paper_number == 2)
+        )
         
         # Load all questions in order using the stored question_ids list
         question_ids = generated_paper.question_ids
@@ -751,58 +761,169 @@ def view_full_paper(request, paper_id):
         ordered_questions = []
         marking_scheme = []
         
-        for idx, qid in enumerate(question_ids, start=1):
-            question = question_map.get(qid)
-            if question:
-                # Question data for paper preview (no answers)
-                question_data = {
-                    'id': str(question.id),
-                    'question_number': idx,
-                    'question_text': question.question_text,
-                    'question_inline_images': question.question_inline_images,
-                    'question_image_positions': question.question_image_positions,
-                    'question_answer_lines': question.question_answer_lines,
-                    'marks': question.marks,
-                    'is_nested': question.is_nested,
-                    'nested_parts': question.nested_parts if question.is_nested else None,
-                    'question_type': question.question_type,
-                    'kcse_question_type': question.kcse_question_type,
-                    'difficulty': question.difficulty,
-                    'topic': {
-                        'id': str(question.topic.id),
-                        'name': question.topic.name
-                    },
-                    'section': {
-                        'id': str(question.section.id),
-                        'name': question.section.name,
-                        'order': question.section.order
-                    } if question.section else None,
-                }
-                ordered_questions.append(question_data)
-                
-                # Answer data for marking scheme preview
-                answer_data = {
-                    'question_number': idx,
-                    'question_id': str(question.id),
-                    'question_text_preview': question.question_text[:100] + '...' if len(question.question_text) > 100 else question.question_text,
-                    'answer_text': question.answer_text,
-                    'answer_inline_images': question.answer_inline_images,
-                    'answer_image_positions': question.answer_image_positions,
-                    'answer_answer_lines': question.answer_answer_lines,
-                    'marks': question.marks,
-                    'is_nested': question.is_nested,
-                    'marking_points': question.nested_parts if question.is_nested else None,
-                }
-                marking_scheme.append(answer_data)
+        # Business Paper 2: Special rendering - 12 questions displayed as 6 sections with parts a and b
+        if is_business_paper_2:
+            # Group every 2 consecutive questions as one question with parts a and b
+            for i in range(0, len(question_ids), 2):
+                if i + 1 < len(question_ids):
+                    question_number = (i // 2) + 1  # 1, 2, 3, 4, 5, 6
+                    section_letter = chr(64 + question_number)  # A, B, C, D, E, F
+                    
+                    q_a_id = question_ids[i]
+                    q_b_id = question_ids[i + 1]
+                    
+                    q_a = question_map.get(q_a_id)
+                    q_b = question_map.get(q_b_id)
+                    
+                    if q_a and q_b:
+                        # Create combined question with parts a and b
+                        combined_question = {
+                            'question_number': question_number,
+                            'section_name': f'SECTION {section_letter}',
+                            'total_marks': q_a.marks + q_b.marks,
+                            'is_combined': True,
+                            'is_business_paper_2': True,
+                            'part_a': {
+                                'id': str(q_a.id),
+                                'part_label': 'a',
+                                'question_text': q_a.question_text,
+                                'question_inline_images': q_a.question_inline_images,
+                                'question_image_positions': q_a.question_image_positions,
+                                'question_answer_lines': q_a.question_answer_lines,
+                                'marks': q_a.marks,
+                                'is_nested': q_a.is_nested,
+                                'nested_parts': q_a.nested_parts if q_a.is_nested else None,
+                                'question_type': q_a.question_type,
+                                'kcse_question_type': q_a.kcse_question_type,
+                                'difficulty': q_a.difficulty,
+                                'topic': {
+                                    'id': str(q_a.topic.id),
+                                    'name': q_a.topic.name
+                                },
+                                'section': {
+                                    'id': str(q_a.section.id),
+                                    'name': q_a.section.name,
+                                    'order': q_a.section.order
+                                } if q_a.section else None,
+                            },
+                            'part_b': {
+                                'id': str(q_b.id),
+                                'part_label': 'b',
+                                'question_text': q_b.question_text,
+                                'question_inline_images': q_b.question_inline_images,
+                                'question_image_positions': q_b.question_image_positions,
+                                'question_answer_lines': q_b.question_answer_lines,
+                                'marks': q_b.marks,
+                                'is_nested': q_b.is_nested,
+                                'nested_parts': q_b.nested_parts if q_b.is_nested else None,
+                                'question_type': q_b.question_type,
+                                'kcse_question_type': q_b.kcse_question_type,
+                                'difficulty': q_b.difficulty,
+                                'topic': {
+                                    'id': str(q_b.topic.id),
+                                    'name': q_b.topic.name
+                                },
+                                'section': {
+                                    'id': str(q_b.section.id),
+                                    'name': q_b.section.name,
+                                    'order': q_b.section.order
+                                } if q_b.section else None,
+                            }
+                        }
+                        ordered_questions.append(combined_question)
+                        
+                        # Marking scheme with both parts
+                        marking_scheme.append({
+                            'question_number': question_number,
+                            'section_name': f'SECTION {section_letter}',
+                            'is_combined': True,
+                            'is_business_paper_2': True,
+                            'total_marks': q_a.marks + q_b.marks,
+                            'part_a': {
+                                'question_id': str(q_a.id),
+                                'part_label': 'a',
+                                'marks': q_a.marks,
+                                'question_text_preview': q_a.question_text[:100] + '...' if len(q_a.question_text) > 100 else q_a.question_text,
+                                'answer_text': q_a.answer_text,
+                                'answer_inline_images': q_a.answer_inline_images,
+                                'answer_image_positions': q_a.answer_image_positions,
+                                'answer_answer_lines': q_a.answer_answer_lines,
+                                'is_nested': q_a.is_nested,
+                                'marking_points': q_a.nested_parts if q_a.is_nested else None,
+                            },
+                            'part_b': {
+                                'question_id': str(q_b.id),
+                                'part_label': 'b',
+                                'marks': q_b.marks,
+                                'question_text_preview': q_b.question_text[:100] + '...' if len(q_b.question_text) > 100 else q_b.question_text,
+                                'answer_text': q_b.answer_text,
+                                'answer_inline_images': q_b.answer_inline_images,
+                                'answer_image_positions': q_b.answer_image_positions,
+                                'answer_answer_lines': q_b.answer_answer_lines,
+                                'is_nested': q_b.is_nested,
+                                'marking_points': q_b.nested_parts if q_b.is_nested else None,
+                            }
+                        })
+        else:
+            # Standard rendering for all other papers
+            for idx, qid in enumerate(question_ids, start=1):
+                question = question_map.get(qid)
+                if question:
+                    # Question data for paper preview (no answers)
+                    question_data = {
+                        'id': str(question.id),
+                        'question_number': idx,
+                        'question_text': question.question_text,
+                        'question_inline_images': question.question_inline_images,
+                        'question_image_positions': question.question_image_positions,
+                        'question_answer_lines': question.question_answer_lines,
+                        'marks': question.marks,
+                        'is_nested': question.is_nested,
+                        'nested_parts': question.nested_parts if question.is_nested else None,
+                        'question_type': question.question_type,
+                        'kcse_question_type': question.kcse_question_type,
+                        'difficulty': question.difficulty,
+                        'topic': {
+                            'id': str(question.topic.id),
+                            'name': question.topic.name
+                        },
+                        'section': {
+                            'id': str(question.section.id),
+                            'name': question.section.name,
+                            'order': question.section.order
+                        } if question.section else None,
+                    }
+                    ordered_questions.append(question_data)
+                    
+                    # Answer data for marking scheme preview
+                    answer_data = {
+                        'question_number': idx,
+                        'question_id': str(question.id),
+                        'question_text_preview': question.question_text[:100] + '...' if len(question.question_text) > 100 else question.question_text,
+                        'answer_text': question.answer_text,
+                        'answer_inline_images': question.answer_inline_images,
+                        'answer_image_positions': question.answer_image_positions,
+                        'answer_answer_lines': question.answer_answer_lines,
+                        'marks': question.marks,
+                        'is_nested': question.is_nested,
+                        'marking_points': question.nested_parts if question.is_nested else None,
+                    }
+                    marking_scheme.append(answer_data)
         
         # Calculate question statistics
-        nested_count = sum(1 for q in ordered_questions if q['is_nested'])
-        standalone_count = len(ordered_questions) - nested_count
+        if is_business_paper_2:
+            # For Business Paper 2, count combined questions (not individual parts)
+            nested_count = 0
+            standalone_count = len(ordered_questions)  # 6 combined questions
+        else:
+            nested_count = sum(1 for q in ordered_questions if q.get('is_nested', False))
+            standalone_count = len(ordered_questions) - nested_count
         
         return Response({
             'id': str(generated_paper.id),
             'unique_code': generated_paper.unique_code,
             'status': generated_paper.status,
+            'is_business_paper_2': is_business_paper_2,
             'paper': {
                 'id': str(generated_paper.paper.id),
                 'name': generated_paper.paper.name,
