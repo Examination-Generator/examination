@@ -7081,7 +7081,7 @@ class KiswahiliPaper2Coverpage:
         .exam-title {{
             font-size: 13pt;
             font-weight: bold;
-            text-align: center;
+            text-align: left;
             margin: 15px 0;
             text-transform: uppercase;
         }}
@@ -7089,13 +7089,13 @@ class KiswahiliPaper2Coverpage:
         .paper-title {{
             font-size: 14pt;
             font-weight: bold;
-            text-align: center;
+            text-align: left;
             margin: 15px 0;
             text-transform: uppercase;
         }}
         
         .paper-details {{
-            text-align: center;
+            text-align: left;
             margin: 15px 0;
             font-size: 11pt;
         }}
@@ -7110,6 +7110,24 @@ class KiswahiliPaper2Coverpage:
             display: flex;
             justify-content: space-between;
             margin-bottom: 15px;
+            align-items: center;
+        }}
+        
+        .info-row-full {{
+            display: flex;
+            margin-bottom: 15px;
+            align-items: center;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
+            display: flex;
             align-items: center;
         }}
         
@@ -7231,31 +7249,40 @@ class KiswahiliPaper2Coverpage:
         
         <!-- Candidate Information Box -->
         <div class="candidate-info">
-            {f'''<div class="info-row">
+            {f'''<div class="info-row-full">
                 <span class="info-label">Jina la Mwanafunzi:</span>
                 <div class="info-field"></div>
             </div>''' if show_name else ''}
             
-            {f'''<div class="info-row">
-                <span class="info-label">Nambari ya Mtihani:</span>
-                <div class="info-field"></div>
-            </div>''' if show_number else ''}
+            <div class="info-row-grid">
+                {f'''<div class="info-row-item">
+                    <span class="info-label">Nambari ya Usajili:</span>
+                    <div class="info-field"></div>
+                </div>''' if show_number else ''}
+                
+                <div class="info-row-item">
+                    <span class="info-label">Darasa:</span>
+                    <div class="info-field"></div>
+                </div>
+            </div>
             
-            {f'''<div class="info-row">
-                <span class="info-label">Tarehe:</span>
-                <div class="info-field"></div>
-            </div>''' if show_date else ''}
-            
-            <div class="info-row">
-                <span class="info-label">Sahihi ya Mwanafunzi:</span>
-                <div class="info-field"></div>
+            <div class="info-row-grid">
+                {f'''<div class="info-row-item">
+                    <span class="info-label">Tarehe:</span>
+                    <div class="info-field"></div>
+                </div>''' if show_date else ''}
+                
+                <div class="info-row-item">
+                    <span class="info-label">Sahihi ya Mwanafunzi:</span>
+                    <div class="info-field"></div>
+                </div>
             </div>
         </div>
         
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Maagizo</div>
-            <ol class="instructions-list" type="a">
+            <ol class="instructions-list" type="(a)" style="font-style: italic;">
 """
         
         # Add instructions
@@ -7536,7 +7563,7 @@ class KiswahiliPaper1Coverpage:
         .exam-title {{
             font-size: 13pt;
             font-weight: bold;
-            text-align: center;
+            text-align: left;
             margin: 15px 0;
             text-transform: uppercase;
         }}
@@ -7544,13 +7571,13 @@ class KiswahiliPaper1Coverpage:
         .paper-title {{
             font-size: 14pt;
             font-weight: bold;
-            text-align: center;
+            text-align: left;
             margin: 15px 0;
             text-transform: uppercase;
         }}
         
         .paper-details {{
-            text-align: center;
+            text-align: left;
             margin: 15px 0;
             font-size: 11pt;
         }}
@@ -7565,6 +7592,24 @@ class KiswahiliPaper1Coverpage:
             display: flex;
             justify-content: space-between;
             margin-bottom: 15px;
+            align-items: center;
+        }}
+        
+        .info-row-full {{
+            display: flex;
+            margin-bottom: 15px;
+            align-items: center;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
+            display: flex;
             align-items: center;
         }}
         
@@ -7690,24 +7735,33 @@ class KiswahiliPaper1Coverpage:
         
         <!-- Candidate Information Box -->
         <div class="candidate-info">
-            {f'''<div class="info-row">
+            {f'''<div class="info-row-full">
                 <span class="info-label">Jina la Mwanafunzi:</span>
                 <div class="info-field"></div>
             </div>''' if show_name else ''}
             
-            {f'''<div class="info-row">
-                <span class="info-label">Nambari ya Mtihani:</span>
-                <div class="info-field"></div>
-            </div>''' if show_number else ''}
+            <div class="info-row-grid">
+                {f'''<div class="info-row-item">
+                    <span class="info-label">Nambari ya Mtihani:</span>
+                    <div class="info-field"></div>
+                </div>''' if show_number else ''}
+                
+                <div class="info-row-item">
+                    <span class="info-label">Darasa:</span>
+                    <div class="info-field"></div>
+                </div>
+            </div>
             
-            {f'''<div class="info-row">
-                <span class="info-label">Tarehe:</span>
-                <div class="info-field"></div>
-            </div>''' if show_date else ''}
-            
-            <div class="info-row">
-                <span class="info-label">Sahihi ya Mwanafunzi:</span>
-                <div class="info-field"></div>
+            <div class="info-row-grid">
+                {f'''<div class="info-row-item">
+                    <span class="info-label">Tarehe:</span>
+                    <div class="info-field"></div>
+                </div>''' if show_date else ''}
+                
+                <div class="info-row-item">
+                    <span class="info-label">Sahihi ya Mwanafunzi:</span>
+                    <div class="info-field"></div>
+                </div>
             </div>
         </div>
         
