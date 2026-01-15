@@ -1031,7 +1031,9 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
                 section_a_instruction,
                 current_page,
                 total_pages,
-                is_last_section=False
+                is_last_section=False,
+                answer_lines=0,
+                paper_name=paper_name
             )
             pages_html.append(section_a_html['html'])
             current_page = section_a_html['next_page']
@@ -1046,7 +1048,9 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
                 section_b_instruction,
                 current_page,
                 total_pages,
-                is_last_section=False
+                is_last_section=False,
+                answer_lines=0,
+                paper_name=paper_name
             )
             pages_html.append(section_b_html['html'])
             current_page = section_b_html['next_page']
@@ -1062,7 +1066,8 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
                 current_page,
                 total_pages,
                 is_last_section=True,
-                metadata=metadata
+                answer_lines=0,
+                paper_name=paper_name
             )
             pages_html.append(section_c_html['html'])
             current_page = section_c_html['next_page']
@@ -1093,7 +1098,9 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
                 section_a_instruction,
                 current_page,
                 total_pages,
-                is_last_section=False
+                is_last_section=False,
+                answer_lines=0,
+                paper_name=paper_name
             )
             pages_html.append(section_a_html['html'])
             current_page = section_a_html['next_page']
@@ -1122,12 +1129,13 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
                 current_page,
                 total_pages,
                 is_last_section=True,
-            answer_lines=0
-        )
+                answer_lines=0,
+                paper_name=paper_name
+            )
         pages_html.append(section_b_html['html'])
         current_page = section_b_html['next_page']
     else:
-        # Papers without sections (Chemistry, Business)
+        # Papers without sections (Chemistry, Business, Kiswahili Paper 2)
         # Generate all questions sequentially without section headers
         all_questions_html = _generate_section_pages(
             questions,
@@ -1136,7 +1144,8 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
             current_page,
             total_pages,
             is_last_section=True,
-            answer_lines=0
+            answer_lines=0,
+            paper_name=paper_name
         )
         pages_html.append(all_questions_html['html'])
         current_page = all_questions_html['next_page']
@@ -1216,14 +1225,33 @@ def _generate_answer_lines_pages(num_pages, start_page, total_pages):
     return '\n'.join(pages_html)
 
 
-def _generate_section_pages(questions, section_title, section_instruction, start_page, total_pages, is_last_section=False, answer_lines=0):
+def _generate_section_pages(questions, section_title, section_instruction, start_page, total_pages, is_last_section=False, answer_lines=0, paper_name=''):
     """
     Generate pages for a specific section
     If section_title is None, no section header will be generated
+    Papers without sections (Chemistry Paper 1, Business Paper 1, Kiswahili Paper 2) will never show section headers
     """
     pages_html = []
     current_page = start_page
     questions_per_page = 2
+    
+    # Extract paper number if paper_name provided
+    paper_number = 1
+    if paper_name:
+        try:
+            paper_number = extract_paper_number_from_name(paper_name)
+        except ValueError:
+            paper_number = 1
+    
+    # Explicitly check if this paper should NEVER have section headers
+    is_kiswahili_paper2 = 'KISWAHILI' in paper_name.upper() and paper_number == 2
+    is_business_paper1 = 'BUSINESS' in paper_name.upper() and paper_number == 1
+    is_chemistry_paper1 = 'CHEMISTRY' in paper_name.upper() and paper_number == 1
+    
+    # Force section_title to None for papers that should not have sections
+    if is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1:
+        section_title = None
+        section_instruction = None
     
     for i in range(0, len(questions), questions_per_page):
         page_questions = questions[i:i + questions_per_page]
