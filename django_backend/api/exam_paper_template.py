@@ -118,6 +118,21 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     except ValueError:
         paper_number = 1  # Default to Paper 1 if extraction fails
     
+    # Add Mathematics section data if not present
+    is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
+    if is_mathematics:
+        # Mathematics has Section I (Questions 1-16, 50 marks) and Section II (Questions 17-24, 50 marks, answer any 5)
+        if 'section_a_questions' not in coverpage_data:
+            coverpage_data['section_a_questions'] = 16
+        if 'section_a_marks' not in coverpage_data:
+            coverpage_data['section_a_marks'] = 50
+        if 'section_b_marks' not in coverpage_data:
+            coverpage_data['section_b_marks'] = 50
+        if 'section_a_instruction' not in coverpage_data:
+            coverpage_data['section_a_instruction'] = 'Answer ALL questions in this section'
+        if 'section_b_instruction' not in coverpage_data:
+            coverpage_data['section_b_instruction'] = 'Answer any FIVE questions from this section'
+    
     # Determine if continuous answer lines are needed
     # Biology Paper 2, Geography Paper 1, Geography Paper 2, CRE Paper 1, CRE Paper 2, and Kiswahili Paper 1 need answer lines
     needs_answer_lines = (
@@ -874,8 +889,8 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     metadata = coverpage_data or {}
     paper_name = metadata.get('paper_name', '').upper()
     
-    # Check if this paper has sections (only Biology and Geography Paper 2)
-    has_sections = ('BIOLOGY' in paper_name or 'GEOGRAPHY' in paper_name)
+    # Check if this paper has sections (Biology, Geography, and Mathematics Paper 2)
+    has_sections = ('BIOLOGY' in paper_name or 'GEOGRAPHY' in paper_name or 'MATHEMATICS' in paper_name or 'MATHS' in paper_name)
     
     # Check if this is CRE paper (special pagination: 5 questions on page 1, question 6 on page 2)
     is_cre_paper = ('CRE' in paper_name or 'CHRISTIAN RELIGIOUS EDUCATION' in paper_name)
@@ -897,7 +912,7 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
             pages_html.append(page_2_html)
             current_page += 1
     elif has_sections:
-        # Papers with sections (Biology, Geography)
+        # Papers with sections (Biology, Geography, Mathematics)
         section_a_count = metadata.get('section_a_questions', 5)
         try:
             section_a_count = int(section_a_count)
@@ -925,12 +940,18 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
         # Section B
         section_b_marks = metadata.get('section_b_marks', 40)
         section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
-        # Geography papers have special instruction for Section B
+        
+        # Paper-specific instructions for Section B
         is_geography = 'GEOGRAPHY' in paper_name
+        is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
+        
         if is_geography:
             section_b_instruction = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section')
+        elif is_mathematics:
+            section_b_instruction = metadata.get('section_b_instruction', 'Answer any FIVE questions from this section')
         else:
             section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
+            
         section_b_html = _generate_section_pages(
             section_b_questions,
             section_b_title,
@@ -1329,13 +1350,16 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
                 # Instruction text: depends on section and paper type
                 paper_name = metadata.get('paper_name', '').upper()
                 is_geography = 'GEOGRAPHY' in paper_name
+                is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
                 
                 if current_section == 'A':
                     instruction_text = metadata.get('section_a_instruction', 'Answer ALL questions in this section.')
                 else:
-                    # Section B special instruction for Geography papers
+                    # Section B special instructions for different papers
                     if is_geography:
                         instruction_text = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section.')
+                    elif is_mathematics:
+                        instruction_text = metadata.get('section_b_instruction', 'Answer any FIVE questions from this section.')
                     else:
                         instruction_text = metadata.get('section_b_instruction', 'Answer ALL questions in this section.')
 
