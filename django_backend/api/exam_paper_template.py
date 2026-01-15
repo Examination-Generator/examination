@@ -501,7 +501,19 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
