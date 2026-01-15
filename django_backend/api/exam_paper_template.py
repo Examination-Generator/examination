@@ -951,7 +951,11 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     paper_name = metadata.get('paper_name', '').upper()
     
     # Check if this paper has sections (Biology, Geography, Mathematics, and Agriculture Paper 2)
-    has_sections = ('BIOLOGY' in paper_name or 'GEOGRAPHY' in paper_name or 'MATHEMATICS' in paper_name or 'MATHS' in paper_name or 'AGRICULTURE' in paper_name)
+    # Exclude Kiswahili Paper 2 which should NOT have sections
+    has_sections = (
+        ('BIOLOGY' in paper_name or 'GEOGRAPHY' in paper_name or 'MATHEMATICS' in paper_name or 'MATHS' in paper_name or 'AGRICULTURE' in paper_name)
+        and 'KISWAHILI' not in paper_name
+    )
     
     # Check if this is Agriculture paper (has 3 sections)
     is_agriculture = 'AGRICULTURE' in paper_name
