@@ -956,15 +956,24 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     except ValueError:
         paper_number = 1
     
-    # Check if this paper has sections (Biology, Geography, Mathematics, and Agriculture Paper 2)
-    # Exclude Kiswahili Paper 2 and Business Paper 1 which should NOT have sections
+    # Check if this paper has sections
+    # Only Biology, Geography, Mathematics, and Agriculture papers should have sections
+    # Explicitly exclude: Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1, and any other papers
     is_kiswahili_paper2 = 'KISWAHILI' in paper_name and paper_number == 2
     is_business_paper1 = 'BUSINESS' in paper_name and paper_number == 1
+    is_chemistry_paper1 = 'CHEMISTRY' in paper_name and paper_number == 1
+    
+    # Papers that should have sections (explicitly allowed list)
+    is_biology = 'BIOLOGY' in paper_name
+    is_geography = 'GEOGRAPHY' in paper_name
+    is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
+    is_agriculture = 'AGRICULTURE' in paper_name
     
     has_sections = (
-        ('BIOLOGY' in paper_name or 'GEOGRAPHY' in paper_name or 'MATHEMATICS' in paper_name or 'MATHS' in paper_name or 'AGRICULTURE' in paper_name)
+        (is_biology or is_geography or is_mathematics or is_agriculture)
         and not is_kiswahili_paper2
         and not is_business_paper1
+        and not is_chemistry_paper1
     )
     
     # Check if this is Agriculture paper (has 3 sections)
