@@ -922,9 +922,15 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
         section_a_questions = [q for q in questions if q['number'] <= section_a_count]
         section_b_questions = [q for q in questions if q['number'] > section_a_count]
 
-        # Section A
+        # Paper-specific section naming
+        is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
+        
+        # Section A/I
         section_a_marks = metadata.get('section_a_marks', 40)
-        section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
+        if is_mathematics:
+            section_a_title = f"SECTION I ({section_a_marks} MARKS)" if section_a_marks else "SECTION I"
+        else:
+            section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
         section_a_instruction = metadata.get('section_a_instruction', 'Answer ALL questions in this section')
         section_a_html = _generate_section_pages(
             section_a_questions,
@@ -937,13 +943,15 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
         pages_html.append(section_a_html['html'])
         current_page = section_a_html['next_page']
 
-        # Section B
+        # Section B/II
         section_b_marks = metadata.get('section_b_marks', 40)
-        section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
+        if is_mathematics:
+            section_b_title = f"SECTION II ({section_b_marks} MARKS)" if section_b_marks else "SECTION II"
+        else:
+            section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
         
         # Paper-specific instructions for Section B
         is_geography = 'GEOGRAPHY' in paper_name
-        is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
         
         if is_geography:
             section_b_instruction = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section')
@@ -1310,16 +1318,33 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
     for i in range(0, len(questions), questions_per_page):
         page_questions = questions[i:i + questions_per_page]
         
+        # Determine paper type for section naming
+        paper_name_for_sections = metadata.get('paper_name', '').upper()
+        is_mathematics_paper = 'MATHEMATICS' in paper_name_for_sections or 'MATHS' in paper_name_for_sections
+        
         # Determine first and last question sections for this page
         first_qnum = int(page_questions[0].get('number', 0)) if page_questions else 0
-        first_section = 'A' if (section_a_count and first_qnum <= section_a_count) else 'B'
+        if is_mathematics_paper:
+            first_section = 'I' if (section_a_count and first_qnum <= section_a_count) else 'II'
+        else:
+            first_section = 'A' if (section_a_count and first_qnum <= section_a_count) else 'B'
         last_qnum = int(page_questions[-1].get('number', 0)) if page_questions else 0
-        last_section_on_page = 'A' if (section_a_count and last_qnum <= section_a_count) else 'B'
+        if is_mathematics_paper:
+            last_section_on_page = 'I' if (section_a_count and last_qnum <= section_a_count) else 'II'
+        else:
+            last_section_on_page = 'A' if (section_a_count and last_qnum <= section_a_count) else 'B'
 
         # If this page continues the same section from previous page, show a small continue header
         page_header_html = ''
         if page_last_section is not None and page_last_section == first_section:
-            page_header_html = f"""
+            if is_mathematics_paper and first_section == 'II':
+                page_header_html = f"""
+        <div class=\"question-page-header\"> 
+            <h2>Continue answering any FIVE questions from this section</h2>
+        </div>
+"""
+            else:
+                page_header_html = f"""
         <div class=\"question-page-header\"> 
             <h2>Continue answering ALL questions in this section</h2>
         </div>
@@ -1336,12 +1361,15 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
             )
             # Determine section by question number and available section count
             qnum = int(q.get('number', 0))
-            current_section = 'A' if (section_a_count and qnum <= section_a_count) else 'B'
+            if is_mathematics_paper:
+                current_section = 'I' if (section_a_count and qnum <= section_a_count) else 'II'
+            else:
+                current_section = 'A' if (section_a_count and qnum <= section_a_count) else 'B'
 
             # If section changed (or starting), insert section header
             if last_section != current_section:
                 # Get marks for section from coverpage_data if present
-                if current_section == 'A':
+                if current_section in ['A', 'I']:
                     s_marks = metadata.get('section_a_marks', None)
                 else:
                     s_marks = metadata.get('section_b_marks', None)
@@ -1352,10 +1380,10 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
                 is_geography = 'GEOGRAPHY' in paper_name
                 is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
                 
-                if current_section == 'A':
+                if current_section in ['A', 'I']:
                     instruction_text = metadata.get('section_a_instruction', 'Answer ALL questions in this section.')
                 else:
-                    # Section B special instructions for different papers
+                    # Section B/II special instructions for different papers
                     if is_geography:
                         instruction_text = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section.')
                     elif is_mathematics:
