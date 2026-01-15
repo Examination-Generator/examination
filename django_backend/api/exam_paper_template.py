@@ -546,13 +546,40 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             margin-left: 20px;
             font-size: 12px;
             line-height: 1.6;
+            list-style: none;
+            counter-reset: list-counter;
         }}
         
         .instructions li {{
             margin-bottom: 8px;
+            counter-increment: list-counter;
+        }}
+        
+        .instructions li::before {{
+            content: "(" counter(list-counter, lower-alpha) ") ";
         }}
         
         .instructions li.bold {{
+            font-weight: bold;
+        }}
+        
+        .instructions-list {{
+            list-style: none;
+            counter-reset: list-counter;
+            padding-left: 25px;
+        }}
+        
+        .instructions-list li {{
+            margin-bottom: 8px;
+            line-height: 1.4;
+            counter-increment: list-counter;
+        }}
+        
+        .instructions-list li::before {{
+            content: "(" counter(list-counter, lower-alpha) ") ";
+        }}
+        
+        .instructions-list li strong {{
             font-weight: bold;
         }}
         

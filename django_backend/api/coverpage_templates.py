@@ -295,7 +295,19 @@ class BiologyPaper1Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -488,8 +500,8 @@ class BiologyPaper1Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">INSTRUCTIONS TO CANDIDATES</div>
-            <ol type="a" style="font-size: 12px; line-height: 1.6; font-style:italic;">
-                {''.join([f'<li class="{"bold" if idx >= 4 else ""}">{instruction}</li>' for idx, instruction in enumerate(instructions)])}
+            <ol style="font-size: 12px; line-height: 1.6; font-style:italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
+                {''.join([f'<li style="counter-increment: list-counter;" class="{"bold" if idx >= 4 else ""}"><span style="display: inline;">(<span style="display: inline;">{chr(97+idx)}</span>) </span>{instruction}</li>' for idx, instruction in enumerate(instructions)])}
             </ol>
         </div>
         
@@ -847,7 +859,19 @@ class BiologyPaper2Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -1901,7 +1925,19 @@ class PhysicsPaper1Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -2033,12 +2069,14 @@ class PhysicsPaper1Coverpage:
         <!-- Candidate Information -->
         <div class="candidate-info">
             <div class="candidate-info-grid">
-                {f'<div class="info-row-full"><span class="info-label">Name:</span><div class="info-field"></div></div>' if show_name else ''}
-                <div class="info-row-full" style="display: flex; gap: 20px;">
-                    {f'<div class="info-row" style="flex: 1;"><span class="info-label">AdmNo:</span><div class="info-field"></div></div>' if show_number else ''}
-                    {f'<div class="info-row" style="flex: 1;"><span class="info-label">Class:</span><div class="info-field"></div></div>' if show_class else ''}
-                    {f'<div class="info-row" style="flex: 1;"><span class="info-label">Date:</span><div class="info-field"></div></div>' if show_date else ''}
-                    <div class="info-row" style="flex: 1;"><span class="info-label">Sign:</span><div class="info-field"></div></div>
+                {f'<div class="info-row-full"><span class="info-label">NAME:</span><div class="info-field"></div></div>' if show_name else ''}
+                <div class="info-row-grid">
+                    {f'<div class="info-row-item"><span class="info-label">ADM NO:</span><div class="info-field"></div></div>' if show_number else ''}
+                    <div class="info-row-item"><span class="info-label">CLASS:</span><div class="info-field"></div></div>
+                </div>
+                <div class="info-row-grid">
+                    {f'<div class="info-row-item"><span class="info-label">DATE:</span><div class="info-field"></div></div>' if show_date else ''}
+                    <div class="info-row-item"><span class="info-label">SIGNATURE:</span><div class="info-field"></div></div>
                 </div>
             </div>
         </div>
@@ -2046,7 +2084,7 @@ class PhysicsPaper1Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to candidates</div>
-            <ol type="a" style="font-style: italic; font-size: 1.5rem; line-height: 1.6;">
+            <ol style="font-style: italic; font-size: 1.5rem; line-height: 1.6; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -2389,7 +2427,19 @@ class PhysicsPaper2Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -2874,7 +2924,19 @@ class ChemistryPaper1Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -3065,8 +3127,8 @@ class ChemistryPaper1Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">INSTRUCTIONS TO CANDIDATES</div>
-            <ol type="a" style="font-size: 12px; line-height: 1.6; font-style:italic;">
-                {''.join([f'<li class="{"bold" if idx >= 3 else ""}">{instruction}</li>' for idx, instruction in enumerate(instructions)])}
+            <ol style="font-size: 12px; line-height: 1.6; font-style:italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
+                {''.join([f'<li style="counter-increment: list-counter;" class="{"bold" if idx >= 3 else ""}"><span>({chr(97+idx)}) </span>{instruction}</li>' for idx, instruction in enumerate(instructions)])}
             </ol>
         </div>
         
@@ -3323,7 +3385,19 @@ class ChemistryPaper2Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -3826,7 +3900,19 @@ class MathematicsPaper1Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -4311,7 +4397,19 @@ class MathematicsPaper2Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -4742,7 +4840,19 @@ class GeographyPaper1Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -5241,7 +5351,19 @@ class GeographyPaper2Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -5733,7 +5855,19 @@ class EnglishPaper1Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -6196,7 +6330,19 @@ class EnglishPaper2Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -6663,7 +6809,19 @@ class EnglishPaper3Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -7282,7 +7440,7 @@ class KiswahiliPaper2Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Maagizo</div>
-            <ol class="instructions-list" type="(a)" style="font-style: italic;">
+            <ol class="instructions-list" style="font-style: italic;">
 """
         
         # Add instructions
@@ -7768,7 +7926,7 @@ class KiswahiliPaper1Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Maagizo</div>
-            <ol class="instructions-list" type="a">
+            <ol class="instructions-list">
 """
         
         # Add instructions with bold formatting for specific words
@@ -8091,7 +8249,19 @@ class BusinessPaper1Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -8563,7 +8733,19 @@ class BusinessPaper2Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -9016,7 +9198,19 @@ class CREPaper1Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
@@ -9462,7 +9656,19 @@ class CREPaper2Coverpage:
         }}
         
         .info-row-full {{
-            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
             display: flex;
             align-items: center;
         }}
