@@ -480,7 +480,7 @@ class BiologyPaper1Coverpage:
         <div class="instructions">
             <div class="instructions-title">INSTRUCTIONS TO CANDIDATES</div>
             <ol style="font-size: 12px; line-height: 1.6; font-style:italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
-                {''.join([f'<li style="counter-increment: list-counter;" class="{"bold" if idx >= 4 else ""}"><span style="display: inline;">(<span style="display: inline;">{chr(97+idx)}</span>) </span>{instruction}</li>' for idx, instruction in enumerate(instructions)])}
+                {''.join([f'<li style="counter-increment: list-counter;" class="{"bold" if idx >= 4 else ""}">{instruction}</li>' for idx, instruction in enumerate(instructions)])}
             </ol>
         </div>
         
@@ -1000,7 +1000,7 @@ class BiologyPaper2Coverpage:
             # Make instruction (c) and (d) bold (typically sections and answer requirements)
             is_bold = '(c)' in instruction.lower() or '(d)' in instruction.lower() or 'section' in instruction.lower()
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -2070,7 +2070,7 @@ class PhysicsPaper1Coverpage:
         for idx, instruction in enumerate(instructions, 1):
             is_bold = 'section' in instruction.lower() or 'ALL' in instruction or 'ANY FIVE' in instruction
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -2559,7 +2559,7 @@ class PhysicsPaper2Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to candidates</div>
-            <ol type="a" style="font-style: italic;">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -2567,7 +2567,7 @@ class PhysicsPaper2Coverpage:
             # Make section-related instructions bold
             is_bold = 'section' in instruction.lower() or 'all' in instruction.lower()
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -3086,7 +3086,7 @@ class ChemistryPaper1Coverpage:
         <div class="instructions">
             <div class="instructions-title">INSTRUCTIONS TO CANDIDATES</div>
             <ol style="font-size: 12px; line-height: 1.6; font-style:italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
-                {''.join([f'<li style="counter-increment: list-counter;" class="{"bold" if idx >= 3 else ""}"><span>({chr(97+idx)}) </span>{instruction}</li>' for idx, instruction in enumerate(instructions)])}
+                {''.join([f'<li style="counter-increment: list-counter;" class="{"bold" if idx >= 3 else ""}">{instruction}</li>' for idx, instruction in enumerate(instructions)])}
             </ol>
         </div>
         
@@ -3489,7 +3489,7 @@ class ChemistryPaper2Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to candidates</div>
-            <ol type="a" style="font-style: italic;">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -3497,7 +3497,7 @@ class ChemistryPaper2Coverpage:
             # Make 'all' related instructions bold
             is_bold = 'all' in instruction.lower()
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -4019,7 +4019,7 @@ class MathematicsPaper1Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to Candidates</div>
-            <ol type="a" style="font-style: italic;">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -4027,7 +4027,7 @@ class MathematicsPaper1Coverpage:
             # Make section-related instructions bold
             is_bold = 'section' in instruction.lower() or 'all' in instruction.lower() or 'five' in instruction.lower()
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -4516,7 +4516,7 @@ class MathematicsPaper2Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to Candidates</div>
-            <ol type="a" style="font-style: italic;">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -4524,7 +4524,7 @@ class MathematicsPaper2Coverpage:
             # Make section-related instructions bold
             is_bold = 'section' in instruction.lower() or 'all' in instruction.lower() or 'five' in instruction.lower()
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -4953,7 +4953,7 @@ class GeographyPaper1Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to candidates</div>
-            <ol type="a" style="font-style: italic;">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -4961,7 +4961,7 @@ class GeographyPaper1Coverpage:
             # Make section-related instructions bold
             is_bold = 'section' in instruction.lower() or 'all' in instruction.lower()
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -5466,7 +5466,7 @@ class GeographyPaper2Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to candidates</div>
-            <ol type="a" style="font-style: italic;">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -5474,7 +5474,7 @@ class GeographyPaper2Coverpage:
             # Make section-related and 'ALL' instructions bold
             is_bold = 'section' in instruction.lower() or 'ALL' in instruction
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -5965,7 +5965,7 @@ class EnglishPaper1Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to candidates</div>
-            <ol type="a" style="font-style: italic;">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -5973,7 +5973,7 @@ class EnglishPaper1Coverpage:
             # Make 'all' related instructions bold
             is_bold = 'all' in instruction.lower()
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -6442,7 +6442,7 @@ class EnglishPaper2Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to candidates</div>
-            <ol type="a" style="font-style: italic;">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -6450,7 +6450,7 @@ class EnglishPaper2Coverpage:
             # Make 'all' and specific instructions bold
             is_bold = 'all' in instruction.lower() or 'check' in instruction.lower()
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -6923,7 +6923,7 @@ class EnglishPaper3Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to candidates</div>
-            <ol type="a" style="font-style: italic;">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -6934,7 +6934,7 @@ class EnglishPaper3Coverpage:
                       'not exceed' in instruction.lower() or
                       'check' in instruction.lower())
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -8388,7 +8388,7 @@ class BusinessPaper1Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to Candidates</div>
-            <ol type="a" style="font-style: italic;">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -8396,7 +8396,7 @@ class BusinessPaper1Coverpage:
             # Make "all" and "This paper consists" bold
             is_bold = 'all' in instruction.lower() or 'this paper consists' in instruction.lower()
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -8856,7 +8856,7 @@ class BusinessPaper2Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to Candidates</div>
-            <ol type="a" style="font-style: italic;">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -8867,7 +8867,7 @@ class BusinessPaper2Coverpage:
                       'all questions' in instruction.lower() or
                       'this paper consists' in instruction.lower())
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -9323,7 +9323,7 @@ class CREPaper1Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to candidates</div>
-            <ol type="a">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -9334,7 +9334,7 @@ class CREPaper1Coverpage:
                       'each question carries' in instruction.lower() or
                       'this paper consists' in instruction.lower())
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
@@ -9783,7 +9783,7 @@ class CREPaper2Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">Instructions to candidates</div>
-            <ol type="a">
+            <ol style="font-style: italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
 """
         
         # Add instructions
@@ -9795,7 +9795,7 @@ class CREPaper2Coverpage:
                       'this paper consists' in instruction.lower() or
                       'do not remove' in instruction.lower())
             class_attr = ' class="bold"' if is_bold else ''
-            html += f'                <li{class_attr}>{instruction}</li>\n'
+            html += f'                <li style="counter-increment: list-counter;"{class_attr}>{instruction}</li>\n'
         
         html += f"""
             </ol>
