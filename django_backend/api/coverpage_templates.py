@@ -463,36 +463,15 @@ class BiologyPaper1Coverpage:
         
         <!-- Candidate Information -->
         <div class="candidate-info">
-            <div class="info-grid">
-                {f'''
-                <div class="info-row-full">
-                    <div class="info-label">NAME:</div>
-                    <div class="info-field"></div>
+            <div class="candidate-info-grid">
+                {f'<div class="info-row-full"><span class="info-label">NAME:</span><div class="info-field"></div></div>' if show_name else ''}
+                <div class="info-row-grid">
+                    {f'<div class="info-row-item"><span class="info-label">ADM NO:</span><div class="info-field"></div></div>' if show_number else ''}
+                    <div class="info-row-item"><span class="info-label">CLASS:</span><div class="info-field"></div></div>
                 </div>
-                ''' if show_name else ''}
-                
-                {f'''
-                <div class="info-row w-[1/4]">
-                    <div class="info-label">ADM NO:</div>
-                    <div class="info-field"></div>
-                </div>
-                ''' if show_number else ''}
-                
-                <div class="info-row w-[1/4]">
-                    <div class="info-label">CLASS:</div>
-                    <div class="info-field"></div>
-                </div>
-                
-                {f'''
-                <div class="info-row w-[1/4]">
-                    <div class="info-label">DATE:</div>
-                    <div class="info-field"></div>
-                </div>
-                ''' if show_date else ''}
-                
-                <div class="info-row w-[1/4]">
-                    <div class="info-label">SIGNATURE:</div>
-                    <div class="info-field"></div>
+                <div class="info-row-grid">
+                    {f'<div class="info-row-item"><span class="info-label">DATE:</span><div class="info-field"></div></div>' if show_date else ''}
+                    <div class="info-row-item"><span class="info-label">SIGNATURE:</span><div class="info-field"></div></div>
                 </div>
             </div>
         </div>
@@ -511,7 +490,7 @@ class BiologyPaper1Coverpage:
             {marking_grid_html}
         </div>
     </div>
-</body>a
+</body>
 </html>
 """
         return html
@@ -3090,38 +3069,15 @@ class ChemistryPaper1Coverpage:
         
         <!-- Candidate Information -->
         <div class="candidate-info">
-            <div class="info-grid">
-                {f'''
-                <div class="info-row-full">
-                    <div class="info-label">NAME:</div>
-                    <div class="info-field"></div>
+            <div class="candidate-info-grid">
+                {f'<div class="info-row-full"><span class="info-label">NAME:</span><div class="info-field"></div></div>' if show_name else ''}
+                <div class="info-row-grid">
+                    {f'<div class="info-row-item"><span class="info-label">ADM NO:</span><div class="info-field"></div></div>' if show_number else ''}
+                    <div class="info-row-item"><span class="info-label">CLASS:</span><div class="info-field"></div></div>
                 </div>
-                ''' if show_name else ''}
-                
-                <div class="info-row-full" style="display: flex; gap: 20px;">
-                    {f'''
-                    <div class="info-row" style="flex: 1;">
-                        <div class="info-label">ADM NO:</div>
-                        <div class="info-field"></div>
-                    </div>
-                    ''' if show_number else ''}
-                    
-                    <div class="info-row" style="flex: 1;">
-                        <div class="info-label">CLASS:</div>
-                        <div class="info-field"></div>
-                    </div>
-                    
-                    {f'''
-                    <div class="info-row" style="flex: 1;">
-                        <div class="info-label">DATE:</div>
-                        <div class="info-field"></div>
-                    </div>
-                    ''' if show_date else ''}
-                    
-                    <div class="info-row" style="flex: 1;">
-                        <div class="info-label">SIGNATURE:</div>
-                        <div class="info-field"></div>
-                    </div>
+                <div class="info-row-grid">
+                    {f'<div class="info-row-item"><span class="info-label">DATE:</span><div class="info-field"></div></div>' if show_date else ''}
+                    <div class="info-row-item"><span class="info-label">SIGNATURE:</span><div class="info-field"></div></div>
                 </div>
             </div>
         </div>
