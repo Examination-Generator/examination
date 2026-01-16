@@ -943,6 +943,8 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     Biology and Geography Paper 2 have sections, others don't
     After the last question, insert answer lines if needed
     """
+    from .page_number_extrctor import extract_paper_number_from_name
+    
     pages_html = []
     current_page = 2
 
@@ -1002,9 +1004,7 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     is_cre_paper = ('CRE' in paper_name or 'CHRISTIAN RELIGIOUS EDUCATION' in paper_name)
     
     # Check if this is English Paper 1 (special handling with titled sections)
-    from .page_number_extrctor import extract_paper_number_from_name
-    paper_number = extract_paper_number_from_name(paper_name.upper())
-    is_english_paper1 = 'ENGLISH' in paper_name.upper() and paper_number == 1
+    is_english_paper1 = 'ENGLISH' in paper_name and paper_number == 1
     
     if is_english_paper1:
         # English Paper 1: Three titled sections (Functional Skills, Cloze Test, Oral Skills)
