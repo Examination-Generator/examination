@@ -998,6 +998,21 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
             page_2_html = _generate_cre_question_page(second_page_questions, current_page, total_pages)
             pages_html.append(page_2_html)
             current_page += 1
+    elif is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1 or not has_sections:
+        # Papers without sections (Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1, and other non-sectioned papers)
+        # Generate all questions sequentially without section headers
+        all_questions_html = _generate_section_pages(
+            questions,
+            None,  # No section title
+            None,  # No section instruction
+            current_page,
+            total_pages,
+            is_last_section=True,
+            answer_lines=0,
+            paper_name=paper_name
+        )
+        pages_html.append(all_questions_html['html'])
+        current_page = all_questions_html['next_page']
     elif has_sections:
         # Check if this is Agriculture paper (3 sections: A, B, C)
         is_agriculture = 'AGRICULTURE' in paper_name
@@ -1134,21 +1149,6 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
             )
         pages_html.append(section_b_html['html'])
         current_page = section_b_html['next_page']
-    else:
-        # Papers without sections (Chemistry, Business, Kiswahili Paper 2)
-        # Generate all questions sequentially without section headers
-        all_questions_html = _generate_section_pages(
-            questions,
-            None,  # No section title
-            None,  # No section instruction
-            current_page,
-            total_pages,
-            is_last_section=True,
-            answer_lines=0,
-            paper_name=paper_name
-        )
-        pages_html.append(all_questions_html['html'])
-        current_page = all_questions_html['next_page']
 
     # Insert pages of dotted answer lines (only if answer_lines_pages > 0)
     if answer_lines_pages > 0:
