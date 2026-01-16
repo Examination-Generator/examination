@@ -983,9 +983,14 @@ class BiologyPaper2Coverpage:
         <div class="candidate-info">
             <div class="candidate-info-grid">
                 {f'<div class="info-row-full"><span class="info-label">NAME:</span><div class="info-field"></div></div>' if show_name else ''}
-                {f'<div class="info-row"><span class="info-label">ADM NO:</span><div class="info-field"></div></div>' if show_number else ''}
-                {f'<div class="info-row"><span class="info-label">DATE:</span><div class="info-field"></div></div>' if show_date else ''}
-                <div class="info-row"><span class="info-label">Sign:</span><div class="info-field"></div></div>
+                <div class="info-row-grid">
+                    {f'<div class="info-row-item"><span class="info-label">ADM NO:</span><div class="info-field"></div></div>' if show_number else ''}
+                    <div class="info-row-item"><span class="info-label">CLASS:</span><div class="info-field"></div></div>
+                </div>
+                <div class="info-row-grid">
+                    {f'<div class="info-row-item"><span class="info-label">DATE:</span><div class="info-field"></div></div>' if show_date else ''}
+                    <div class="info-row-item"><span class="info-label">SIGNATURE:</span><div class="info-field"></div></div>
+                </div>
             </div>
         </div>
         
