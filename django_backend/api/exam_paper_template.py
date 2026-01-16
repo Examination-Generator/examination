@@ -946,23 +946,35 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     except ValueError:
         raise ValueError(f"Invalid paper name format. Cannot extract paper number.{paper_name}")
     
-    # CRITICAL: These papers must NEVER show section headers
-    # Explicitly exclude FIRST before any section logic
+    # ================================================================================================
+    # ABSOLUTE PRIORITY: Route Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1 immediately
+    # These papers use their own unique template with ZERO section logic
+    # ================================================================================================
     is_kiswahili_paper2 = 'KISWAHILI' in paper_name and paper_number == 2
     is_business_paper1 = 'BUSINESS' in paper_name and paper_number == 1
     is_chemistry_paper1 = 'CHEMISTRY' in paper_name and paper_number == 1
     
-    # ABSOLUTE EXCLUSION: These papers must NEVER have sections
-    never_has_sections = is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1
+    if is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1:
+        # UNIQUE TEMPLATE: These papers go straight to non-sectioned generation
+        # Bypasses ALL section logic, checks, and metadata
+        all_questions_html = _generate_non_sectioned_pages(
+            questions,
+            current_page,
+            total_pages
+        )
+        pages_html.append(all_questions_html['html'])
+        current_page = all_questions_html['next_page']
+        
+        # Add answer lines if needed
+        if answer_lines_pages > 0:
+            answer_lines_html = _generate_answer_lines_pages(answer_lines_pages, current_page, total_pages)
+            pages_html.append(answer_lines_html)
+        
+        return '\n'.join(pages_html)
+    # ================================================================================================
     
-    # For excluded papers, remove ANY section metadata to prevent accidental section generation
-    if never_has_sections:
-        metadata.pop('section_a_questions', None)
-        metadata.pop('section_b_questions', None)
-        metadata.pop('section_a_marks', None)
-        metadata.pop('section_b_marks', None)
-        metadata.pop('section_a_instruction', None)
-        metadata.pop('section_b_instruction', None)
+    # For other papers, continue with normal section logic
+    never_has_sections = False  # Not needed anymore since excluded papers return early
     
     # Papers that should have sections (explicitly allowed list) - ONLY if paper number is 2
     is_biology = 'BIOLOGY' in paper_name and paper_number == 2
@@ -970,11 +982,8 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
     is_agriculture = 'AGRICULTURE' in paper_name
     
-    # has_sections is TRUE only for allowed papers AND not excluded papers
-    has_sections = (
-        (is_biology or is_geography or is_mathematics or is_agriculture)
-        and not never_has_sections
-    )
+    # has_sections is TRUE only for allowed papers
+    has_sections = (is_biology or is_geography or is_mathematics or is_agriculture)
     
     # Check if this is Agriculture paper (has 3 sections)
     is_agriculture = 'AGRICULTURE' in paper_name
@@ -998,9 +1007,8 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
             page_2_html = _generate_cre_question_page(second_page_questions, current_page, total_pages)
             pages_html.append(page_2_html)
             current_page += 1
-    elif never_has_sections or not has_sections:
-        # Papers without sections (Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1, and other non-sectioned papers)
-        # Use dedicated non-sectioned function that has NO section header logic
+    elif not has_sections:
+        # Papers without sections (other non-sectioned papers)
         all_questions_html = _generate_non_sectioned_pages(
             questions,
             current_page,
@@ -1009,158 +1017,142 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
         pages_html.append(all_questions_html['html'])
         current_page = all_questions_html['next_page']
     elif has_sections:
-        # CRITICAL SAFETY CHECK: Double-check that excluded papers don't enter this block
-        # This should never happen due to has_sections calculation, but adding as defense-in-depth
-        if never_has_sections:
-            # If we somehow got here, use non-sectioned generation instead
-            all_questions_html = _generate_non_sectioned_pages(
-                questions,
-                current_page,
-                total_pages
-            )
-            pages_html.append(all_questions_html['html'])
-            current_page = all_questions_html['next_page']
-        else:
-            # Check if this is Agriculture paper (3 sections: A, B, C)
-            is_agriculture = 'AGRICULTURE' in paper_name
+        # Papers with sections (Biology Paper 2, Geography Paper 2, Mathematics, Agriculture)
+        # Check if this is Agriculture paper (3 sections: A, B, C)
+        is_agriculture = 'AGRICULTURE' in paper_name
+        
+        if is_agriculture:
+            # Agriculture: Section A (1-15, 30 marks), Section B (16-19, 20 marks), Section C (20-22, 40 marks)
+            section_a_count = metadata.get('section_a_questions', 15)
+            section_b_count = metadata.get('section_b_questions', 19)
+            section_c_count = metadata.get('section_c_questions', 22)
             
-            if is_agriculture:
-                # Agriculture: Section A (1-15, 30 marks), Section B (16-19, 20 marks), Section C (20-22, 40 marks)
-                section_a_count = metadata.get('section_a_questions', 15)
-                section_b_count = metadata.get('section_b_questions', 19)
-                section_c_count = metadata.get('section_c_questions', 22)
-                
-                try:
-                    section_a_count = int(section_a_count)
-                    section_b_count = int(section_b_count)
-                    section_c_count = int(section_c_count)
-                except Exception:
-                    section_a_count = 15
-                    section_b_count = 19
-                    section_c_count = 22
-                
-                section_a_questions = [q for q in questions if q['number'] <= section_a_count]
-                section_b_questions = [q for q in questions if section_a_count < q['number'] <= section_b_count]
-                section_c_questions = [q for q in questions if section_b_count < q['number'] <= section_c_count]
-                
-                # Section A
-                section_a_marks = metadata.get('section_a_marks', 30)
-                section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
-                section_a_instruction = metadata.get('section_a_instruction', 'Answer ALL questions in this section')
-                section_a_html = _generate_section_pages(
-                    section_a_questions,
-                    section_a_title,
-                    section_a_instruction,
-                    current_page,
-                    total_pages,
-                    is_last_section=False,
-                    answer_lines=0,
-                    paper_name=paper_name
-                )
-                pages_html.append(section_a_html['html'])
-                current_page = section_a_html['next_page']
-                
-                # Section B
-                section_b_marks = metadata.get('section_b_marks', 20)
-                section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
-                section_b_instruction = metadata.get('section_b_instruction', 'Answer any TWO questions from this section')
-                section_b_html = _generate_section_pages(
-                    section_b_questions,
-                    section_b_title,
-                    section_b_instruction,
-                    current_page,
-                    total_pages,
-                    is_last_section=False,
-                    answer_lines=0,
-                    paper_name=paper_name
-                )
-                pages_html.append(section_b_html['html'])
-                current_page = section_b_html['next_page']
-                
-                # Section C
-                section_c_marks = metadata.get('section_c_marks', 40)
-                section_c_title = f"SECTION C ({section_c_marks} MARKS)" if section_c_marks else "SECTION C"
-                section_c_instruction = metadata.get('section_c_instruction', 'Answer ALL questions in this section')
-                section_c_html = _generate_section_pages(
-                    section_c_questions,
-                    section_c_title,
-                    section_c_instruction,
-                    current_page,
-                    total_pages,
-                    is_last_section=True,
-                    answer_lines=0,
-                    paper_name=paper_name
-                )
-                pages_html.append(section_c_html['html'])
-                current_page = section_c_html['next_page']
+            try:
+                section_a_count = int(section_a_count)
+                section_b_count = int(section_b_count)
+                section_c_count = int(section_c_count)
+            except Exception:
+                section_a_count = 15
+                section_b_count = 19
+                section_c_count = 22
+            
+            section_a_questions = [q for q in questions if q['number'] <= section_a_count]
+            section_b_questions = [q for q in questions if section_a_count < q['number'] <= section_b_count]
+            section_c_questions = [q for q in questions if section_b_count < q['number'] <= section_c_count]
+            
+            # Section A
+            section_a_marks = metadata.get('section_a_marks', 30)
+            section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
+            section_a_instruction = metadata.get('section_a_instruction', 'Answer ALL questions in this section')
+            section_a_html = _generate_section_pages(
+                section_a_questions,
+                section_a_title,
+                section_a_instruction,
+                current_page,
+                total_pages,
+                is_last_section=False,
+                answer_lines=0,
+                paper_name=paper_name
+            )
+            pages_html.append(section_a_html['html'])
+            current_page = section_a_html['next_page']
+            
+            # Section B
+            section_b_marks = metadata.get('section_b_marks', 20)
+            section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
+            section_b_instruction = metadata.get('section_b_instruction', 'Answer any TWO questions from this section')
+            section_b_html = _generate_section_pages(
+                section_b_questions,
+                section_b_title,
+                section_b_instruction,
+                current_page,
+                total_pages,
+                is_last_section=False,
+                answer_lines=0,
+                paper_name=paper_name
+            )
+            pages_html.append(section_b_html['html'])
+            current_page = section_b_html['next_page']
+            
+            # Section C
+            section_c_marks = metadata.get('section_c_marks', 40)
+            section_c_title = f"SECTION C ({section_c_marks} MARKS)" if section_c_marks else "SECTION C"
+            section_c_instruction = metadata.get('section_c_instruction', 'Answer ALL questions in this section')
+            section_c_html = _generate_section_pages(
+                section_c_questions,
+                section_c_title,
+                section_c_instruction,
+                current_page,
+                total_pages,
+                is_last_section=True,
+                answer_lines=0,
+                paper_name=paper_name
+            )
+            pages_html.append(section_c_html['html'])
+            current_page = section_c_html['next_page']
+        else:
+            # Papers with 2 sections (Biology, Geography, Mathematics)
+            section_a_count = metadata.get('section_a_questions', 5)
+            try:
+                section_a_count = int(section_a_count)
+            except Exception:
+                section_a_count = 5
+
+            section_a_questions = [q for q in questions if q['number'] <= section_a_count]
+            section_b_questions = [q for q in questions if q['number'] > section_a_count]
+
+            # Paper-specific section naming
+            is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
+            
+            # Section A/I
+            section_a_marks = metadata.get('section_a_marks', 40)
+            if is_mathematics:
+                section_a_title = f"SECTION I ({section_a_marks} MARKS)" if section_a_marks else "SECTION I"
             else:
-                # Papers with 2 sections (Biology, Geography, Mathematics)
-                section_a_count = metadata.get('section_a_questions', 5)
-                try:
-                    section_a_count = int(section_a_count)
-                except Exception:
-                    section_a_count = 5
+                section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
+            section_a_instruction = metadata.get('section_a_instruction', 'Answer ALL questions in this section')
+            section_a_html = _generate_section_pages(
+                section_a_questions,
+                section_a_title,
+                section_a_instruction,
+                current_page,
+                total_pages,
+                is_last_section=False,
+                answer_lines=0,
+                paper_name=paper_name
+            )
+            pages_html.append(section_a_html['html'])
+            current_page = section_a_html['next_page']
 
-                section_a_questions = [q for q in questions if q['number'] <= section_a_count]
-                section_b_questions = [q for q in questions if q['number'] > section_a_count]
-
-                # Paper-specific section naming
-                is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
+            # Section B/II
+            section_b_marks = metadata.get('section_b_marks', 40)
+            if is_mathematics:
+                section_b_title = f"SECTION II ({section_b_marks} MARKS)" if section_b_marks else "SECTION II"
+            else:
+                section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
+            
+            # Paper-specific instructions for Section B
+            is_geography = 'GEOGRAPHY' in paper_name
+            
+            if is_geography:
+                section_b_instruction = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section')
+            elif is_mathematics:
+                section_b_instruction = metadata.get('section_b_instruction', 'Answer any FIVE questions from this section')
+            else:
+                section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
                 
-                # Section A/I
-                section_a_marks = metadata.get('section_a_marks', 40)
-                if is_mathematics:
-                    section_a_title = f"SECTION I ({section_a_marks} MARKS)" if section_a_marks else "SECTION I"
-                else:
-                    section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
-                section_a_instruction = metadata.get('section_a_instruction', 'Answer ALL questions in this section')
-                section_a_html = _generate_section_pages(
-                    section_a_questions,
-                    section_a_title,
-                    section_a_instruction,
-                    current_page,
-                    total_pages,
-                    is_last_section=False,
-                    answer_lines=0,
-                    paper_name=paper_name
-                )
-                pages_html.append(section_a_html['html'])
-                current_page = section_a_html['next_page']
-
-                # Section B/II
-                # ABSOLUTE CHECK: Never create section titles for excluded papers
-                if never_has_sections:
-                    # This should never happen, but if it does, skip section generation entirely
-                    pass
-                else:
-                    section_b_marks = metadata.get('section_b_marks', 40)
-                    if is_mathematics:
-                        section_b_title = f"SECTION II ({section_b_marks} MARKS)" if section_b_marks else "SECTION II"
-                    else:
-                        section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
-                    
-                    # Paper-specific instructions for Section B
-                    is_geography = 'GEOGRAPHY' in paper_name
-                    
-                    if is_geography:
-                        section_b_instruction = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section')
-                    elif is_mathematics:
-                        section_b_instruction = metadata.get('section_b_instruction', 'Answer any FIVE questions from this section')
-                    else:
-                        section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
-                        
-                    section_b_html = _generate_section_pages(
-                        section_b_questions,
-                        section_b_title,
-                        section_b_instruction,
-                        current_page,
-                        total_pages,
-                        is_last_section=True,
-                        answer_lines=0,
-                        paper_name=paper_name
-                    )
-                    pages_html.append(section_b_html['html'])
-                    current_page = section_b_html['next_page']
+            section_b_html = _generate_section_pages(
+                section_b_questions,
+                section_b_title,
+                section_b_instruction,
+                current_page,
+                total_pages,
+                is_last_section=True,
+                answer_lines=0,
+                paper_name=paper_name
+            )
+            pages_html.append(section_b_html['html'])
+            current_page = section_b_html['next_page']
     # Insert pages of dotted answer lines (only if answer_lines_pages > 0)
     if answer_lines_pages > 0:
         answer_lines_html = _generate_answer_lines_pages(answer_lines_pages, current_page, total_pages)
@@ -1331,22 +1323,22 @@ def _generate_section_pages(questions, section_title, section_instruction, start
         </div>
 """
         
-        # section_header_html = ""
-        # # ABSOLUTE CHECK: Only generate section header if section_title is provided, it's the first page,
-        # # AND the paper is not in the excluded list (Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1)
-        # if is_first_page and section_title is not None and not (is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1):
-        #     section_header_html = f"""
-        # <div class="section-header">
-        #     <h2>{section_title}</h2>
-        #     <p class="section-instruction">{section_instruction}</p>
-        # </div>
-        # """
+        section_header_html = ""
+        # ABSOLUTE CHECK: Only generate section header if section_title is provided, it's the first page,
+        # AND the paper is not in the excluded list (Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1)
+        if is_first_page and section_title is not None and not (is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1):
+            section_header_html = f"""
+        <div class="section-header">
+            <h2>{section_title}</h2>
+            <p class="section-instruction">{section_instruction}</p>
+        </div>
+        """
         
         
         page_html = f"""
     <!-- Page {current_page} -->
     <div class="exam-page page-break">
-      <!--   {section_header_html} -->
+      {section_header_html}
         {questions_html}        
         <div class="page-number">Page {current_page} of {total_pages}</div>
     </div>
