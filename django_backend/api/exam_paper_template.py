@@ -1128,35 +1128,39 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
                 current_page = section_a_html['next_page']
 
                 # Section B/II
-                section_b_marks = metadata.get('section_b_marks', 40)
-                if is_mathematics:
-                    section_b_title = f"SECTION II ({section_b_marks} MARKS)" if section_b_marks else "SECTION II"
+                # ABSOLUTE CHECK: Never create section titles for excluded papers
+                if never_has_sections:
+                    # This should never happen, but if it does, skip section generation entirely
+                    pass
                 else:
-                    section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
-                
-                # Paper-specific instructions for Section B
-                is_geography = 'GEOGRAPHY' in paper_name
-                
-                if is_geography:
-                    section_b_instruction = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section')
-                elif is_mathematics:
-                    section_b_instruction = metadata.get('section_b_instruction', 'Answer any FIVE questions from this section')
-                else:
-                    section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
+                    section_b_marks = metadata.get('section_b_marks', 40)
+                    if is_mathematics:
+                        section_b_title = f"SECTION II ({section_b_marks} MARKS)" if section_b_marks else "SECTION II"
+                    else:
+                        section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
                     
-                section_b_html = _generate_section_pages(
-                    section_b_questions,
-                    section_b_title,
-                    section_b_instruction,
-                    current_page,
-                    total_pages,
-                    is_last_section=True,
-                    answer_lines=0,
-                    paper_name=paper_name
-                )
-                pages_html.append(section_b_html['html'])
-                current_page = section_b_html['next_page']
-
+                    # Paper-specific instructions for Section B
+                    is_geography = 'GEOGRAPHY' in paper_name
+                    
+                    if is_geography:
+                        section_b_instruction = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section')
+                    elif is_mathematics:
+                        section_b_instruction = metadata.get('section_b_instruction', 'Answer any FIVE questions from this section')
+                    else:
+                        section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
+                        
+                    section_b_html = _generate_section_pages(
+                        section_b_questions,
+                        section_b_title,
+                        section_b_instruction,
+                        current_page,
+                        total_pages,
+                        is_last_section=True,
+                        answer_lines=0,
+                        paper_name=paper_name
+                    )
+                    pages_html.append(section_b_html['html'])
+                    current_page = section_b_html['next_page']
     # Insert pages of dotted answer lines (only if answer_lines_pages > 0)
     if answer_lines_pages > 0:
         answer_lines_html = _generate_answer_lines_pages(answer_lines_pages, current_page, total_pages)
