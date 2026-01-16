@@ -275,6 +275,35 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             margin-bottom: 20px;
         }}
         
+        .info-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px 20px;
+        }}
+        
+        .info-row {{
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-row-full {{
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
+            display: flex;
+            align-items: center;
+        }}
+        
         .info-label {{
             font-weight: bold;
             font-size: 12px;
@@ -303,6 +332,53 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             margin-left: 20px;
             font-size: 12px;
             line-height: 1.6;
+            list-style: none;
+            counter-reset: list-counter;
+        }}
+        
+        .instructions li {{
+            margin-bottom: 8px;
+            counter-increment: list-counter;
+        }}
+        
+        .instructions li::before {{
+            content: "(" counter(list-counter, lower-alpha) ") ";
+        }}
+        
+        .instructions li.bold {{
+            font-weight: bold;
+        }}
+        
+        .instructions-list {{
+            list-style: none;
+            counter-reset: list-counter;
+            padding-left: 25px;
+        }}
+        
+        .instructions-list li {{
+            margin-bottom: 8px;
+            line-height: 1.4;
+            counter-increment: list-counter;
+        }}
+        
+        .instructions-list li::before {{
+            content: "(" counter(list-counter, lower-alpha) ") ";
+        }}
+        
+        .instructions-list li strong {{
+            font-weight: bold;
+        }}
+        
+        .marking-grid-container {{
+            margin-top: auto;
+            padding-top: 20px;
+        }}
+        
+        .grid-title {{
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 10px;
+            text-align: center;
         }}
         
         .marking-grid {{
