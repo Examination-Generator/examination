@@ -992,16 +992,11 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
             current_page += 1
     elif never_has_sections or not has_sections:
         # Papers without sections (Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1, and other non-sectioned papers)
-        # Generate all questions sequentially without section headers
-        all_questions_html = _generate_section_pages(
+        # Use dedicated non-sectioned function that has NO section header logic
+        all_questions_html = _generate_non_sectioned_pages(
             questions,
-            None,  # No section title
-            None,  # No section instruction
             current_page,
-            total_pages,
-            is_last_section=True,
-            answer_lines=0,
-            paper_name=paper_name
+            total_pages
         )
         pages_html.append(all_questions_html['html'])
         current_page = all_questions_html['next_page']
@@ -1185,6 +1180,54 @@ def _generate_cre_question_page(questions, page_number, total_pages):
     </div>
 """
     return page_html
+
+
+def _generate_non_sectioned_pages(questions, start_page, total_pages):
+    """
+    Generate pages for papers WITHOUT sections
+    Used for: Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1, and other non-sectioned papers
+    This function has NO section header logic at all
+    
+    Args:
+        questions: List of question dictionaries
+        start_page: Starting page number
+        total_pages: Total pages in the paper
+    
+    Returns:
+        dict: {'html': str, 'next_page': int}
+    """
+    pages_html = []
+    current_page = start_page
+    questions_per_page = 2
+    
+    for i in range(0, len(questions), questions_per_page):
+        page_questions = questions[i:i + questions_per_page]
+        
+        questions_html = ""
+        for q in page_questions:
+            processed_text = _process_question_text(
+                q.get('text', ''),
+                q.get('question_inline_images', []),
+                q.get('question_answer_lines', [])
+            )
+            
+            questions_html += f"""
+        <div class="question">
+            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
+        </div>
+"""
+        
+        page_html = f"""
+    <!-- Page {current_page} -->
+    <div class="exam-page page-break">
+        {questions_html}        
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+"""
+        pages_html.append(page_html)
+        current_page += 1
+    
+    return {'html': '\n'.join(pages_html), 'next_page': current_page}
 
 
 def _generate_answer_lines_pages(num_pages, start_page, total_pages):
