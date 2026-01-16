@@ -906,13 +906,13 @@ def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None)
     <div class="exam-page {'page-break' if current_page < total_pages else ''}">
         <div class="question">                
             <div class="question-part">
-                <div>
+                <div style="text-align: left;">
                    {question_number}.(a){q_a_text}
                 </div>
             </div>
             
-            <div class="question-part" style="margin-top: 20px;">
-                <div>
+            <div class="question-part" >
+                <div style="text-align: left;">
                     (b){q_b_text}
                 </div>
             </div>
