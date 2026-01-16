@@ -1123,9 +1123,18 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
 
             # Paper-specific section naming
             is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
+            is_geography_paper = 'GEOGRAPHY' in paper_name
+            is_biology_paper = 'BIOLOGY' in paper_name
             
-            # Section A/I
-            section_a_marks = metadata.get('section_a_marks', 40)
+            # Section A/I - Set default marks based on paper type
+            if is_geography_paper:
+                default_section_a_marks = 25
+            elif is_biology_paper:
+                default_section_a_marks = 40
+            else:
+                default_section_a_marks = 40
+            
+            section_a_marks = metadata.get('section_a_marks', default_section_a_marks)
             if is_mathematics:
                 section_a_title = f"SECTION I ({section_a_marks} MARKS)" if section_a_marks else "SECTION I"
             else:
@@ -1144,8 +1153,15 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
             pages_html.append(section_a_html['html'])
             current_page = section_a_html['next_page']
 
-            # Section B/II
-            section_b_marks = metadata.get('section_b_marks', 40)
+            # Section B/II - Set default marks based on paper type
+            if is_geography_paper:
+                default_section_b_marks = 75
+            elif is_biology_paper:
+                default_section_b_marks = 40
+            else:
+                default_section_b_marks = 40
+            
+            section_b_marks = metadata.get('section_b_marks', default_section_b_marks)
             if is_mathematics:
                 section_b_title = f"SECTION II ({section_b_marks} MARKS)" if section_b_marks else "SECTION II"
             else:
