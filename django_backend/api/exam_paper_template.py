@@ -1332,8 +1332,9 @@ def _generate_section_pages(questions, section_title, section_instruction, start
 """
         
         section_header_html = ""
-        # Only generate section header if section_title is provided and it's the first page
-        if is_first_page and section_title is not None:
+        # ABSOLUTE CHECK: Only generate section header if section_title is provided, it's the first page,
+        # AND the paper is not in the excluded list (Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1)
+        if is_first_page and section_title is not None and not (is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1):
             section_header_html = f"""
         <div class="section-header">
             <h2>{section_title}</h2>
