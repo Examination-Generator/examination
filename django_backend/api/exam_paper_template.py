@@ -904,25 +904,16 @@ def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None)
             # Generate page HTML with combined question
             page_html = f"""
     <div class="exam-page {'page-break' if current_page < total_pages else ''}">
-        <div class="question">
-            <div class="question-header">
-                <span class="question-number">{question_number}.</span>
-                <span class="marks-indicator">({total_marks} marks)</span>
-            </div>
-            
+        <div class="question">                
             <div class="question-part">
                 <div class="question-text">
-                    <span class="part-label">(a)</span>
-                    <span class="marks-indicator">({q_a.get('marks', 0)} marks)</span>
-                    {q_a_text}
+                   {question_number}.(a){q_a_text}
                 </div>
             </div>
             
-            <div class="question-part" style="margin-top: 30px;">
+            <div class="question-part" style="margin-top: 20px;">
                 <div class="question-text">
-                    <span class="part-label">(b)</span>
-                    <span class="marks-indicator">({q_b.get('marks', 0)} marks)</span>
-                    {q_b_text}
+                    (b){q_b_text}
                 </div>
             </div>
         </div>
