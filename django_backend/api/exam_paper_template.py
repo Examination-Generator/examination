@@ -398,6 +398,16 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             margin-top: 5px;
         }}
         
+        /* Simple section title for English Paper 1 (bold, left-aligned) */
+        .simple-section-title {{
+            font-size: 14px;
+            font-weight: bold;
+            text-align: left;
+            margin: 20px 0 10px 0;
+            padding: 0;
+            border: none;
+        }}
+        
         /* Answer section header */
         .answer-section-header {{
             text-align: center;
@@ -991,7 +1001,17 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     # Check if this is CRE paper (special pagination: 5 questions on page 1, question 6 on page 2)
     is_cre_paper = ('CRE' in paper_name or 'CHRISTIAN RELIGIOUS EDUCATION' in paper_name)
     
-    if is_cre_paper:
+    # Check if this is English Paper 1 (special handling with titled sections)
+    from .page_number_extrctor import extract_paper_number_from_name
+    paper_number = extract_paper_number_from_name(paper_name.upper())
+    is_english_paper1 = 'ENGLISH' in paper_name.upper() and paper_number == 1
+    
+    if is_english_paper1:
+        # English Paper 1: Three titled sections (Functional Skills, Cloze Test, Oral Skills)
+        english_pages_html = _generate_english_paper1_pages(questions, current_page, total_pages)
+        pages_html.append(english_pages_html['html'])
+        current_page = english_pages_html['next_page']
+    elif is_cre_paper:
         # CRE papers: 5 questions on first page, 6th question on second page
         first_page_questions = questions[:5] if len(questions) >= 5 else questions
         second_page_questions = questions[5:] if len(questions) > 5 else []
@@ -1196,6 +1216,67 @@ def _generate_cre_question_page(questions, page_number, total_pages):
     </div>
 """
     return page_html
+
+
+def _generate_english_paper1_pages(questions, start_page, total_pages):
+    """
+    Generate pages for English Paper 1 with three titled sections:
+    - Functional Skills (Question 1)
+    - Cloze Test (Question 2)
+    - Oral Skills (Question 3)
+    
+    Section titles are bold and left-aligned, not centered headers.
+    
+    Args:
+        questions: List of question dictionaries
+        start_page: Starting page number
+        total_pages: Total pages in the paper
+    
+    Returns:
+        dict: {'html': html_string, 'next_page': next_page_number}
+    """
+    # Define section titles for each question
+    section_titles = {
+        1: "Functional Skills",
+        2: "Cloze Test",
+        3: "Oral Skills"
+    }
+    
+    questions_html = ""
+    for q in questions:
+        q_number = int(q.get('number', 0))
+        
+        # Add section title before the question if it's question 1, 2, or 3
+        if q_number in section_titles:
+            section_title = section_titles[q_number]
+            questions_html += f"""
+        <div class="simple-section-title">{section_title}</div>
+"""
+        
+        processed_text = _process_question_text(
+            q.get('text', ''),
+            q.get('question_inline_images', []),
+            q.get('question_answer_lines', [])
+        )
+        
+        questions_html += f"""
+        <div class="question">
+            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
+        </div>
+"""
+    
+    page_html = f"""
+    <!-- Page {start_page} -->
+    <div class="exam-page page-break">
+        {questions_html}        
+        <div class="page-number">Page {start_page} of {total_pages}</div>
+    </div>
+"""
+    
+    return {
+        'html': page_html,
+        'next_page': start_page + 1
+    }
 
 
 def _generate_non_sectioned_pages(questions, start_page, total_pages):

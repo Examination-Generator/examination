@@ -82,7 +82,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     answer_lines_page_count = 0
     
     # Calculate total pages
-    questions_per_page = 2
+    questions_per_page = 3
     question_pages = (len(questions) + questions_per_page - 1) // questions_per_page
     total_pages = 1 + question_pages + answer_lines_page_count
     
