@@ -1331,22 +1331,22 @@ def _generate_section_pages(questions, section_title, section_instruction, start
         </div>
 """
         
-        section_header_html = ""
-        # ABSOLUTE CHECK: Only generate section header if section_title is provided, it's the first page,
-        # AND the paper is not in the excluded list (Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1)
-        if is_first_page and section_title is not None and not (is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1):
-            section_header_html = f"""
-        <div class="section-header">
-            <h2>{section_title}</h2>
-            <p class="section-instruction">{section_instruction}</p>
-        </div>
-        """
+        # section_header_html = ""
+        # # ABSOLUTE CHECK: Only generate section header if section_title is provided, it's the first page,
+        # # AND the paper is not in the excluded list (Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1)
+        # if is_first_page and section_title is not None and not (is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1):
+        #     section_header_html = f"""
+        # <div class="section-header">
+        #     <h2>{section_title}</h2>
+        #     <p class="section-instruction">{section_instruction}</p>
+        # </div>
+        # """
         
         
         page_html = f"""
     <!-- Page {current_page} -->
     <div class="exam-page page-break">
-        {section_header_html}
+      <!--   {section_header_html} -->
         {questions_html}        
         <div class="page-number">Page {current_page} of {total_pages}</div>
     </div>
