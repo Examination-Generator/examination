@@ -942,7 +942,6 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     Biology and Geography Paper 2 have sections, others don't
     After the last question, insert answer lines if needed
     """
-    import math
     pages_html = []
     current_page = 2
 
@@ -954,26 +953,28 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     try:
         paper_number = extract_paper_number_from_name(paper_name)
     except ValueError:
-        paper_number = 1
+        raise ValueError(f"Invalid paper name format. Cannot extract paper number.{paper_name}")
     
     # Check if this paper has sections
-    # Only Biology, Geography, Mathematics, and Agriculture papers should have sections
+    # Only Biology Paper 2, Geography Paper 2, Mathematics Paper 2, and Agriculture Paper 2 should have sections
     # Explicitly exclude: Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1, and any other papers
     is_kiswahili_paper2 = 'KISWAHILI' in paper_name and paper_number == 2
     is_business_paper1 = 'BUSINESS' in paper_name and paper_number == 1
     is_chemistry_paper1 = 'CHEMISTRY' in paper_name and paper_number == 1
     
-    # Papers that should have sections (explicitly allowed list)
-    is_biology = 'BIOLOGY' in paper_name
-    is_geography = 'GEOGRAPHY' in paper_name
+    # ABSOLUTE EXCLUSION: These papers must NEVER have sections
+    never_has_sections = is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1
+    
+    # Papers that should have sections (explicitly allowed list) - ONLY if paper number is 2
+    is_biology = 'BIOLOGY' in paper_name and paper_number == 2
+    is_geography = 'GEOGRAPHY' in paper_name and paper_number == 2
     is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
     is_agriculture = 'AGRICULTURE' in paper_name
     
+    # has_sections is TRUE only for allowed papers AND not excluded papers
     has_sections = (
         (is_biology or is_geography or is_mathematics or is_agriculture)
-        and not is_kiswahili_paper2
-        and not is_business_paper1
-        and not is_chemistry_paper1
+        and not never_has_sections
     )
     
     # Check if this is Agriculture paper (has 3 sections)
@@ -998,7 +999,7 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
             page_2_html = _generate_cre_question_page(second_page_questions, current_page, total_pages)
             pages_html.append(page_2_html)
             current_page += 1
-    elif is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1 or not has_sections:
+    elif never_has_sections or not has_sections:
         # Papers without sections (Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1, and other non-sectioned papers)
         # Generate all questions sequentially without section headers
         all_questions_html = _generate_section_pages(
@@ -1147,8 +1148,8 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
                 answer_lines=0,
                 paper_name=paper_name
             )
-        pages_html.append(section_b_html['html'])
-        current_page = section_b_html['next_page']
+            pages_html.append(section_b_html['html'])
+            current_page = section_b_html['next_page']
 
     # Insert pages of dotted answer lines (only if answer_lines_pages > 0)
     if answer_lines_pages > 0:
