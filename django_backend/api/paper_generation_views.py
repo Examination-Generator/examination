@@ -1314,13 +1314,42 @@ def preview_full_exam(request, paper_id):
                     })
             
             if output_format == 'html':
-                # Generate complete exam HTML
-                from .exam_paper_template import generate_full_exam_html
-                html_content = generate_full_exam_html(
-                    coverpage_data, 
-                    ordered_questions,
-                    coverpage_class=CoverpageClass
-                )
+                # Determine which template to use based on paper type
+                # Use the paper number extraction function to handle both "PAPER 2" and "PAPER II" formats
+                from .page_number_extrctor import extract_paper_number_from_name
+                
+                paper_name_upper = coverpage_data.get('paper_name', '').upper()
+                
+                try:
+                    paper_number = extract_paper_number_from_name(paper_name_upper)
+                except ValueError:
+                    # If extraction fails, default to standard template
+                    paper_number = 0
+                
+                # Check if this is a non-sectioned paper using proper paper number extraction
+                is_kiswahili_paper2 = 'KISWAHILI' in paper_name_upper and paper_number == 2
+                is_business_paper1 = 'BUSINESS' in paper_name_upper and paper_number == 1
+                is_chemistry_paper1 = 'CHEMISTRY' in paper_name_upper and paper_number == 1
+                
+                use_no_sections_template = is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1
+                
+                if use_no_sections_template:
+                    # Use the NO SECTIONS template
+                    from .exam_paper_template_no_sections import generate_full_exam_html
+                    html_content = generate_full_exam_html(
+                        coverpage_data, 
+                        ordered_questions,
+                        coverpage_class=CoverpageClass
+                    )
+                else:
+                    # Use the standard template with sections
+                    from .exam_paper_template import generate_full_exam_html
+                    html_content = generate_full_exam_html(
+                        coverpage_data, 
+                        ordered_questions,
+                        coverpage_class=CoverpageClass
+                    )
+                
                 return HttpResponse(html_content, content_type='text/html')
         
         # Return JSON
