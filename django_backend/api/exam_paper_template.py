@@ -1333,7 +1333,7 @@ def _generate_section_pages(questions, section_title, section_instruction, start
         
         section_header_html = ""
         # Only generate section header if section_title is provided and it's the first page
-        if is_first_page and section_title:
+        if is_first_page and section_title is not None:
             section_header_html = f"""
         <div class="section-header">
             <h2>{section_title}</h2>
@@ -1341,22 +1341,6 @@ def _generate_section_pages(questions, section_title, section_instruction, start
         </div>
         """
         
-#         answer_section_html = ""
-#         if is_last_section and is_last_page_of_questions and answer_lines > 0:
-#             answer_section_html = f"""
-        
-#         <div class="answer-section-header" style="margin-top: 30px;">
-#             <p><strong>ANSWER SECTION B HERE</strong></p>
-#             <p style="font-size: 11px; color: #666;">Use these lines to write your answers for Section B questions (6, 7 or 8)</p>
-#         </div>
-        
-#         <div class="answer-lines-container">
-# """
-            # initial_lines = 8
-            # for _ in range(initial_lines):
-            #     answer_section_html += '            <div class="answer-line"></div>\n'
-            
-            # answer_section_html += "        </div>"
         
         page_html = f"""
     <!-- Page {current_page} -->
