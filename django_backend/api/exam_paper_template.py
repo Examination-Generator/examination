@@ -310,12 +310,99 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             margin: 10mm auto;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             position: relative;
+            page-break-after: always;
         }}
         
         @media print {{
             .exam-page {{
                 margin: 0;
                 box-shadow: none;
+                padding: 12mm 15mm !important;
+                height: 297mm;
+                max-height: 297mm;
+                page-break-after: always !important;
+            }}
+            
+            /* Scale coverpage to fit on one page */
+            .coverpage {{
+                height: 100%;
+                max-height: 273mm; /* 297mm - 24mm padding */
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                transform-origin: top center;
+            }}
+            
+            /* Reduce font sizes and spacing in print for coverpage */
+            .coverpage .school-name {{
+                font-size: 16px !important;
+                margin-bottom: 3px !important;
+            }}
+            
+            .coverpage .class-name {{
+                font-size: 12px !important;
+                margin-bottom: 10px !important;
+            }}
+            
+            .coverpage .exam-title {{
+                font-size: 14px !important;
+                margin-bottom: 8px !important;
+            }}
+            
+            .coverpage .paper-details {{
+                font-size: 12px !important;
+                margin-bottom: 12px !important;
+            }}
+            
+            .header {{
+                margin-bottom: 10px !important;
+            }}
+            
+            .candidate-info {{
+                margin-bottom: 12px !important;
+                padding: 10px !important;
+            }}
+            
+            .info-label {{
+                font-size: 11px !important;
+            }}
+            
+            .info-field {{
+                min-height: 22px !important;
+            }}
+            
+            .instructions {{
+                margin-bottom: 12px !important;
+            }}
+            
+            .instructions-title {{
+                font-size: 12px !important;
+                margin-bottom: 6px !important;
+            }}
+            
+            .instructions ol, .instructions-list {{
+                font-size: 11px !important;
+                line-height: 1.4 !important;
+            }}
+            
+            .instructions li {{
+                margin-bottom: 4px !important;
+            }}
+            
+            .marking-grid-container {{
+                margin-top: 8px !important;
+                padding-top: 12px !important;
+            }}
+            
+            .grid-title {{
+                font-size: 11px !important;
+                margin-bottom: 6px !important;
+            }}
+            
+            .marking-grid td {{
+                font-size: 9px !important;
+                padding: 6px 3px !important;
+                height: 25px !important;
             }}
         }}
         
@@ -525,6 +612,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            page-break-after: always;
         }}
         
         .header {{
