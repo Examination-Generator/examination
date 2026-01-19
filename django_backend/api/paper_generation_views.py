@@ -1328,11 +1328,12 @@ def preview_full_exam(request, paper_id):
                 
                 # Check paper type for template selection
                 is_english_paper1 = 'ENGLISH' in paper_name_upper and paper_number == 1
+                is_biology_paper1 = 'BIOLOGY' in paper_name_upper and paper_number == 1
                 is_kiswahili_paper2 = 'KISWAHILI' in paper_name_upper and paper_number == 2
                 is_business_paper1 = 'BUSINESS' in paper_name_upper and paper_number == 1
                 is_chemistry_paper1 = 'CHEMISTRY' in paper_name_upper and paper_number == 1
                 
-                use_no_sections_template = is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1
+                use_no_sections_template = is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1 or is_biology_paper1
                 
                 if is_english_paper1:
                     # Use the ENGLISH PAPER 1 specific template
