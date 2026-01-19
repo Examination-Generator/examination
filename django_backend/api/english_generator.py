@@ -524,13 +524,13 @@ class KCSEEnglishPaper1Generator:
 class KCSEEnglishPaper2Generator:
     """
     KCSE English Paper 2 - Comprehension, Literary Appreciation & Grammar
-    Q1: Comprehension (20) + Q2: Literature (25) + Q3: Poetry (20) + Q4: Grammar (15) = 80 marks
+    Q1: Passage/Comprehension (20) + Q2: Excerpt (25) + Q3: Oral Literature (20) + Q4: Grammar (15) = 80 marks
     """
     
     TOTAL_MARKS = 80
-    Q1_COMPREHENSION_MARKS = 20
-    Q2_LITERATURE_MARKS = 25
-    Q3_POETRY_MARKS = 20
+    Q1_PASSAGE_MARKS = 20
+    Q2_EXCERPT_MARKS = 25
+    Q3_ORAL_LITERATURE_MARKS = 20
     Q4_GRAMMAR_MARKS = 15
     
     def __init__(self, paper_id: str, selections: Dict):
@@ -541,35 +541,17 @@ class KCSEEnglishPaper2Generator:
         self.paper = None
         self.subject = None
         
-        # Main content (passages, excerpts, poems)
-        self.comprehension_passages = []
-        self.literature_excerpts = []
-        self.poems = []
-        
-        # Sub-questions for each section
-        self.comprehension_subquestions = []
-        self.literature_subquestions = []
-        self.poetry_subquestions = []
-        
-        # Grammar items
-        self.grammar_items = {
-            'transformation': [],
-            'word_forms': [],
-            'prepositions': [],
-            'synonyms': [],
-            'ambiguity': []
-        }
+        # Main questions (one per section)
+        self.passage_questions = []  # Q1: Passage/Comprehension (20 marks)
+        self.excerpt_questions = []  # Q2: Excerpt (25 marks)
+        self.oral_literature_questions = []  # Q3: Oral Literature (20 marks)
+        self.grammar_questions = []  # Q4: Grammar parts (15 marks total)
         
         # Selected content
         self.selected_passage = None
         self.selected_excerpt = None
-        self.selected_poem = None
-        self.selected_grammar = {}
-        
-        self.q1_subquestions = []
-        self.q2_subquestions = []
-        self.q3_subquestions = []
-        self.q4_subquestions = []
+        self.selected_oral_literature = None
+        self.selected_grammar_parts = []  # List of 5 parts (a-e)
         
         self.attempts = 0
         self.total_marks = 0
@@ -582,110 +564,105 @@ class KCSEEnglishPaper2Generator:
         )
         self.subject = self.paper.subject
         
-        if 'English' not in self.subject.name or 'Paper 2' not in self.paper.name:
-            raise ValueError("This generator is only for English Paper 2")
+        # Get topic IDs from selections (if provided)
+        selected_topic_ids = self.selections.get('topics', [])
         
-        # Load comprehension passages and sub-questions
-        comprehension_topics = self.selections.get('comprehension_topics', [])
-        passage_filter = {
-            'paper': self.paper,
-            'question_type': 'comprehension_passage',
-            'is_active': True,
-        }
-        if comprehension_topics:
-            passage_filter['topic_id__in'] = comprehension_topics
-        
-        self.comprehension_passages = list(Question.objects.filter(
-            **passage_filter
-        ).select_related('topic'))
-        
-        # Comprehension sub-questions
-        subq_filter = passage_filter.copy()
-        subq_filter['question_type__in'] = [
-            'factual_recall', 'inference', 'explanation', 
-            'summary', 'description', 'grammar_transformation', 
-            'vocabulary'
-        ]
-        self.comprehension_subquestions = list(Question.objects.filter(**subq_filter))
-        
-        # Load literature excerpts and sub-questions
-        literature_topics = self.selections.get('literature_topics', [])
-        excerpt_filter = {
-            'paper': self.paper,
-            'question_type': 'literature_excerpt',
-            'is_active': True,
-        }
-        if literature_topics:
-            excerpt_filter['topic_id__in'] = literature_topics
-        
-        self.literature_excerpts = list(Question.objects.filter(
-            **excerpt_filter
-        ).select_related('topic'))
-        
-        # Literature sub-questions
-        lit_subq_filter = excerpt_filter.copy()
-        lit_subq_filter['question_type__in'] = [
-            'context_before', 'character_trait', 'theme',
-            'character_analysis', 'stylistic_features', 
-            'text_connection', 'context_after', 'vocabulary', 'message'
-        ]
-        self.literature_subquestions = list(Question.objects.filter(**lit_subq_filter))
-        
-        # Load poems and sub-questions
-        poetry_topics = self.selections.get('poetry_topics', [])
-        poem_filter = {
-            'paper': self.paper,
-            'question_type': 'poem',
-            'is_active': True,
-        }
-        if poetry_topics:
-            poem_filter['topic_id__in'] = poetry_topics
-        
-        self.poems = list(Question.objects.filter(**poem_filter).select_related('topic'))
-        
-        # Poetry sub-questions
-        poetry_subq_filter = poem_filter.copy()
-        poetry_subq_filter['question_type__in'] = [
-            'theme', 'content_recall', 'stylistic_features',
-            'interpretation', 'persona_traits', 'lesson', 'vocabulary'
-        ]
-        self.poetry_subquestions = list(Question.objects.filter(**poetry_subq_filter))
-        
-        # Load grammar items
-        for grammar_type in self.grammar_items.keys():
-            self.grammar_items[grammar_type] = list(Question.objects.filter(
+        # Get topics - either from selections or all topics for this paper
+        if selected_topic_ids:
+            all_topics = Topic.objects.filter(
+                id__in=selected_topic_ids,
                 paper=self.paper,
-                question_type=f'grammar_{grammar_type}',
                 is_active=True
-            ))
+            )
+        else:
+            all_topics = Topic.objects.filter(
+                paper=self.paper,
+                is_active=True
+            )
+        
+        # Categorize topics by checking their names
+        passage_topics = []
+        excerpt_topics = []
+        oral_literature_topics = []
+        grammar_topics = []
+        
+        for topic in all_topics:
+            topic_name_lower = topic.name.lower()
+            
+            # Check topic names to categorize
+            if 'passage' in topic_name_lower or 'comprehension' in topic_name_lower:
+                passage_topics.append(topic)
+            elif 'excerpt' in topic_name_lower:
+                excerpt_topics.append(topic)
+            elif 'oral literature' in topic_name_lower or 'narrative' in topic_name_lower:
+                oral_literature_topics.append(topic)
+            elif 'grammar' in topic_name_lower:
+                grammar_topics.append(topic)
+        
+        # Q1: Passage/Comprehension - select questions worth 20 marks
+        passage_query = Question.objects.filter(
+            paper=self.paper,
+            marks=self.Q1_PASSAGE_MARKS,
+            is_active=True
+        )
+        if passage_topics:
+            passage_query = passage_query.filter(topic__in=passage_topics)
+        
+        self.passage_questions = list(passage_query.select_related('topic'))
+        
+        # Q2: Excerpt - select questions worth 25 marks
+        excerpt_query = Question.objects.filter(
+            paper=self.paper,
+            marks=self.Q2_EXCERPT_MARKS,
+            is_active=True
+        )
+        if excerpt_topics:
+            excerpt_query = excerpt_query.filter(topic__in=excerpt_topics)
+        
+        self.excerpt_questions = list(excerpt_query.select_related('topic'))
+        
+        # Q3: Oral Literature - select questions worth 20 marks
+        oral_query = Question.objects.filter(
+            paper=self.paper,
+            marks=self.Q3_ORAL_LITERATURE_MARKS,
+            is_active=True
+        )
+        if oral_literature_topics:
+            oral_query = oral_query.filter(topic__in=oral_literature_topics)
+        
+        self.oral_literature_questions = list(oral_query.select_related('topic'))
+        
+        # Q4: Grammar - select questions from grammar topics (any marks, will combine to 15)
+        grammar_query = Question.objects.filter(
+            paper=self.paper,
+            is_active=True
+        )
+        if grammar_topics:
+            grammar_query = grammar_query.filter(topic__in=grammar_topics)
+        
+        self.grammar_questions = list(grammar_query.select_related('topic'))
         
         # Shuffle all
-        for pool in [self.comprehension_passages, self.comprehension_subquestions,
-                     self.literature_excerpts, self.literature_subquestions,
-                     self.poems, self.poetry_subquestions]:
-            random.shuffle(pool)
-        
-        for items in self.grammar_items.values():
-            random.shuffle(items)
+        random.shuffle(self.passage_questions)
+        random.shuffle(self.excerpt_questions)
+        random.shuffle(self.oral_literature_questions)
+        random.shuffle(self.grammar_questions)
         
         print(f"\n[PAPER 2 DATA LOADED]")
-        print(f"  Comprehension: {len(self.comprehension_passages)} passages, {len(self.comprehension_subquestions)} sub-questions")
-        print(f"  Literature: {len(self.literature_excerpts)} excerpts, {len(self.literature_subquestions)} sub-questions")
-        print(f"  Poetry: {len(self.poems)} poems, {len(self.poetry_subquestions)} sub-questions")
-        print(f"  Grammar items: {sum(len(items) for items in self.grammar_items.values())}")
+        print(f"  Q1 - Passage/Comprehension (from topics with 'passage'/'comprehension'): {len(self.passage_questions)} questions (20 marks each)")
+        print(f"  Q2 - Excerpt (from topics with 'excerpt'): {len(self.excerpt_questions)} questions (25 marks each)")
+        print(f"  Q3 - Oral Literature (from topics with 'oral literature'/'narrative'): {len(self.oral_literature_questions)} questions (20 marks each)")
+        print(f"  Q4 - Grammar (from topics with 'grammar'): {len(self.grammar_questions)} questions (various marks)")
         
         # Validate minimums
-        if len(self.comprehension_passages) < 1 or len(self.comprehension_subquestions) < 5:
-            raise ValueError("Insufficient comprehension content")
-        if len(self.literature_excerpts) < 1 or len(self.literature_subquestions) < 6:
-            raise ValueError("Insufficient literature content")
-        if len(self.poems) < 1 or len(self.poetry_subquestions) < 5:
-            raise ValueError("Insufficient poetry content")
-        
-        grammar_requirements = {'transformation': 4, 'word_forms': 3, 'prepositions': 3, 'synonyms': 3, 'ambiguity': 1}
-        for grammar_type, min_required in grammar_requirements.items():
-            if len(self.grammar_items[grammar_type]) < min_required:
-                raise ValueError(f"Need at least {min_required} {grammar_type} items")
+        if len(self.passage_questions) < 1:
+            raise ValueError("Need at least 1 passage/comprehension question (20 marks)")
+        if len(self.excerpt_questions) < 1:
+            raise ValueError("Need at least 1 excerpt question (25 marks)")
+        if len(self.oral_literature_questions) < 1:
+            raise ValueError("Need at least 1 oral literature question (20 marks)")
+        if len(self.grammar_questions) < 5:
+            raise ValueError("Need at least 5 grammar questions to form 5 parts (a-e)")
     
     def generate(self) -> Dict:
         """Generate English Paper 2"""
@@ -699,34 +676,36 @@ class KCSEEnglishPaper2Generator:
         for attempt in range(1, max_attempts + 1):
             self.attempts = attempt
             
-            # Reset
-            self.q1_subquestions = []
-            self.q2_subquestions = []
-            self.q3_subquestions = []
-            self.q4_subquestions = []
-            self.total_marks = 0
+            # Select Q1: Passage (20 marks)
+            self.selected_passage = random.choice(self.passage_questions)
             
-            # Try to generate all 4 questions
-            if not self._select_question1_comprehension():
-                continue
-            if not self._select_question2_literature():
-                continue
-            if not self._select_question3_poetry():
-                continue
+            # Select Q2: Excerpt (25 marks)
+            self.selected_excerpt = random.choice(self.excerpt_questions)
+            
+            # Select Q3: Oral Literature (20 marks)
+            self.selected_oral_literature = random.choice(self.oral_literature_questions)
+            
+            # Select Q4: Grammar (15 marks total, 5 parts a-e)
             if not self._select_question4_grammar():
                 continue
             
-            self.total_marks = sum([
-                sum(sq['marks'] for sq in self.q1_subquestions),
-                sum(sq['marks'] for sq in self.q2_subquestions),
-                sum(sq['marks'] for sq in self.q3_subquestions),
-                sum(sq['marks'] for sq in self.q4_subquestions)
-            ])
+            # Calculate total marks
+            self.total_marks = (
+                self.selected_passage.marks +
+                self.selected_excerpt.marks +
+                self.selected_oral_literature.marks +
+                sum(part['marks'] for part in self.selected_grammar_parts)
+            )
             
             if self.total_marks != self.TOTAL_MARKS:
                 continue
             
             generation_time = time.time() - start_time
+            print(f"\n[Q1: PASSAGE/COMPREHENSION] {self.selected_passage.marks} marks")
+            print(f"[Q2: EXCERPT] {self.selected_excerpt.marks} marks")
+            print(f"[Q3: ORAL LITERATURE] {self.selected_oral_literature.marks} marks")
+            print(f"[Q4: GRAMMAR] {sum(part['marks'] for part in self.selected_grammar_parts)} marks (5 parts)")
+            print(f"\nTotal: {self.total_marks}/{self.TOTAL_MARKS} marks")
             print(f"\n{'='*70}")
             print(f"SUCCESS! Generated in {attempt} attempts ({generation_time:.2f}s)")
             print(f"{'='*70}")
@@ -735,161 +714,40 @@ class KCSEEnglishPaper2Generator:
         
         raise Exception(f"Failed after {max_attempts} attempts")
     
-    def _select_question1_comprehension(self) -> bool:
-        """Select Q1: Comprehension (20 marks)"""
-        if not self.comprehension_passages or not self.comprehension_subquestions:
-            return False
-        
-        self.selected_passage = random.choice(self.comprehension_passages)
-        selected = self._select_questions_for_target(
-            self.comprehension_subquestions, 
-            self.Q1_COMPREHENSION_MARKS,
-            min_count=5,
-            max_count=10
-        )
-        
-        if not selected:
-            return False
-        
-        self.q1_subquestions = [
-            {
-                'id': str(sq.id),
-                'question_number': f"1{chr(97 + idx)}",
-                'type': sq.question_type,
-                'marks': sq.marks,
-                'text': sq.question_text,
-                'answer': sq.answer_text,
-            }
-            for idx, sq in enumerate(selected)
-        ]
-        
-        return sum(sq['marks'] for sq in self.q1_subquestions) == self.Q1_COMPREHENSION_MARKS
-    
-    def _select_question2_literature(self) -> bool:
-        """Select Q2: Literature (25 marks)"""
-        if not self.literature_excerpts or not self.literature_subquestions:
-            return False
-        
-        self.selected_excerpt = random.choice(self.literature_excerpts)
-        selected = self._select_questions_for_target(
-            self.literature_subquestions,
-            self.Q2_LITERATURE_MARKS,
-            min_count=6,
-            max_count=12
-        )
-        
-        if not selected:
-            return False
-        
-        self.q2_subquestions = [
-            {
-                'id': str(sq.id),
-                'question_number': f"2{chr(97 + idx)}",
-                'type': sq.question_type,
-                'marks': sq.marks,
-                'text': sq.question_text,
-                'answer': sq.answer_text,
-            }
-            for idx, sq in enumerate(selected)
-        ]
-        
-        return sum(sq['marks'] for sq in self.q2_subquestions) == self.Q2_LITERATURE_MARKS
-    
-    def _select_question3_poetry(self) -> bool:
-        """Select Q3: Poetry (20 marks)"""
-        if not self.poems or not self.poetry_subquestions:
-            return False
-        
-        self.selected_poem = random.choice(self.poems)
-        selected = self._select_questions_for_target(
-            self.poetry_subquestions,
-            self.Q3_POETRY_MARKS,
-            min_count=5,
-            max_count=10
-        )
-        
-        if not selected:
-            return False
-        
-        self.q3_subquestions = [
-            {
-                'id': str(sq.id),
-                'question_number': f"3{chr(97 + idx)}",
-                'type': sq.question_type,
-                'marks': sq.marks,
-                'text': sq.question_text,
-                'answer': sq.answer_text,
-            }
-            for idx, sq in enumerate(selected)
-        ]
-        
-        return sum(sq['marks'] for sq in self.q3_subquestions) == self.Q3_POETRY_MARKS
-    
     def _select_question4_grammar(self) -> bool:
-        """Select Q4: Grammar (15 marks)"""
-        grammar_requirements = {
-            'transformation': {'count': 4, 'marks_each': 1},
-            'word_forms': {'count': 3, 'marks_each': 1},
-            'prepositions': {'count': 3, 'marks_each': 1},
-            'synonyms': {'count': 3, 'marks_each': 1},
-            'ambiguity': {'count': 1, 'marks_each': 2}
-        }
+        """Select Q4: Grammar (15 marks, 5 parts a-e)"""
+        # Try to select 5 questions from grammar pool that sum to exactly 15 marks
+        max_selection_attempts = 200
         
-        self.q4_subquestions = []
-        self.selected_grammar = {}
-        question_letter = ord('a')
-        
-        for grammar_type, requirements in grammar_requirements.items():
-            items_needed = requirements['count']
-            marks_each = requirements['marks_each']
-            
-            available = self.grammar_items[grammar_type]
-            if len(available) < items_needed:
-                return False
-            
-            selected_items = random.sample(available, items_needed)
-            self.selected_grammar[grammar_type] = selected_items
-            
-            self.q4_subquestions.append({
-                'question_number': f"4{chr(question_letter)}",
-                'type': grammar_type,
-                'marks': items_needed * marks_each,
-                'items': [
-                    {
-                        'id': str(item.id),
-                        'text': item.question_text,
-                        'answer': item.answer_text,
-                        'marks': marks_each
-                    }
-                    for item in selected_items
-                ]
-            })
-            question_letter += 1
-        
-        return sum(sq['marks'] for sq in self.q4_subquestions) == self.Q4_GRAMMAR_MARKS
-    
-    def _select_questions_for_target(self, questions: List, target_marks: int, 
-                                    min_count: int = 1, max_count: int = 20) -> Optional[List]:
-        """Select questions that sum to target marks"""
-        for _ in range(100):
-            shuffled = questions.copy()
+        for _ in range(max_selection_attempts):
+            # Shuffle and try to pick 5 questions
+            shuffled = self.grammar_questions.copy()
             random.shuffle(shuffled)
             
-            selected = []
-            current_sum = 0
+            # Try different combinations of 5 questions
+            if len(shuffled) < 5:
+                return False
             
-            for q in shuffled:
-                if current_sum + q.marks <= target_marks:
-                    selected.append(q)
-                    current_sum += q.marks
-                    
-                    if current_sum == target_marks and min_count <= len(selected) <= max_count:
-                        return selected
-            
-            if current_sum == target_marks and min_count <= len(selected) <= max_count:
-                return selected
+            for i in range(len(shuffled) - 4):
+                selected = shuffled[i:i+5]
+                total = sum(q.marks for q in selected)
+                
+                if total == self.Q4_GRAMMAR_MARKS:
+                    # Found valid combination
+                    self.selected_grammar_parts = [
+                        {
+                            'id': str(q.id),
+                            'question_number': f"4({chr(97 + idx)})",
+                            'marks': q.marks,
+                            'text': q.question_text,
+                            'answer': q.answer_text,
+                            'topic': q.topic.name if q.topic else 'Grammar'
+                        }
+                        for idx, q in enumerate(selected)
+                    ]
+                    return True
         
-        return None
+        return False
     
     def _build_result(self, generation_time: float) -> Dict:
         """Build Paper 2 result"""
@@ -903,46 +761,54 @@ class KCSEEnglishPaper2Generator:
             },
             'questions': {
                 'question_1': {
-                    'type': 'comprehension',
-                    'marks': self.Q1_COMPREHENSION_MARKS,
-                    'passage': {
+                    'type': 'passage',
+                    'marks': self.Q1_PASSAGE_MARKS,
+                    'instruction': 'Read the passage/comprehension below and answer the questions that follow.',
+                    'content': {
                         'id': str(self.selected_passage.id),
                         'text': self.selected_passage.question_text,
-                        'topic': self.selected_passage.topic.name
-                    },
-                    'sub_questions': self.q1_subquestions
+                        'answer': self.selected_passage.answer_text,
+                        'topic': self.selected_passage.topic.name if self.selected_passage.topic else 'Passage'
+                    }
                 },
                 'question_2': {
-                    'type': 'literature',
-                    'marks': self.Q2_LITERATURE_MARKS,
-                    'excerpt': {
+                    'type': 'excerpt',
+                    'marks': self.Q2_EXCERPT_MARKS,
+                    'instruction': 'Read the excerpt below and answer the questions that follow.',
+                    'content': {
                         'id': str(self.selected_excerpt.id),
                         'text': self.selected_excerpt.question_text,
-                        'topic': self.selected_excerpt.topic.name
-                    },
-                    'sub_questions': self.q2_subquestions
+                        'answer': self.selected_excerpt.answer_text,
+                        'topic': self.selected_excerpt.topic.name if self.selected_excerpt.topic else 'Excerpt'
+                    }
                 },
                 'question_3': {
-                    'type': 'poetry',
-                    'marks': self.Q3_POETRY_MARKS,
-                    'poem': {
-                        'id': str(self.selected_poem.id),
-                        'text': self.selected_poem.question_text,
-                        'topic': self.selected_poem.topic.name
-                    },
-                    'sub_questions': self.q3_subquestions
+                    'type': 'oral_literature',
+                    'marks': self.Q3_ORAL_LITERATURE_MARKS,
+                    'instruction': 'Read the narrative below and answer the questions that follow.',
+                    'content': {
+                        'id': str(self.selected_oral_literature.id),
+                        'text': self.selected_oral_literature.question_text,
+                        'answer': self.selected_oral_literature.answer_text,
+                        'topic': self.selected_oral_literature.topic.name if self.selected_oral_literature.topic else 'Oral Literature'
+                    }
                 },
                 'question_4': {
                     'type': 'grammar',
                     'marks': self.Q4_GRAMMAR_MARKS,
-                    'sub_questions': self.q4_subquestions
+                    'parts': self.selected_grammar_parts
                 }
             },
             'statistics': {
                 'total_marks': self.total_marks,
                 'generation_attempts': self.attempts,
                 'generation_time_seconds': round(generation_time, 2)
-            }
+            },
+            'question_ids': [
+                str(self.selected_passage.id),
+                str(self.selected_excerpt.id),
+                str(self.selected_oral_literature.id)
+            ] + [part['id'] for part in self.selected_grammar_parts]
         }
 
 
