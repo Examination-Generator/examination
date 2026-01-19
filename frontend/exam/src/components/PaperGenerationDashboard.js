@@ -1362,7 +1362,7 @@ export default function PaperGenerationDashboard() {
                                         className="w-full h-full min-h-full"
                                         title={examModalView === 'questions' ? 'Questions Preview' : 'Marking Scheme Preview'}
                                         style={{ border: 'none' }}
-                                        sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"
+                                        sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox allow-modals"
                                         ref={(iframe) => {
                                             if (iframe && !iframe.dataset.loaded) {
                                                 iframe.dataset.loaded = 'true';
