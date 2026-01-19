@@ -125,7 +125,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             /* Ensure consistent font sizes in print */
             .question-text {{
                 font-size: 14px !important;
-                line-height: 2 !important;
+                line-height: 1.8 !important;
             }}
             
             .question-number {{
@@ -272,7 +272,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         
         /* Questions styling */
         .question {{
-            margin-bottom: 30px;
+            margin-bottom: 18px;
             page-break-inside: avoid;
         }}
         
@@ -283,7 +283,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         
         .question-text {{
             font-size: 14px;
-            line-height: 2;
+            line-height: 1.8;
             text-align: justify;
             white-space: pre-wrap;
         }}
@@ -305,7 +305,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         
         /* Answer lines styling */
         .answer-lines {{
-            margin: 10px 0;
+            margin: 8px 0;
             max-width: 700px;
         }}
         
