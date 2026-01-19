@@ -262,7 +262,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             
             .question-text {{
                 font-size: 14px !important;
-                line-height: 2 !important;
+                line-height: 1.8 !important;
             }}
             
             .question-number {{
@@ -305,7 +305,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         .exam-page {{
             width: 210mm;
             min-height: 297mm;
-            padding: 20mm;
+            padding: 20mm 20mm 30mm 20mm;
             background: white;
             margin: 10mm auto;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
@@ -317,10 +317,18 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             .exam-page {{
                 margin: 0;
                 box-shadow: none;
-                padding: 12mm 15mm !important;
+                padding: 12mm 15mm 30mm 15mm !important;
                 height: 297mm;
                 max-height: 297mm;
                 page-break-after: always !important;
+            }}
+            
+            /* Ensure page number stays in footer */
+            .page-number {{
+                position: absolute !important;
+                bottom: 10mm !important;
+                right: 15mm !important;
+                font-size: 11px !important;
             }}
             
             /* Scale coverpage to fit on one page */
@@ -406,10 +414,10 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
         }}
         
-        /* Page number styling */
+        /* Page number in footer */
         .page-number {{
             position: absolute;
-            bottom: 15mm;
+            bottom: 10mm;
             right: 20mm;
             font-size: 11px;
             font-weight: bold;
@@ -435,7 +443,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         
         /* Questions styling */
         .question {{
-            margin-bottom: 30px;
+            margin-bottom: 18px;
             page-break-inside: avoid;
         }}
         
@@ -461,7 +469,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         
         .question-text {{
             font-size: 14px;
-            line-height: 2;
+            line-height: 1.8;
             text-align: justify;
             white-space: pre-wrap;
         }}
