@@ -563,6 +563,7 @@ class KCSEEnglishPaper2Generator:
             is_active=True
         )
         self.subject = self.paper.subject
+
         
         # Get topic IDs from selections (if provided)
         selected_topic_ids = self.selections.get('topics', [])
