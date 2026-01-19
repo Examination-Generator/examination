@@ -1,0 +1,645 @@
+"""
+English Paper 1 Template Generator
+Specific template for KCSE English Paper 1 (Functional Skills)
+With simple bold titles before each question (no section headers)
+"""
+
+from .coverpage_templates import (
+    BiologyPaper1Coverpage, 
+    MarkingSchemeCoverpage
+)
+import re
+
+
+def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None):
+    """
+    Generate English Paper 1 HTML with simple bold titles
+    
+    Q1: Functional Skills
+    Q2: Cloze Test
+    Q3: Oral Skills
+    
+    Args:
+        coverpage_data (dict): Coverpage information
+        questions (list): List of question dictionaries
+        coverpage_class: Coverpage class to use
+    
+    Returns:
+        str: Complete HTML document
+    """
+    
+    # Use default coverpage if not provided
+    if coverpage_class is None:
+        coverpage_class = BiologyPaper1Coverpage
+    
+    # Generate coverpage HTML (page 1)
+    coverpage_instance = coverpage_class(coverpage_data)
+    coverpage_content = coverpage_instance.generate_html()
+    
+    # Calculate total pages
+    total_pages = 1 + len(questions)  # 1 coverpage + 1 page per question
+    
+    # Generate question pages with simple titles
+    questions_html = _generate_english_paper1_pages(questions, total_pages, coverpage_data)
+    
+    # Combine everything
+    full_html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{coverpage_data.get('paper_name', 'English Paper 1')} - Full Preview</title>
+    <style>
+        @page {{
+            size: A4;
+            margin: 0;
+        }}
+        
+        @media print {{
+            .page-break {{
+                page-break-after: always;
+                break-after: page;
+            }}
+            
+            body {{
+                background: white !important;
+            }}
+            
+            .exam-page {{
+                margin: 0 !important;
+                box-shadow: none !important;
+                padding: 12mm 15mm 30mm 15mm !important;
+                height: 297mm;
+                max-height: 297mm;
+                page-break-after: always !important;
+            }}
+            
+            /* Ensure page number stays in footer */
+            .page-number {{
+                position: absolute !important;
+                bottom: 10mm !important;
+                right: 15mm !important;
+                font-size: 11px !important;
+            }}
+            
+            /* Ensure consistent font sizes in print */
+            .question-text {{
+                font-size: 14px !important;
+                line-height: 1.8 !important;
+            }}
+            
+            .question-number {{
+                font-size: 15px !important;
+            }}
+            
+            .simple-title {{
+                font-size: 14px !important;
+            }}
+            
+            /* Ensure answer lines are visible in print */
+            .answer-line {{
+                border-bottom: 2px dotted #000 !important;
+                height: 28px !important;
+                page-break-inside: avoid;
+            }}
+            
+            .answer-line.solid {{
+                border-bottom: 2px solid #000 !important;
+            }}
+            
+            /* Scale coverpage to fit on one page */
+            .coverpage {{
+                height: 100%;
+                max-height: 273mm;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                transform-origin: top center;
+            }}
+            
+            /* Reduce font sizes and spacing in print for coverpage */
+            .coverpage .school-name {{
+                font-size: 16px !important;
+                margin-bottom: 3px !important;
+            }}
+            
+            .coverpage .class-name {{
+                font-size: 12px !important;
+                margin-bottom: 10px !important;
+            }}
+            
+            .coverpage .exam-title {{
+                font-size: 14px !important;
+                margin-bottom: 8px !important;
+            }}
+            
+            .coverpage .paper-details {{
+                font-size: 12px !important;
+                margin-bottom: 12px !important;
+            }}
+            
+            .header {{
+                margin-bottom: 10px !important;
+            }}
+            
+            .candidate-info {{
+                margin-bottom: 12px !important;
+                padding: 10px !important;
+            }}
+            
+            .info-label {{
+                font-size: 11px !important;
+            }}
+            
+            .info-field {{
+                min-height: 22px !important;
+            }}
+            
+            .instructions {{
+                margin-bottom: 12px !important;
+            }}
+            
+            .instructions-title {{
+                font-size: 12px !important;
+                margin-bottom: 6px !important;
+            }}
+            
+            .instructions ol {{
+                font-size: 11px !important;
+                line-height: 1.4 !important;
+            }}
+            
+            .instructions li {{
+                margin-bottom: 4px !important;
+            }}
+            
+            .marking-grid-container {{
+                margin-top: 8px !important;
+                padding-top: 12px !important;
+            }}
+            
+            .grid-title {{
+                font-size: 11px !important;
+                margin-bottom: 6px !important;
+            }}
+            
+            .marking-grid td {{
+                font-size: 9px !important;
+                padding: 6px 3px !important;
+                height: 25px !important;
+            }}
+        }}
+        
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Times New Roman', Times, serif;
+            background: #f0f0f0;
+        }}
+        
+        .exam-page {{
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm 20mm 30mm 20mm;
+            background: white;
+            margin: 10mm auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+            page-break-after: always;
+        }}
+        
+        @media print {{
+            .exam-page {{
+                margin: 0;
+                box-shadow: none;
+            }}
+        }}
+        
+        /* Page number in footer */
+        .page-number {{
+            position: absolute;
+            bottom: 10mm;
+            right: 20mm;
+            font-size: 11px;
+            font-weight: bold;
+        }}
+        
+        /* Simple title (bold, left-aligned) for English Paper 1 */
+        .simple-title {{
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: left;
+        }}
+        
+        /* Questions styling */
+        .question {{
+            margin-bottom: 18px;
+            page-break-inside: avoid;
+        }}
+        
+        .question-number {{
+            font-weight: bold;
+            font-size: 15px;
+        }}
+        
+        .question-text {{
+            font-size: 14px;
+            line-height: 1.8;
+            text-align: justify;
+            white-space: pre-wrap;
+        }}
+        
+        /* Image styling */
+        .question-image {{
+            display: block;
+            margin: 10px auto;
+            max-width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }}
+        
+        .question-image.inline {{
+            display: inline-block;
+            vertical-align: middle;
+            margin: 0 5px;
+        }}
+        
+        /* Answer lines styling */
+        .answer-lines {{
+            margin: 8px 0;
+            max-width: 700px;
+        }}
+        
+        .answer-line {{
+            width: 100%;
+            height: 28px;
+            margin: 0;
+            padding: 0;
+            border-bottom: 2px dotted #000;
+            page-break-inside: avoid;
+        }}
+        
+        .answer-line.dotted {{
+            border-bottom: 2px dotted #000;
+        }}
+        
+        .answer-line.solid {{
+            border-bottom: 2px solid #000;
+        }}
+        
+        /* Coverpage styles */
+        .coverpage {{
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            page-break-after: always;
+        }}
+        
+        .header {{
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+        }}
+        
+        .logo-container {{
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }}
+        
+        .logo-container.left {{ justify-content: flex-start; }}
+        .logo-container.center {{ justify-content: center; }}
+        .logo-container.right {{ justify-content: flex-end; }}
+        
+        .logo-container img {{
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: contain;
+        }}
+        
+        .school-name {{
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }}
+        
+        .class-name {{
+            font-size: 14px;
+            margin-bottom: 15px;
+        }}
+        
+        .exam-title {{
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }}
+        
+        .paper-details {{
+            font-size: 14px;
+            margin-bottom: 20px;
+        }}
+        
+        .candidate-info {{
+            border: none;
+            padding: 15px;
+            margin-bottom: 20px;
+        }}
+        
+        .info-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px 20px;
+        }}
+        
+        .info-row {{
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-row-full {{
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-grid {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }}
+        
+        .info-row-item {{
+            display: flex;
+            align-items: center;
+        }}
+        
+        .info-label {{
+            font-weight: bold;
+            font-size: 12px;
+            min-width: 120px;
+        }}
+        
+        .info-field {{
+            flex: 1;
+            border-bottom: 1px dotted black;
+            min-height: 25px;
+            padding: 2px 5px;
+        }}
+        
+        .instructions {{
+            margin-bottom: 20px;
+        }}
+        
+        .instructions-title {{
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-decoration: underline;
+        }}
+        
+        .instructions ol {{
+            margin-left: 20px;
+            font-size: 12px;
+            line-height: 1.6;
+            list-style: none;
+            counter-reset: list-counter;
+        }}
+        
+        .instructions li {{
+            margin-bottom: 8px;
+            counter-increment: list-counter;
+        }}
+        
+        .instructions li::before {{
+            content: "(" counter(list-counter, lower-alpha) ") ";
+        }}
+        
+        .instructions li.bold {{
+            font-weight: bold;
+        }}
+        
+        .instructions-list {{
+            list-style: none;
+            counter-reset: list-counter;
+            padding-left: 25px;
+        }}
+        
+        .instructions-list li {{
+            margin-bottom: 8px;
+            line-height: 1.4;
+            counter-increment: list-counter;
+        }}
+        
+        .instructions-list li::before {{
+            content: "(" counter(list-counter, lower-alpha) ") ";
+        }}
+        
+        .instructions-list li strong {{
+            font-weight: bold;
+        }}
+        
+        .marking-grid-container {{
+            margin-top: auto;
+            padding-top: 20px;
+        }}
+        
+        .grid-title {{
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 10px;
+            text-align: center;
+        }}
+        
+        .marking-grid {{
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid black;
+        }}
+        
+        .marking-grid td {{
+            border: 1px solid black;
+            text-align: center;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 8px 4px;
+            height: 30px;
+        }}
+    </style>
+</head>
+<body>
+    <!-- Page 1: Coverpage -->
+    <div class="exam-page page-break">
+        {coverpage_content}
+    </div>
+    
+    <!-- Question Pages with Simple Titles -->
+    {questions_html}
+</body>
+</html>
+"""
+    
+    return full_html
+
+
+def _process_question_text(text, images=None, answer_lines=None):
+    """Process question text to render images, answer lines, and formatting"""
+    if not text:
+        return ""
+    
+    # Create lookup dictionaries
+    images_dict = {}
+    if images:
+        for img in images:
+            images_dict[float(img.get('id', 0))] = img
+    
+    lines_dict = {}
+    if answer_lines:
+        for line in answer_lines:
+            lines_dict[float(line.get('id', 0))] = line
+    
+    # Pattern for formatting tags
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])'
+    parts = re.split(pattern, text)
+    
+    result = []
+    
+    for part in parts:
+        if not part:
+            continue
+        
+        # Superscript: [SUP]content[/SUP]
+        if part.startswith('[SUP]') and part.endswith('[/SUP]'):
+            content = part[5:-6]
+            result.append(f'<sup style="font-size: 0.75em;">{content}</sup>')
+            continue
+            
+        # Subscript: [SUB]content[/SUB]
+        if part.startswith('[SUB]') and part.endswith('[/SUB]'):
+            content = part[5:-6]
+            result.append(f'<sub style="font-size: 0.75em;">{content}</sub>')
+            continue
+            
+        # Bold: **text**
+        if part.startswith('**') and part.endswith('**') and len(part) > 4:
+            content = part[2:-2]
+            result.append(f'<strong>{content}</strong>')
+            continue
+            
+        # Italic: *text*
+        if part.startswith('*') and part.endswith('*') and not part.startswith('**') and len(part) > 2:
+            content = part[1:-1]
+            result.append(f'<em>{content}</em>')
+            continue
+            
+        # Underline: __text__
+        if part.startswith('__') and part.endswith('__') and len(part) > 4:
+            content = part[2:-2]
+            result.append(f'<u>{content}</u>')
+            continue
+            
+        # Single underscore italic: _text_
+        if part.startswith('_') and part.endswith('_') and not part.startswith('__') and len(part) > 2:
+            content = part[1:-1]
+            result.append(f'<em>{content}</em>')
+            continue
+            
+        # Answer lines: [LINES:id]
+        elif part.startswith('[LINES:') and part.endswith(']'):
+            line_match = re.match(r'\[LINES:([\d.]+)\]', part)
+            if line_match:
+                line_id = float(line_match.group(1))
+                line_config = lines_dict.get(line_id)
+                
+                if line_config:
+                    num_lines = line_config.get('numberOfLines', 5)
+                    lines_html = '<div class="answer-lines">'
+                    for _ in range(int(num_lines)):
+                        lines_html += '<div class="answer-line dotted"></div>'
+                    lines_html += '</div>'
+                    result.append(lines_html)
+        
+        # Images: [IMAGE:id:WxH] or [IMAGE:id:Wpx]
+        elif part.startswith('[IMAGE:') and part.endswith('px]'):
+            image_match_new = re.match(r'\[IMAGE:([\d.]+):(\d+)x(\d+)px\]', part)
+            image_match_old = re.match(r'\[IMAGE:([\d.]+):(\d+)px\]', part)
+            
+            if image_match_new or image_match_old:
+                if image_match_new:
+                    image_id = float(image_match_new.group(1))
+                    image_width = int(image_match_new.group(2))
+                    image_height = int(image_match_new.group(3))
+                else:
+                    image_id = float(image_match_old.group(1))
+                    image_width = int(image_match_old.group(2))
+                    image_height = None
+                
+                image = images_dict.get(image_id)
+                
+                if image and image.get('url'):
+                    img_url = image['url']
+                    img_alt = image.get('name', 'Question image')
+                    style = f"width: {image_width}px;"
+                    if image_height:
+                        style += f" height: {image_height}px;"
+                    result.append(f'<img src="{img_url}" alt="{img_alt}" class="question-image" style="{style}" />')
+        
+        # Regular text
+        else:
+            result.append(part)
+    
+    return ''.join(result)
+
+
+def _generate_english_paper1_pages(questions, total_pages, coverpage_data):
+    """
+    Generate pages for English Paper 1 with simple bold titles
+    Q1: Functional Skills
+    Q2: Cloze Test
+    Q3: Oral Skills
+    """
+    pages_html = []
+    current_page = 2  # Start after coverpage
+    
+    # Question titles mapping
+    question_titles = {
+        1: "FUNCTIONAL SKILLS",
+        2: "CLOZE TEST",
+        3: "ORAL SKILLS"
+    }
+    
+    for q in questions:
+        q_number = q.get('number', 0)
+        title = question_titles.get(q_number, "")
+        
+        processed_text = _process_question_text(
+            q.get('text', ''),
+            q.get('question_inline_images', []),
+            q.get('question_answer_lines', [])
+        )
+        
+        # Each question gets its own page with a simple bold title
+        page_html = f"""
+    <!-- Page {current_page} -->
+    <div class="exam-page page-break">
+        <div class="simple-title">{title}</div>
+        <div class="question">
+            <div class="question-text"><span class="question-number">{q_number}.</span> {processed_text}</div>
+        </div>
+        <div class="page-number">Page {current_page} of {total_pages}</div>
+    </div>
+"""
+        pages_html.append(page_html)
+        current_page += 1
+    
+    return '\n'.join(pages_html)

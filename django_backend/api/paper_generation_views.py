@@ -1326,14 +1326,23 @@ def preview_full_exam(request, paper_id):
                     # If extraction fails, default to standard template
                     paper_number = 0
                 
-                # Check if this is a non-sectioned paper using proper paper number extraction
+                # Check paper type for template selection
+                is_english_paper1 = 'ENGLISH' in paper_name_upper and paper_number == 1
                 is_kiswahili_paper2 = 'KISWAHILI' in paper_name_upper and paper_number == 2
                 is_business_paper1 = 'BUSINESS' in paper_name_upper and paper_number == 1
                 is_chemistry_paper1 = 'CHEMISTRY' in paper_name_upper and paper_number == 1
                 
                 use_no_sections_template = is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1
                 
-                if use_no_sections_template:
+                if is_english_paper1:
+                    # Use the ENGLISH PAPER 1 specific template
+                    from .english_paper1_template import generate_english_paper1_html
+                    html_content = generate_english_paper1_html(
+                        coverpage_data, 
+                        ordered_questions,
+                        coverpage_class=CoverpageClass
+                    )
+                elif use_no_sections_template:
                     # Use the NO SECTIONS template
                     from .exam_paper_template_no_sections import generate_full_exam_html
                     html_content = generate_full_exam_html(
