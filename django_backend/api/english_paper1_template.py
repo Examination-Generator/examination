@@ -5,6 +5,7 @@ With simple bold titles before each question (no section headers)
 """
 
 from .coverpage_templates import (
+    EnglishPaper1Coverpage,
     BiologyPaper1Coverpage, 
     MarkingSchemeCoverpage
 )
@@ -30,11 +31,18 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
     
     # Use default coverpage if not provided
     if coverpage_class is None:
-        coverpage_class = BiologyPaper1Coverpage
+        from .coverpage_templates import EnglishPaper1Coverpage
+        coverpage_class = EnglishPaper1Coverpage
     
     # Generate coverpage HTML (page 1)
-    coverpage_instance = coverpage_class(coverpage_data)
-    coverpage_content = coverpage_instance.generate_html()
+    # EnglishPaper1Coverpage uses static method, not instance method
+    if hasattr(coverpage_class, 'generate_html') and callable(getattr(coverpage_class, 'generate_html')):
+        # Static method - call directly with data
+        coverpage_content = coverpage_class.generate_html(coverpage_data)
+    else:
+        # Instance method - create instance first
+        coverpage_instance = coverpage_class(coverpage_data)
+        coverpage_content = coverpage_instance.generate_html()
     
     # Calculate total pages
     total_pages = 1 + len(questions)  # 1 coverpage + 1 page per question
