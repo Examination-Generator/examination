@@ -45,7 +45,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         coverpage_content = coverpage_instance.generate_html()
     
     # Calculate total pages
-    total_pages = 1 + len(questions)  # 1 coverpage + 1 page per question
+    total_pages = 2  # 1 coverpage + 1 question page (all questions continuous)
     
     # Generate question pages with simple titles
     questions_html = _generate_english_paper1_pages(questions, total_pages, coverpage_data)
@@ -78,14 +78,18 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
                 margin: 0 !important;
                 box-shadow: none !important;
                 padding: 12mm 15mm 30mm 15mm !important;
-                height: 297mm;
-                max-height: 297mm;
+                min-height: 297mm !important;
                 page-break-after: always !important;
+            }}
+            
+            .question-page {{
+                padding: 12mm 15mm 30mm 15mm !important;
+                page-break-after: auto !important;
             }}
             
             /* Ensure page number stays in footer */
             .page-number {{
-                position: absolute !important;
+                position: fixed !important;
                 bottom: 10mm !important;
                 right: 15mm !important;
                 font-size: 11px !important;
@@ -103,6 +107,9 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             
             .simple-title {{
                 font-size: 14px !important;
+                font-weight: bold !important;
+                margin-top: 15px !important;
+                margin-bottom: 10px !important;
             }}
             
             /* Ensure answer lines are visible in print */
@@ -119,83 +126,104 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             /* Scale coverpage to fit on one page */
             .coverpage {{
                 height: 100%;
-                max-height: 273mm;
+                max-height: 270mm !important;
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
                 transform-origin: top center;
+                page-break-after: always !important;
             }}
             
             /* Reduce font sizes and spacing in print for coverpage */
             .coverpage .school-name {{
-                font-size: 16px !important;
+                font-size: 15px !important;
                 margin-bottom: 3px !important;
             }}
             
             .coverpage .class-name {{
-                font-size: 12px !important;
-                margin-bottom: 10px !important;
-            }}
-            
-            .coverpage .exam-title {{
-                font-size: 14px !important;
+                font-size: 11px !important;
                 margin-bottom: 8px !important;
             }}
             
-            .coverpage .paper-details {{
-                font-size: 12px !important;
-                margin-bottom: 12px !important;
+            .coverpage .exam-title {{
+                font-size: 13px !important;
+                margin-bottom: 6px !important;
             }}
             
-            .header {{
+            .coverpage .paper-details {{
+                font-size: 11px !important;
                 margin-bottom: 10px !important;
             }}
             
+            .header {{
+                margin-bottom: 8px !important;
+            }}
+            
             .candidate-info {{
-                margin-bottom: 12px !important;
-                padding: 10px !important;
+                margin-bottom: 10px !important;
+                padding: 8px !important;
+            }}
+            
+            .candidate-info table {{
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }}
+            
+            .candidate-info td {{
+                padding: 4px !important;
+                border: 1px solid #000 !important;
+                font-size: 10px !important;
             }}
             
             .info-label {{
-                font-size: 11px !important;
+                font-size: 10px !important;
+                font-weight: bold !important;
             }}
             
             .info-field {{
-                min-height: 22px !important;
+                min-height: 20px !important;
+                border-bottom: 1px dotted #000 !important;
             }}
             
             .instructions {{
-                margin-bottom: 12px !important;
+                margin-bottom: 10px !important;
             }}
             
             .instructions-title {{
-                font-size: 12px !important;
-                margin-bottom: 6px !important;
+                font-size: 11px !important;
+                margin-bottom: 5px !important;
             }}
             
-            .instructions ol {{
-                font-size: 11px !important;
-                line-height: 1.4 !important;
+            .instructions ol, .instructions ul {{
+                font-size: 10px !important;
+                line-height: 1.3 !important;
+                margin-left: 15px !important;
             }}
             
             .instructions li {{
-                margin-bottom: 4px !important;
+                margin-bottom: 3px !important;
             }}
             
             .marking-grid-container {{
-                margin-top: 8px !important;
-                padding-top: 12px !important;
+                margin-top: 6px !important;
+                padding-top: 8px !important;
             }}
             
             .grid-title {{
-                font-size: 11px !important;
-                margin-bottom: 6px !important;
+                font-size: 10px !important;
+                margin-bottom: 5px !important;
+            }}
+            
+            .marking-grid {{
+                width: 100% !important;
+                border-collapse: collapse !important;
             }}
             
             .marking-grid td {{
-                font-size: 9px !important;
-                padding: 6px 3px !important;
-                height: 25px !important;
+                font-size: 8px !important;
+                padding: 4px 2px !important;
+                height: 20px !important;
+                border: 1px solid #000 !important;
             }}
         }}
         
@@ -219,6 +247,10 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             position: relative;
             page-break-after: always;
+        }}
+        
+        .question-page {{
+            min-height: auto;
         }}
         
         @media print {{
@@ -612,19 +644,19 @@ def _process_question_text(text, images=None, answer_lines=None):
 def _generate_english_paper1_pages(questions, total_pages, coverpage_data):
     """
     Generate pages for English Paper 1 with simple bold titles
+    Questions flow continuously (not each on separate page)
     Q1: Functional Skills
     Q2: Cloze Test
     Q3: Oral Skills
     """
-    pages_html = []
-    current_page = 2  # Start after coverpage
-    
     # Question titles mapping
     question_titles = {
         1: "FUNCTIONAL SKILLS",
         2: "CLOZE TEST",
         3: "ORAL SKILLS"
     }
+    
+    questions_html = []
     
     for q in questions:
         q_number = q.get('number', 0)
@@ -636,18 +668,22 @@ def _generate_english_paper1_pages(questions, total_pages, coverpage_data):
             q.get('question_answer_lines', [])
         )
         
-        # Each question gets its own page with a simple bold title
-        page_html = f"""
-    <!-- Page {current_page} -->
-    <div class="exam-page page-break">
+        # Questions flow continuously with titles
+        question_html = f"""
         <div class="simple-title">{title}</div>
         <div class="question">
             <div class="question-text"><span class="question-number">{q_number}.</span> {processed_text}</div>
         </div>
-        <div class="page-number">Page {current_page} of {total_pages}</div>
+"""
+        questions_html.append(question_html)
+    
+    # All questions on continuous pages with page numbers
+    page_html = f"""
+    <!-- Question Pages -->
+    <div class="exam-page question-page">
+        {''.join(questions_html)}
+        <div class="page-number">Page 2 of {total_pages}</div>
     </div>
 """
-        pages_html.append(page_html)
-        current_page += 1
     
-    return '\n'.join(pages_html)
+    return page_html
