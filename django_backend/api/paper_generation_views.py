@@ -2087,13 +2087,23 @@ def validate_english_paper_pool(request):
     """
     Validate if the selected English paper pool can generate a valid paper (1, 2, or 3).
     POST /api/papers/english/validate
-    Body: { "paper_id": ..., "paper_number": 1|2|3, "selections": {...} }
+    Body: { "paper_id": ..., "paper_number": 1|2|3 (optional), "selections": {...} }
     """
     paper_id = request.data.get("paper_id")
-    paper_number = int(request.data.get("paper_number", 1))
     selections = request.data.get("selections", {})
     if not paper_id:
         return Response({"can_generate": False, "message": "Missing paper_id"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Auto-detect paper number from paper name
+    try:
+        paper = Paper.objects.get(id=paper_id)
+        paper_name = paper.name.lower()
+        paper_number = extract_paper_number_from_name(paper_name)
+        if not paper_number:
+            paper_number = 1  # Default fallback
+    except Paper.DoesNotExist:
+        return Response({"can_generate": False, "message": f"Paper with ID {paper_id} not found"}, status=status.HTTP_404_NOT_FOUND)
+    
     try:
         if paper_number == 1:
             from .english_generator import KCSEEnglishPaper1Generator
