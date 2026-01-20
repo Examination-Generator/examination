@@ -159,20 +159,18 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     is_geography = 'GEOGRAPHY' in paper_name
     if is_geography and (paper_number == 1 or is_paper1):
         # Geography Paper 1 has Section A (Questions 1-5, 25 marks) and Section B (Questions 6-10, 75 marks, answer Q6 and any 2)
-        if 'section_a_marks' not in coverpage_data:
-            coverpage_data['section_a_marks'] = 25
-        if 'section_b_marks' not in coverpage_data:
-            coverpage_data['section_b_marks'] = 75
+        # Force correct values to override any incorrect defaults
+        coverpage_data['section_a_marks'] = 25
+        coverpage_data['section_b_marks'] = 75
         if 'section_a_instruction' not in coverpage_data:
             coverpage_data['section_a_instruction'] = 'Answer ALL questions in this section'
         if 'section_b_instruction' not in coverpage_data:
             coverpage_data['section_b_instruction'] = 'Answer question 6 and any other TWO questions from this section'
     elif is_geography and (paper_number == 2 or is_paper2):
         # Geography Paper 2 also has similar structure
-        if 'section_a_marks' not in coverpage_data:
-            coverpage_data['section_a_marks'] = 25
-        if 'section_b_marks' not in coverpage_data:
-            coverpage_data['section_b_marks'] = 75
+        # Force correct values to override any incorrect defaults
+        coverpage_data['section_a_marks'] = 25
+        coverpage_data['section_b_marks'] = 75
         if 'section_a_instruction' not in coverpage_data:
             coverpage_data['section_a_instruction'] = 'Answer ALL questions in this section'
         if 'section_b_instruction' not in coverpage_data:
