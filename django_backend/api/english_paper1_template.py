@@ -86,63 +86,28 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             .exam-page {{
                 margin: 0 !important;
                 box-shadow: none !important;
-                padding: 12mm 15mm 25mm 15mm !important;
-                width: 210mm !important;
-                min-height: 297mm !important;
+                padding: 12mm 15mm 30mm 15mm !important;
+                height: 297mm;
+                max-height: 297mm;
                 page-break-after: always !important;
-            }}
-            
-            .question-page {{
-                padding: 12mm 15mm 25mm 15mm !important;
-                min-height: auto !important;
             }}
             
             /* Ensure page number stays in footer */
             .page-number {{
                 position: absolute !important;
-                bottom: 8mm !important;
+                bottom: 10mm !important;
                 right: 15mm !important;
-                font-size: 10px !important;
-            }}
-            
-            /* Ensure consistent font sizes in print */
-            .question-text {{
-                font-size: 14px !important;
-                line-height: 1.8 !important;
-            }}
-            
-            .question-number {{
-                font-size: 15px !important;
-            }}
-            
-            .simple-title {{
-                font-size: 14px !important;
-                font-weight: bold !important;
-                margin-top: 15px !important;
-                margin-bottom: 10px !important;
-            }}
-            
-            /* Ensure answer lines are visible in print */
-            .answer-line {{
-                border-bottom: 2px dotted #000 !important;
-                height: 28px !important;
-                page-break-inside: avoid;
-            }}
-            
-            .answer-line.solid {{
-                border-bottom: 2px solid #000 !important;
+                font-size: 11px !important;
             }}
             
             /* Scale coverpage to fit on one page */
             .coverpage {{
                 height: 100% !important;
-                max-height: 273mm !important;
+                max-height: 273mm !important; /* 297mm - 24mm padding */
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
                 transform-origin: top center;
-                page-break-after: always !important;
-                page-break-inside: avoid !important;
             }}
             
             /* Reduce font sizes and spacing in print for coverpage */
@@ -171,8 +136,8 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
             .candidate-info {{
-                margin-bottom: 2px !important;
-                padding: 8px !important;
+                margin-bottom: 12px !important;
+                padding: 10px !important;
             }}
             
             .info-label {{
@@ -184,12 +149,12 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
             .instructions {{
-                margin-bottom: 2px !important;
+                margin-bottom: 12px !important;
             }}
             
             .instructions-title {{
-                font-size: 13px !important;
-                margin-bottom: 8px !important;
+                font-size: 12px !important;
+                margin-bottom: 6px !important;
             }}
             
             .instructions ol, .instructions ul {{
@@ -199,17 +164,17 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
             .instructions li {{
-                margin-bottom: 6px !important;
+                margin-bottom: 4px !important;
             }}
             
             .marking-grid-container {{
-                margin-top: 2px !important;
-                padding-top: 2px !important;
+                margin-top: 8px !important;
+                padding-top: 12px !important;
             }}
             
             .grid-title {{
-                font-size: 12px !important;
-                margin-bottom: 8px !important;
+                font-size: 11px !important;
+                margin-bottom: 6px !important;
             }}
             
             .marking-grid {{
@@ -219,7 +184,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             
             .marking-grid td {{
                 font-size: 9px !important;
-                padding: 3px !important;
+                padding: 6px 3px !important;
                 height: 25px !important;
                 border: 1px solid #000 !important;
                 line-height: 1.2 !important;
@@ -240,7 +205,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         .exam-page {{
             width: 210mm;
             min-height: 297mm;
-            padding: 12mm 15mm 25mm 15mm;
+            padding: 20mm 20mm 30mm 20mm;
             background: white;
             margin: 10mm auto;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
@@ -250,22 +215,14 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         
         .question-page {{
             min-height: auto;
-            padding: 12mm 15mm 25mm 15mm;
-        }}
-        
-        @media print {{
-            .exam-page {{
-                margin: 0;
-                box-shadow: none;
-            }}
         }}
         
         /* Page number in footer */
         .page-number {{
             position: absolute;
-            bottom: 8mm;
-            right: 15mm;
-            font-size: 10px;
+            bottom: 10mm;
+            right: 20mm;
+            font-size: 11px;
             font-weight: bold;
         }}
         
@@ -391,8 +348,8 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         
         .candidate-info {{
             border: none;
-            padding: 8px;
-            margin-bottom: 2px;
+            padding: 15px;
+            margin-bottom: 20px;
         }}
         
         .candidate-info-grid {{
@@ -438,20 +395,20 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         }}
         
         .instructions {{
-            margin-bottom: 2px;
+            margin-bottom: 20px;
         }}
         
         .instructions-title {{
             font-weight: bold;
-            font-size: 13px;
-            margin-bottom: 8px;
+            font-size: 14px;
+            margin-bottom: 10px;
             text-decoration: underline;
         }}
         
         .instructions ol {{
             margin-left: 20px;
-            font-size: 11px;
-            line-height: 1.4;
+            font-size: 12px;
+            line-height: 1.6;
             list-style: none;
             counter-reset: list-counter;
         }}
@@ -491,13 +448,13 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         
         .marking-grid-container {{
             margin-top: auto;
-            padding-top: 2px;
+            padding-top: 15px;
         }}
         
         .grid-title {{
             font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 8px;
+            font-size: 13px;
+            margin-bottom: 10px;
             text-align: center;
         }}
         
@@ -510,10 +467,10 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         .marking-grid td {{
             border: 1px solid black;
             text-align: center;
-            font-size: 9px;
+            font-size: 10px;
             font-weight: bold;
-            padding: 3px;
-            height: 25px;
+            padding: 8px 4px;
+            height: 30px;
             line-height: 1.2;
         }}
     </style>
