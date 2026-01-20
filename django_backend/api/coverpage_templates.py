@@ -5712,7 +5712,7 @@ class EnglishPaper1Coverpage:
     <style>
         @page {{
             size: A4;
-            margin: 20mm;
+            margin: 0;
         }}
         
         * {{
@@ -5727,15 +5727,17 @@ class EnglishPaper1Coverpage:
             line-height: 1.5;
             color: black;
             background: white;
+            padding: 20mm;
         }}
         
         .coverpage {{
             width: 100%;
-            min-height: 100vh;
-            padding: 15mm;
+            min-height: 100%;
+            padding: 0;
             display: flex;
             flex-direction: column;
             page-break-after: always;
+            justify-content: space-between;
         }}
         
         /* Header Section */
@@ -6023,9 +6025,9 @@ class EnglishPaper1Coverpage:
             <table class="marking-grid">
                 <thead>
                     <tr>
-                        <th>Question</th>
-                        <th>Maximum<br>Score</th>
-                        <th>Candidate's<br>Score</th>
+                        <th style="border: 1px solid black;">Question</th>
+                        <th style="border: 1px solid black;">Maximum<br>Score</th>
+                        <th style="border: 1px solid black;">Candidate's<br>Score</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -6036,17 +6038,17 @@ class EnglishPaper1Coverpage:
             marks = question_marks[i - 1] if i <= len(question_marks) else 10
             grid_html += f"""
                     <tr>
-                        <td>{i}</td>
-                        <td>{marks}</td>
-                        <td></td>
+                        <td style="border: 1px solid black;">{i}</td>
+                        <td style="border: 1px solid black;">{marks}</td>
+                        <td style="border: 1px solid black;"></td>
                     </tr>
 """
         
         # Total Score row
         grid_html += f"""
                     <tr class="total-row">
-                        <td colspan="2">Total Score</td>
-                        <td></td>
+                        <td colspan="2" style="border: 1px solid black;">Total Score</td>
+                        <td style="border: 1px solid black;"></td>
                     </tr>
                 </tbody>
             </table>
