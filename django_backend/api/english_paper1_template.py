@@ -171,8 +171,8 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
             .candidate-info {{
-                margin-bottom: 12px !important;
-                padding: 10px !important;
+                margin-bottom: 2px !important;
+                padding: 8px !important;
             }}
             
             .info-label {{
@@ -184,7 +184,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
             .instructions {{
-                margin-bottom: 15px !important;
+                margin-bottom: 2px !important;
             }}
             
             .instructions-title {{
@@ -203,8 +203,8 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
             .marking-grid-container {{
-                margin-top: 8px !important;
-                padding-top: 10px !important;
+                margin-top: 2px !important;
+                padding-top: 2px !important;
             }}
             
             .grid-title {{
@@ -391,26 +391,32 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         
         .candidate-info {{
             border: none;
-            padding: 10px;
-            margin-bottom: 12px;
+            padding: 8px;
+            margin-bottom: 2px;
         }}
         
         .candidate-info-grid {{
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 0;
+        }}
+        
+        .info-row {{
+            display: flex;
+            align-items: center;
         }}
         
         .info-row-full {{
             display: flex;
             align-items: center;
-            width: 100%;
+            margin-bottom: 15px;
         }}
         
         .info-row-grid {{
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
+            margin-bottom: 15px;
         }}
         
         .info-row-item {{
@@ -420,19 +426,19 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         
         .info-label {{
             font-weight: bold;
-            font-size: 11px;
-            min-width: 100px;
+            font-size: 12px;
+            min-width: 120px;
         }}
         
         .info-field {{
             flex: 1;
             border-bottom: 1px dotted black;
-            min-height: 22px;
+            min-height: 25px;
             padding: 2px 5px;
         }}
         
         .instructions {{
-            margin-bottom: 15px;
+            margin-bottom: 2px;
         }}
         
         .instructions-title {{
@@ -485,7 +491,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         
         .marking-grid-container {{
             margin-top: auto;
-            padding-top: 10px;
+            padding-top: 2px;
         }}
         
         .grid-title {{
