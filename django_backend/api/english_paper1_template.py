@@ -82,25 +82,23 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             .exam-page {{
                 margin: 0 !important;
                 box-shadow: none !important;
-                padding: 10mm 15mm !important;
-                height: auto !important;
-                max-height: none !important;
+                padding: 12mm 15mm 25mm 15mm !important;
+                width: 210mm !important;
                 min-height: 297mm !important;
                 page-break-after: always !important;
-                page-break-inside: avoid !important;
             }}
             
             .question-page {{
-                padding: 12mm 15mm 30mm 15mm !important;
-                page-break-after: auto !important;
+                padding: 12mm 15mm 25mm 15mm !important;
+                min-height: auto !important;
             }}
             
             /* Ensure page number stays in footer */
             .page-number {{
-                position: fixed !important;
-                bottom: 10mm !important;
+                position: absolute !important;
+                bottom: 8mm !important;
                 right: 15mm !important;
-                font-size: 11px !important;
+                font-size: 10px !important;
             }}
             
             /* Ensure consistent font sizes in print */
@@ -131,48 +129,46 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
                 border-bottom: 2px solid #000 !important;
             }}
             
-            /* Scale coverpage to fit on one page */
+            /* Ensure coverpage fits on one page with natural sizing */
             .coverpage {{
                 height: auto !important;
-                max-height: none !important;
+                max-height: 297mm !important;
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
-                transform: scale(0.75) !important;
-                transform-origin: top center !important;
                 page-break-after: always !important;
                 page-break-inside: avoid !important;
-                margin-bottom: -80mm !important;
+                padding: 8mm 12mm !important;
             }}
             
-            /* Reduce font sizes and spacing in print for coverpage */
+            /* Adjust font sizes for coverpage to fit naturally */
             .coverpage .school-name {{
-                font-size: 15px !important;
-                margin-bottom: 3px !important;
+                font-size: 14px !important;
+                margin-bottom: 2px !important;
             }}
             
             .coverpage .class-name {{
-                font-size: 11px !important;
-                margin-bottom: 6px !important;
+                font-size: 10px !important;
+                margin-bottom: 5px !important;
             }}
             
             .coverpage .exam-title {{
-                font-size: 13px !important;
-                margin-bottom: 6px !important;
+                font-size: 12px !important;
+                margin-bottom: 4px !important;
             }}
             
             .coverpage .paper-details {{
-                font-size: 11px !important;
-                margin-bottom: 8px !important;
+                font-size: 10px !important;
+                margin-bottom: 6px !important;
             }}
             
             .header {{
-                margin-bottom: 8px !important;
+                margin-bottom: 6px !important;
             }}
             
             .candidate-info {{
-                margin-bottom: 6px !important;
-                padding: 5px !important;
+                margin-bottom: 5px !important;
+                padding: 4px !important;
             }}
             
             .candidate-info table {{
@@ -183,31 +179,31 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             .candidate-info td {{
                 padding: 2px !important;
                 border: 1px solid #000 !important;
-                font-size: 9px !important;
+                font-size: 8px !important;
             }}
             
             .info-label {{
-                font-size: 9px !important;
+                font-size: 8px !important;
                 font-weight: bold !important;
             }}
             
             .info-field {{
-                min-height: 16px !important;
+                min-height: 14px !important;
                 border-bottom: 1px dotted #000 !important;
             }}
             
             .instructions {{
-                margin-bottom: 6px !important;
+                margin-bottom: 5px !important;
             }}
             
             .instructions-title {{
-                font-size: 10px !important;
-                margin-bottom: 3px !important;
+                font-size: 9px !important;
+                margin-bottom: 2px !important;
             }}
             
             .instructions ol, .instructions ul {{
-                font-size: 9px !important;
-                line-height: 1.2 !important;
+                font-size: 8px !important;
+                line-height: 1.1 !important;
                 margin-left: 10px !important;
             }}
             
@@ -216,13 +212,13 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
             .marking-grid-container {{
-                margin-top: 4px !important;
-                padding-top: 4px !important;
+                margin-top: 3px !important;
+                padding-top: 3px !important;
             }}
             
             .grid-title {{
-                font-size: 9px !important;
-                margin-bottom: 3px !important;
+                font-size: 8px !important;
+                margin-bottom: 2px !important;
             }}
             
             .marking-grid {{
@@ -231,9 +227,9 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
             .marking-grid td {{
-                font-size: 7px !important;
-                padding: 2px 1px !important;
-                height: 16px !important;
+                font-size: 6px !important;
+                padding: 1px !important;
+                height: 14px !important;
                 border: 1px solid #000 !important;
                 line-height: 1 !important;
             }}
