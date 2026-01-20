@@ -155,6 +155,29 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         if 'section_c_instruction' not in coverpage_data:
             coverpage_data['section_c_instruction'] = 'Answer ALL questions in this section'
     
+    # Add Geography section data if not present
+    is_geography = 'GEOGRAPHY' in paper_name
+    if is_geography and (paper_number == 1 or is_paper1):
+        # Geography Paper 1 has Section A (Questions 1-5, 25 marks) and Section B (Questions 6-10, 75 marks, answer Q6 and any 2)
+        if 'section_a_marks' not in coverpage_data:
+            coverpage_data['section_a_marks'] = 25
+        if 'section_b_marks' not in coverpage_data:
+            coverpage_data['section_b_marks'] = 75
+        if 'section_a_instruction' not in coverpage_data:
+            coverpage_data['section_a_instruction'] = 'Answer ALL questions in this section'
+        if 'section_b_instruction' not in coverpage_data:
+            coverpage_data['section_b_instruction'] = 'Answer question 6 and any other TWO questions from this section'
+    elif is_geography and (paper_number == 2 or is_paper2):
+        # Geography Paper 2 also has similar structure
+        if 'section_a_marks' not in coverpage_data:
+            coverpage_data['section_a_marks'] = 25
+        if 'section_b_marks' not in coverpage_data:
+            coverpage_data['section_b_marks'] = 75
+        if 'section_a_instruction' not in coverpage_data:
+            coverpage_data['section_a_instruction'] = 'Answer ALL questions in this section'
+        if 'section_b_instruction' not in coverpage_data:
+            coverpage_data['section_b_instruction'] = 'Answer question 6 and any other TWO questions from this section'
+    
     # Determine if continuous answer lines are needed
     # Biology Paper 2, Geography Paper 1, Geography Paper 2, CRE Paper 1, CRE Paper 2, and Kiswahili Paper 1 need answer lines
     needs_answer_lines = (
