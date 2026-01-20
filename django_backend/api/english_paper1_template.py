@@ -151,7 +151,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
                 .instructions {{
-                    margin-bottom: 10px !important;
+                    margin-bottom: 0 !important;
                 }}
             
             .instructions-title {{
@@ -170,8 +170,8 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
             .marking-grid-container {{
-                margin-top: 5px !important;
-                padding-top: 8px !important;
+                margin-top: 0 !important;
+                padding-top: 0 !important;
             }}
             
             .grid-title {{
