@@ -1,24 +1,24 @@
 """
-English Paper 1 Template Generator
-Specific template for KCSE English Paper 1 (Functional Skills)
-With simple bold titles before each question (no section headers)
+Kiswahili Paper 2 Template Generator
+Specific template for KCSE Kiswahili Paper 2 (Fasihi)
+With bold titles and marks before each question
 """
 
 from .coverpage_templates import (
-    EnglishPaper1Coverpage,
-    BiologyPaper1Coverpage, 
+    KiswahiliPaper2Coverpage,
     MarkingSchemeCoverpage
 )
 import re
 
 
-def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None):
+def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=None):
     """
-    Generate English Paper 1 HTML with simple bold titles
+    Generate Kiswahili Paper 2 HTML with bold titles and marks
     
-    Q1: Functional Skills
-    Q2: Cloze Test
-    Q3: Oral Skills
+    Q1: UFAHAMU (Alama 15)
+    Q2: UFUPISHO (Alama 15)
+    Q3: MATUMIZI YA LUGHA (Alama 10)
+    Q4: ISIMU JAMII (Alama 10)
     
     Args:
         coverpage_data (dict): Coverpage information
@@ -31,11 +31,10 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
     
     # Use default coverpage if not provided
     if coverpage_class is None:
-        from .coverpage_templates import EnglishPaper1Coverpage
-        coverpage_class = EnglishPaper1Coverpage
+        from .coverpage_templates import KiswahiliPaper2Coverpage
+        coverpage_class = KiswahiliPaper2Coverpage
     
     # Generate coverpage HTML (page 1)
-    # EnglishPaper1Coverpage uses static method, not instance method
     if hasattr(coverpage_class, 'generate_html') and callable(getattr(coverpage_class, 'generate_html')):
         # Static method - call directly with data
         coverpage_html = coverpage_class.generate_html(coverpage_data)
@@ -54,8 +53,8 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
     # Calculate total pages
     total_pages = 2  # 1 coverpage + 1 question page (all questions continuous)
     
-    # Generate question pages with simple titles
-    questions_html = _generate_english_paper1_pages(questions, total_pages, coverpage_data)
+    # Generate question pages with titles and marks
+    questions_html = _generate_kiswahili_paper2_pages(questions, total_pages, coverpage_data)
     
     # Combine everything
     full_html = f"""
@@ -64,7 +63,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{coverpage_data.get('paper_name', 'English Paper 1')} - Full Preview</title>
+    <title>{coverpage_data.get('paper_name', 'Kiswahili Paper 2')} - Full Preview</title>
     <style>
         @page {{
             size: A4;
@@ -205,6 +204,12 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
                 line-height: 1.2 !important;
             }}
             
+            .marking-grid th {{
+                font-size: 9px !important;
+                padding: 6px 3px !important;
+                border: 1px solid #000 !important;
+            }}
+            
             /* Ensure marking grid borders are visible */
             .marking-grid .question-number {{
                 border-right: 2px solid black !important;
@@ -246,7 +251,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
                 font-weight: bold !important;
             }}
             
-            .simple-title {{
+            .question-title {{
                 font-size: 12pt !important;
                 font-weight: bold !important;
             }}
@@ -287,8 +292,8 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             font-weight: bold;
         }}
         
-        /* Simple title (bold, left-aligned) for English Paper 1 */
-        .simple-title {{
+        /* Question title with marks (bold, left-aligned) for Kiswahili Paper 2 */
+        .question-title {{
             font-size: 14px;
             font-weight: bold;
             margin-bottom: 15px;
@@ -544,6 +549,15 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             line-height: 1.2;
         }}
         
+        .marking-grid th {{
+            border: 1px solid black;
+            text-align: center;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 8px 4px;
+            background-color: #f0f0f0;
+        }}
+        
         .marking-grid .question-number {{
             min-width: 35px;
             width: 35px;
@@ -602,22 +616,8 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
     <div class="exam-page page-break">
         {coverpage_content}
     </div>
-    <!-- Candidate Information -->
-     <!--   <div class="candidate-info">-->
-      <!--      <div class="candidate-info-grid">-->
-    #    <!--         {f'<div class="info-row-full"><span class="info-label">NAME:</span><div class="info-field"></div></div>' 'if show_name else' ''}-->
-        <!--        <div class="info-row-grid">-->
-        #   <!--          {f'<div class="info-row-item"><span class="info-label">ADM NO:</span><div class="info-field"></div></div>' 'if show_number else '''}-->
-          <!--          <div class="info-row-item"><span class="info-label">CLASS:</span><div class="info-field"></div></div>
-              <!--  </div>-->
-                <!-- <div class="info-row-grid">-->
-                    # <!--{f'<div class="info-row-item"><span class="info-label">DATE:</span><div class="info-field"></div></div>' 'if show_date else '''}-->
-                    <!-- <div class="info-row-item"><span class="info-label">SIGNATURE:</span><div class="info-field"></div></div>-->
-                <!-- </div>-->
-            <!-- </div>-->
-        <!--</div>-->
     
-    <!-- Question Pages with Simple Titles -->
+    <!-- Question Pages with Titles and Marks -->
     {questions_html}
 </body>
 </html>
@@ -735,19 +735,21 @@ def _process_question_text(text, images=None, answer_lines=None):
     return ''.join(result)
 
 
-def _generate_english_paper1_pages(questions, total_pages, coverpage_data):
+def _generate_kiswahili_paper2_pages(questions, total_pages, coverpage_data):
     """
-    Generate pages for English Paper 1 with simple bold titles
+    Generate pages for Kiswahili Paper 2 with bold titles and marks
     Questions flow continuously (not each on separate page)
-    Q1: Functional Skills
-    Q2: Cloze Test
-    Q3: Oral Skills
+    Q1: UFAHAMU (Alama 15)
+    Q2: UFUPISHO (Alama 15)
+    Q3: MATUMIZI YA LUGHA (Alama 10)
+    Q4: ISIMU JAMII (Alama 10)
     """
-    # Question titles mapping
+    # Question titles with marks mapping
     question_titles = {
-        1: "FUNCTIONAL SKILLS",
-        2: "CLOZE TEST",
-        3: "ORAL SKILLS"
+        1: "UFAHAMU (Alama 15)",
+        2: "UFUPISHO (Alama 15)",
+        3: "MATUMIZI YA LUGHA (Alama 10)",
+        4: "ISIMU JAMII (Alama 10)"
     }
     
     questions_html = []
@@ -762,9 +764,9 @@ def _generate_english_paper1_pages(questions, total_pages, coverpage_data):
             q.get('question_answer_lines', [])
         )
         
-        # Questions flow continuously with titles
+        # Questions flow continuously with titles and marks
         question_html = f"""
-        <div class="simple-title">{title}</div>
+        <div class="question-title">{title}</div>
         <div class="question">
             <div class="question-text"><span class="question-number">{q_number}.</span> {processed_text}</div>
         </div>

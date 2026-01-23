@@ -127,17 +127,17 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 position: absolute !important;
                 bottom: 10mm !important;
                 right: 15mm !important;
-                font-size: 11px !important;
+                font-size: 12pt !important;
             }}
             
             /* Ensure consistent font sizes in print */
             .question-text {{
-                font-size: 14px !important;
+                font-size: 12pt !important;
                 line-height: 1.8 !important;
             }}
             
             .question-number {{
-                font-size: 15px !important;
+                font-size: 12pt !important;
             }}
             
             /* Ensure answer lines are visible in print */
@@ -169,22 +169,22 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             
             /* Reduce font sizes and spacing in print for coverpage */
             .coverpage .school-name {{
-                font-size: 16px !important;
+                font-size: 16pt !important;
                 margin-bottom: 3px !important;
             }}
             
             .coverpage .class-name {{
-                font-size: 12px !important;
+                font-size: 12pt !important;
                 margin-bottom: 10px !important;
             }}
             
             .coverpage .exam-title {{
-                font-size: 14px !important;
+                font-size: 12pt !important;
                 margin-bottom: 8px !important;
             }}
             
             .coverpage .paper-details {{
-                font-size: 12px !important;
+                font-size: 12pt !important;
                 margin-bottom: 12px !important;
             }}
             
@@ -198,7 +198,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
             
             .info-label {{
-                font-size: 11px !important;
+                font-size: 12pt !important;
             }}
             
             .info-field {{
@@ -206,16 +206,16 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
             
             .instructions {{
-                margin-bottom: 12px !important;
+                margin-bottom: 4px !important;
             }}
             
             .instructions-title {{
-                font-size: 12px !important;
+                font-size: 12pt !important;
                 margin-bottom: 6px !important;
             }}
             
             .instructions ol {{
-                font-size: 11px !important;
+                font-size: 12pt !important;
                 line-height: 1.4 !important;
             }}
             
@@ -229,14 +229,29 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
             
             .grid-title {{
-                font-size: 11px !important;
+                font-size: 17px !important;
                 margin-bottom: 6px !important;
             }}
             
             .marking-grid td {{
-                font-size: 9px !important;
+                font-size: 10px !important;
                 padding: 6px 3px !important;
                 height: 25px !important;
+            }}
+            
+            /* Ensure consistent font sizes in print */
+            body {{
+                font-size: 12pt !important;
+            }}
+            
+            .question-text {{
+                font-size: 12pt !important;
+                line-height: 1.8 !important;
+            }}
+            
+            .question-number {{
+                font-size: 12pt !important;
+                font-weight: bold !important;
             }}
         }}
         
@@ -274,7 +289,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             position: absolute;
             bottom: 10mm;
             right: 20mm;
-            font-size: 11px;
+            font-size: 12pt !important;
             font-weight: bold;
         }}
         
@@ -286,12 +301,12 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         
         .question-number {{
             font-weight: bold;
-            font-size: 15px;
+            font-size: 12pt !important;
         }}
         
         .question-text {{
-            font-size: 14px;
-            line-height: 1.8;
+            font-size: 12pt !important;
+            line-height: 1.8 !important;
             text-align: justify;
             white-space: pre-wrap;
         }}

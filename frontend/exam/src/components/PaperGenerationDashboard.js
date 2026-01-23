@@ -1251,7 +1251,7 @@ export default function PaperGenerationDashboard() {
                                     className="w-full min-h-full"
                                     title="Coverpage Preview"
                                     style={{ border: 'none', height: 'auto', minHeight: 'calc(100% - 40px)' }}
-                                    sandbox="allow-same-origin allow-scripts allow-popups"
+                                    sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox allow-modals"
                                     ref={(iframe) => {
                                         if (iframe && !iframe.dataset.loaded) {
                                             iframe.dataset.loaded = 'true';

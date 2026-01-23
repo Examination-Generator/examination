@@ -273,25 +273,30 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
             
             /* Ensure consistent font sizes in print */
+            body {{
+                font-size: 12pt !important;
+            }}
+            
             .question-page-header p {{
-                font-size: 14px !important;
+                font-size: 12pt !important;
             }}
             
             .section-instruction {{
-                font-size: 14px !important;
+                font-size: 12pt !important;
             }}
             
             .question-text {{
-                font-size: 14px !important;
+                font-size: 12pt !important;
                 line-height: 1.8 !important;
             }}
             
             .question-number {{
-                font-size: 15px !important;
+                font-size: 12pt !important;
+                font-weight: bold !important;
             }}
             
             .question-marks {{
-                font-size: 13px !important;
+                font-size: 12pt !important;
             }}
             
             /* Ensure answer lines are visible in print */
