@@ -167,12 +167,12 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
             .instructions-title {{
-                font-size: 12px !important;
+                font-size: 12pt !important;
                 margin-bottom: 6px !important;
             }}
             
             .instructions ol, .instructions ul, .instructions-list {{
-                font-size: 11px !important;
+                font-size: 11pt !important;
                 line-height: 1.4 !important;
                 margin-left: 18px !important;
             }}
@@ -187,7 +187,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
             .grid-title {{
-                font-size: 11px !important;
+                font-size: 11pt !important;
                 margin-bottom: 6px !important;
             }}
             
@@ -198,7 +198,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             }}
             
             .marking-grid td {{
-                font-size: 9px !important;
+                font-size: 9pt !important;
                 padding: 6px 3px !important;
                 height: 25px !important;
                 border: 1px solid #000 !important;
@@ -283,13 +283,13 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
             position: absolute;
             bottom: 10mm;
             right: 20mm;
-            font-size: 11px;
+            font-size: 11pt;
             font-weight: bold;
         }}
         
         /* Simple title (bold, left-aligned) for English Paper 1 */
         .simple-title {{
-            font-size: 14px;
+            font-size: 14pt;
             font-weight: bold;
             margin-bottom: 15px;
             text-align: left;
@@ -303,11 +303,11 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         
         .question-number {{
             font-weight: bold;
-            font-size: 15px;
+            font-size: 15pt;
         }}
         
         .question-text {{
-            font-size: 14px;
+            font-size: 14pt;
             line-height: 1.8;
             text-align: justify;
             white-space: pre-wrap;
@@ -391,28 +391,28 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         }}
         
         .class-name, .class-title {{
-            font-size: 16px;
+            font-size: 16pt;
             font-weight: bold;
             margin-bottom: 10px;
             text-transform: uppercase;
         }}
         
         .exam-title {{
-            font-size: 16px;
+            font-size: 16pt;
             font-weight: bold;
             margin-bottom: 20px;
             text-transform: uppercase;
         }}
         
         .paper-title {{
-            font-size: 18px;
+            font-size: 18pt;
             font-weight: bold;
             text-decoration: underline;
             margin-bottom: 10px;
         }}
         
         .paper-details {{
-            font-size: 14px;
+            font-size: 14pt;
             margin-bottom: 20px;
         }}
         
@@ -453,7 +453,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         
         .info-label {{
             font-weight: bold;
-            font-size: 12px;
+            font-size: 12pt;
             min-width: 120px;
         }}
         
@@ -470,14 +470,14 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         
         .instructions-title {{
             font-weight: bold;
-            font-size: 14px;
+            font-size: 14pt;
             margin-bottom: 10px;
             text-decoration: underline;
         }}
         
         .instructions ol {{
             margin-left: 20px;
-            font-size: 12px;
+            font-size: 12pt;
             line-height: 1.6;
             list-style: none;
             counter-reset: list-counter;
@@ -523,7 +523,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         
         .grid-title {{
             font-weight: bold;
-            font-size: 13px;
+            font-size: 13pt;
             margin-bottom: 10px;
             text-align: center;
         }}
@@ -537,7 +537,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         .marking-grid td {{
             border: 1px solid black;
             text-align: center;
-            font-size: 10px;
+            font-size: 10pt;
             font-weight: bold;
             padding: 8px 4px;
             height: 30px;
@@ -581,7 +581,7 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
         
         .marking-grid .grand-total-cell {{
             background-color: #f0f0f0;
-            font-size: 10px;
+            font-size: 10pt;
             font-weight: bold;
             border: 2px solid black;
             padding: 5px 10px;
@@ -602,21 +602,6 @@ def generate_english_paper1_html(coverpage_data, questions, coverpage_class=None
     <div class="exam-page page-break">
         {coverpage_content}
     </div>
-    <!-- Candidate Information -->
-     <!--   <div class="candidate-info">-->
-      <!--      <div class="candidate-info-grid">-->
-    #    <!--         {f'<div class="info-row-full"><span class="info-label">NAME:</span><div class="info-field"></div></div>' 'if show_name else' ''}-->
-        <!--        <div class="info-row-grid">-->
-        #   <!--          {f'<div class="info-row-item"><span class="info-label">ADM NO:</span><div class="info-field"></div></div>' 'if show_number else '''}-->
-          <!--          <div class="info-row-item"><span class="info-label">CLASS:</span><div class="info-field"></div></div>
-              <!--  </div>-->
-                <!-- <div class="info-row-grid">-->
-                    # <!--{f'<div class="info-row-item"><span class="info-label">DATE:</span><div class="info-field"></div></div>' 'if show_date else '''}-->
-                    <!-- <div class="info-row-item"><span class="info-label">SIGNATURE:</span><div class="info-field"></div></div>-->
-                <!-- </div>-->
-            <!-- </div>-->
-        <!--</div>-->
-    
     <!-- Question Pages with Simple Titles -->
     {questions_html}
 </body>
@@ -764,8 +749,8 @@ def _generate_english_paper1_pages(questions, total_pages, coverpage_data):
         
         # Questions flow continuously with titles
         question_html = f"""
-        <div class="simple-title">{title}</div>
         <div class="question">
+            <div class="simple-title">{title}</div>
             <div class="question-text"><span class="question-number">{q_number}.</span> {processed_text}</div>
         </div>
 """

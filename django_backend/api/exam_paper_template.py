@@ -354,7 +354,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 position: absolute !important;
                 bottom: 10mm !important;
                 right: 15mm !important;
-                font-size: 11px !important;
+                font-size: 11pt !important;
             }}
             
             /* Scale coverpage to fit on one page */
@@ -369,22 +369,22 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             
             /* Reduce font sizes and spacing in print for coverpage */
             .coverpage .school-name {{
-                font-size: 16px !important;
+                font-size: 16pt !important;
                 margin-bottom: 3px !important;
             }}
             
             .coverpage .class-name {{
-                font-size: 12px !important;
+                font-size: 12pt !important;
                 margin-bottom: 10px !important;
             }}
             
             .coverpage .exam-title {{
-                font-size: 14px !important;
+                font-size: 14pt !important;
                 margin-bottom: 8px !important;
             }}
             
             .coverpage .paper-details {{
-                font-size: 12px !important;
+                font-size: 12pt !important;
                 margin-bottom: 12px !important;
             }}
             
@@ -398,7 +398,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
             
             .info-label {{
-                font-size: 11px !important;
+                font-size: 11pt !important;
             }}
             
             .info-field {{
@@ -410,12 +410,12 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
             
             .instructions-title {{
-                font-size: 12px !important;
+                font-size: 12pt !important;
                 margin-bottom: 6px !important;
             }}
             
             .instructions ol, .instructions-list {{
-                font-size: 11px !important;
+                font-size: 11pt !important;
                 line-height: 1.4 !important;
             }}
             
@@ -429,12 +429,12 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
             
             .grid-title {{
-                font-size: 11px !important;
+                font-size: 11pt !important;
                 margin-bottom: 6px !important;
             }}
             
             .marking-grid td {{
-                font-size: 9px !important;
+                font-size: 9pt !important;
                 padding: 6px 3px !important;
                 height: 25px !important;
             }}
@@ -445,7 +445,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             position: absolute;
             bottom: 10mm;
             right: 20mm;
-            font-size: 11px;
+            font-size: 11pt;
             font-weight: bold;
         }}
         
@@ -458,12 +458,12 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         }}
         
         .question-page-header h2 {{
-            font-size: 16px;
+            font-size: 16pt;
             margin-bottom: 5px;
         }}
         
         .question-page-header p {{
-            font-size: 14px;
+            font-size: 14pt;
             font-style: italic;
         }}
         
@@ -482,11 +482,11 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         
         .question-number {{
             font-weight: bold;
-            font-size: 15px;
+            font-size: 15pt;
         }}
         
         .question-marks {{
-            font-size: 13px;
+            font-size: 13pt;
             font-weight: bold;
             background: #f0f0f0;
             padding: 2px 8px;
@@ -494,7 +494,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         }}
         
         .question-text {{
-            font-size: 14px;
+            font-size: 14pt;
             line-height: 1.8;
             text-align: justify;
             white-space: pre-wrap;
@@ -574,14 +574,14 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         }}
         
         .section-header h2 {{
-            font-size: 16px;
+            font-size: 16pt;
             font-weight: bold;
             margin-bottom: 8px;
             text-transform: uppercase;
         }}
         
         .section-instruction {{
-            font-size: 14px;
+            font-size: 14pt;
             font-style: italic;
             margin-top: 5px;
             line-height: 1.8;
@@ -594,14 +594,14 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
             
             .section-instruction {{
-                font-size: 14px !important;
+                font-size: 14pt !important;
                 line-height: 1.8 !important;
             }}
         }}
         
         /* Simple section title for English Paper 1 (bold, left-aligned) */
         .simple-section-title {{
-            font-size: 14px;
+            font-size: 14pt;
             font-weight: bold;
             text-align: left;
             margin: 20px 0 10px 0;
@@ -672,26 +672,26 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         }}
         
         .school-name {{
-            font-size: 18px;
+            font-size: 18pt;
             font-weight: bold;
             margin-bottom: 5px;
             text-transform: uppercase;
         }}
         
         .class-name {{
-            font-size: 14px;
+            font-size: 14pt;
             margin-bottom: 15px;
         }}
         
         .exam-title {{
-            font-size: 16px;
+            font-size: 16pt;
             font-weight: bold;
             margin-bottom: 10px;
             text-transform: uppercase;
         }}
         
         .paper-details {{
-            font-size: 14px;
+            font-size: 14pt;
             margin-bottom: 20px;
         }}
         
@@ -732,7 +732,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         
         .info-label {{
             font-weight: bold;
-            font-size: 12px;
+            font-size: 12pt;
             min-width: 120px;
         }}
         
@@ -749,14 +749,14 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         
         .instructions-title {{
             font-weight: bold;
-            font-size: 14px;
+            font-size: 14pt;
             margin-bottom: 10px;
             text-decoration: underline;
         }}
         
         .instructions ol {{
             margin-left: 20px;
-            font-size: 12px;
+            font-size: 12pt;
             line-height: 1.6;
             list-style: none;
             counter-reset: list-counter;
@@ -802,7 +802,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         
         .grid-title {{
             font-weight: bold;
-            font-size: 13px;
+            font-size: 13pt;
             margin-bottom: 10px;
             text-align: center;
         }}
@@ -816,7 +816,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         .marking-grid td {{
             border: 1px solid black;
             text-align: center;
-            font-size: 10px;
+            font-size: 10pt;
             font-weight: bold;
             padding: 8px 4px;
             height: 30px;
@@ -1042,7 +1042,7 @@ def _process_question_text(text, images=None, answer_lines=None):
                     lines_html += '</div>'
                     result.append(lines_html)
                 else:
-                    result.append(f'<div style="margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 11px;">⚠️ Answer Lines (ID: {int(line_id)})</div>')
+                    result.append(f'<div style="margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 11pt;"> Answer Lines (ID: {int(line_id)})</div>')
         
         # Images: [IMAGE:id:WxH] or [IMAGE:id:Wpx]
         elif part.startswith('[IMAGE:') and part.endswith('px]'):
@@ -1071,7 +1071,7 @@ def _process_question_text(text, images=None, answer_lines=None):
                     
                     result.append(f'<img src="{img_url}" alt="{img_alt}" class="question-image" style="{style}" />')
                 else:
-                    result.append(f'<div style="margin: 10px 0; padding: 10px; background: #f8d7da; border: 1px solid #dc3545; border-radius: 4px; font-size: 11px;">❌ Image Not Found (ID: {int(image_id)})</div>')
+                    result.append(f'<div style="margin: 10px 0; padding: 10px; background: #f8d7da; border: 1px solid #dc3545; border-radius: 4px; font-size: 11pt;">❌ Image Not Found (ID: {int(image_id)})</div>')
         
         # Regular text
         else:
