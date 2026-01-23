@@ -1197,7 +1197,7 @@ export default function PaperGenerationDashboard() {
                                     >
                                         📋 Preview Full Exam
                                     </button>
-                                    <button
+                                    {/* <button
                                         onClick={() => {
                                             const iframe = document.getElementById('coverpage-iframe');
                                             if (iframe && iframe.contentWindow) {
@@ -1207,7 +1207,7 @@ export default function PaperGenerationDashboard() {
                                         className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition text-sm"
                                     >
                                         🖨️ Print
-                                    </button>
+                                    </button> */}
                                 </div>
                             </div>
                             
