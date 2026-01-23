@@ -772,8 +772,8 @@ def _generate_kiswahili_paper2_pages(questions, total_pages, coverpage_data):
         
         # Questions flow continuously with titles and marks
         question_html = f"""
-        <div class="question-title">{title}</div>
         <div class="question">
+            <div class="question-title">{title}</div>
             <div class="question-text"><span class="question-number">{q_number}.</span> {processed_text}</div>
         </div>
 """
