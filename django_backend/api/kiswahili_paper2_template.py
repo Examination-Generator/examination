@@ -17,7 +17,7 @@ def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=No
     
     Q1: UFAHAMU (Alama 15)
     Q2: UFUPISHO (Alama 15)
-    Q3: MATUMIZI YA LUGHA (Alama 10)
+    Q3: MATUMIZI YA LUGHA (Alama 40)
     Q4: ISIMU JAMII (Alama 10)
     
     Args:
@@ -103,7 +103,7 @@ def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=No
                 position: absolute !important;
                 bottom: 10mm !important;
                 right: 15mm !important;
-                font-size: 11px !important;
+                font-size: 12pt !important;
             }}
             
             /* Scale coverpage to fit on one page */
@@ -119,7 +119,7 @@ def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=No
             
             /* Reduce font sizes and spacing in print for coverpage */
             .coverpage .school-name {{
-                font-size: 16px !important;
+                font-size: 16pt !important;
                 margin-bottom: 3px !important;
             }}
             
@@ -129,17 +129,17 @@ def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=No
             }}
             
             .coverpage .exam-title {{
-                font-size: 14px !important;
+                font-size: 14pt !important;
                 margin-bottom: 8px !important;
             }}
             
             .coverpage .paper-title {{
-                font-size: 16px !important;
+                font-size: 16pt !important;
                 margin-bottom: 8px !important;
             }}
             
             .coverpage .paper-details {{
-                font-size: 12px !important;
+                font-size: 12pt !important;
                 margin-bottom: 12px !important;
             }}
             
@@ -154,7 +154,7 @@ def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=No
             }}
             
             .info-label {{
-                font-size: 11px !important;
+                font-size: 12pt !important;
             }}
             
             .info-field {{
@@ -166,12 +166,12 @@ def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=No
             }}
             
             .instructions-title {{
-                font-size: 12px !important;
+                font-size: 12pt !important;
                 margin-bottom: 6px !important;
             }}
             
             .instructions ol, .instructions ul, .instructions-list {{
-                font-size: 11px !important;
+                font-size: 12pt !important;
                 line-height: 1.4 !important;
                 margin-left: 18px !important;
             }}
@@ -186,7 +186,7 @@ def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=No
             }}
             
             .grid-title {{
-                font-size: 11px !important;
+                font-size: 12pt !important;
                 margin-bottom: 6px !important;
             }}
             
@@ -254,6 +254,13 @@ def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=No
             .question-title {{
                 font-size: 12pt !important;
                 font-weight: bold !important;
+                margin-top: 8px !important;
+                margin-bottom: 6px !important;
+            }}
+            
+            .question {{
+                margin-bottom: 12px !important;
+                page-break-inside: avoid !important;
             }}
         }}
         
@@ -288,15 +295,14 @@ def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=No
             position: absolute;
             bottom: 10mm;
             right: 20mm;
-            font-size: 11px;
+            font-size: 11pt;
             font-weight: bold;
         }}
         
         /* Question title with marks (bold, left-aligned) for Kiswahili Paper 2 */
         .question-title {{
-            font-size: 14px;
+            font-size: 14pt;
             font-weight: bold;
-            margin-bottom: 15px;
             text-align: left;
         }}
         
@@ -308,11 +314,11 @@ def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=No
         
         .question-number {{
             font-weight: bold;
-            font-size: 15px;
+            font-size: 12pt;
         }}
         
         .question-text {{
-            font-size: 14px;
+            font-size: 12pt;
             line-height: 1.8;
             text-align: justify;
             white-space: pre-wrap;
@@ -396,28 +402,28 @@ def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=No
         }}
         
         .class-name, .class-title {{
-            font-size: 16px;
+            font-size: 16pt;
             font-weight: bold;
             margin-bottom: 10px;
             text-transform: uppercase;
         }}
         
         .exam-title {{
-            font-size: 16px;
+            font-size: 16pt;
             font-weight: bold;
             margin-bottom: 20px;
             text-transform: uppercase;
         }}
         
         .paper-title {{
-            font-size: 18px;
+            font-size: 18pt;
             font-weight: bold;
             text-decoration: underline;
             margin-bottom: 10px;
         }}
         
         .paper-details {{
-            font-size: 14px;
+            font-size: 14pt;
             margin-bottom: 20px;
         }}
         
@@ -741,14 +747,14 @@ def _generate_kiswahili_paper2_pages(questions, total_pages, coverpage_data):
     Questions flow continuously (not each on separate page)
     Q1: UFAHAMU (Alama 15)
     Q2: UFUPISHO (Alama 15)
-    Q3: MATUMIZI YA LUGHA (Alama 10)
+    Q3: MATUMIZI YA LUGHA (Alama 40)
     Q4: ISIMU JAMII (Alama 10)
     """
     # Question titles with marks mapping
     question_titles = {
         1: "UFAHAMU (Alama 15)",
         2: "UFUPISHO (Alama 15)",
-        3: "MATUMIZI YA LUGHA (Alama 10)",
+        3: "MATUMIZI YA LUGHA (Alama 40)",
         4: "ISIMU JAMII (Alama 10)"
     }
     
