@@ -1777,6 +1777,13 @@ def _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data=None)
     """
     current_page = 2
     
+    # Add instruction before questions
+    instruction_html = """
+        <div style="font-weight: bold; margin-bottom: 10px; font-size: 12pt;">
+            Swali la kwanza ni lazima kisha uchague lingine moja kwa zilizo salia
+        </div>
+"""
+    
     # Generate all questions on one page
     questions_html = ""
     for q in questions:
@@ -1795,6 +1802,7 @@ def _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data=None)
     page_html = f"""
     <!-- Page {current_page} -->
     <div class="exam-page page-break">
+        {instruction_html}
         {questions_html}        
         <div class="page-number">Page {current_page} of {total_pages}</div>
     </div>
