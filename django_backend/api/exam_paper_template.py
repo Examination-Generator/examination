@@ -315,6 +315,12 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 page-break-after: always !important;
                 break-after: page !important;
             }}
+            
+            /* Ensure questions are never split across pages */
+            .question {{
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }}
         }}
         
         * {{
