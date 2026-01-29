@@ -315,12 +315,6 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 page-break-after: always !important;
                 break-after: page !important;
             }}
-            
-            /* Ensure questions are never split across pages */
-            .question {{
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }}
         }}
         
         * {{
@@ -350,8 +344,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 margin: 0;
                 box-shadow: none;
                 padding: 12mm 15mm 30mm 15mm !important;
-                height: 297mm;
-                max-height: 297mm;
+                min-height: 297mm;
                 page-break-after: always !important;
             }}
             
@@ -476,7 +469,6 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         /* Questions styling */
         .question {{
             margin-bottom: 18px;
-            page-break-inside: avoid;
         }}
         
         .question-header {{
