@@ -1814,9 +1814,8 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
     Generate paginated question pages for standard papers
     Handles sections for Geography Paper 1, Mathematics Paper 1, and Agriculture Paper 1
     """
-    questions_per_page = 3
-    pages_html = []
-    current_page = 2
+    # Generate all questions in a flowing container without fixed pages
+    questions_html = ""
     
     # Determine section boundaries from coverpage_data if available
     metadata = coverpage_data or {}
@@ -1857,83 +1856,33 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
             except Exception:
                 section_a_count = 0
 
-    page_last_section = None
-    for i in range(0, len(questions), questions_per_page):
-        page_questions = questions[i:i + questions_per_page]
-        
-        # Determine paper type for section naming
-        paper_name_for_sections = metadata.get('paper_name', '').upper()
-        is_mathematics_paper = 'MATHEMATICS' in paper_name_for_sections or 'MATHS' in paper_name_for_sections
-        is_agriculture_paper = 'AGRICULTURE' in paper_name_for_sections
-        
-        # Determine first and last question sections for this page
-        first_qnum = int(page_questions[0].get('number', 0)) if page_questions else 0
+    # Track sections as we generate questions
+    last_section = None
+    questions_html = ""
+    
+    # Determine paper type for section naming
+    paper_name_for_sections = metadata.get('paper_name', '').upper()
+    is_mathematics_paper = 'MATHEMATICS' in paper_name_for_sections or 'MATHS' in paper_name_for_sections
+    is_agriculture_paper = 'AGRICULTURE' in paper_name_for_sections
+    
+    # Generate all questions in flowing order
+    for q in questions:
+        qnum = int(q.get('number', 0))
+        # Determine section by question number
         if is_agriculture_paper:
-            if first_qnum <= section_a_count:
-                first_section = 'A'
-            elif first_qnum <= section_b_count:
-                first_section = 'B'
+            if qnum <= section_a_count:
+                current_section = 'A'
+            elif qnum <= section_b_count:
+                current_section = 'B'
             else:
-                first_section = 'C'
+                current_section = 'C'
         elif is_mathematics_paper:
-            first_section = 'I' if (section_a_count and first_qnum <= section_a_count) else 'II'
+            current_section = 'I' if (section_a_count and qnum <= section_a_count) else 'II'
         else:
-            first_section = 'A' if (section_a_count and first_qnum <= section_a_count) else 'B'
-            
-        last_qnum = int(page_questions[-1].get('number', 0)) if page_questions else 0
-        if is_agriculture_paper:
-            if last_qnum <= section_a_count:
-                last_section_on_page = 'A'
-            elif last_qnum <= section_b_count:
-                last_section_on_page = 'B'
-            else:
-                last_section_on_page = 'C'
-        elif is_mathematics_paper:
-            last_section_on_page = 'I' if (section_a_count and last_qnum <= section_a_count) else 'II'
-        else:
-            last_section_on_page = 'A' if (section_a_count and last_qnum <= section_a_count) else 'B'
+            current_section = 'A' if (section_a_count and qnum <= section_a_count) else 'B'
 
-        # If this page continues the same section from previous page, show a small continue header
-        page_header_html = ''
-        if page_last_section is not None and page_last_section == first_section:
-            if is_mathematics_paper and first_section == 'II':
-                page_header_html = f"""
-        <div class=\"question-page-header\"> 
-            <h2>Continue answering any FIVE questions from this section</h2>
-        </div>
-"""
-            else:
-                page_header_html = f"""
-        <div class=\"question-page-header\"> 
-            <h2>Continue answering ALL questions in this section</h2>
-        </div>
-"""
-
-        questions_html = ""
-        # Track last section to insert headers when section changes within the page
-        last_section = page_last_section
-        for q in page_questions:
-            processed_text = _process_question_text(
-                q.get('text', ''),
-                q.get('question_inline_images', []),
-                q.get('question_answer_lines', [])
-            )
-            # Determine section by question number and available section count
-            qnum = int(q.get('number', 0))
-            if is_agriculture_paper:
-                if qnum <= section_a_count:
-                    current_section = 'A'
-                elif qnum <= section_b_count:
-                    current_section = 'B'
-                else:
-                    current_section = 'C'
-            elif is_mathematics_paper:
-                current_section = 'I' if (section_a_count and qnum <= section_a_count) else 'II'
-            else:
-                current_section = 'A' if (section_a_count and qnum <= section_a_count) else 'B'
-
-            # If section changed (or starting), insert section header
-            if last_section != current_section:
+        # If section changed (or starting), insert section header
+        if last_section != current_section:
                 # Get marks for section from coverpage_data if present
                 if current_section in ['A', 'I']:
                     s_marks = metadata.get('section_a_marks', None)
@@ -1971,27 +1920,26 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
             <div class=\"section-instruction\" style=\"font-style: italic;\">{instruction_text}</div>
         </div>
 """
-                last_section = current_section
-
-            questions_html += f"""
+        last_section = current_section
+        
+        # Process and add the question
+        processed_text = _process_question_text(
+            q.get('text', ''),
+            q.get('question_inline_images', []),
+            q.get('question_answer_lines', [])
+        )
+        
+        questions_html += f"""
         <div class="question">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
-        
-        page_html = f"""
-    <div class="exam-page {'page-break' if current_page < total_pages else ''}">
-        {page_header_html}
-        
+    
+    # Wrap all questions in a single flowing container
+    page_html = f"""
+    <div class="exam-page page-break">
         {questions_html}
-        
-        <div class="page-number">Page {current_page} of {total_pages}</div>
     </div>
 """
-        
-        pages_html.append(page_html)
-        current_page += 1
-        # remember section for next page
-        page_last_section = last_section_on_page
     
-    return '\n'.join(pages_html)
+    return page_html
