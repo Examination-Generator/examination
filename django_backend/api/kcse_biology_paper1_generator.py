@@ -363,7 +363,7 @@ class KCSEBiologyPaper1Generator:
                         print(f"  Phase 1: Stopped at {phase1_marks} marks (will use Phase 2 for remainder)")
                         break
             
-            print(f"  ✅ Phase 1: Selected {len(phase1_selected)} questions, {phase1_marks} marks")
+            print(f"   Phase 1: Selected {len(phase1_selected)} questions, {phase1_marks} marks")
         else:
             print(f"\n  [Phase 1] SKIPPED - No 4-6 mark questions available")
             print(f"  → Will use only 1-3 mark questions for entire paper")
