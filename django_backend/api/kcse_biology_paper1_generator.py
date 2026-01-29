@@ -426,7 +426,7 @@ class KCSEBiologyPaper1Generator:
         # Check if we hit exactly the target
         if current_marks == remaining_target:
             phase2_marks = current_marks
-            print(f"  ✅ Phase 2: Selected {len(phase2_selected)} questions, {phase2_marks} marks")
+            print(f"  Phase 2: Selected {len(phase2_selected)} questions, {phase2_marks} marks")
             
             # Combine both phases
             all_selected = phase1_selected + phase2_selected

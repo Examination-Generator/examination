@@ -286,17 +286,17 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
             
             .question-text {{
-                font-size: 12pt !important;
+                font-size: 14pt !important;
                 line-height: 1.8 !important;
             }}
             
             .question-number {{
-                font-size: 12pt !important;
+                font-size: 15pt !important;
                 font-weight: bold !important;
             }}
             
             .question-marks {{
-                font-size: 12pt !important;
+                font-size: 13pt !important;
             }}
             
             /* Ensure answer lines are visible in print */
@@ -468,7 +468,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         
         /* Questions styling */
         .question {{
-            margin-bottom: 18px;
+            margin-bottom: 4px;
         }}
         
         .question-header {{
