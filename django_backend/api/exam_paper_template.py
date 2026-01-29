@@ -341,11 +341,13 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         
         @media print {{
             .exam-page {{
-                margin: 0;
+                margin: 0 auto;
                 box-shadow: none;
-                padding: 12mm 15mm 30mm 15mm !important;
+                padding: 12mm 20mm 30mm 20mm !important;
                 min-height: 297mm;
                 page-break-after: always !important;
+                font-size: 12pt !important;
+                width: 210mm;
             }}
             
             /* Ensure page number stays in footer */
