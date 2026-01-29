@@ -444,7 +444,7 @@ class KCSEBiologyPaper1Generator:
             self.standalone_marks = total_marks
             self.total_marks = total_marks
             
-            print(f"\n  ✅ TOTAL: {self.standalone_count} questions, {self.total_marks} marks")
+            print(f"\n  TOTAL: {self.standalone_count} questions, {self.total_marks} marks")
             
             # Show marks distribution by phase
             print(f"\n  Marks Distribution:")

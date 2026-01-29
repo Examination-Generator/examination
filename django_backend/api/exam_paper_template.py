@@ -188,6 +188,14 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     # Check if this is Business Paper 2 (special rendering with parts a and b)
     is_business_paper_2 = 'BUSINESS' in paper_name and is_paper2
     
+    # Check if this is Biology Paper 1 (needs special template)
+    is_biology_paper_1 = 'BIOLOGY' in paper_name and paper_number == 1
+    
+    # Route Biology Paper 1 to its own template
+    if is_biology_paper_1:
+        from .biology_paper1_template import generate_biology_paper1_html
+        return generate_biology_paper1_html(coverpage_data, questions, paper_data, coverpage_class)
+    
     # Check if this is Kiswahili Paper 1 (special rendering: all 4 questions on one page)
     is_kiswahili_paper_1 = 'KISWAHILI' in paper_name and paper_number == 1
     

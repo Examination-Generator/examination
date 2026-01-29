@@ -1333,9 +1333,17 @@ def preview_full_exam(request, paper_id):
                 is_business_paper1 = 'BUSINESS' in paper_name_upper and paper_number == 1
                 is_chemistry_paper1 = 'CHEMISTRY' in paper_name_upper and paper_number == 1
                 
-                use_no_sections_template = is_business_paper1 or is_chemistry_paper1 or is_biology_paper1
+                use_no_sections_template = is_business_paper1 or is_chemistry_paper1
                 
-                if is_english_paper1:
+                if is_biology_paper1:
+                    # Use the BIOLOGY PAPER 1 specific template
+                    from .biology_paper1_template import generate_biology_paper1_html
+                    html_content = generate_biology_paper1_html(
+                        coverpage_data, 
+                        ordered_questions,
+                        coverpage_class=CoverpageClass
+                    )
+                elif is_english_paper1:
                     # Use the ENGLISH PAPER 1 specific template
                     from .english_paper1_template import generate_english_paper1_html
                     html_content = generate_english_paper1_html(
