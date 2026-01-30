@@ -26,7 +26,7 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
         coverpage_class = BiologyPaper1Coverpage
     
     # Generate coverpage HTML
-    coverpage_content = coverpage_class.generate_default_coverpage_data(coverpage_data, paper_data)
+    coverpage_content = coverpage_class.generate_html(coverpage_data)
     
     # Process all questions in flowing order
     questions_html = ""
