@@ -483,7 +483,7 @@ class BiologyPaper1Coverpage:
         <!-- Instructions -->
         <div class="instructions">
             <div class="instructions-title">INSTRUCTIONS TO CANDIDATES</div>
-            <ol style="font-size: 12px; line-height: 1.6; font-style:italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
+            <ol type="a" style="font-size: 12px; line-height: 1.6; font-style:italic; list-style: none; counter-reset: list-counter; margin-left: 20px;">
                 {''.join([f'<li style="counter-increment: list-counter;" class="{"bold" if idx >= 4 else ""}">{instruction}</li>' for idx, instruction in enumerate(instructions)])}
             </ol>
         </div>
