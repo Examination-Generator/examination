@@ -63,14 +63,14 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
                 width: 220mm !important;
                 padding: 0;
                 font-family: 'Times New Roman', Times, serif !important;
-                font-size: 14pt;
+                font-size: 14pt !important;
                 background: white !important;
             }}
             
             .coverpage-container {{
                 page-break-after: always !important;
                 width: 220mm !important;
-                font-size: 14pt ;
+                font-size: 14pt !important;
                 min-height: 297mm;
                 padding: auto;
                 margin: 0;
@@ -79,6 +79,7 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
             .questions-container {{
                 width: 210mm !important;
                 padding: 0;
+                font-size: 14pt !important;
                 margin: auto;
             }}
             
