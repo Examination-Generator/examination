@@ -373,7 +373,7 @@ class BiologyPaper1Coverpage:
             width: 100%;
             border-collapse: collapse;
             border: 1px solid black;
-            padding: 5px;
+            padding: 15px;
         }}
         
         .marking-grid td {{
@@ -381,21 +381,18 @@ class BiologyPaper1Coverpage:
             text-align: center;
             font-size: 10px;
             font-weight: bold;
-            padding: 8px;
             height: 30px;
         }}
         
         .question-number {{
             min-width: 35px;
             width: 35px;
-            padding: 8px;
         }}
         
         /* Empty question cells (shown but no number) */
         .empty-question-cell {{
             min-width: 35px;
             width: 35px;
-            padding: 8px;
             background-color: white;
             border: none !important;
         }}
