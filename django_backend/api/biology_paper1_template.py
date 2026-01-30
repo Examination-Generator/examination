@@ -63,14 +63,14 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
                 width: 220mm !important;
                 padding: 0;
                 font-family: 'Times New Roman', Times, serif !important;
-                font-size: 14pt !important;
+                font-size: 16pt !important;
                 background: white !important;
             }}
             
             .coverpage-container {{
                 page-break-after: always !important;
                 width: 220mm !important;
-                font-size: 14pt !important;
+                font-size: 16pt !important;
                 min-height: 297mm;
                 padding: auto;
                 margin: 0;
@@ -79,14 +79,14 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
             .questions-container {{
                 width: 210mm !important;
                 padding: 0;
-                font-size: 14pt !important;
+                font-size: 16pt !important;
                 margin: auto;
             }}
             
             .question {{
                 page-break-inside: avoid;
                 break-inside: avoid;
-                margin-bottom: 5px;
+                margin-bottom: 8px;
             }}
             
             .question-text {{
@@ -131,19 +131,19 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
         }}
         
         .question {{
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             page-break-inside: avoid;
             break-inside: avoid;
         }}
         
         .question-number {{
             font-weight: bold;
-            font-size: 15pt;
+            font-size: 16pt !important;
         }}
         
         .question-text {{
-            font-size: 14pt;
-            line-height: 1.8;
+            font-size: 16pt !important;
+            line-height: 1.8 ;
             text-align: justify;
             white-space: pre-wrap;
         }}
