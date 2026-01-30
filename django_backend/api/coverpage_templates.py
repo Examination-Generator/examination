@@ -339,8 +339,8 @@ class BiologyPaper1Coverpage:
         
         .instructions ol {{
             margin-left: 20px;
-            font-size: 1.8rem;
-            line-height: 1.6;
+            font-size: 1.6rem;
+            line-height: 1.8;
             font-style: italic;
         }}
         
