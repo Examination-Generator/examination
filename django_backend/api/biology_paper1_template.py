@@ -111,7 +111,7 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
         }}
         
         .coverpage-container {{
-            width: 210mm;
+            width: 220mm;
             min-height: 297mm;
             padding: 5mm;
             background: white;
@@ -121,7 +121,7 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
         }}
         
         .questions-container {{
-            width: 210mm;
+            width: 220mm;
             padding: 0;
             background: white;
             margin: auto;
