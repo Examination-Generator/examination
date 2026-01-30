@@ -280,7 +280,7 @@ class BiologyPaper1Coverpage:
         .candidate-info {{
             border: none;
             padding: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 40px;
         }}
         
         .info-grid {{
@@ -327,7 +327,7 @@ class BiologyPaper1Coverpage:
         
         /* Instructions Section */
         .instructions {{
-            margin-bottom: 20px;
+            margin-bottom: 40px;
         }}
         
         .instructions-title {{
@@ -339,7 +339,7 @@ class BiologyPaper1Coverpage:
         
         .instructions ol {{
             margin-left: 20px;
-            font-size: 1.6rem;
+            font-size: 16pt;
             line-height: 1.8;
             font-style: italic;
         }}
