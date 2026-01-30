@@ -99,7 +99,7 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
         }}
         
         * {{
-            margin: 0;
+            margin: auto !important;
             padding: 0;
             box-sizing: border-box;
         }}
