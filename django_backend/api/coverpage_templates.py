@@ -342,10 +342,13 @@ class BiologyPaper1Coverpage:
             font-size: 16pt;
             line-height: 1.8;
             font-style: italic;
+            paddding:5px;
         }}
         
         .instructions li {{
             margin-bottom: 8px;
+            font-size: 16pt !important;
+            padding:5px;
         }}
         
         .instructions li.bold {{

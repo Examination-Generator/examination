@@ -88,6 +88,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
                 margin: 0;
                 box-shadow: none;
             }}
+            
         }}
         
         /* Page number styling */
@@ -105,7 +106,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
             text-align: center;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid black;
+            /* border-bottom: 2px solid black;  */
         }}
         
         .answer-page-header h2 {{
