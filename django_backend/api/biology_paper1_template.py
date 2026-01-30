@@ -60,7 +60,7 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
         @media print {{
             body {{
                 margin: 0 auto;
-                width: 210mm !important;
+                width: 220mm !important;
                 padding: 0;
                 font-family: 'Times New Roman', Times, serif !important;
                 font-size: 14pt;
@@ -69,7 +69,8 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
             
             .coverpage-container {{
                 page-break-after: always !important;
-                width: 210mm !important;
+                width: 220mm !important;
+                font-size: 14pt ;
                 min-height: 297mm;
                 padding: 0;
                 margin: 0;

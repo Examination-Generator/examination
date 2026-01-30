@@ -200,7 +200,7 @@ class BiologyPaper1Coverpage:
             font-family: 'Times New Roman', Times, serif;
             width: 210mm;
             height: 297mm;
-            padding: 20mm;
+            padding: 2mm;
             background: white;
             position: relative;
         }}
@@ -339,7 +339,7 @@ class BiologyPaper1Coverpage:
         
         .instructions ol {{
             margin-left: 20px;
-            font-size: 1.5rem;
+            font-size: 12pt;
             line-height: 1.6;
             font-style: italic;
         }}
