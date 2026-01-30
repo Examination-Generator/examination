@@ -72,14 +72,14 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
                 width: 220mm !important;
                 font-size: 14pt ;
                 min-height: 297mm;
-                padding: 0;
+                padding: auto;
                 margin: 0;
             }}
             
             .questions-container {{
                 width: 210mm !important;
                 padding: 0;
-                margin: 0;
+                margin: auto;
             }}
             
             .question {{
@@ -117,7 +117,7 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
             padding: 5mm;
             background: white;
             margin: auto;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            /* box-shadow: 0 0 10px rgba(0,0,0,0.1);*/
             page-break-after: always;
         }}
         
@@ -126,7 +126,7 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
             padding: 0;
             background: white;
             margin: auto;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            /*box-shadow: 0 0 10px rgba(0,0,0,0.1);*/
         }}
         
         .question {{
