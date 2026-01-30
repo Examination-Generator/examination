@@ -60,20 +60,23 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
         @media print {{
             body {{
                 margin: auto;
+                width: 210mm !important;
                 padding: 0;
+                font-family: 'Times New Roman', Times, serif !important;
+                font-size: 12pt !important;
                 background: white !important;
             }}
             
             .coverpage-container {{
                 page-break-after: always !important;
-                width: 210mm;
+                width: 210mm !important;
                 min-height: 297mm;
                 padding: 20mm;
                 margin: 0;
             }}
             
             .questions-container {{
-                width: 210mm;
+                width: 210mm !important;
                 padding: 20mm;
                 margin: 0;
             }}
