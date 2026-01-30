@@ -359,7 +359,6 @@ class BiologyPaper1Coverpage:
         .marking-grid-container {{
             margin-top: auto;
             padding: 8px;
-            p
         }}
         
         .grid-title {{
