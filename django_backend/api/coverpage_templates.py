@@ -365,6 +365,7 @@ class BiologyPaper1Coverpage:
             font-weight: bold;
             font-size: 13px;
             margin-bottom: 10px;
+            padding:5px;
             text-align: center;
         }}
         
@@ -380,19 +381,21 @@ class BiologyPaper1Coverpage:
             text-align: center;
             font-size: 10px;
             font-weight: bold;
-            padding: 8px 4px;
+            padding: 8px;
             height: 30px;
         }}
         
         .question-number {{
             min-width: 35px;
             width: 35px;
+            padding: 8px;
         }}
         
         /* Empty question cells (shown but no number) */
         .empty-question-cell {{
             min-width: 35px;
             width: 35px;
+            padding: 8px;
             background-color: white;
             border: none !important;
         }}
@@ -440,7 +443,7 @@ class BiologyPaper1Coverpage:
         @media print {{
             body {{
                 margin: 0;
-                padding: 20mm;
+                padding: 2mm;
             }}
             
             .coverpage {{
