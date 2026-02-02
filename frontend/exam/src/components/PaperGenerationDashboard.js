@@ -59,6 +59,7 @@ export default function PaperGenerationDashboard() {
     const [logoPreview, setLogoPreview] = useState(false);
     const [showFullExamModal, setShowFullExamModal] = useState(false);
     const [examModalView, setExamModalView] = useState('questions'); // 'questions' or 'marking_scheme'
+    const [showCoverpagePreview, setShowCoverpagePreview] = useState(false);
 
     // Load subjects and topics on component mount
     useEffect(() => {
@@ -864,6 +865,7 @@ export default function PaperGenerationDashboard() {
                 console.log('Saving coverpage data:', editableData);
                 await updateCoverpageData(paperId, editableData);
                 setSuccess('Coverpage updated successfully!');
+                setShowCoverpagePreview(true); // Show preview after save
                 
                 // Refresh coverpage data from backend
                 const updatedData = await getCoverpageData(paperId);
@@ -956,7 +958,7 @@ export default function PaperGenerationDashboard() {
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className={`grid grid-cols-1 gap-4 ${showCoverpagePreview && !previewMode ? 'lg:grid-cols-2' : ''}`}>
                         {/* Left Column - Edit Form */}
                         {!previewMode && (
                             <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center">
@@ -1085,6 +1087,7 @@ export default function PaperGenerationDashboard() {
                         )}
 
                         {/* Right Column - Preview */}
+                        {(showCoverpagePreview || previewMode) && (
                         <div className={`bg-white rounded-lg shadow-md p-4 ${previewMode ? 'lg:col-span-2' : ''}`}>
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-lg font-bold text-gray-800">📄 Coverpage Preview</h3>
@@ -1179,6 +1182,7 @@ export default function PaperGenerationDashboard() {
                                 />
                             </div>
                         </div>
+                        )}
                     </div>
 
                     {/* Action Buttons */}
