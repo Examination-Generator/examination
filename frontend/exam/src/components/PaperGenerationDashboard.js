@@ -52,21 +52,7 @@ export default function PaperGenerationDashboard() {
         school_name: 'EXAMINATION CENTRE',
         school_logo: '/exam.png',
         logo_position: 'center',
-        class_name: '',
-        exam_title: 'END TERM 3 EXAMINATION 2025',
-        paper_title: 'BIOLOGY PAPER 1',
-        time_allocation: '2 HOURS',
-        total_marks: 80,
-        total_questions: 0,
-        instructions: [
-            'Write your name and index number in the spaces provided above.',
-            'Sign and write the date of examination in the spaces provided above.',
-            'Answer all the questions in this question paper.',
-            'All answers must be written in the spaces provided.',
-            'This paper consists of 9 printed pages.',
-            'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
-            'Candidates should answer the questions in English.'
-        ]
+        exam_title: 'END TERM 3 EXAMINATION 2025'
     });
     const [previewMode, setPreviewMode] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -103,21 +89,7 @@ export default function PaperGenerationDashboard() {
                 school_name: coverpage?.school_name || 'EXAMINATION CENTRE',
                 school_logo: coverpage?.school_logo || '/exam.png',
                 logo_position: coverpage?.logo_position || 'center',
-                class_name: coverpage?.class_name || '',
-                exam_title: coverpage?.exam_title || 'END TERM 3 EXAMINATION 2025',
-                paper_title: coverpage?.paper_title || 'BIOLOGY PAPER 1',
-                time_allocation: coverpage?.time_allocation || '2 hours',
-                total_marks: coverpage?.total_marks || 80,
-                total_questions: coverpage?.total_questions || selectedPaper?.total_questions || 0,
-                instructions: coverpage?.instructions || [
-                    'Write your name and index number in the spaces provided above.',
-                    'Sign and write the date of examination in the spaces provided above.',
-                    'Answer all the questions in this question paper.',
-                    'All answers must be written in the spaces provided.',
-                    'This paper consists of 9 printed pages.',
-                    'Candidates should check the question paper to ascertain that all the pages are printed as indicated and that no questions are missing.',
-                    'Candidates should answer the questions in English.'
-                ]
+                exam_title: coverpage?.exam_title || 'END TERM 3 EXAMINATION 2025'
             });
             setLogoPreview(coverpage?.school_logo || '/exam.png');
         }
@@ -987,8 +959,9 @@ export default function PaperGenerationDashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {/* Left Column - Edit Form */}
                         {!previewMode && (
-                            <div className="bg-white rounded-lg shadow-md p-6">
-                                <h3 className="text-lg font-bold text-gray-800 mb-4">📝 Coverpage Details</h3>
+                            <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center">
+                                <div className="w-full max-w-2xl">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">📝 Coverpage Details</h3>
                                 
                                 {/* School Information */}
                                 <div className="mb-4 sm:mb-6">
@@ -1007,19 +980,6 @@ export default function PaperGenerationDashboard() {
                                             />
                                             <p className="text-xs text-gray-500 mt-1">Default: EXAMINATION CENTRE</p>
                                         </div>
-                                        
-                                        {/* <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Class/Form
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={editableData.class_name}
-                                                onChange={(e) => setEditableData({...editableData, class_name: e.target.value})}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                placeholder="e.g., FORM 4"
-                                            />
-                                        </div> */}
                                         
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1101,88 +1061,26 @@ export default function PaperGenerationDashboard() {
                                                 placeholder="e.g., END TERM 3 EXAMINATION 2025"
                                             />
                                         </div>
-                                        
-                                        {/* <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                Paper Title
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={editableData.paper_title}
-                                                onChange={(e) => setEditableData({...editableData, paper_title: e.target.value})}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                placeholder="e.g., BIOLOGY PAPER 1"
-                                            />
-                                        </div> */}
-                                        
-                                        <div className="grid grid-cols-3 gap-3">
-                                            {/* <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Time (HOURS)
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={editableData.time_allocation}
-                                                    disabled
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                                                />
-                                            </div> */}
-                                            {/* <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Total Marks
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    value={editableData.total_marks}
-                                                    disabled
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                                                />
-                                            </div> */}
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Questions
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    value={editableData.total_questions}
-                                                    disabled
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                                                />
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Instructions */}
-                                {/* <div className="mb-4 sm:mb-6">
-                                    <h4 className="font-semibold text-gray-700 mb-3">Instructions to Candidates</h4>
-                                    <div className="space-y-2">
-                                        {editableData.instructions.map((instruction, idx) => (
-                                            <div key={idx} className="flex gap-2">
-                                                <span className="text-sm text-gray-600 mt-2">{String.fromCharCode(97 + idx)})</span>
-                                                <input
-                                                    type="text"
-                                                    value={instruction}
-                                                    onChange={(e) => {
-                                                        const newInstructions = [...editableData.instructions];
-                                                        newInstructions[idx] = e.target.value;
-                                                        setEditableData({...editableData, instructions: newInstructions});
-                                                    }}
-                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div> */}
-
-                                {/* Save Button */}
-                                <button
-                                    onClick={handleSaveCoverpage}
-                                    disabled={saving}
-                                    className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-3 px-6 rounded-lg transition"
-                                >
-                                    {saving ? '💾 Saving...' : '💾 Save Coverpage'}
-                                </button>
+                                {/* Action Buttons */}
+                                <div className="flex gap-3 mt-4">
+                                    <button
+                                        onClick={handleSaveCoverpage}
+                                        disabled={saving}
+                                        className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white font-semibold py-3 px-6 rounded-lg transition"
+                                    >
+                                        {saving ? '💾 Saving...' : '💾 Save Changes'}
+                                    </button>
+                                    <button
+                                        onClick={() => setShowFullExamModal(true)}
+                                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition"
+                                    >
+                                        Next →
+                                    </button>
+                                </div>
+                                </div>
                             </div>
                         )}
 
