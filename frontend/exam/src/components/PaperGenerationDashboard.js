@@ -430,7 +430,7 @@ export default function PaperGenerationDashboard() {
                 setGeneratedPapers([]);
             }
         } catch (err) {
-            console.error('❌ Failed to load generated papers:', err);
+            console.error('Failed to load generated papers:', err);
             console.error('Error details:', err.message);
             setGeneratedPapers([]);
         } finally {
@@ -1008,7 +1008,7 @@ export default function PaperGenerationDashboard() {
                                             <p className="text-xs text-gray-500 mt-1">Default: EXAMINATION CENTRE</p>
                                         </div>
                                         
-                                        <div>
+                                        {/* <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Class/Form
                                             </label>
@@ -1019,7 +1019,7 @@ export default function PaperGenerationDashboard() {
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                                 placeholder="e.g., FORM 4"
                                             />
-                                        </div>
+                                        </div> */}
                                         
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1102,7 +1102,7 @@ export default function PaperGenerationDashboard() {
                                             />
                                         </div>
                                         
-                                        <div>
+                                        {/* <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Paper Title
                                             </label>
@@ -1113,10 +1113,10 @@ export default function PaperGenerationDashboard() {
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                                 placeholder="e.g., BIOLOGY PAPER 1"
                                             />
-                                        </div>
+                                        </div> */}
                                         
                                         <div className="grid grid-cols-3 gap-3">
-                                            <div>
+                                            {/* <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                                     Time (HOURS)
                                                 </label>
@@ -1126,8 +1126,8 @@ export default function PaperGenerationDashboard() {
                                                     disabled
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                                                 />
-                                            </div>
-                                            <div>
+                                            </div> */}
+                                            {/* <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                                     Total Marks
                                                 </label>
@@ -1137,7 +1137,7 @@ export default function PaperGenerationDashboard() {
                                                     disabled
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
                                                 />
-                                            </div>
+                                            </div> */}
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                                     Questions
@@ -1154,7 +1154,7 @@ export default function PaperGenerationDashboard() {
                                 </div>
 
                                 {/* Instructions */}
-                                <div className="mb-4 sm:mb-6">
+                                {/* <div className="mb-4 sm:mb-6">
                                     <h4 className="font-semibold text-gray-700 mb-3">Instructions to Candidates</h4>
                                     <div className="space-y-2">
                                         {editableData.instructions.map((instruction, idx) => (
@@ -1173,7 +1173,7 @@ export default function PaperGenerationDashboard() {
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                </div> */}
 
                                 {/* Save Button */}
                                 <button
