@@ -40,6 +40,8 @@ def questions_list_create(request):
         page = int(request.query_params.get('page', 1))
         limit = int(request.query_params.get('limit', 50))
         
+        # Optimized query: use select_related to fetch all related data in one query
+        # This prevents N+1 query problem (1 query instead of 1 + 5*N queries)
         queryset = Question.objects.select_related(
             'subject', 'paper', 'topic', 'section', 'created_by'
         )

@@ -496,6 +496,7 @@ class Question(models.Model):
             models.Index(fields=['subject', 'paper', 'topic']),
             models.Index(fields=['is_active']),
             models.Index(fields=['question_type', 'difficulty']),
+            models.Index(fields=['-created_at']),  # For ordering queries
         ]
     
     def __str__(self):
