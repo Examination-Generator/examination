@@ -662,9 +662,167 @@ export default function EditorDashboard({ onLogout }) {
     const [subjects, setSubjects] = useState({});
     const [isLoadingDynamicSubjects, setIsLoadingDynamicSubjects] = useState(false);
 
+    // Helper function to resolve IDs from subjects data structure
+    const resolveSubjectPaperTopicIds = useCallback((subjectName, paperName, topicName) => {
+        const ids = { subjectId: null, paperId: null, topicId: null };
+        
+        // Find subject
+        const subjectEntry = Object.entries(subjects).find(([name, data]) => 
+            name === subjectName
+        );
+        
+        if (subjectEntry) {
+            const [_, subjectData] = subjectEntry;
+            ids.subjectId = subjectData.id;
+            
+            // Find paper
+            if (paperName && subjectData.papersData) {
+                const paperEntry = Object.entries(subjectData.papersData).find(([name, data]) => 
+                    name === paperName
+                );
+                
+                if (paperEntry) {
+                    const [__, paperData] = paperEntry;
+                    ids.paperId = paperData.id;
+                    
+                    // Find topic
+                    if (topicName && paperData.topics) {
+                        const topicData = paperData.topics.find(t => t.name === topicName);
+                        if (topicData) {
+                            ids.topicId = topicData.id;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return ids;
+    }, [subjects]);
+
+    // Statistics calculation function
+    const getStatistics = useCallback(() => {
+        // Start with all questions
+        let questions = Array.isArray(allQuestions) ? allQuestions : [];
+        
+        // Apply filters to questions
+        if (filterSubject) {
+            questions = questions.filter(q => q.subject_name === filterSubject);
+        }
+        if (filterPaper) {
+            questions = questions.filter(q => q.paper_name === filterPaper);
+        }
+        if (filterTopic) {
+            questions = questions.filter(q => q.topic_name === filterTopic);
+        }
+        if (filterStatus === 'active') {
+            questions = questions.filter(q => q.is_active !== false);
+        } else if (filterStatus === 'inactive') {
+            questions = questions.filter(q => q.is_active === false);
+        }
+        
+        const stats = {
+            totalQuestions: questions.length,
+            activeQuestions: questions.filter(q => q.is_active !== false).length,
+            inactiveQuestions: questions.filter(q => q.is_active === false).length,
+            unknownTopics: questions.filter(q => !q.topic_name || q.topic_name === 'Unknown').length,
+            bySubject: {},
+            byPaper: {},
+            byTopic: {}
+        };
+        
+        questions.forEach(q => {
+            // By subject - use subject_name from API response
+            const subjectName = q.subject_name || q.subject?.name || 'Unknown';
+            const subjectId = q.subject_id || q.subject?.id || null;
+            if (!stats.bySubject[subjectName]) {
+                stats.bySubject[subjectName] = { total: 0, active: 0, inactive: 0, subjectId };
+            }
+            stats.bySubject[subjectName].total += 1;
+            if (q.is_active !== false) {
+                stats.bySubject[subjectName].active += 1;
+            } else {
+                stats.bySubject[subjectName].inactive += 1;
+            }
+            
+            // By paper - use paper_name from API response
+            const paperName = q.paper_name || q.paper?.name || 'Unknown';
+            const paperId = q.paper_id || q.paper?.id || null;
+            const paperKey = `${subjectName} - ${paperName}`;
+            if (!stats.byPaper[paperKey]) {
+                // Try to resolve IDs from subjects data if not in question
+                const resolvedIds = resolveSubjectPaperTopicIds(subjectName, paperName, null);
+                const finalSubjectId = subjectId || resolvedIds.subjectId;
+                const finalPaperId = paperId || resolvedIds.paperId;
+                
+                stats.byPaper[paperKey] = { 
+                    total: 0, 
+                    active: 0, 
+                    inactive: 0, 
+                    subject: subjectName, 
+                    paper: paperName, 
+                    subjectId: finalSubjectId, 
+                    paperId: finalPaperId 
+                };
+                console.log('📊 Created paper stats entry:', { 
+                    paperKey, 
+                    subjectId: finalSubjectId, 
+                    paperId: finalPaperId,
+                    resolved: !subjectId || !paperId 
+                });
+            }
+            stats.byPaper[paperKey].total += 1;
+            if (q.is_active !== false) {
+                stats.byPaper[paperKey].active += 1;
+            } else {
+                stats.byPaper[paperKey].inactive += 1;
+            }
+            
+            // By topic - use topic_name from API response
+            const topicName = q.topic_name || q.topic?.name || 'Unknown';
+            const topicId = q.topic_id || q.topic?.id || null;
+            if (!stats.byTopic[topicName]) {
+                // Try to resolve IDs from subjects data if not in question
+                const paperNameForTopic = q.paper_name || q.paper?.name;
+                const resolvedIds = resolveSubjectPaperTopicIds(subjectName, paperNameForTopic, topicName);
+                const finalSubjectId = subjectId || resolvedIds.subjectId;
+                const finalTopicId = topicId || resolvedIds.topicId;
+                
+                stats.byTopic[topicName] = { 
+                    total: 0, 
+                    active: 0, 
+                    inactive: 0, 
+                    byMarks: {}, 
+                    topicId: finalTopicId, 
+                    subjectId: finalSubjectId 
+                };
+                console.log('📊 Created topic stats entry:', { 
+                    topicName, 
+                    topicId: finalTopicId, 
+                    subjectId: finalSubjectId,
+                    resolved: !topicId || !subjectId
+                });
+            }
+            stats.byTopic[topicName].total += 1;
+            if (q.is_active !== false) {
+                stats.byTopic[topicName].active += 1;
+            } else {
+                stats.byTopic[topicName].inactive += 1;
+            }
+            
+            // Track marks distribution within topics
+            const marks = q.marks || 0;
+            if (!stats.byTopic[topicName].byMarks[marks]) {
+                stats.byTopic[topicName].byMarks[marks] = 0;
+            }
+            stats.byTopic[topicName].byMarks[marks] += 1;
+        });
+        
+        return stats;
+    }, [allQuestions, filterSubject, filterPaper, filterTopic, filterStatus, resolveSubjectPaperTopicIds]);
+
     
     // Memoize statistics computation to avoid repeated heavy recalculation
-    const memoizedStatistics = useMemo(() => getStatistics(), [allQuestions, filterSubject, filterPaper, filterTopic, filterStatus]);
+    const memoizedStatistics = useMemo(() => getStatistics(), [getStatistics]);
 
     // Memoize filtered questions used in stats to avoid recomputing during render
     const memoizedFilteredQuestions = useMemo(() => getFilteredQuestions(), [savedQuestions]);
@@ -3869,169 +4027,6 @@ useEffect(() => {
     };
 
     // Statistics calculations
-    // Helper function to resolve IDs from subjects data structure
-    const resolveIds = (subjectName, paperName, topicName) => {
-        const ids = { subjectId: null, paperId: null, topicId: null };
-        
-        // Find subject
-        const subjectEntry = Object.entries(subjects).find(([name, data]) => 
-            name === subjectName
-        );
-        
-        if (subjectEntry) {
-            const [_, subjectData] = subjectEntry;
-            ids.subjectId = subjectData.id;
-            
-            // Find paper
-            if (paperName && subjectData.papersData) {
-                const paperEntry = Object.entries(subjectData.papersData).find(([name, data]) => 
-                    name === paperName
-                );
-                
-                if (paperEntry) {
-                    const [__, paperData] = paperEntry;
-                    ids.paperId = paperData.id;
-                    
-                    // Find topic
-                    if (topicName && paperData.topics) {
-                        const topicData = paperData.topics.find(t => t.name === topicName);
-                        if (topicData) {
-                            ids.topicId = topicData.id;
-                        }
-                    }
-                }
-            }
-        }
-        
-        return ids;
-    };
-
-    function getStatistics() {
-        // Start with all questions
-        let questions = Array.isArray(allQuestions) ? allQuestions : [];
-        
-        // Apply filters to questions
-        if (filterSubject) {
-            questions = questions.filter(q => q.subject_name === filterSubject);
-        }
-        if (filterPaper) {
-            questions = questions.filter(q => q.paper_name === filterPaper);
-        }
-        if (filterTopic) {
-            questions = questions.filter(q => q.topic_name === filterTopic);
-        }
-        if (filterStatus === 'active') {
-            questions = questions.filter(q => q.is_active !== false);
-        } else if (filterStatus === 'inactive') {
-            questions = questions.filter(q => q.is_active === false);
-        }
-        
-        const stats = {
-            totalQuestions: questions.length,
-            activeQuestions: questions.filter(q => q.is_active !== false).length,
-            inactiveQuestions: questions.filter(q => q.is_active === false).length,
-            unknownTopics: questions.filter(q => !q.topic_name || q.topic_name === 'Unknown').length,
-            bySubject: {},
-            byPaper: {},
-            byTopic: {}
-        };
-        
-        questions.forEach(q => {
-            // By subject - use subject_name from API response
-            const subjectName = q.subject_name || q.subject?.name || 'Unknown';
-            const subjectId = q.subject_id || q.subject?.id || null;
-            if (!stats.bySubject[subjectName]) {
-                stats.bySubject[subjectName] = { total: 0, active: 0, inactive: 0, subjectId };
-            }
-            stats.bySubject[subjectName].total += 1;
-            if (q.is_active !== false) {
-                stats.bySubject[subjectName].active += 1;
-            } else {
-                stats.bySubject[subjectName].inactive += 1;
-            }
-            
-            // By paper - use paper_name from API response
-            const paperName = q.paper_name || q.paper?.name || 'Unknown';
-            const paperId = q.paper_id || q.paper?.id || null;
-            const paperKey = `${subjectName} - ${paperName}`;
-            if (!stats.byPaper[paperKey]) {
-                // Try to resolve IDs from subjects data if not in question
-                const resolvedIds = resolveIds(subjectName, paperName, null);
-                const finalSubjectId = subjectId || resolvedIds.subjectId;
-                const finalPaperId = paperId || resolvedIds.paperId;
-                
-                stats.byPaper[paperKey] = { 
-                    total: 0, 
-                    active: 0, 
-                    inactive: 0, 
-                    subject: subjectName, 
-                    paper: paperName, 
-                    subjectId: finalSubjectId, 
-                    paperId: finalPaperId 
-                };
-                console.log('📊 Created paper stats entry:', { 
-                    paperKey, 
-                    subjectId: finalSubjectId, 
-                    paperId: finalPaperId,
-                    resolved: !subjectId || !paperId 
-                });
-            }
-            stats.byPaper[paperKey].total += 1;
-            if (q.is_active !== false) {
-                stats.byPaper[paperKey].active += 1;
-            } else {
-                stats.byPaper[paperKey].inactive += 1;
-            }
-            
-            // By topic - use topic_name from API response
-            const topicName = q.topic_name || q.topic?.name || 'Unknown';
-            const topicId = q.topic_id || q.topic?.id || null;
-            if (!stats.byTopic[topicName]) {
-                // Try to resolve IDs from subjects data if not in question
-                const paperNameForTopic = q.paper_name || q.paper?.name;
-                const resolvedIds = resolveIds(subjectName, paperNameForTopic, topicName);
-                const finalSubjectId = subjectId || resolvedIds.subjectId;
-                const finalTopicId = topicId || resolvedIds.topicId;
-                
-                stats.byTopic[topicName] = { 
-                    total: 0, 
-                    active: 0, 
-                    inactive: 0, 
-                    byMarks: {}, 
-                    topicId: finalTopicId, 
-                    subjectId: finalSubjectId 
-                };
-                console.log('📊 Created topic stats entry:', { 
-                    topicName, 
-                    topicId: finalTopicId, 
-                    subjectId: finalSubjectId,
-                    resolved: !topicId || !subjectId
-                });
-            }
-            stats.byTopic[topicName].total += 1;
-            if (q.is_active !== false) {
-                stats.byTopic[topicName].active += 1;
-            } else {
-                stats.byTopic[topicName].inactive += 1;
-            }
-            
-            // Track questions by marks
-            const marks = q.marks || 0;
-            if (!stats.byTopic[topicName].byMarks[marks]) {
-                stats.byTopic[topicName].byMarks[marks] = 0;
-            }
-            stats.byTopic[topicName].byMarks[marks] += 1;
-        });
-
-        console.log('📊 Final stats:', {
-            byPaperCount: Object.keys(stats.byPaper).length,
-            byTopicCount: Object.keys(stats.byTopic).length,
-            samplePaper: Object.values(stats.byPaper)[0],
-            sampleTopic: Object.values(stats.byTopic)[0]
-        });
-
-        return stats;
-    }
 
     function getFilteredQuestions() {
         // Questions are already filtered by the backend based on filters
