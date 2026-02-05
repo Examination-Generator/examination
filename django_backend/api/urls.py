@@ -77,6 +77,9 @@ urlpatterns = [
     path('questions/stats/overview', question_views.get_question_stats, name='question-stats'),
     path('questions/creator-statistics/', question_views.get_creator_statistics, name='creator-statistics'),
     
+    # TOPIC PRINTABLE DOCUMENT ROUTE
+    path('topics/printable-document', question_views.generate_topic_printable_document, name='topic-printable-document'),
+    
     # PAPER GENERATION ROUTES 
     # KCSE Biology Paper 1 generation endpoints
     path('papers/generate', paper_generation_views.generate_paper, name='generate-paper'),

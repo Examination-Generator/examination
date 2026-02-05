@@ -9,6 +9,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Count, Sum, Avg
 from django.utils import timezone
+from django.http import HttpResponse
+from django.template.loader import render_to_string
 
 from .models import Question, Subject, Paper, Topic, Section
 from .serializers import (
@@ -813,3 +815,528 @@ def set_question_mode(request, question_id):
         'is_essay': question.is_essay,
         'is_graph': question.is_graph
     })
+
+
+# ==================== PRINTABLE TOPIC DOCUMENT VIEW ====================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def generate_topic_printable_document(request):
+    """
+    Generate a printable document for questions in a topic or entire paper
+    
+    GET /api/topics/printable-document?subject_id=<uuid>&topic_id=<uuid>
+    OR
+    GET /api/topics/printable-document?subject_id=<uuid>&paper_id=<uuid>
+    
+    Returns HTML document with:
+    - Topic/Paper name as title
+    - Questions numbered sequentially
+    - For paper-level: questions grouped by topic
+    - Each question shows its paper name and topic
+    - Answer follows each question
+    - Images displayed inline
+    """
+    subject_id = request.query_params.get('subject_id')
+    topic_id = request.query_params.get('topic_id')
+    paper_id = request.query_params.get('paper_id')
+    
+    # Validate parameters
+    if not subject_id:
+        return error_response(
+            'Missing required parameters',
+            {'error': 'subject_id is required'},
+            status.HTTP_400_BAD_REQUEST
+        )
+    
+    if not topic_id and not paper_id:
+        return error_response(
+            'Missing required parameters',
+            {'error': 'Either topic_id or paper_id is required'},
+            status.HTTP_400_BAD_REQUEST
+        )
+    
+    try:
+        # Fetch subject
+        subject = Subject.objects.get(id=subject_id)
+        
+        # Determine if we're generating for a topic or entire paper
+        is_paper_level = bool(paper_id and not topic_id)
+        
+        if is_paper_level:
+            # Paper-level document generation
+            paper = Paper.objects.get(id=paper_id)
+            
+            # Verify paper belongs to subject
+            if paper.subject_id != subject.id:
+                return error_response(
+                    'Invalid relationship',
+                    {'error': 'Paper does not belong to the specified subject'},
+                    status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Fetch all topics for this paper
+            topics = Topic.objects.filter(paper_id=paper_id, is_active=True).order_by('name')
+            
+            if not topics.exists():
+                return error_response(
+                    'No topics found',
+                    {'error': 'No active topics found for this paper'},
+                    status.HTTP_404_NOT_FOUND
+                )
+            
+            # Fetch all active questions for this paper, grouped by topic
+            questions = Question.objects.filter(
+                paper_id=paper_id,
+                is_active=True
+            ).select_related(
+                'paper', 'section', 'subject', 'topic'
+            ).order_by('topic__name', 'created_at')
+            
+            if not questions.exists():
+                return error_response(
+                    'No questions found',
+                    {'error': 'No active questions found for this paper'},
+                    status.HTTP_404_NOT_FOUND
+                )
+            
+            # Group questions by topic
+            from collections import defaultdict
+            questions_by_topic = defaultdict(list)
+            question_number = 1
+            
+            for question in questions:
+                topic_name = question.topic.name if question.topic else 'Uncategorized'
+                questions_by_topic[topic_name].append({
+                    'number': question_number,
+                    'question': question,
+                    'paper_name': question.paper.name,
+                    'topic_name': topic_name,
+                    'section_name': question.section.name if question.section else None,
+                    'marks': question.marks,
+                })
+                question_number += 1
+            
+            document_title = f"{paper.name}"
+            total_questions = questions.count()
+            
+        else:
+            # Topic-level document generation (original behavior)
+            topic = Topic.objects.get(id=topic_id)
+            
+            # Verify topic belongs to subject
+            if topic.paper.subject_id != subject.id:
+                return error_response(
+                    'Invalid relationship',
+                    {'error': 'Topic does not belong to the specified subject'},
+                    status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Fetch all active questions for this topic
+            questions = Question.objects.filter(
+                topic_id=topic_id,
+                is_active=True
+            ).select_related(
+                'paper', 'section', 'subject', 'topic'
+            ).order_by('created_at')
+            
+            if not questions.exists():
+                return error_response(
+                    'No questions found',
+                    {'error': 'No active questions found for this topic'},
+                    status.HTTP_404_NOT_FOUND
+                )
+            
+            # Group as single topic
+            questions_by_topic = {
+                topic.name: [
+                    {
+                        'number': index,
+                        'question': question,
+                        'paper_name': question.paper.name,
+                        'topic_name': topic.name,
+                        'section_name': question.section.name if question.section else None,
+                        'marks': question.marks,
+                    }
+                    for index, question in enumerate(questions, start=1)
+                ]
+            }
+            
+            document_title = topic.name
+            total_questions = questions.count()
+            document_title = topic.name
+            total_questions = questions.count()
+        
+        # Create HTML content
+        html_content = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{document_title} - Questions and Answers</title>
+    <style>
+        @media print {{
+            @page {{
+                size: A4;
+                margin: 2cm;
+            }}
+            body {{
+                margin: 0;
+                padding: 0;
+            }}
+            .page-break {{
+                page-break-before: always;
+            }}
+            .no-print {{
+                display: none;
+            }}
+        }}
+        
+        body {{
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+        }}
+        
+        .header {{
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }}
+        
+        .header h1 {{
+            font-size: 28px;
+            margin: 10px 0;
+            text-transform: uppercase;
+        }}
+        
+        .header .subject-name {{
+            font-size: 18px;
+            color: #666;
+            margin: 5px 0;
+        }}
+        
+        .print-info {{
+            text-align: right;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 20px;
+        }}
+        
+        .topic-section {{
+            margin-top: 40px;
+            margin-bottom: 30px;
+        }}
+        
+        .topic-header {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        
+        .topic-header h2 {{
+            margin: 0;
+            font-size: 22px;
+            font-weight: 600;
+        }}
+        
+        .topic-header .topic-count {{
+            font-size: 14px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }}
+        
+        .question-container {{
+            margin-bottom: 40px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #fafafa;
+        }}
+        
+        .question-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+        }}
+        
+        .question-number {{
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+        }}
+        
+        .question-meta {{
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }}
+        
+        .paper-badge {{
+            background-color: #3498db;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+        }}
+        
+        .topic-badge {{
+            background-color: #9b59b6;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+        }}
+        
+        .marks-badge {{
+            background-color: #27ae60;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+        }}
+        
+        .question-section {{
+            margin-bottom: 25px;
+        }}
+        
+        .section-title {{
+            font-weight: bold;
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            padding: 8px;
+            background-color: #ecf0f1;
+            border-left: 4px solid #3498db;
+        }}
+        
+        .question-text, .answer-text {{
+            font-size: 14px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            padding: 10px;
+        }}
+        
+        .answer-section {{
+            background-color: #e8f5e9;
+            border-left: 4px solid #27ae60;
+            padding: 15px;
+            margin-top: 15px;
+        }}
+        
+        .answer-section .section-title {{
+            background-color: #c8e6c9;
+            border-left-color: #27ae60;
+        }}
+        
+        .inline-image {{
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 15px auto;
+            border: 1px solid #ddd;
+            padding: 5px;
+            background-color: white;
+        }}
+        
+        .positioned-image {{
+            max-width: 300px;
+            height: auto;
+            margin: 10px;
+            border: 1px solid #ddd;
+            padding: 5px;
+            background-color: white;
+        }}
+        
+        .no-print {{
+            margin: 20px 0;
+            text-align: center;
+        }}
+        
+        .print-button {{
+            background-color: #3498db;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }}
+        
+        .print-button:hover {{
+            background-color: #2980b9;
+        }}
+        
+        .total-questions {{
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button class="print-button" onclick="window.print()">🖨️ Print Document</button>
+    </div>
+    
+    <div class="header">
+        <div class="subject-name">{subject.name}</div>
+        <h1>{document_title}</h1>
+        <div class="subject-name">Questions and Answers</div>
+    </div>
+    
+    <div class="print-info no-print">
+        Generated on: {timezone.now().strftime('%B %d, %Y at %I:%M %p')}
+    </div>
+    
+    <div class="total-questions">
+        Total Questions: {total_questions}
+    </div>
+"""
+        
+        # Add questions grouped by topic
+        for topic_name, questions_data in questions_by_topic.items():
+            # Add topic header only for paper-level documents with multiple topics
+            if is_paper_level and len(questions_by_topic) > 1:
+                html_content += f"""
+    <div class="topic-section">
+        <div class="topic-header">
+            <h2>{topic_name}</h2>
+            <div class="topic-count">{len(questions_data)} question(s)</div>
+        </div>
+"""
+            
+            # Add each question in this topic
+            for q_data in questions_data:
+                question = q_data['question']
+                
+                html_content += f"""
+    <div class="question-container">
+        <div class="question-header">
+            <span class="question-number">Question {q_data['number']}</span>
+            <div class="question-meta">
+                <span class="paper-badge">{q_data['paper_name']}</span>"""
+                
+                # Show topic badge for paper-level documents
+                if is_paper_level:
+                    html_content += f"""
+                <span class="topic-badge">{q_data['topic_name']}</span>"""
+                
+                html_content += f"""
+                <span class="marks-badge">{q_data['marks']} marks</span>
+            </div>
+        </div>
+        
+        <div class="question-section">
+            <div class="section-title">Question</div>
+            <div class="question-text">{question.question_text}</div>
+"""
+                
+                # Add question images
+                if question.question_inline_images:
+                    for img_data in question.question_inline_images:
+                        html_content += f"""
+            <img src="{img_data}" class="inline-image" alt="Question diagram" />
+"""
+                
+                html_content += """
+        </div>
+        
+        <div class="answer-section">
+            <div class="section-title">Answer</div>
+"""
+                
+                html_content += f"""
+            <div class="answer-text">{question.answer_text}</div>
+"""
+                
+                # Add answer images
+                if question.answer_inline_images:
+                    for img_data in question.answer_inline_images:
+                        html_content += f"""
+            <img src="{img_data}" class="inline-image" alt="Answer diagram" />
+"""
+                
+                html_content += """
+        </div>
+    </div>
+"""
+            
+            # Close topic section for paper-level documents
+            if is_paper_level and len(questions_by_topic) > 1:
+                html_content += """
+    </div>
+"""
+        
+        # Close HTML
+        html_content += """
+    
+    <div class="no-print" style="margin-top: 30px;">
+        <button class="print-button" onclick="window.print()">🖨️ Print Document</button>
+    </div>
+    
+    <script>
+        // Optional: Auto-focus print dialog on load
+        // window.onload = function() {
+        //     setTimeout(function() {
+        //         window.print();
+        //     }, 500);
+        // };
+    </script>
+</body>
+</html>
+"""
+        
+        # Return HTML response
+        filename_safe = document_title.replace(" ", "_").replace("/", "-")
+        response = HttpResponse(html_content, content_type='text/html')
+        response['Content-Disposition'] = f'inline; filename="{filename_safe}_Questions_Answers.html"'
+        
+        logger.info(f"Generated printable document for {document_title} ({total_questions} questions)")
+        
+        return response
+        
+    except Subject.DoesNotExist:
+        return error_response(
+            'Subject not found',
+            {'error': 'Subject with the specified ID does not exist'},
+            status.HTTP_404_NOT_FOUND
+        )
+    except Topic.DoesNotExist:
+        return error_response(
+            'Topic not found',
+            {'error': 'Topic with the specified ID does not exist'},
+            status.HTTP_404_NOT_FOUND
+        )
+    except Paper.DoesNotExist:
+        return error_response(
+            'Paper not found',
+            {'error': 'Paper with the specified ID does not exist'},
+            status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f"Error generating printable document: {str(e)}")
+        return error_response(
+            'Server error',
+            {'error': str(e)},
+            status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

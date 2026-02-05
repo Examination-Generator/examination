@@ -784,3 +784,45 @@ export const getPapersBySubject = async (subjectId) => {
         throw error;
     }
 };
+
+/**
+ * Get printable document for all questions in a specific topic or paper
+ * @param {string} subjectId - UUID of the subject
+ * @param {Object} options - Options object
+ * @param {string} options.topicId - UUID of the topic (optional)
+ * @param {string} options.paperId - UUID of the paper (optional)
+ * @returns {Promise<string>} HTML document
+ */
+export const getPrintableDocument = async (subjectId, options = {}) => {
+    try {
+        let url = `${API_BASE_URL}/topics/printable-document?subject_id=${subjectId}`;
+        
+        if (options.topicId) {
+            url += `&topic_id=${options.topicId}`;
+        } else if (options.paperId) {
+            url += `&paper_id=${options.paperId}`;
+        } else {
+            throw new Error('Either topicId or paperId must be provided');
+        }
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${getAuthToken()}`
+            },
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            const raw = errorData.error || `HTTP error! status: ${response.status}`;
+            console.error('Backend error (getPrintableDocument):', raw);
+            throw new Error(friendlyErrorMessage(raw));
+        }
+        
+        // Return HTML as text
+        return await response.text();
+    } catch (error) {
+        console.error('Error fetching printable document:', error);
+        throw error;
+    }
+};

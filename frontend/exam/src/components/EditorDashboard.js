@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import FractionModal from './FractionModal';
 import TableMatrixModal from './TableMatrixModal';
+import PrintableDocumentModal from './PrintableDocumentModal';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import * as subjectService from '../services/subjectService';
 import * as questionService from '../services/questionService';
 import * as authService from '../services/authService';
+import { getPrintableDocument } from '../services/paperService';
 import { useError } from '../contexts/ErrorContext';
 import { useSearchQuestions } from '../hooks/useQuestions';
 import { useDebounce } from '../hooks/useDebounce';
@@ -513,6 +515,13 @@ export default function EditorDashboard({ onLogout }) {
     const [filterPaper, setFilterPaper] = useState('');
     const [filterTopic, setFilterTopic] = useState('');
     const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'active', 'inactive'
+
+    // Printable Document Modal states
+    const [showPrintableModal, setShowPrintableModal] = useState(false);
+    const [printableHtmlContent, setPrintableHtmlContent] = useState('');
+    const [printableTopicName, setPrintableTopicName] = useState('');
+    const [printablePaperName, setPrintablePaperName] = useState('');
+    const [loadingPrintable, setLoadingPrintable] = useState(false);
 
     // Filter IDs for API calls
     const [filterSubjectId, setFilterSubjectId] = useState('');
@@ -1582,6 +1591,56 @@ export default function EditorDashboard({ onLogout }) {
             if (sectionData) {
                 setSelectedSectionId(sectionData.id);
             }
+        }
+    };
+
+    // Handle opening printable document modal for a paper
+    const handleOpenPrintableDocument = async (paperData) => {
+        if (!paperData.subjectId || !paperData.paperId) {
+            showError('Cannot generate printable document: Missing subject or paper ID');
+            return;
+        }
+
+        try {
+            setLoadingPrintable(true);
+            setPrintableTopicName('');
+            setPrintablePaperName(paperData.paper);
+            setShowPrintableModal(true);
+            setPrintableHtmlContent(''); // Clear previous content
+
+            const htmlContent = await getPrintableDocument(paperData.subjectId, { paperId: paperData.paperId });
+            setPrintableHtmlContent(htmlContent);
+            
+        } catch (error) {
+            showError(`Failed to generate printable document: ${error.message}`);
+            setShowPrintableModal(false);
+        } finally {
+            setLoadingPrintable(false);
+        }
+    };
+
+    // Handle opening printable document modal for a topic
+    const handleOpenPrintableDocumentByTopic = async (topicData) => {
+        if (!topicData.subjectId || !topicData.topicId) {
+            showError('Cannot generate printable document: Missing subject or topic ID');
+            return;
+        }
+
+        try {
+            setLoadingPrintable(true);
+            setPrintableTopicName(topicData.topic || 'Topic');
+            setPrintablePaperName('');
+            setShowPrintableModal(true);
+            setPrintableHtmlContent(''); // Clear previous content
+
+            const htmlContent = await getPrintableDocument(topicData.subjectId, { topicId: topicData.topicId });
+            setPrintableHtmlContent(htmlContent);
+            
+        } catch (error) {
+            showError(`Failed to generate printable document: ${error.message}`);
+            setShowPrintableModal(false);
+        } finally {
+            setLoadingPrintable(false);
         }
     };
 
@@ -3827,8 +3886,9 @@ useEffect(() => {
         questions.forEach(q => {
             // By subject - use subject_name from API response
             const subjectName = q.subject_name || q.subject?.name || 'Unknown';
+            const subjectId = q.subject_id || q.subject?.id || null;
             if (!stats.bySubject[subjectName]) {
-                stats.bySubject[subjectName] = { total: 0, active: 0, inactive: 0 };
+                stats.bySubject[subjectName] = { total: 0, active: 0, inactive: 0, subjectId };
             }
             stats.bySubject[subjectName].total += 1;
             if (q.is_active !== false) {
@@ -3839,9 +3899,10 @@ useEffect(() => {
             
             // By paper - use paper_name from API response
             const paperName = q.paper_name || q.paper?.name || 'Unknown';
+            const paperId = q.paper_id || q.paper?.id || null;
             const paperKey = `${subjectName} - ${paperName}`;
             if (!stats.byPaper[paperKey]) {
-                stats.byPaper[paperKey] = { total: 0, active: 0, inactive: 0, subject: subjectName, paper: paperName };
+                stats.byPaper[paperKey] = { total: 0, active: 0, inactive: 0, subject: subjectName, paper: paperName, subjectId, paperId };
             }
             stats.byPaper[paperKey].total += 1;
             if (q.is_active !== false) {
@@ -3852,8 +3913,9 @@ useEffect(() => {
             
             // By topic - use topic_name from API response
             const topicName = q.topic_name || q.topic?.name || 'Unknown';
+            const topicId = q.topic_id || q.topic?.id || null;
             if (!stats.byTopic[topicName]) {
-                stats.byTopic[topicName] = { total: 0, active: 0, inactive: 0, byMarks: {} };
+                stats.byTopic[topicName] = { total: 0, active: 0, inactive: 0, byMarks: {}, topicId, subjectId };
             }
             stats.byTopic[topicName].total += 1;
             if (q.is_active !== false) {
@@ -9914,7 +9976,18 @@ useEffect(() => {
                                 <h3 className="text-lg font-bold mb-4">Questions by Paper</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-96 overflow-y-auto">
                                     {Object.entries(stats.byPaper).map(([paperKey, counts]) => (
-                                        <div key={paperKey} className="border-2 border-gray-200 rounded-lg p-4 hover:border-purple-500 transition bg-gradient-to-br from-purple-50 to-white">
+                                        <div 
+                                            key={paperKey} 
+                                            className="border-2 border-gray-200 rounded-lg p-4 hover:border-purple-500 transition bg-gradient-to-br from-purple-50 to-white cursor-pointer hover:shadow-md"
+                                            onClick={() => handleOpenPrintableDocument(counts)}
+                                            role="button"
+                                            tabIndex={0}
+                                            onKeyPress={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    handleOpenPrintableDocument(counts);
+                                                }
+                                            }}
+                                        >
                                             <div className="mb-2">
                                                 <p className="text-xs text-gray-500 font-medium">{counts.subject}</p>
                                                 <h4 className="text-sm font-bold text-gray-700">{counts.paper}</h4>
@@ -9933,6 +10006,11 @@ useEffect(() => {
                                                     <span className="text-gray-600">Inactive: <span className="font-semibold">{counts.inactive}</span></span>
                                                 </div>
                                             </div>
+                                            <div className="mt-3 pt-3 border-t border-purple-200">
+                                                <p className="text-xs text-purple-600 font-medium text-center">
+                                                    📄 Click to view printable document
+                                                </p>
+                                            </div>
                                         </div>
                                     ))}
                                     {Object.keys(stats.byPaper).length === 0 && (
@@ -9948,7 +10026,18 @@ useEffect(() => {
                                 <h3 className="text-lg font-bold mb-4">Questions by Topic</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-96 overflow-y-auto">
                                     {Object.entries(stats.byTopic).map(([topic, counts]) => (
-                                        <div key={topic} className="border-2 border-gray-200 rounded-lg p-4 hover:border-green-500 transition bg-gradient-to-br from-green-50 to-white">
+                                        <div 
+                                            key={topic} 
+                                            className="border-2 border-gray-200 rounded-lg p-4 hover:border-green-500 transition bg-gradient-to-br from-green-50 to-white cursor-pointer hover:shadow-md"
+                                            onClick={() => counts.topicId && counts.subjectId ? handleOpenPrintableDocumentByTopic({ ...counts, topic }) : null}
+                                            role="button"
+                                            tabIndex={0}
+                                            onKeyPress={(e) => {
+                                                if ((e.key === 'Enter' || e.key === ' ') && counts.topicId && counts.subjectId) {
+                                                    handleOpenPrintableDocumentByTopic({ ...counts, topic });
+                                                }
+                                            }}
+                                        >
                                             <h4 className="text-sm font-bold text-gray-700 truncate mb-3">{topic}</h4>
                                             <div className="flex items-center justify-between mb-3">
                                                 <span className="text-xs text-gray-600">Total Questions</span>
@@ -9977,6 +10066,13 @@ useEffect(() => {
                                                                 </span>
                                                             ))}
                                                     </div>
+                                                </div>
+                                            )}
+                                            {counts.topicId && counts.subjectId && (
+                                                <div className="mt-3 pt-3 border-t border-green-200">
+                                                    <p className="text-xs text-green-600 font-medium text-center">
+                                                        📄 Click to view printable document
+                                                    </p>
                                                 </div>
                                             )}
                                         </div>
@@ -10239,6 +10335,15 @@ useEffect(() => {
                     </div>
                 </div>
             )}
+
+            {/* Printable Document Modal */}
+            <PrintableDocumentModal
+                isOpen={showPrintableModal}
+                onClose={() => setShowPrintableModal(false)}
+                htmlContent={printableHtmlContent}
+                topicName={printableTopicName}
+                paperName={printablePaperName}
+            />
         </div>
     );
 }  
