@@ -1596,7 +1596,12 @@ export default function EditorDashboard({ onLogout }) {
 
     // Handle opening printable document modal for a paper
     const handleOpenPrintableDocument = async (paperData) => {
+        console.log('📄 Paper card clicked:', paperData);
+        console.log('Subject ID:', paperData.subjectId);
+        console.log('Paper ID:', paperData.paperId);
+        
         if (!paperData.subjectId || !paperData.paperId) {
+            console.error('❌ Missing IDs - Subject ID:', paperData.subjectId, 'Paper ID:', paperData.paperId);
             showError('Cannot generate printable document: Missing subject or paper ID');
             return;
         }
@@ -1608,10 +1613,13 @@ export default function EditorDashboard({ onLogout }) {
             setShowPrintableModal(true);
             setPrintableHtmlContent(''); // Clear previous content
 
+            console.log('🔄 Fetching printable document for paper...');
             const htmlContent = await getPrintableDocument(paperData.subjectId, { paperId: paperData.paperId });
+            console.log('✅ Document fetched successfully');
             setPrintableHtmlContent(htmlContent);
             
         } catch (error) {
+            console.error('❌ Error fetching printable document:', error);
             showError(`Failed to generate printable document: ${error.message}`);
             setShowPrintableModal(false);
         } finally {
@@ -1621,7 +1629,12 @@ export default function EditorDashboard({ onLogout }) {
 
     // Handle opening printable document modal for a topic
     const handleOpenPrintableDocumentByTopic = async (topicData) => {
+        console.log('📄 Topic card clicked:', topicData);
+        console.log('Subject ID:', topicData.subjectId);
+        console.log('Topic ID:', topicData.topicId);
+        
         if (!topicData.subjectId || !topicData.topicId) {
+            console.error('❌ Missing IDs - Subject ID:', topicData.subjectId, 'Topic ID:', topicData.topicId);
             showError('Cannot generate printable document: Missing subject or topic ID');
             return;
         }
@@ -1633,10 +1646,13 @@ export default function EditorDashboard({ onLogout }) {
             setShowPrintableModal(true);
             setPrintableHtmlContent(''); // Clear previous content
 
+            console.log('🔄 Fetching printable document for topic...');
             const htmlContent = await getPrintableDocument(topicData.subjectId, { topicId: topicData.topicId });
+            console.log('✅ Document fetched successfully');
             setPrintableHtmlContent(htmlContent);
             
         } catch (error) {
+            console.error('❌ Error fetching printable document:', error);
             showError(`Failed to generate printable document: ${error.message}`);
             setShowPrintableModal(false);
         } finally {
@@ -3853,6 +3869,43 @@ useEffect(() => {
     };
 
     // Statistics calculations
+    // Helper function to resolve IDs from subjects data structure
+    const resolveIds = (subjectName, paperName, topicName) => {
+        const ids = { subjectId: null, paperId: null, topicId: null };
+        
+        // Find subject
+        const subjectEntry = Object.entries(subjects).find(([name, data]) => 
+            name === subjectName
+        );
+        
+        if (subjectEntry) {
+            const [_, subjectData] = subjectEntry;
+            ids.subjectId = subjectData.id;
+            
+            // Find paper
+            if (paperName && subjectData.papersData) {
+                const paperEntry = Object.entries(subjectData.papersData).find(([name, data]) => 
+                    name === paperName
+                );
+                
+                if (paperEntry) {
+                    const [__, paperData] = paperEntry;
+                    ids.paperId = paperData.id;
+                    
+                    // Find topic
+                    if (topicName && paperData.topics) {
+                        const topicData = paperData.topics.find(t => t.name === topicName);
+                        if (topicData) {
+                            ids.topicId = topicData.id;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return ids;
+    };
+
     function getStatistics() {
         // Start with all questions
         let questions = Array.isArray(allQuestions) ? allQuestions : [];
@@ -3902,7 +3955,26 @@ useEffect(() => {
             const paperId = q.paper_id || q.paper?.id || null;
             const paperKey = `${subjectName} - ${paperName}`;
             if (!stats.byPaper[paperKey]) {
-                stats.byPaper[paperKey] = { total: 0, active: 0, inactive: 0, subject: subjectName, paper: paperName, subjectId, paperId };
+                // Try to resolve IDs from subjects data if not in question
+                const resolvedIds = resolveIds(subjectName, paperName, null);
+                const finalSubjectId = subjectId || resolvedIds.subjectId;
+                const finalPaperId = paperId || resolvedIds.paperId;
+                
+                stats.byPaper[paperKey] = { 
+                    total: 0, 
+                    active: 0, 
+                    inactive: 0, 
+                    subject: subjectName, 
+                    paper: paperName, 
+                    subjectId: finalSubjectId, 
+                    paperId: finalPaperId 
+                };
+                console.log('📊 Created paper stats entry:', { 
+                    paperKey, 
+                    subjectId: finalSubjectId, 
+                    paperId: finalPaperId,
+                    resolved: !subjectId || !paperId 
+                });
             }
             stats.byPaper[paperKey].total += 1;
             if (q.is_active !== false) {
@@ -3915,7 +3987,26 @@ useEffect(() => {
             const topicName = q.topic_name || q.topic?.name || 'Unknown';
             const topicId = q.topic_id || q.topic?.id || null;
             if (!stats.byTopic[topicName]) {
-                stats.byTopic[topicName] = { total: 0, active: 0, inactive: 0, byMarks: {}, topicId, subjectId };
+                // Try to resolve IDs from subjects data if not in question
+                const paperNameForTopic = q.paper_name || q.paper?.name;
+                const resolvedIds = resolveIds(subjectName, paperNameForTopic, topicName);
+                const finalSubjectId = subjectId || resolvedIds.subjectId;
+                const finalTopicId = topicId || resolvedIds.topicId;
+                
+                stats.byTopic[topicName] = { 
+                    total: 0, 
+                    active: 0, 
+                    inactive: 0, 
+                    byMarks: {}, 
+                    topicId: finalTopicId, 
+                    subjectId: finalSubjectId 
+                };
+                console.log('📊 Created topic stats entry:', { 
+                    topicName, 
+                    topicId: finalTopicId, 
+                    subjectId: finalSubjectId,
+                    resolved: !topicId || !subjectId
+                });
             }
             stats.byTopic[topicName].total += 1;
             if (q.is_active !== false) {
@@ -3930,6 +4021,13 @@ useEffect(() => {
                 stats.byTopic[topicName].byMarks[marks] = 0;
             }
             stats.byTopic[topicName].byMarks[marks] += 1;
+        });
+
+        console.log('📊 Final stats:', {
+            byPaperCount: Object.keys(stats.byPaper).length,
+            byTopicCount: Object.keys(stats.byTopic).length,
+            samplePaper: Object.values(stats.byPaper)[0],
+            sampleTopic: Object.values(stats.byTopic)[0]
         });
 
         return stats;
