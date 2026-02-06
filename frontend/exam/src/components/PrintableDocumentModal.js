@@ -9,7 +9,52 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
     const handlePrint = () => {
         const iframe = document.getElementById('printable-document-iframe');
         if (iframe && iframe.contentWindow) {
-            iframe.contentWindow.print();
+            try {
+                // Try to print the iframe
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            } catch (error) {
+                console.error('Print error:', error);
+                // Fallback: open in new window
+                handlePrintInNewWindow();
+            }
+        }
+    };
+
+    const handlePrintInNewWindow = () => {
+        if (!htmlContent) return;
+        
+        // Open content in new window for printing
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>${topicName || paperName || 'Questions'}</title>
+                    <style>
+                        body { 
+                            margin: 20px; 
+                            font-family: Arial, sans-serif; 
+                            background: white;
+                        }
+                        @media print {
+                            body { margin: 15mm; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${htmlContent}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+            
+            // Wait for content to load before printing
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
         }
     };
 
@@ -19,29 +64,55 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
         try {
             setIsGeneratingPdf(true);
             
-            // Create a temporary container for the HTML content
+            // Get content from the iframe that's already rendered
+            const iframe = document.getElementById('printable-document-iframe');
+            if (!iframe || !iframe.contentWindow || !iframe.contentDocument) {
+                throw new Error('Unable to access document content');
+            }
+            
+            // Get the body content from the iframe
+            const iframeBody = iframe.contentDocument.body;
+            if (!iframeBody) {
+                throw new Error('No content found in document');
+            }
+            
+            // Clone the content to avoid modifying the original
+            const contentClone = iframeBody.cloneNode(true);
+            
+            // Create a temporary container with proper styling
             const tempContainer = document.createElement('div');
-            tempContainer.innerHTML = htmlContent;
             tempContainer.style.position = 'absolute';
             tempContainer.style.left = '-9999px';
+            tempContainer.style.top = '0';
             tempContainer.style.width = '210mm'; // A4 width
+            tempContainer.style.padding = '20px';
+            tempContainer.style.background = 'white';
+            tempContainer.style.fontFamily = 'Arial, sans-serif';
+            tempContainer.appendChild(contentClone);
             document.body.appendChild(tempContainer);
+            
+            // Wait a bit for content to be fully ready
+            await new Promise(resolve => setTimeout(resolve, 100));
             
             // Configure PDF options
             const options = {
                 margin: [10, 10, 10, 10],
-                filename: `${topicName || 'topic'}_${paperName || 'paper'}_questions.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
+                filename: `${topicName || paperName || 'questions'}.pdf`,
+                image: { type: 'jpeg', quality: 0.95 },
                 html2canvas: { 
                     scale: 2,
                     useCORS: true,
-                    letterRendering: true
+                    letterRendering: true,
+                    logging: false,
+                    backgroundColor: '#ffffff'
                 },
                 jsPDF: { 
                     unit: 'mm', 
                     format: 'a4', 
-                    orientation: 'portrait' 
-                }
+                    orientation: 'portrait',
+                    compress: true
+                },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
             
             // Generate and download PDF
@@ -51,7 +122,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             document.body.removeChild(tempContainer);
         } catch (error) {
             console.error('Error generating PDF:', error);
-            alert('Failed to generate PDF. Please try again.');
+            alert(`Failed to generate PDF: ${error.message}. Please try using the Print button instead.`);
         } finally {
             setIsGeneratingPdf(false);
         }
@@ -100,6 +171,15 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                     <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
                         <div className="flex justify-end gap-3">
                             <button
+                                onClick={handlePrintInNewWindow}
+                                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                            >
+                                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                                Open in New Tab
+                            </button>
+                            <button
                                 onClick={handleDownload}
                                 disabled={isGeneratingPdf}
                                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -142,7 +222,15 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                                 className="w-full border-2 border-gray-300 rounded-lg bg-white"
                                 style={{ minHeight: '600px', height: '100%' }}
                                 title="Printable Document"
-                                sandbox="allow-same-origin allow-scripts allow-modals"
+                                sandbox="allow-same-origin allow-scripts allow-modals allow-popups"
+                                onLoad={(e) => {
+                                    // Ensure iframe content is accessible
+                                    const iframe = e.target;
+                                    if (iframe.contentDocument) {
+                                        iframe.contentDocument.body.style.margin = '20px';
+                                        iframe.contentDocument.body.style.fontFamily = 'Arial, sans-serif';
+                                    }
+                                }}
                             />
                         ) : (
                             <div className="flex items-center justify-center py-12">
