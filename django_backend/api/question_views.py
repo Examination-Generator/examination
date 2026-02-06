@@ -18,6 +18,7 @@ from .serializers import (
     QuestionCreateSerializer, QuestionBulkCreateSerializer
 )
 from .utils import success_response, error_response
+from .exam_paper_template import _process_question_text
 
 logger = logging.getLogger(__name__)
 
@@ -1229,6 +1230,40 @@ def generate_topic_printable_document(request):
             for q_data in questions_data:
                 question = q_data['question']
                 
+                # Prepare images for question text processing
+                question_images_list = []
+                if question.question_inline_images:
+                    for idx, img_url in enumerate(question.question_inline_images):
+                        question_images_list.append({
+                            'id': idx + 1,
+                            'url': img_url,
+                            'name': f'Question image {idx + 1}'
+                        })
+                
+                # Process question text with all formatting (images, fractions, tables, etc.)
+                processed_question_text = _process_question_text(
+                    question.question_text,
+                    images=question_images_list,
+                    answer_lines=None
+                )
+                
+                # Prepare images for answer text processing
+                answer_images_list = []
+                if question.answer_inline_images:
+                    for idx, img_url in enumerate(question.answer_inline_images):
+                        answer_images_list.append({
+                            'id': idx + 1,
+                            'url': img_url,
+                            'name': f'Answer image {idx + 1}'
+                        })
+                
+                # Process answer text with all formatting
+                processed_answer_text = _process_question_text(
+                    question.answer_text,
+                    images=answer_images_list,
+                    answer_lines=None
+                )
+                
                 html_content += f"""
     <div class="question-container">
         <div class="question-header">
@@ -1248,35 +1283,12 @@ def generate_topic_printable_document(request):
         
         <div class="question-section">
             <div class="section-title">Question</div>
-            <div class="question-text">{question.question_text}</div>
-"""
-                
-                # Add question images
-                if question.question_inline_images:
-                    for img_data in question.question_inline_images:
-                        html_content += f"""
-            <img src="{img_data}" class="inline-image" alt="Question diagram" />
-"""
-                
-                html_content += """
+            <div class="question-text">{processed_question_text}</div>
         </div>
         
         <div class="answer-section">
             <div class="section-title">Answer</div>
-"""
-                
-                html_content += f"""
-            <div class="answer-text">{question.answer_text}</div>
-"""
-                
-                # Add answer images
-                if question.answer_inline_images:
-                    for img_data in question.answer_inline_images:
-                        html_content += f"""
-            <img src="{img_data}" class="inline-image" alt="Answer diagram" />
-"""
-                
-                html_content += """
+            <div class="answer-text">{processed_answer_text}</div>
         </div>
     </div>
 """
