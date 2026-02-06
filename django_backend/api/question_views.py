@@ -1194,11 +1194,7 @@ def generate_topic_printable_document(request):
         }}
     </style>
 </head>
-<body>
-    <div class="no-print">
-        <button class="print-button" onclick="window.print()">🖨️ Print Document</button>
-    </div>
-    
+<body>    
     <div class="header">
         <div class="subject-name">{subject.name}</div>
         <h1>{document_title}</h1>
@@ -1301,19 +1297,6 @@ def generate_topic_printable_document(request):
         
         # Close HTML
         html_content += """
-    
-    <div class="no-print" style="margin-top: 30px;">
-        <button class="print-button" onclick="window.print()">🖨️ Print Document</button>
-    </div>
-    
-    <script>
-        // Optional: Auto-focus print dialog on load
-        // window.onload = function() {
-        //     setTimeout(function() {
-        //         window.print();
-        //     }, 500);
-        // };
-    </script>
 </body>
 </html>
 """
