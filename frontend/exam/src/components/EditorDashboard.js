@@ -10099,11 +10099,6 @@ useEffect(() => {
                                                     <span className="text-gray-600">Inactive: <span className="font-semibold">{counts.inactive}</span></span>
                                                 </div>
                                             </div>
-                                            <div className="mt-3 pt-3 border-t border-purple-200">
-                                                <p className="text-xs text-purple-600 font-medium text-center">
-                                                    📄 Click to view printable document
-                                                </p>
-                                            </div>
                                         </div>
                                     ))}
                                     {Object.keys(stats.byPaper).length === 0 && (
@@ -10159,13 +10154,6 @@ useEffect(() => {
                                                                 </span>
                                                             ))}
                                                     </div>
-                                                </div>
-                                            )}
-                                            {counts.topicId && counts.subjectId && (
-                                                <div className="mt-3 pt-3 border-t border-green-200">
-                                                    <p className="text-xs text-green-600 font-medium text-center">
-                                                        📄 Click to view printable document
-                                                    </p>
                                                 </div>
                                             )}
                                         </div>
