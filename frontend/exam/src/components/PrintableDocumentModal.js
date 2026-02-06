@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
+import html2pdf from 'html2pdf.js';
 
 export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, topicName, paperName }) {
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    
     if (!isOpen) return null;
 
     const handlePrint = () => {
@@ -10,23 +13,48 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
         }
     };
 
-    const handleDownload = () => {
-        if (!htmlContent) return;
+    const handleDownload = async () => {
+        if (!htmlContent || isGeneratingPdf) return;
         
-        // Create a Blob with the HTML content
-        const blob = new Blob([htmlContent], { type: 'text/html' });
-        const url = window.URL.createObjectURL(blob);
-        
-        // Create a temporary anchor element to trigger download
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${topicName || 'topic'}_${paperName || 'paper'}_questions.html`;
-        document.body.appendChild(a);
-        a.click();
-        
-        // Cleanup
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+        try {
+            setIsGeneratingPdf(true);
+            
+            // Create a temporary container for the HTML content
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = htmlContent;
+            tempContainer.style.position = 'absolute';
+            tempContainer.style.left = '-9999px';
+            tempContainer.style.width = '210mm'; // A4 width
+            document.body.appendChild(tempContainer);
+            
+            // Configure PDF options
+            const options = {
+                margin: [10, 10, 10, 10],
+                filename: `${topicName || 'topic'}_${paperName || 'paper'}_questions.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait' 
+                }
+            };
+            
+            // Generate and download PDF
+            await html2pdf().set(options).from(tempContainer).save();
+            
+            // Cleanup
+            document.body.removeChild(tempContainer);
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            alert('Failed to generate PDF. Please try again.');
+        } finally {
+            setIsGeneratingPdf(false);
+        }
     };
 
     return (
@@ -73,12 +101,25 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                         <div className="flex justify-end gap-3">
                             <button
                                 onClick={handleDownload}
-                                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                disabled={isGeneratingPdf}
+                                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                                Download HTML
+                                {isGeneratingPdf ? (
+                                    <>
+                                        <svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Generating PDF...
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Download PDF
+                                    </>
+                                )}
                             </button>
                             <button
                                 onClick={handlePrint}
@@ -101,7 +142,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                                 className="w-full border-2 border-gray-300 rounded-lg bg-white"
                                 style={{ minHeight: '600px', height: '100%' }}
                                 title="Printable Document"
-                                sandbox="allow-same-origin allow-scripts"
+                                sandbox="allow-same-origin allow-scripts allow-modals"
                             />
                         ) : (
                             <div className="flex items-center justify-center py-12">
