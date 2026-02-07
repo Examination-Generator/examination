@@ -628,7 +628,7 @@ def _process_question_text(text, images=None, answer_lines=None):
             lines_dict[float(line.get('id', 0))] = line
     
     # Pattern for formatting tags
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUP\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
     parts = re.split(pattern, text)
     
     result = []
@@ -687,6 +687,16 @@ def _process_question_text(text, images=None, answer_lines=None):
                         lines_html += '<div class="answer-line dotted"></div>'
                     lines_html += '</div>'
                     result.append(lines_html)
+        
+        # Working space: [SPACE:id]
+        elif part.startswith('[SPACE:') and part.endswith(']'):
+            space_match = re.match(r'\[SPACE:([\d.]+)\]', part)
+            if space_match:
+                space_id = float(space_match.group(1))
+                max_width = 700
+                height_px = 100
+                space_html = f'<div style="margin: 8px 0; max-width: {max_width}px;"><div style="height: {height_px}px; width: 100%; background: white; border: none;"></div></div>'
+                result.append(space_html)
         
         # Images: [IMAGE:id:WxH] or [IMAGE:id:Wpx]
         elif part.startswith('[IMAGE:') and part.endswith('px]'):

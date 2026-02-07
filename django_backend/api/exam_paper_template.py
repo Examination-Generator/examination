@@ -865,8 +865,8 @@ def _process_question_text(text, images=None, answer_lines=None):
         for line in answer_lines:
             lines_dict[float(line.get('id', 0))] = line
     
-    # Enhanced pattern to include SUP, SUB, FRAC, MIX, TABLE, and MATRIX tags
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])'
+    # Enhanced pattern to include SUP, SUB, FRAC, MIX, TABLE, MATRIX, LINES, and SPACE tags
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
     parts = re.split(pattern, text)
     
     result = []
@@ -1051,6 +1051,19 @@ def _process_question_text(text, images=None, answer_lines=None):
                     result.append(lines_html)
                 else:
                     result.append(f'<div style="margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 11pt;"> Answer Lines (ID: {int(line_id)})</div>')
+        
+        # Working space: [SPACE:id]
+        elif part.startswith('[SPACE:') and part.endsWith(']'):
+            space_match = re.match(r'\[SPACE:([\d.]+)\]', part)
+            if space_match:
+                space_id = float(space_match.group(1))
+                # A4 printable width is approximately 170mm = ~640px at 96 DPI
+                max_width = 700
+                # Default height for working space (can be customized if space config is passed)
+                height_px = 100
+                
+                space_html = f'<div style="margin: 8px 0; max-width: {max_width}px;"><div style="height: {height_px}px; width: 100%; background: white; border: none;"></div></div>'
+                result.append(space_html)
         
         # Images: [IMAGE:id:WxH] or [IMAGE:id:Wpx]
         elif part.startswith('[IMAGE:') and part.endswith('px]'):
