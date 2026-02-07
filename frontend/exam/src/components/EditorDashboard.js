@@ -482,6 +482,13 @@ export default function EditorDashboard({ onLogout }) {
         targetSection: 'question'
     });
 
+    // Edit working space modal state
+    const [showEditWorkingSpaceModal, setShowEditWorkingSpaceModal] = useState(false);
+    const [editWorkingSpaceConfig, setEditWorkingSpaceConfig] = useState({
+        heightMm: 20,
+        targetSection: 'question'
+    });
+
     // Edit questions filter states
     const [editFilterSubject, setEditFilterSubject] = useState('');
     const [editFilterPaper, setEditFilterPaper] = useState('');
@@ -5643,37 +5650,36 @@ useEffect(() => {
                                                 const spaceId = parseFloat(spaceMatch[1]);
                                                 const spaceConfig = questionWorkingSpaces.find(space => space.id === spaceId);
                                                 
-                                                if (spaceConfig) {
-                                                    // A4 printable width is approximately 170mm = ~640px at 96 DPI
-                                                    const maxWidth = 700;
-                                                    // Convert mm to px (approximation: 1mm ≈ 3.78px at 96 DPI)
-                                                    const heightPx = spaceConfig.heightMm * 3.78;
-                                                    
-                                                    return (
-                                                        <div key={index} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
-                                                            <div
-                                                                style={{
-                                                                    height: `${heightPx}px`,
-                                                                    width: '100%',
-                                                                    background: 'white',
-                                                                    border: 'none'
-                                                                }}
-                                                            ></div>
-                                                            {/* Remove working space button */}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setQuestionWorkingSpaces(prev => prev.filter(space => space.id !== spaceId));
-                                                                    setQuestionText(prev => prev.replace(`[SPACE:${spaceId}]`, ''));
-                                                                }}
-                                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
-                                                                title="Remove working space"
-                                                            >
-                                                                ✕
-                                                            </button>
-                                                        </div>
-                                                    );
-                                                }
+                                                // A4 printable width is approximately 170mm = ~640px at 96 DPI
+                                                const maxWidth = 700;
+                                                // Convert mm to px (approximation: 1mm ≈ 3.78px at 96 DPI)
+                                                // Use config height if found, otherwise default to 50mm
+                                                const heightPx = spaceConfig ? (spaceConfig.heightMm * 3.78) : (50 * 3.78);
+                                                
+                                                return (
+                                                    <div key={index} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
+                                                        <div
+                                                            style={{
+                                                                height: `${heightPx}px`,
+                                                                width: '100%',
+                                                                background: 'white',
+                                                                border: 'none'
+                                                            }}
+                                                        ></div>
+                                                        {/* Remove working space button */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setQuestionWorkingSpaces(prev => prev.filter(space => space.id !== spaceId));
+                                                                setQuestionText(prev => prev.replace(`[SPACE:${spaceId}]`, ''));
+                                                            }}
+                                                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                                                            title="Remove working space"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                );
                                             }
                                             
                                             // Check for images
@@ -6551,37 +6557,36 @@ useEffect(() => {
                                                 const spaceId = parseFloat(spaceMatch[1]);
                                                 const spaceConfig = answerWorkingSpaces.find(space => space.id === spaceId);
                                                 
-                                                if (spaceConfig) {
-                                                    // A4 printable width is approximately 170mm = ~640px at 96 DPI
-                                                    const maxWidth = 700;
-                                                    // Convert mm to px (approximation: 1mm ≈ 3.78px at 96 DPI)
-                                                    const heightPx = spaceConfig.heightMm * 3.78;
-                                                    
-                                                    return (
-                                                        <div key={index} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
-                                                            <div
-                                                                style={{
-                                                                    height: `${heightPx}px`,
-                                                                    width: '100%',
-                                                                    background: 'white',
-                                                                    border: 'none'
-                                                                }}
-                                                            ></div>
-                                                            {/* Remove working space button */}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setAnswerWorkingSpaces(prev => prev.filter(space => space.id !== spaceId));
-                                                                    setAnswerText(prev => prev.replace(`[SPACE:${spaceId}]`, ''));
-                                                                }}
-                                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
-                                                                title="Remove working space"
-                                                            >
-                                                                ✕
-                                                            </button>
-                                                        </div>
-                                                    );
-                                                }
+                                                // A4 printable width is approximately 170mm = ~640px at 96 DPI
+                                                const maxWidth = 700;
+                                                // Convert mm to px (approximation: 1mm ≈ 3.78px at 96 DPI)
+                                                // Use default 50mm if config not found
+                                                const heightPx = spaceConfig ? (spaceConfig.heightMm * 3.78) : (50 * 3.78);
+                                                
+                                                return (
+                                                    <div key={index} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
+                                                        <div
+                                                            style={{
+                                                                height: `${heightPx}px`,
+                                                                width: '100%',
+                                                                background: 'white',
+                                                                border: 'none'
+                                                            }}
+                                                        ></div>
+                                                        {/* Remove working space button */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setAnswerWorkingSpaces(prev => prev.filter(space => space.id !== spaceId));
+                                                                setAnswerText(prev => prev.replace(`[SPACE:${spaceId}]`, ''));
+                                                            }}
+                                                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                                                            title="Remove working space"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                );
                                             }
                                             
                                             // Check for images
@@ -9291,6 +9296,22 @@ useEffect(() => {
                                                 <span>Lines</span>
                                             </button>
 
+                                            {/* Working Space Button */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditWorkingSpaceConfig(prev => ({ ...prev, targetSection: 'question' }));
+                                                    setShowEditWorkingSpaceModal(true);
+                                                }}
+                                                className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                                title="Add blank working space for students"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+                                                </svg>
+                                                <span>Space</span>
+                                            </button>
+
                                             {/* Voice Recording */}
                                             <button
                                                 type="button"
@@ -9647,6 +9668,22 @@ useEffect(() => {
                                                 <span>Lines</span>
                                             </button>
 
+                                            {/* Working Space Button */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditWorkingSpaceConfig(prev => ({ ...prev, targetSection: 'answer' }));
+                                                    setShowEditWorkingSpaceModal(true);
+                                                }}
+                                                className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                                title="Add blank working space for students"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+                                                </svg>
+                                                <span>Space</span>
+                                            </button>
+
                                             {/* Voice Recording */}
                                             <button
                                                 type="button"
@@ -9918,6 +9955,122 @@ useEffect(() => {
                                                 <button
                                                     onClick={() => setShowEditAnswerLinesModal(false)}
                                                     className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 px-6 rounded-lg"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Edit Working Space Configuration Modal */}
+                                {showEditWorkingSpaceModal && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
+                                        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="text-xl font-bold text-gray-800">Add Working Space</h3>
+                                                <button
+                                                    onClick={() => setShowEditWorkingSpaceModal(false)}
+                                                    className="text-gray-500 hover:text-gray-700"
+                                                >
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                        Height (millimeters) *
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min="10"
+                                                        max="250"
+                                                        value={editWorkingSpaceConfig.heightMm}
+                                                        onChange={(e) => {
+                                                            const value = parseInt(e.target.value);
+                                                            if (!isNaN(value) && value >= 10 && value <= 250) {
+                                                                setEditWorkingSpaceConfig(prev => ({ 
+                                                                    ...prev, 
+                                                                    heightMm: value
+                                                                }));
+                                                            }
+                                                        }}
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                                        placeholder="e.g., 50"
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Specify the height of blank space in millimeters (10-250mm)
+                                                    </p>
+                                                    <p className="text-xs text-gray-600 mt-1">
+                                                        Width will automatically match A4 printable area
+                                                    </p>
+                                                </div>
+
+                                                {/* Preview */}
+                                                <div className="bg-gray-50 rounded-lg p-4">
+                                                    <p className="text-xs font-bold text-gray-700 mb-2">Preview:</p>
+                                                    <div className="bg-white rounded border-2 border-dashed border-gray-300 overflow-hidden">
+                                                        <div
+                                                            style={{
+                                                                height: `${Math.min(editWorkingSpaceConfig.heightMm * 0.8, 120)}px`,
+                                                                background: 'white'
+                                                            }}
+                                                            className="flex items-center justify-center text-gray-400 text-sm"
+                                                        >
+                                                            Blank working space ({editWorkingSpaceConfig.heightMm}mm)
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 mt-2 text-center italic">
+                                                        No borders will appear on printed document
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex space-x-3 mt-6">
+                                                <button
+                                                    onClick={() => {
+                                                        const spaceBlock = {
+                                                            id: Date.now() + Math.random(),
+                                                            heightMm: editWorkingSpaceConfig.heightMm,
+                                                            targetSection: editWorkingSpaceConfig.targetSection
+                                                        };
+                                                        
+                                                        if (editWorkingSpaceConfig.targetSection === 'question') {
+                                                            setEditQuestionWorkingSpaces(prev => [...prev, spaceBlock]);
+                                                            const textarea = editQuestionTextareaRef.current;
+                                                            if (textarea) {
+                                                                const cursorPos = textarea.selectionStart;
+                                                                const textBefore = editQuestionText.substring(0, cursorPos);
+                                                                const textAfter = editQuestionText.substring(cursorPos);
+                                                                setEditQuestionText(textBefore + `\n[SPACE:${spaceBlock.id}]\n` + textAfter);
+                                                            } else {
+                                                                setEditQuestionText(prev => prev + `\n[SPACE:${spaceBlock.id}]\n`);
+                                                            }
+                                                        } else {
+                                                            setEditAnswerWorkingSpaces(prev => [...prev, spaceBlock]);
+                                                            const textarea = editAnswerTextareaRef.current;
+                                                            if (textarea) {
+                                                                const cursorPos = textarea.selectionStart;
+                                                                const textBefore = editAnswerText.substring(0, cursorPos);
+                                                                const textAfter = editAnswerText.substring(cursorPos);
+                                                                setEditAnswerText(textBefore + `\n[SPACE:${spaceBlock.id}]\n` + textAfter);
+                                                            } else {
+                                                                setEditAnswerText(prev => prev + `\n[SPACE:${spaceBlock.id}]\n`);
+                                                            }
+                                                        }
+                                                        
+                                                        setShowEditWorkingSpaceModal(false);
+                                                    }}
+                                                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+                                                >
+                                                    Add Working Space
+                                                </button>
+                                                <button
+                                                    onClick={() => setShowEditWorkingSpaceModal(false)}
+                                                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 px-6 rounded-lg transition duration-200"
                                                 >
                                                     Cancel
                                                 </button>
