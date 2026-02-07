@@ -118,6 +118,15 @@ export default function EditorDashboard({ onLogout }) {
         targetSection: 'answer'
     });
 
+    // Working space modal (blank space for students to write)
+    const [showWorkingSpaceModal, setShowWorkingSpaceModal] = useState(false);
+    const [workingSpaceConfig, setWorkingSpaceConfig] = useState({
+        heightMm: 50,
+        targetSection: 'answer'
+    });
+    const [questionWorkingSpaces, setQuestionWorkingSpaces] = useState([]);
+    const [answerWorkingSpaces, setAnswerWorkingSpaces] = useState([]);
+
     // Speech recognition refs/state (question/answer)
     const questionRecognitionRef = useRef(null);
     const answerRecognitionRef = useRef(null);
@@ -135,6 +144,8 @@ export default function EditorDashboard({ onLogout }) {
     // Edit answer/line configurations and edit-specific flags
     const [editQuestionAnswerLines, setEditQuestionAnswerLines] = useState([]);
     const [editAnswerAnswerLines, setEditAnswerAnswerLines] = useState([]);
+    const [editQuestionWorkingSpaces, setEditQuestionWorkingSpaces] = useState([]);
+    const [editAnswerWorkingSpaces, setEditAnswerWorkingSpaces] = useState([]);
 
     // Edit-specific flags (missing earlier) — initialize here
     const [editIsNested, setEditIsNested] = useState(false);
@@ -380,6 +391,8 @@ export default function EditorDashboard({ onLogout }) {
             if (!selectedQuestion) {
                 setEditQuestionAnswerLines([]);
                 setEditAnswerAnswerLines([]);
+                setEditQuestionWorkingSpaces([]);
+                setEditAnswerWorkingSpaces([]);
                 setEditIsNested(false);
                 setEditIsEssayQuestion(false);
                 setEditIsGraphQuestion(false);
@@ -1355,8 +1368,8 @@ export default function EditorDashboard({ onLogout }) {
     const renderTextWithImages = (text, images = [], imagePositions = {}, answerLines = [], onRemoveImage = null, onRemoveLines = null, context = 'preview') => {
         if (!text) return [];
         
-        // Enhanced regex pattern to include SUP, SUB, FRAC, MIX, TABLE, and MATRIX tags
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+        // Enhanced regex pattern to include SUP, SUB, FRAC, MIX, TABLE, MATRIX, LINES, and SPACE tags
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
             // Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
             if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                 try {
@@ -1626,6 +1639,31 @@ export default function EditorDashboard({ onLogout }) {
                         </div>
                     );
                 }
+            }
+            
+            // Working space [SPACE:id]
+            const spaceMatch = part.match(/\[SPACE:([\d.]+)\]/);
+            if (spaceMatch) {
+                const spaceId = parseFloat(spaceMatch[1]);
+                // A4 printable width is approximately 170mm = ~640px at 96 DPI
+                const maxWidth = 700;
+                // For rendering in the printable document, we'll use a default height
+                // Since we don't have the config here, we'll just show a placeholder
+                // The actual rendering for PDF will use the stored heightMm
+                const heightPx = 100; // Default placeholder height
+                
+                return (
+                    <div key={index} className="my-2" style={{ maxWidth: `${maxWidth}px` }}>
+                        <div
+                            style={{
+                                height: `${heightPx}px`,
+                                width: '100%',
+                                background: 'white',
+                                border: 'none'
+                            }}
+                        ></div>
+                    </div>
+                );
             }
             
             // Images
@@ -2359,6 +2397,8 @@ useEffect(() => {
                 answer_image_positions: answerImagePositions, // NEW: Image positions for answer
                 question_answer_lines: questionAnswerLines, // NEW: Answer lines in question section
                 answer_answer_lines: answerAnswerLines, // NEW: Answer lines in answer section
+                question_working_spaces: questionWorkingSpaces, // NEW: Working spaces in question section
+                answer_working_spaces: answerWorkingSpaces, // NEW: Working spaces in answer section
                 is_active: isQuestionActive
             };
 
@@ -2438,6 +2478,8 @@ useEffect(() => {
                 setAnswerImagePositions({}); // NEW: Clear image positions
                 setQuestionAnswerLines([]); // NEW: Clear answer lines
                 setAnswerAnswerLines([]); // NEW: Clear answer lines
+                setQuestionWorkingSpaces([]); // NEW: Clear working spaces
+                setAnswerWorkingSpaces([]); // NEW: Clear working spaces
                 setIsQuestionActive(true);
                 setIsNested(false); // NEW: Reset nested checkbox
                 setIsEssayQuestion(false); // NEW: Reset essay checkbox
@@ -3604,6 +3646,12 @@ useEffect(() => {
             setEditAnswerAnswerLines(answerLines);
         }
         
+        // Load working spaces configurations
+        const questionSpaces = question.question_working_spaces || [];
+        const answerSpaces = question.answer_working_spaces || [];
+        setEditQuestionWorkingSpaces(questionSpaces);
+        setEditAnswerWorkingSpaces(answerSpaces);
+        
         // Note: Answer lines are embedded in the text as [LINES:id] placeholders
         // They will be rendered automatically when the text is displayed
         // Request backend to check whether this question has graph/essay content
@@ -3735,6 +3783,8 @@ useEffect(() => {
                 answer_image_positions: editAnswerImagePositions, // NEW: Image positions
                 question_answer_lines: editQuestionAnswerLines, // NEW: Answer lines configurations
                 answer_answer_lines: editAnswerAnswerLines, // NEW: Answer lines configurations
+                question_working_spaces: editQuestionWorkingSpaces, // NEW: Working space configurations
+                answer_working_spaces: editAnswerWorkingSpaces, // NEW: Working space configurations
                 difficulty: selectedQuestion.difficulty, // Include difficulty
                 question_type: selectedQuestion.question_type, // Include question type
                 is_active: editIsActive, // Use edited status
@@ -3860,6 +3910,8 @@ useEffect(() => {
             setEditAnswerImagePositions({}); // NEW: Clear positions
             setEditQuestionAnswerLines([]); // NEW: Clear answer lines
             setEditAnswerAnswerLines([]); // NEW: Clear answer lines
+            setEditQuestionWorkingSpaces([]); // NEW: Clear working spaces
+            setEditAnswerWorkingSpaces([]); // NEW: Clear working spaces
             setEditIsActive(true); // Reset to active
             setEditIsNested(false); // Reset to standalone
             setEditIsEssayQuestion(false); // Reset essay status
@@ -5257,6 +5309,22 @@ useEffect(() => {
                                             <span>Lines</span>
                                         </button>
 
+                                        {/* Working Space Button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setWorkingSpaceConfig(prev => ({ ...prev, targetSection: 'question' }));
+                                                setShowWorkingSpaceModal(true);
+                                            }}
+                                            className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                            title="Add blank working space for students"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+                                            </svg>
+                                            <span>Space</span>
+                                        </button>
+
                                         {/* Voice Recording */}
                                         <button
                                             type="button"
@@ -5326,7 +5394,7 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
                                             // Check for formatting first
                                             // Superscript formatting
                                             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
@@ -5561,6 +5629,45 @@ useEffect(() => {
                                                                 }}
                                                                 className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
                                                                 title="Remove lines"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                }
+                                            }
+                                            
+                                            // Check for working space
+                                            const spaceMatch = part.match(/\[SPACE:([\d.]+)\]/);
+                                            if (spaceMatch) {
+                                                const spaceId = parseFloat(spaceMatch[1]);
+                                                const spaceConfig = questionWorkingSpaces.find(space => space.id === spaceId);
+                                                
+                                                if (spaceConfig) {
+                                                    // A4 printable width is approximately 170mm = ~640px at 96 DPI
+                                                    const maxWidth = 700;
+                                                    // Convert mm to px (approximation: 1mm ≈ 3.78px at 96 DPI)
+                                                    const heightPx = spaceConfig.heightMm * 3.78;
+                                                    
+                                                    return (
+                                                        <div key={index} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
+                                                            <div
+                                                                style={{
+                                                                    height: `${heightPx}px`,
+                                                                    width: '100%',
+                                                                    background: 'white',
+                                                                    border: 'none'
+                                                                }}
+                                                            ></div>
+                                                            {/* Remove working space button */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setQuestionWorkingSpaces(prev => prev.filter(space => space.id !== spaceId));
+                                                                    setQuestionText(prev => prev.replace(`[SPACE:${spaceId}]`, ''));
+                                                                }}
+                                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                                                                title="Remove working space"
                                                             >
                                                                 ✕
                                                             </button>
@@ -6168,7 +6275,7 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
                                             // Check for formatting first
                                             // Superscript formatting
                                             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
@@ -6430,6 +6537,45 @@ useEffect(() => {
                                                                 }}
                                                                 className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
                                                                 title="Remove lines"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                }
+                                            }
+                                            
+                                            // Check for working space
+                                            const spaceMatch = part.match(/\[SPACE:([\d.]+)\]/);
+                                            if (spaceMatch) {
+                                                const spaceId = parseFloat(spaceMatch[1]);
+                                                const spaceConfig = answerWorkingSpaces.find(space => space.id === spaceId);
+                                                
+                                                if (spaceConfig) {
+                                                    // A4 printable width is approximately 170mm = ~640px at 96 DPI
+                                                    const maxWidth = 700;
+                                                    // Convert mm to px (approximation: 1mm ≈ 3.78px at 96 DPI)
+                                                    const heightPx = spaceConfig.heightMm * 3.78;
+                                                    
+                                                    return (
+                                                        <div key={index} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
+                                                            <div
+                                                                style={{
+                                                                    height: `${heightPx}px`,
+                                                                    width: '100%',
+                                                                    background: 'white',
+                                                                    border: 'none'
+                                                                }}
+                                                            ></div>
+                                                            {/* Remove working space button */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setAnswerWorkingSpaces(prev => prev.filter(space => space.id !== spaceId));
+                                                                    setAnswerText(prev => prev.replace(`[SPACE:${spaceId}]`, ''));
+                                                                }}
+                                                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                                                                title="Remove working space"
                                                             >
                                                                 ✕
                                                             </button>
@@ -6727,6 +6873,22 @@ useEffect(() => {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                                         </svg>
                                         <span>Lines</span>
+                                    </button>
+
+                                    {/* Working Space Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setWorkingSpaceConfig(prev => ({ ...prev, targetSection: 'answer' }));
+                                            setShowWorkingSpaceModal(true);
+                                        }}
+                                        className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg transition text-sm flex items-center gap-1.5"
+                                        title="Add blank working space for students"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+                                        </svg>
+                                        <span>Space</span>
                                     </button>
                                 </div>
                                 {/* Symbol Picker Modal for Question */}
@@ -8427,6 +8589,122 @@ useEffect(() => {
                                 </button>
                                 <button
                                     onClick={() => setShowAnswerLinesModal(false)}
+                                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 px-6 rounded-lg transition duration-200"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Working Space Configuration Modal */}
+                {showWorkingSpaceModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2">
+                        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-bold text-gray-800">Add Working Space</h3>
+                                <button
+                                    onClick={() => setShowWorkingSpaceModal(false)}
+                                    className="text-gray-500 hover:text-gray-700"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        Height (millimeters) *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="10"
+                                        max="250"
+                                        value={workingSpaceConfig.heightMm}
+                                        onChange={(e) => {
+                                            const value = parseInt(e.target.value);
+                                            if (!isNaN(value) && value >= 10 && value <= 250) {
+                                                setWorkingSpaceConfig(prev => ({ 
+                                                    ...prev, 
+                                                    heightMm: value
+                                                }));
+                                            }
+                                        }}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                        placeholder="e.g., 50"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Specify the height of blank space in millimeters (10-250mm)
+                                    </p>
+                                    <p className="text-xs text-gray-600 mt-1">
+                                        Width will automatically match A4 printable area
+                                    </p>
+                                </div>
+
+                                {/* Preview */}
+                                <div className="bg-gray-50 rounded-lg p-4">
+                                    <p className="text-xs font-bold text-gray-700 mb-2">Preview:</p>
+                                    <div className="bg-white rounded border-2 border-dashed border-gray-300 overflow-hidden">
+                                        <div
+                                            style={{
+                                                height: `${Math.min(workingSpaceConfig.heightMm * 0.8, 120)}px`,
+                                                background: 'white'
+                                            }}
+                                            className="flex items-center justify-center text-gray-400 text-sm"
+                                        >
+                                            Blank working space ({workingSpaceConfig.heightMm}mm)
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-2 text-center italic">
+                                        No borders will appear on printed document
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex space-x-3 mt-6">
+                                <button
+                                    onClick={() => {
+                                        const spaceBlock = {
+                                            id: Date.now() + Math.random(),
+                                            heightMm: workingSpaceConfig.heightMm,
+                                            targetSection: workingSpaceConfig.targetSection
+                                        };
+                                        
+                                        if (workingSpaceConfig.targetSection === 'question') {
+                                            setQuestionWorkingSpaces(prev => [...prev, spaceBlock]);
+                                            const textarea = questionTextareaRef.current;
+                                            if (textarea) {
+                                                const cursorPos = textarea.selectionStart;
+                                                const textBefore = questionText.substring(0, cursorPos);
+                                                const textAfter = questionText.substring(cursorPos);
+                                                setQuestionText(textBefore + `\n[SPACE:${spaceBlock.id}]\n` + textAfter);
+                                            } else {
+                                                setQuestionText(prev => prev + `\n[SPACE:${spaceBlock.id}]\n`);
+                                            }
+                                        } else {
+                                            setAnswerWorkingSpaces(prev => [...prev, spaceBlock]);
+                                            const textarea = answerTextareaRef.current;
+                                            if (textarea) {
+                                                const cursorPos = textarea.selectionStart;
+                                                const textBefore = answerText.substring(0, cursorPos);
+                                                const textAfter = answerText.substring(cursorPos);
+                                                setAnswerText(textBefore + `\n[SPACE:${spaceBlock.id}]\n` + textAfter);
+                                            } else {
+                                                setAnswerText(prev => prev + `\n[SPACE:${spaceBlock.id}]\n`);
+                                            }
+                                        }
+                                        
+                                        setShowWorkingSpaceModal(false);
+                                    }}
+                                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+                                >
+                                    Add Working Space
+                                </button>
+                                <button
+                                    onClick={() => setShowWorkingSpaceModal(false)}
                                     className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-3 px-6 rounded-lg transition duration-200"
                                 >
                                     Cancel
