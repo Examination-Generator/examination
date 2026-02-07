@@ -100,7 +100,7 @@ export default function PaperGenerationDashboard() {
     const renderTextWithImages = (text, images = [], imagePositions = {}, context = 'preview') => {
         if (!text) return [];
         
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\])/g).map((part, index) => {
+        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
             // Fraction formatting
             if (part.startsWith('[FRAC:') && part.endsWith(']')) {
                 try {
@@ -282,6 +282,29 @@ export default function PaperGenerationDashboard() {
             const linesMatch = part.match(/\[LINES:([\d.]+)\]/);
             if (linesMatch) {
                 return <span key={index} className="text-gray-400 italic text-sm">[Answer Lines]</span>;
+            }
+            
+            // Working space
+            const spaceMatch = part.match(/\[SPACE:([\d.]+)\]/);
+            if (spaceMatch) {
+                const spaceId = parseFloat(spaceMatch[1]);
+                // A4 printable width is approximately 170mm = ~700px at 96 DPI
+                const maxWidth = 700;
+                // Use default height of 50mm (converted to px: 1mm ≈ 3.78px at 96 DPI)
+                const heightPx = 50 * 3.78;
+                
+                return (
+                    <div key={index} className="my-2" style={{ maxWidth: `${maxWidth}px` }}>
+                        <div
+                            style={{
+                                height: `${heightPx}px`,
+                                width: '100%',
+                                background: 'white',
+                                border: 'none'
+                            }}
+                        ></div>
+                    </div>
+                );
             }
             
             // Images
