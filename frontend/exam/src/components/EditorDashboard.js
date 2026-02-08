@@ -1375,6 +1375,58 @@ export default function EditorDashboard({ onLogout }) {
     const renderTextWithImages = (text, images = [], imagePositions = {}, answerLines = [], onRemoveImage = null, onRemoveLines = null, context = 'preview') => {
         if (!text) return [];
         
+        // Helper to extract content from a tag-like structure with bracket awareness
+        const extractBracketedContent = (str, openPattern, closeChar) => {
+            let depth = 0;
+            let index = 0;
+            let isInTag = false;
+            
+            while (index < str.length) {
+                if (str[index] === '[') {
+                    depth++;
+                    isInTag = true;
+                } else if (str[index] === ']') {
+                    depth--;
+                    if (depth === 0) {
+                        return { content: str.substring(0, index), endIndex: index };
+                    }
+                } else if (str[index] === closeChar && depth === 0) {
+                    return { content: str.substring(0, index), endIndex: index };
+                }
+                index++;
+            }
+            return null;
+        };
+        
+        // Helper to extract parts of a complex tag (e.g., FRAC:num:den or MIX:whole:num:den)
+        const extractTagParts = (content, delimiter = ':') => {
+            const parts = [];
+            let currentPart = '';
+            let depth = 0;
+            
+            for (let i = 0; i < content.length; i++) {
+                const char = content[i];
+                if (char === '[') {
+                    depth++;
+                    currentPart += char;
+                } else if (char === ']') {
+                    depth--;
+                    currentPart += char;
+                } else if (char === delimiter && depth === 0) {
+                    parts.push(currentPart);
+                    currentPart = '';
+                } else {
+                    currentPart += char;
+                }
+            }
+            
+            if (currentPart) {
+                parts.push(currentPart);
+            }
+            
+            return parts;
+        };
+        
         // Recursive parser to handle nested expressions
         const parseText = (str, baseIndex = 0) => {
             if (!str) return [];
@@ -1388,64 +1440,78 @@ export default function EditorDashboard({ onLogout }) {
                 const remaining = str.slice(currentIndex);
                 
                 // Try to match each pattern in order of precedence
-                // Tables (must be matched before other patterns to avoid conflicts)
-                const tableMatch = remaining.match(/^\[TABLE:([^\]]+)\]/);
-                if (tableMatch) {
-                    const tableContent = parseTableContent(tableMatch[1], keyCounter++);
-                    if (tableContent) {
-                        results.push(tableContent);
-                        currentIndex += tableMatch[0].length;
-                        matched = true;
-                        continue;
+                // Tables
+                if (remaining.startsWith('[TABLE:')) {
+                    const extracted = extractBracketedContent(remaining.slice(7), '[TABLE:', ']');
+                    if (extracted) {
+                        const tableContent = parseTableContent(extracted.content, keyCounter++);
+                        if (tableContent) {
+                            results.push(tableContent);
+                            currentIndex += 7 + extracted.endIndex + 1; // +7 for '[TABLE:', +1 for ']'
+                            matched = true;
+                            continue;
+                        }
                     }
                 }
                 
                 // Matrix
-                const matrixMatch = remaining.match(/^\[MATRIX:([^\]]+)\]/);
-                if (matrixMatch) {
-                    const matrixContent = parseMatrixContent(matrixMatch[1], keyCounter++);
-                    if (matrixContent) {
-                        results.push(matrixContent);
-                        currentIndex += matrixMatch[0].length;
-                        matched = true;
-                        continue;
+                if (remaining.startsWith('[MATRIX:')) {
+                    const extracted = extractBracketedContent(remaining.slice(8), '[MATRIX:', ']');
+                    if (extracted) {
+                        const matrixContent = parseMatrixContent(extracted.content, keyCounter++);
+                        if (matrixContent) {
+                            results.push(matrixContent);
+                            currentIndex += 8 + extracted.endIndex + 1;
+                            matched = true;
+                            continue;
+                        }
                     }
                 }
                 
-                // Fraction - extract content carefully to handle nested expressions
-                const fracMatch = remaining.match(/^\[FRAC:([^:]+):([^\]]+)\]/);
-                if (fracMatch) {
-                    const numerator = fracMatch[1];
-                    const denominator = fracMatch[2];
-                    results.push(
-                        <span key={keyCounter++} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                            <span style={{ display: 'block', fontSize: '0.85em' }}>{parseText(numerator, keyCounter * 1000)}</span>
-                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{parseText(denominator, keyCounter * 1000)}</span>
-                        </span>
-                    );
-                    currentIndex += fracMatch[0].length;
-                    matched = true;
-                    continue;
+                // Fraction with bracket-aware parsing
+                if (remaining.startsWith('[FRAC:')) {
+                    const extracted = extractBracketedContent(remaining.slice(6), '[FRAC:', ']');
+                    if (extracted) {
+                        const parts = extractTagParts(extracted.content, ':');
+                        if (parts.length === 2) {
+                            const numerator = parts[0];
+                            const denominator = parts[1];
+                            results.push(
+                                <span key={keyCounter++} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                    <span style={{ display: 'block', fontSize: '0.85em' }}>{parseText(numerator, keyCounter * 1000)}</span>
+                                    <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{parseText(denominator, keyCounter * 1000)}</span>
+                                </span>
+                            );
+                            currentIndex += 6 + extracted.endIndex + 1;
+                            matched = true;
+                            continue;
+                        }
+                    }
                 }
                 
-                // Mixed fraction
-                const mixMatch = remaining.match(/^\[MIX:([^:]+):([^:]+):([^\]]+)\]/);
-                if (mixMatch) {
-                    const whole = mixMatch[1];
-                    const numerator = mixMatch[2];
-                    const denominator = mixMatch[3];
-                    results.push(
-                        <span key={keyCounter++} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ fontSize: '0.95em' }}>{parseText(whole, keyCounter * 1000)}</span>
-                            <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                                <span style={{ display: 'block', fontSize: '0.85em' }}>{parseText(numerator, keyCounter * 1000)}</span>
-                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{parseText(denominator, keyCounter * 1000)}</span>
-                            </span>
-                        </span>
-                    );
-                    currentIndex += mixMatch[0].length;
-                    matched = true;
-                    continue;
+                // Mixed fraction with bracket-aware parsing
+                if (remaining.startsWith('[MIX:')) {
+                    const extracted = extractBracketedContent(remaining.slice(5), '[MIX:', ']');
+                    if (extracted) {
+                        const parts = extractTagParts(extracted.content, ':');
+                        if (parts.length === 3) {
+                            const whole = parts[0];
+                            const numerator = parts[1];
+                            const denominator = parts[2];
+                            results.push(
+                                <span key={keyCounter++} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ fontSize: '0.95em' }}>{parseText(whole, keyCounter * 1000)}</span>
+                                    <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                        <span style={{ display: 'block', fontSize: '0.85em' }}>{parseText(numerator, keyCounter * 1000)}</span>
+                                        <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{parseText(denominator, keyCounter * 1000)}</span>
+                                    </span>
+                                </span>
+                            );
+                            currentIndex += 5 + extracted.endIndex + 1;
+                            matched = true;
+                            continue;
+                        }
+                    }
                 }
                 
                 // Superscript - find matching closing tag
@@ -1611,15 +1677,38 @@ export default function EditorDashboard({ onLogout }) {
             return -1;
         };
         
-        // Parse table content
+        // Parse table content with bracket-aware cell parsing
         const parseTableContent = (inner, key) => {
             try {
-                const parts = inner.split(':');
+                const parts = extractTagParts(inner, ':');
                 const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
                 if (dimensionMatch) {
                     const rows = parseInt(dimensionMatch[1]);
                     const cols = parseInt(dimensionMatch[2]);
-                    const cellData = parts[1] ? parts[1].split('|') : [];
+                    
+                    // Parse cell data with bracket awareness
+                    let cellData = [];
+                    if (parts[1]) {
+                        // Split by | but only at depth 0 (not inside brackets)
+                        let currentCell = '';
+                        let depth = 0;
+                        for (let i = 0; i < parts[1].length; i++) {
+                            const char = parts[1][i];
+                            if (char === '[') {
+                                depth++;
+                                currentCell += char;
+                            } else if (char === ']') {
+                                depth--;
+                                currentCell += char;
+                            } else if (char === '|' && depth === 0) {
+                                cellData.push(currentCell);
+                                currentCell = '';
+                            } else {
+                                currentCell += char;
+                            }
+                        }
+                        if (currentCell) cellData.push(currentCell);
+                    }
                     
                     // Parse optional widths, heights, and merged cells
                     let colWidths = Array(cols).fill(60);
@@ -1628,19 +1717,22 @@ export default function EditorDashboard({ onLogout }) {
                     
                     const widthIndex = parts.findIndex(p => p === 'W');
                     if (widthIndex !== -1 && parts[widthIndex + 1]) {
-                        colWidths = parts[widthIndex + 1].split(',').map(w => parseInt(w) || 60);
+                        const widthParts = extractTagParts(parts[widthIndex + 1], ',');
+                        colWidths = widthParts.map(w => parseInt(w) || 60);
                     }
                     
                     const heightIndex = parts.findIndex(p => p === 'H');
                     if (heightIndex !== -1 && parts[heightIndex + 1]) {
-                        rowHeights = parts[heightIndex + 1].split(',').map(h => parseInt(h) || 30);
+                        const heightParts = extractTagParts(parts[heightIndex + 1], ',');
+                        rowHeights = heightParts.map(h => parseInt(h) || 30);
                     }
                     
                     const mergeIndex = parts.findIndex(p => p === 'M');
                     if (mergeIndex !== -1 && parts[mergeIndex + 1]) {
-                        const mergeData = parts[mergeIndex + 1].split(';');
-                        mergeData.forEach(m => {
-                            const [r, c, colspan, rowspan] = m.split(',').map(n => parseInt(n));
+                        const mergeParts = extractTagParts(parts[mergeIndex + 1], ';');
+                        mergeParts.forEach(m => {
+                            const mergeCellParts = extractTagParts(m, ',');
+                            const [r, c, colspan, rowspan] = mergeCellParts.map(n => parseInt(n));
                             if (!mergedCells[r]) mergedCells[r] = {};
                             mergedCells[r][c] = { colspan, rowspan };
                         });
@@ -1705,15 +1797,37 @@ export default function EditorDashboard({ onLogout }) {
             return null;
         };
         
-        // Parse matrix content
+        // Parse matrix content with bracket-aware cell parsing
         const parseMatrixContent = (inner, key) => {
             try {
-                const parts = inner.split(':');
+                const parts = extractTagParts(inner, ':');
                 const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
                 if (dimensionMatch) {
                     const rows = parseInt(dimensionMatch[1]);
                     const cols = parseInt(dimensionMatch[2]);
-                    const cellData = parts[1] ? parts[1].split('|') : [];
+                    
+                    // Parse cell data with bracket awareness
+                    let cellData = [];
+                    if (parts[1]) {
+                        let currentCell = '';
+                        let depth = 0;
+                        for (let i = 0; i < parts[1].length; i++) {
+                            const char = parts[1][i];
+                            if (char === '[') {
+                                depth++;
+                                currentCell += char;
+                            } else if (char === ']') {
+                                depth--;
+                                currentCell += char;
+                            } else if (char === '|' && depth === 0) {
+                                cellData.push(currentCell);
+                                currentCell = '';
+                            } else {
+                                currentCell += char;
+                            }
+                        }
+                        if (currentCell) cellData.push(currentCell);
+                    }
                     return (
                         <span key={key} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
                             <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
