@@ -1375,92 +1375,358 @@ export default function EditorDashboard({ onLogout }) {
     const renderTextWithImages = (text, images = [], imagePositions = {}, answerLines = [], onRemoveImage = null, onRemoveLines = null, context = 'preview') => {
         if (!text) return [];
         
-        // Enhanced regex pattern to include SUP, SUB, FRAC, MIX, TABLE, MATRIX, LINES, and SPACE tags
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
-            // Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
-            if (part.startsWith('[TABLE:') && part.endsWith(']')) {
-                try {
-                    const inner = part.slice(7, -1); // Remove [TABLE: and ]
-                    const parts = inner.split(':');
-                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
-                    if (dimensionMatch) {
-                        const rows = parseInt(dimensionMatch[1]);
-                        const cols = parseInt(dimensionMatch[2]);
-                        const cellData = parts[1] ? parts[1].split('|') : [];
-                        
-                        // Parse optional widths, heights, and merged cells
-                        let colWidths = Array(cols).fill(60);
-                        let rowHeights = Array(rows).fill(30);
-                        let mergedCells = {};
-                        
-                        // Look for width data (W:width1,width2,...)
-                        const widthIndex = parts.findIndex(p => p === 'W');
-                        if (widthIndex !== -1 && parts[widthIndex + 1]) {
-                            colWidths = parts[widthIndex + 1].split(',').map(w => parseInt(w) || 60);
-                        }
-                        
-                        // Look for height data (H:height1,height2,...)
-                        const heightIndex = parts.findIndex(p => p === 'H');
-                        if (heightIndex !== -1 && parts[heightIndex + 1]) {
-                            rowHeights = parts[heightIndex + 1].split(',').map(h => parseInt(h) || 30);
-                        }
-                        
-                        // Look for merged cells data (M:r1,c1,colspan,rowspan;r2,c2,...)
-                        const mergeIndex = parts.findIndex(p => p === 'M');
-                        if (mergeIndex !== -1 && parts[mergeIndex + 1]) {
-                            const mergeData = parts[mergeIndex + 1].split(';');
-                            mergeData.forEach(m => {
-                                const [r, c, colspan, rowspan] = m.split(',').map(n => parseInt(n));
-                                if (!mergedCells[r]) mergedCells[r] = {};
-                                mergedCells[r][c] = { colspan, rowspan };
-                            });
-                        }
-                        
-                        // Helper to check if cell is merged (hidden)
-                        const isCellMerged = (rowIdx, colIdx) => {
-                            for (let r = 0; r <= rowIdx; r++) {
-                                for (let c = 0; c <= colIdx; c++) {
-                                    const cell = mergedCells[r]?.[c];
-                                    if (cell && (cell.colspan > 1 || cell.rowspan > 1)) {
-                                        const endRow = r + (cell.rowspan || 1) - 1;
-                                        const endCol = c + (cell.colspan || 1) - 1;
-                                        if (rowIdx >= r && rowIdx <= endRow && colIdx >= c && colIdx <= endCol) {
-                                            if (r === rowIdx && c === colIdx) return false;
-                                            return true;
-                                        }
+        // Recursive parser to handle nested expressions
+        const parseText = (str, baseIndex = 0) => {
+            if (!str) return [];
+            
+            const results = [];
+            let currentIndex = 0;
+            let keyCounter = baseIndex;
+            
+            while (currentIndex < str.length) {
+                let matched = false;
+                const remaining = str.slice(currentIndex);
+                
+                // Try to match each pattern in order of precedence
+                // Tables (must be matched before other patterns to avoid conflicts)
+                const tableMatch = remaining.match(/^\[TABLE:([^\]]+)\]/);
+                if (tableMatch) {
+                    const tableContent = parseTableContent(tableMatch[1], keyCounter++);
+                    if (tableContent) {
+                        results.push(tableContent);
+                        currentIndex += tableMatch[0].length;
+                        matched = true;
+                        continue;
+                    }
+                }
+                
+                // Matrix
+                const matrixMatch = remaining.match(/^\[MATRIX:([^\]]+)\]/);
+                if (matrixMatch) {
+                    const matrixContent = parseMatrixContent(matrixMatch[1], keyCounter++);
+                    if (matrixContent) {
+                        results.push(matrixContent);
+                        currentIndex += matrixMatch[0].length;
+                        matched = true;
+                        continue;
+                    }
+                }
+                
+                // Fraction - extract content carefully to handle nested expressions
+                const fracMatch = remaining.match(/^\[FRAC:([^:]+):([^\]]+)\]/);
+                if (fracMatch) {
+                    const numerator = fracMatch[1];
+                    const denominator = fracMatch[2];
+                    results.push(
+                        <span key={keyCounter++} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                            <span style={{ display: 'block', fontSize: '0.85em' }}>{parseText(numerator, keyCounter * 1000)}</span>
+                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{parseText(denominator, keyCounter * 1000)}</span>
+                        </span>
+                    );
+                    currentIndex += fracMatch[0].length;
+                    matched = true;
+                    continue;
+                }
+                
+                // Mixed fraction
+                const mixMatch = remaining.match(/^\[MIX:([^:]+):([^:]+):([^\]]+)\]/);
+                if (mixMatch) {
+                    const whole = mixMatch[1];
+                    const numerator = mixMatch[2];
+                    const denominator = mixMatch[3];
+                    results.push(
+                        <span key={keyCounter++} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '0.95em' }}>{parseText(whole, keyCounter * 1000)}</span>
+                            <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
+                                <span style={{ display: 'block', fontSize: '0.85em' }}>{parseText(numerator, keyCounter * 1000)}</span>
+                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{parseText(denominator, keyCounter * 1000)}</span>
+                            </span>
+                        </span>
+                    );
+                    currentIndex += mixMatch[0].length;
+                    matched = true;
+                    continue;
+                }
+                
+                // Superscript - find matching closing tag
+                if (remaining.startsWith('[SUP]')) {
+                    const endTag = '[/SUP]';
+                    const endIndex = findMatchingClosingTag(remaining, '[SUP]', endTag);
+                    if (endIndex !== -1) {
+                        const content = remaining.slice(5, endIndex);
+                        results.push(<sup key={keyCounter++} className="text-sm">{parseText(content, keyCounter * 1000)}</sup>);
+                        currentIndex += endIndex + endTag.length;
+                        matched = true;
+                        continue;
+                    }
+                }
+                
+                // Subscript
+                if (remaining.startsWith('[SUB]')) {
+                    const endTag = '[/SUB]';
+                    const endIndex = findMatchingClosingTag(remaining, '[SUB]', endTag);
+                    if (endIndex !== -1) {
+                        const content = remaining.slice(5, endIndex);
+                        results.push(<sub key={keyCounter++} className="text-sm">{parseText(content, keyCounter * 1000)}</sub>);
+                        currentIndex += endIndex + endTag.length;
+                        matched = true;
+                        continue;
+                    }
+                }
+                
+                // Bold ** (must check before single *)
+                if (remaining.startsWith('**')) {
+                    const endIndex = findMatchingDelimiter(remaining, '**', 2);
+                    if (endIndex !== -1) {
+                        const content = remaining.slice(2, endIndex);
+                        results.push(<strong key={keyCounter++}>{parseText(content, keyCounter * 1000)}</strong>);
+                        currentIndex += endIndex + 2;
+                        matched = true;
+                        continue;
+                    }
+                }
+                
+                // Underline __
+                if (remaining.startsWith('__')) {
+                    const endIndex = findMatchingDelimiter(remaining, '__', 2);
+                    if (endIndex !== -1) {
+                        const content = remaining.slice(2, endIndex);
+                        results.push(<u key={keyCounter++}>{parseText(content, keyCounter * 1000)}</u>);
+                        currentIndex += endIndex + 2;
+                        matched = true;
+                        continue;
+                    }
+                }
+                
+                // Italic * or _
+                if (remaining.startsWith('*') && !remaining.startsWith('**')) {
+                    const endIndex = findMatchingDelimiter(remaining, '*', 1);
+                    if (endIndex !== -1) {
+                        const content = remaining.slice(1, endIndex);
+                        results.push(<em key={keyCounter++} className="italic">{parseText(content, keyCounter * 1000)}</em>);
+                        currentIndex += endIndex + 1;
+                        matched = true;
+                        continue;
+                    }
+                }
+                
+                if (remaining.startsWith('_') && !remaining.startsWith('__')) {
+                    const endIndex = findMatchingDelimiter(remaining, '_', 1);
+                    if (endIndex !== -1) {
+                        const content = remaining.slice(1, endIndex);
+                        results.push(<em key={keyCounter++} className="italic">{parseText(content, keyCounter * 1000)}</em>);
+                        currentIndex += endIndex + 1;
+                        matched = true;
+                        continue;
+                    }
+                }
+                
+                // Answer lines
+                const linesMatch = remaining.match(/^\[LINES:([\d.]+)\]/);
+                if (linesMatch) {
+                    results.push(parseLinesContent(linesMatch[1], keyCounter++, answerLines, onRemoveLines));
+                    currentIndex += linesMatch[0].length;
+                    matched = true;
+                    continue;
+                }
+                
+                // Working space
+                const spaceMatch = remaining.match(/^\[SPACE:([\d.]+)\]/);
+                if (spaceMatch) {
+                    results.push(parseSpaceContent(spaceMatch[1], keyCounter++));
+                    currentIndex += spaceMatch[0].length;
+                    matched = true;
+                    continue;
+                }
+                
+                // Images
+                const imageMatchNew = remaining.match(/^\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
+                const imageMatchOld = remaining.match(/^\[IMAGE:([\d.]+):(\d+)px\]/);
+                if (imageMatchNew || imageMatchOld) {
+                    const match = imageMatchNew || imageMatchOld;
+                    results.push(parseImageContent(match, keyCounter++, images, imagePositions, onRemoveImage, context));
+                    currentIndex += match[0].length;
+                    matched = true;
+                    continue;
+                }
+                
+                // If no pattern matched, consume one character as plain text
+                if (!matched) {
+                    // Collect consecutive plain text characters
+                    let plainText = '';
+                    while (currentIndex < str.length && !startsWithPattern(str.slice(currentIndex))) {
+                        plainText += str[currentIndex];
+                        currentIndex++;
+                    }
+                    if (plainText) {
+                        results.push(<span key={keyCounter++}>{plainText}</span>);
+                    }
+                }
+            }
+            
+            return results;
+        };
+        
+        // Helper function to check if string starts with any of our patterns
+        const startsWithPattern = (str) => {
+            return str.match(/^(\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[IMAGE:)/);
+        };
+        
+        // Helper to find matching closing tag for nested structures
+        const findMatchingClosingTag = (str, openTag, closeTag) => {
+            let depth = 1;
+            let index = openTag.length;
+            
+            while (index < str.length && depth > 0) {
+                if (str.slice(index).startsWith(openTag)) {
+                    depth++;
+                    index += openTag.length;
+                } else if (str.slice(index).startsWith(closeTag)) {
+                    depth--;
+                    if (depth === 0) {
+                        return index;
+                    }
+                    index += closeTag.length;
+                } else {
+                    index++;
+                }
+            }
+            return -1;
+        };
+        
+        // Helper to find matching delimiter (for * __ etc)
+        const findMatchingDelimiter = (str, delimiter, startOffset) => {
+            let index = startOffset;
+            while (index < str.length) {
+                if (str.slice(index).startsWith(delimiter)) {
+                    // Make sure it's not immediately followed by the same delimiter
+                    if (delimiter.length === 1 && str[index + 1] === delimiter) {
+                        index += 2;
+                        continue;
+                    }
+                    return index;
+                }
+                index++;
+            }
+            return -1;
+        };
+        
+        // Parse table content
+        const parseTableContent = (inner, key) => {
+            try {
+                const parts = inner.split(':');
+                const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                if (dimensionMatch) {
+                    const rows = parseInt(dimensionMatch[1]);
+                    const cols = parseInt(dimensionMatch[2]);
+                    const cellData = parts[1] ? parts[1].split('|') : [];
+                    
+                    // Parse optional widths, heights, and merged cells
+                    let colWidths = Array(cols).fill(60);
+                    let rowHeights = Array(rows).fill(30);
+                    let mergedCells = {};
+                    
+                    const widthIndex = parts.findIndex(p => p === 'W');
+                    if (widthIndex !== -1 && parts[widthIndex + 1]) {
+                        colWidths = parts[widthIndex + 1].split(',').map(w => parseInt(w) || 60);
+                    }
+                    
+                    const heightIndex = parts.findIndex(p => p === 'H');
+                    if (heightIndex !== -1 && parts[heightIndex + 1]) {
+                        rowHeights = parts[heightIndex + 1].split(',').map(h => parseInt(h) || 30);
+                    }
+                    
+                    const mergeIndex = parts.findIndex(p => p === 'M');
+                    if (mergeIndex !== -1 && parts[mergeIndex + 1]) {
+                        const mergeData = parts[mergeIndex + 1].split(';');
+                        mergeData.forEach(m => {
+                            const [r, c, colspan, rowspan] = m.split(',').map(n => parseInt(n));
+                            if (!mergedCells[r]) mergedCells[r] = {};
+                            mergedCells[r][c] = { colspan, rowspan };
+                        });
+                    }
+                    
+                    const isCellMerged = (rowIdx, colIdx) => {
+                        for (let r = 0; r <= rowIdx; r++) {
+                            for (let c = 0; c <= colIdx; c++) {
+                                const cell = mergedCells[r]?.[c];
+                                if (cell && (cell.colspan > 1 || cell.rowspan > 1)) {
+                                    const endRow = r + (cell.rowspan || 1) - 1;
+                                    const endCol = c + (cell.colspan || 1) - 1;
+                                    if (rowIdx >= r && rowIdx <= endRow && colIdx >= c && colIdx <= endCol) {
+                                        if (r === rowIdx && c === colIdx) return false;
+                                        return true;
                                     }
                                 }
                             }
-                            return false;
-                        };
-                        
-                        return (
-                            <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                        }
+                        return false;
+                    };
+                    
+                    return (
+                        <table key={key} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                            <tbody>
+                                {[...Array(rows)].map((_, rowIdx) => (
+                                    <tr key={rowIdx}>
+                                        {[...Array(cols)].map((_, colIdx) => {
+                                            if (isCellMerged(rowIdx, colIdx)) return null;
+                                            
+                                            const cellIndex = rowIdx * cols + colIdx;
+                                            const cellValue = cellData[cellIndex] || '';
+                                            const mergeInfo = mergedCells[rowIdx]?.[colIdx] || { colspan: 1, rowspan: 1 };
+                                            
+                                            return (
+                                                <td 
+                                                    key={colIdx} 
+                                                    colSpan={mergeInfo.colspan}
+                                                    rowSpan={mergeInfo.rowspan}
+                                                    style={{ 
+                                                        border: '1px solid #000', 
+                                                        padding: '8px', 
+                                                        width: `${colWidths[colIdx]}px`,
+                                                        height: `${rowHeights[rowIdx]}px`,
+                                                        minWidth: '60px', 
+                                                        minHeight: '30px' 
+                                                    }}
+                                                >
+                                                    {parseText(cellValue, key * 10000 + cellIndex * 100)}
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    );
+                }
+            } catch (e) {
+                return <span key={key}>{`[TABLE:${inner}]`}</span>;
+            }
+            return null;
+        };
+        
+        // Parse matrix content
+        const parseMatrixContent = (inner, key) => {
+            try {
+                const parts = inner.split(':');
+                const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
+                if (dimensionMatch) {
+                    const rows = parseInt(dimensionMatch[1]);
+                    const cols = parseInt(dimensionMatch[2]);
+                    const cellData = parts[1] ? parts[1].split('|') : [];
+                    return (
+                        <span key={key} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
+                            <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
+                            <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
                                 <tbody>
                                     {[...Array(rows)].map((_, rowIdx) => (
                                         <tr key={rowIdx}>
                                             {[...Array(cols)].map((_, colIdx) => {
-                                                if (isCellMerged(rowIdx, colIdx)) return null;
-                                                
                                                 const cellIndex = rowIdx * cols + colIdx;
                                                 const cellValue = cellData[cellIndex] || '';
-                                                const mergeInfo = mergedCells[rowIdx]?.[colIdx] || { colspan: 1, rowspan: 1 };
-                                                
                                                 return (
-                                                    <td 
-                                                        key={colIdx} 
-                                                        colSpan={mergeInfo.colspan}
-                                                        rowSpan={mergeInfo.rowspan}
-                                                        style={{ 
-                                                            border: '1px solid #000', 
-                                                            padding: '8px', 
-                                                            width: `${colWidths[colIdx]}px`,
-                                                            height: `${rowHeights[rowIdx]}px`,
-                                                            minWidth: '60px', 
-                                                            minHeight: '30px' 
-                                                        }}
-                                                    >
-                                                        {cellValue || '\u00A0'}
+                                                    <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
+                                                        {parseText(cellValue, key * 10000 + cellIndex * 100)}
                                                     </td>
                                                 );
                                             })}
@@ -1468,278 +1734,162 @@ export default function EditorDashboard({ onLogout }) {
                                     ))}
                                 </tbody>
                             </table>
-                        );
-                    }
-                } catch (e) {
-                    return <span key={index}>{part}</span>;
-                }
-            }
-
-            // Matrix: [MATRIX:RxC:data]
-            if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
-                try {
-                    const inner = part.slice(8, -1); // Remove [MATRIX: and ]
-                    const parts = inner.split(':');
-                    const dimensionMatch = parts[0].match(/(\d+)x(\d+)/);
-                    if (dimensionMatch) {
-                        const rows = parseInt(dimensionMatch[1]);
-                        const cols = parseInt(dimensionMatch[2]);
-                        const cellData = parts[1] ? parts[1].split('|') : [];
-                        return (
-                            <span key={index} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
-                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎡</span>
-                                <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
-                                    <tbody>
-                                        {[...Array(rows)].map((_, rowIdx) => (
-                                            <tr key={rowIdx}>
-                                                {[...Array(cols)].map((_, colIdx) => {
-                                                    const cellIndex = rowIdx * cols + colIdx;
-                                                    const cellValue = cellData[cellIndex] || '';
-                                                    return (
-                                                        <td key={colIdx} style={{ padding: '4px 8px', textAlign: 'center', minWidth: '40px' }}>
-                                                            {cellValue || '\u00A0'}
-                                                        </td>
-                                                    );
-                                                })}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                                <span style={{ fontSize: '2em', lineHeight: '1' }}>⎤</span>
-                            </span>
-                        );
-                    }
-                } catch (e) {
-                    return <span key={index}>{part}</span>;
-                }
-            }
-
-            // Fraction: [FRAC:num:den]
-            if (part.startsWith('[FRAC:') && part.endsWith(']')) {
-                try {
-                    const inner = part.slice(6, -1);
-                    const [num, den] = inner.split(':');
-                    return (
-                        <span key={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                            <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
-                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                            <span style={{ fontSize: '2em', lineHeight: '1' }}>⎤</span>
                         </span>
                     );
-                } catch (e) {
-                    return <span key={index}>{part}</span>;
                 }
+            } catch (e) {
+                return <span key={key}>{`[MATRIX:${inner}]`}</span>;
             }
-
-            // Mixed fraction: [MIX:whole:num:den]
-            if (part.startsWith('[MIX:') && part.endsWith(']')) {
-                try {
-                    const inner = part.slice(5, -1);
-                    const [whole, num, den] = inner.split(':');
-                    return (
-                        <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ fontSize: '0.95em' }}>{whole}</span>
-                            <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
-                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
-                            </span>
-                        </span>
-                    );
-                } catch (e) {
-                    return <span key={index}>{part}</span>;
-                }
-            }
-            // Superscript formatting
-            if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
-                const content = part.slice(5, -6); // Remove [SUP] and [/SUP]
-                return <sup key={index} className="text-sm">{content}</sup>;
-            }
+            return null;
+        };
+        
+        // Parse lines content
+        const parseLinesContent = (lineIdStr, key, answerLines, onRemoveLines) => {
+            const lineId = parseFloat(lineIdStr);
+            const lineConfig = answerLines.find(line => line.id === lineId);
             
-            // Subscript formatting
-            if (part.startsWith('[SUB]') && part.endsWith('[/SUB]')) {
-                const content = part.slice(5, -6); // Remove [SUB] and [/SUB]
-                return <sub key={index} className="text-sm">{content}</sub>;
-            }
-            
-            // Bold formatting
-            if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
-                const content = part.slice(2, -2);
-                return <strong key={index}>{content}</strong>;
-            }
-            
-            // Italic formatting
-            if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**') && part.length > 2) {
-                const content = part.slice(1, -1);
-                return <em key={index} className="italic">{content}</em>;
-            }
-            
-            // Underline formatting
-            if (part.startsWith('__') && part.endsWith('__') && part.length > 4) {
-                const content = part.slice(2, -2);
-                return <u key={index}>{content}</u>;
-            }
-            
-            // Single underscore italic
-            if (part.startsWith('_') && part.endsWith('_') && !part.startsWith('__') && part.length > 2) {
-                const content = part.slice(1, -1);
-                return <em key={index} className="italic">{content}</em>;
-            }
-            
-            // Answer lines
-            const linesMatch = part.match(/\[LINES:([\d.]+)\]/);
-            if (linesMatch) {
-                const lineId = parseFloat(linesMatch[1]);
-                const lineConfig = answerLines.find(line => line.id === lineId);
+            if (lineConfig) {
+                const maxWidth = 700;
+                const fullLines = Math.floor(lineConfig.numberOfLines);
+                const hasHalfLine = lineConfig.numberOfLines % 1 !== 0;
                 
-                if (lineConfig) {
-                    const maxWidth = 700;
-                    const fullLines = Math.floor(lineConfig.numberOfLines);
-                    const hasHalfLine = lineConfig.numberOfLines % 1 !== 0;
-                    
-                    return (
-                        <div key={index} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
-                            {[...Array(fullLines)].map((_, idx) => (
-                                <div
-                                    key={idx}
-                                    style={{
-                                        height: `${lineConfig.lineHeight}px`,
-                                        borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
-                                        width: '100%'
-                                    }}
-                                ></div>
-                            ))}
-                            {hasHalfLine && (
-                                <div
-                                    style={{
-                                        height: `${lineConfig.lineHeight / 2}px`,
-                                        borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
-                                        width: '100%'
-                                    }}
-                                ></div>
-                            )}
-                            {onRemoveLines && (
+                return (
+                    <div key={key} className="my-2 relative group" style={{ maxWidth: `${maxWidth}px` }}>
+                        {[...Array(fullLines)].map((_, idx) => (
+                            <div
+                                key={idx}
+                                style={{
+                                    height: `${lineConfig.lineHeight}px`,
+                                    borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
+                                    width: '100%'
+                                }}
+                            ></div>
+                        ))}
+                        {hasHalfLine && (
+                            <div
+                                style={{
+                                    height: `${lineConfig.lineHeight / 2}px`,
+                                    borderBottom: `2px ${lineConfig.lineStyle} rgba(0, 0, 0, ${lineConfig.opacity})`,
+                                    width: '100%'
+                                }}
+                            ></div>
+                        )}
+                        {onRemoveLines && (
+                            <button
+                                type="button"
+                                onClick={() => onRemoveLines(lineId)}
+                                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                                title="Remove lines"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                );
+            } else {
+                return (
+                    <div key={key} className="my-2 p-4 bg-yellow-50 border-2 border-dashed border-yellow-400 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm text-yellow-800">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <span className="font-medium">Answer Lines (Configuration Missing)</span>
+                        </div>
+                        <div className="mt-2 text-xs text-yellow-700">
+                            Line ID: {lineId.toFixed(0)} - The line configuration was not found. This might be an old question. 
+                            You can remove this placeholder and add new lines if needed.
+                        </div>
+                    </div>
+                );
+            }
+        };
+        
+        // Parse space content
+        const parseSpaceContent = (spaceIdStr, key) => {
+            const spaceId = parseFloat(spaceIdStr);
+            const maxWidth = 700;
+            const heightPx = 100;
+            
+            return (
+                <div key={key} className="my-2" style={{ maxWidth: `${maxWidth}px` }}>
+                    <div
+                        style={{
+                            height: `${heightPx}px`,
+                            width: '100%',
+                            background: 'white',
+                            border: 'none'
+                        }}
+                    ></div>
+                </div>
+            );
+        };
+        
+        // Parse image content
+        const parseImageContent = (match, key, images, imagePositions, onRemoveImage, context) => {
+            const imageMatchNew = match[0].match(/\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
+            const imageMatchOld = match[0].match(/\[IMAGE:([\d.]+):(\d+)px\]/);
+            
+            const imageId = parseFloat(imageMatchNew ? imageMatchNew[1] : imageMatchOld[1]);
+            const imageWidth = parseInt(imageMatchNew ? imageMatchNew[2] : imageMatchOld[2]);
+            const imageHeight = imageMatchNew ? parseInt(imageMatchNew[3]) : null;
+            const image = images.find(img => Math.abs(img.id - imageId) < 0.001);
+            const position = imagePositions[imageId];
+            
+            if (image) {
+                return (
+                    <span 
+                        key={key} 
+                        className={position ? "absolute z-10" : "inline-block align-middle my-2 mx-1"}
+                        style={position ? { left: `${position.x}px`, top: `${position.y}px` } : {}}
+                    >
+                        <span className="relative inline-block group">
+                            <img 
+                                src={image.url} 
+                                alt={image.name || 'Question image'}
+                                style={{ 
+                                    width: `${imageWidth}px`, 
+                                    height: imageHeight ? `${imageHeight}px` : 'auto',
+                                    maxWidth: context === 'similar' ? '200px' : '100%',
+                                    display: 'block'
+                                }}
+                                className="border-2 border-blue-400 rounded shadow-sm select-none"
+                            />
+                            
+                            {onRemoveImage && (
                                 <button
                                     type="button"
-                                    onClick={() => onRemoveLines(lineId)}
+                                    onClick={() => onRemoveImage(imageId)}
                                     className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
-                                    title="Remove lines"
+                                    title="Remove image"
                                 >
                                     ✕
                                 </button>
                             )}
-                        </div>
-                    );
-                } else {
-                    // Show placeholder when line config not found (e.g., lines from DB without config loaded)
-                    // This can happen if the question was created but the line configuration wasn't saved properly
-                    return (
-                        <div key={index} className="my-2 p-4 bg-yellow-50 border-2 border-dashed border-yellow-400 rounded-lg">
-                            <div className="flex items-center gap-2 text-sm text-yellow-800">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                                <span className="font-medium">Answer Lines (Configuration Missing)</span>
-                            </div>
-                            <div className="mt-2 text-xs text-yellow-700">
-                                Line ID: {lineId.toFixed(0)} - The line configuration was not found. This might be an old question. 
-                                You can remove this placeholder and add new lines if needed.
-                            </div>
-                        </div>
-                    );
-                }
-            }
-            
-            // Working space [SPACE:id]
-            const spaceMatch = part.match(/\[SPACE:([\d.]+)\]/);
-            if (spaceMatch) {
-                const spaceId = parseFloat(spaceMatch[1]);
-                // A4 printable width is approximately 170mm = ~640px at 96 DPI
-                const maxWidth = 700;
-                // For rendering in the printable document, we'll use a default height
-                // Since we don't have the config here, we'll just show a placeholder
-                // The actual rendering for PDF will use the stored heightMm
-                const heightPx = 100; // Default placeholder height
-                
-                return (
-                    <div key={index} className="my-2" style={{ maxWidth: `${maxWidth}px` }}>
-                        <div
-                            style={{
-                                height: `${heightPx}px`,
-                                width: '100%',
-                                background: 'white',
-                                border: 'none'
-                            }}
-                        ></div>
-                    </div>
-                );
-            }
-            
-            // Images
-            const imageMatchNew = part.match(/\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
-            const imageMatchOld = part.match(/\[IMAGE:([\d.]+):(\d+)px\]/);
-            
-            if (imageMatchNew || imageMatchOld) {
-                const imageId = parseFloat(imageMatchNew ? imageMatchNew[1] : imageMatchOld[1]);
-                const imageWidth = parseInt(imageMatchNew ? imageMatchNew[2] : imageMatchOld[2]);
-                const imageHeight = imageMatchNew ? parseInt(imageMatchNew[3]) : null;
-                const image = images.find(img => Math.abs(img.id - imageId) < 0.001);
-                const position = imagePositions[imageId];
-                
-                if (image) {
-                    return (
-                        <span 
-                            key={index} 
-                            className={position ? "absolute z-10" : "inline-block align-middle my-2 mx-1"}
-                            style={position ? { left: `${position.x}px`, top: `${position.y}px` } : {}}
-                        >
-                            <span className="relative inline-block group">
-                                <img 
-                                    src={image.url} 
-                                    alt={image.name || 'Question image'}
-                                    style={{ 
-                                        width: `${imageWidth}px`, 
-                                        height: imageHeight ? `${imageHeight}px` : 'auto',
-                                        maxWidth: context === 'similar' ? '200px' : '100%',
-                                        display: 'block'
-                                    }}
-                                    className="border-2 border-blue-400 rounded shadow-sm select-none"
-                                />
-                                
-                                {onRemoveImage && (
-                                    <button
-                                        type="button"
-                                        onClick={() => onRemoveImage(imageId)}
-                                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
-                                        title="Remove image"
-                                    >
-                                        ✕
-                                    </button>
-                                )}
-                            </span>
                         </span>
-                    );
-                }
-                
-                // If image not found, show informative placeholder
-                return (
-                    <div key={index} className="my-2 p-4 bg-red-50 border-2 border-dashed border-red-300 rounded-lg inline-block">
-                        <div className="flex items-center gap-2 text-sm text-red-800">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <span className="font-medium">Image Not Found</span>
-                        </div>
-                        <div className="mt-2 text-xs text-red-700">
-                            <div>Image ID: {imageId.toFixed(0)}</div>
-                            <div>Expected Size: {imageWidth}px × {imageHeight ? imageHeight + 'px' : 'auto'}</div>
-                            <div className="mt-1 italic">The image data is missing from the database. This question may need to be re-edited.</div>
-                        </div>
-                    </div>
+                    </span>
                 );
             }
             
-            // Regular text
-            return <span key={index}>{part}</span>;
-        });
+            return (
+                <div key={key} className="my-2 p-4 bg-red-50 border-2 border-dashed border-red-300 rounded-lg inline-block">
+                    <div className="flex items-center gap-2 text-sm text-red-800">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="font-medium">Image Not Found</span>
+                    </div>
+                    <div className="mt-2 text-xs text-red-700">
+                        <div>Image ID: {imageId.toFixed(0)}</div>
+                        <div>Expected Size: {imageWidth}px × {imageHeight ? imageHeight + 'px' : 'auto'}</div>
+                        <div className="mt-1 italic">The image data is missing from the database. This question may need to be re-edited.</div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // Start parsing from the root text
+        return parseText(text, 0);
     };
 
     const handleSubjectChange = (subject) => {
