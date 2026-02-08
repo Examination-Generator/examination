@@ -1375,27 +1375,21 @@ export default function EditorDashboard({ onLogout }) {
     const renderTextWithImages = (text, images = [], imagePositions = {}, answerLines = [], onRemoveImage = null, onRemoveLines = null, context = 'preview') => {
         if (!text) return [];
         
-        // Helper to extract content from a tag-like structure with bracket awareness
-        const extractBracketedContent = (str, openPattern, closeChar) => {
+        // Helper to find the closing bracket for a tag, accounting for nested brackets
+        // For input like "content[SUP]x[/SUP]:more]", it finds the final ]
+        const findClosingBracket = (str) => {
             let depth = 0;
-            let index = 0;
-            let isInTag = false;
-            
-            while (index < str.length) {
-                if (str[index] === '[') {
+            for (let i = 0; i < str.length; i++) {
+                if (str[i] === '[') {
                     depth++;
-                    isInTag = true;
-                } else if (str[index] === ']') {
-                    depth--;
+                } else if (str[i] === ']') {
                     if (depth === 0) {
-                        return { content: str.substring(0, index), endIndex: index };
+                        return i; // Found the closing bracket for our tag
                     }
-                } else if (str[index] === closeChar && depth === 0) {
-                    return { content: str.substring(0, index), endIndex: index };
+                    depth--;
                 }
-                index++;
             }
-            return null;
+            return -1;
         };
         
         // Helper to extract parts of a complex tag (e.g., FRAC:num:den or MIX:whole:num:den)
@@ -1442,12 +1436,14 @@ export default function EditorDashboard({ onLogout }) {
                 // Try to match each pattern in order of precedence
                 // Tables
                 if (remaining.startsWith('[TABLE:')) {
-                    const extracted = extractBracketedContent(remaining.slice(7), '[TABLE:', ']');
-                    if (extracted) {
-                        const tableContent = parseTableContent(extracted.content, keyCounter++);
+                    const contentStart = 7; // length of '[TABLE:'
+                    const closingIndex = findClosingBracket(remaining.slice(contentStart));
+                    if (closingIndex !== -1) {
+                        const content = remaining.slice(contentStart, contentStart + closingIndex);
+                        const tableContent = parseTableContent(content, keyCounter++);
                         if (tableContent) {
                             results.push(tableContent);
-                            currentIndex += 7 + extracted.endIndex + 1; // +7 for '[TABLE:', +1 for ']'
+                            currentIndex += contentStart + closingIndex + 1; // +1 for ']'
                             matched = true;
                             continue;
                         }
@@ -1456,12 +1452,14 @@ export default function EditorDashboard({ onLogout }) {
                 
                 // Matrix
                 if (remaining.startsWith('[MATRIX:')) {
-                    const extracted = extractBracketedContent(remaining.slice(8), '[MATRIX:', ']');
-                    if (extracted) {
-                        const matrixContent = parseMatrixContent(extracted.content, keyCounter++);
+                    const contentStart = 8; // length of '[MATRIX:'
+                    const closingIndex = findClosingBracket(remaining.slice(contentStart));
+                    if (closingIndex !== -1) {
+                        const content = remaining.slice(contentStart, contentStart + closingIndex);
+                        const matrixContent = parseMatrixContent(content, keyCounter++);
                         if (matrixContent) {
                             results.push(matrixContent);
-                            currentIndex += 8 + extracted.endIndex + 1;
+                            currentIndex += contentStart + closingIndex + 1;
                             matched = true;
                             continue;
                         }
@@ -1470,9 +1468,11 @@ export default function EditorDashboard({ onLogout }) {
                 
                 // Fraction with bracket-aware parsing
                 if (remaining.startsWith('[FRAC:')) {
-                    const extracted = extractBracketedContent(remaining.slice(6), '[FRAC:', ']');
-                    if (extracted) {
-                        const parts = extractTagParts(extracted.content, ':');
+                    const contentStart = 6; // length of '[FRAC:'
+                    const closingIndex = findClosingBracket(remaining.slice(contentStart));
+                    if (closingIndex !== -1) {
+                        const content = remaining.slice(contentStart, contentStart + closingIndex);
+                        const parts = extractTagParts(content, ':');
                         if (parts.length === 2) {
                             const numerator = parts[0];
                             const denominator = parts[1];
@@ -1482,7 +1482,7 @@ export default function EditorDashboard({ onLogout }) {
                                     <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{parseText(denominator, keyCounter * 1000)}</span>
                                 </span>
                             );
-                            currentIndex += 6 + extracted.endIndex + 1;
+                            currentIndex += contentStart + closingIndex + 1;
                             matched = true;
                             continue;
                         }
@@ -1491,9 +1491,11 @@ export default function EditorDashboard({ onLogout }) {
                 
                 // Mixed fraction with bracket-aware parsing
                 if (remaining.startsWith('[MIX:')) {
-                    const extracted = extractBracketedContent(remaining.slice(5), '[MIX:', ']');
-                    if (extracted) {
-                        const parts = extractTagParts(extracted.content, ':');
+                    const contentStart = 5; // length of '[MIX:'
+                    const closingIndex = findClosingBracket(remaining.slice(contentStart));
+                    if (closingIndex !== -1) {
+                        const content = remaining.slice(contentStart, contentStart + closingIndex);
+                        const parts = extractTagParts(content, ':');
                         if (parts.length === 3) {
                             const whole = parts[0];
                             const numerator = parts[1];
@@ -1507,7 +1509,7 @@ export default function EditorDashboard({ onLogout }) {
                                     </span>
                                 </span>
                             );
-                            currentIndex += 5 + extracted.endIndex + 1;
+                            currentIndex += contentStart + closingIndex + 1;
                             matched = true;
                             continue;
                         }
