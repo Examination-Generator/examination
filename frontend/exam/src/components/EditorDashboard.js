@@ -3550,7 +3550,7 @@ useEffect(() => {
         if (!text) return null;
 
         // Split by markdown patterns while preserving image placeholders
-        const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
+        const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
 
         return parts.map((part, index) => {
             // Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
@@ -3682,15 +3682,32 @@ useEffect(() => {
                 } catch (e) { return <span key={index}>{part}</span>; }
             }
 
+            // Helper function to render nested formatting within fractions
+            const renderNestedFormat = (str) => {
+                if (!str) return str;
+                const nestedParts = str.split(/(\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_)/g);
+                return nestedParts.map((p, i) => {
+                    if (p.startsWith('[SUP]') && p.endsWith('[/SUP]')) return <sup key={i}>{p.slice(5, -6)}</sup>;
+                    if (p.startsWith('[SUB]') && p.endsWith('[/SUB]')) return <sub key={i}>{p.slice(5, -6)}</sub>;
+                    if (p.startsWith('**') && p.endsWith('**') && p.length > 4) return <strong key={i}>{p.slice(2, -2)}</strong>;
+                    if (p.startsWith('*') && p.endsWith('*') && !p.startsWith('**') && p.length > 2) return <em key={i}>{p.slice(1, -1)}</em>;
+                    if (p.startsWith('__') && p.endsWith('__') && p.length > 4) return <u key={i}>{p.slice(2, -2)}</u>;
+                    if (p.startsWith('_') && p.endsWith('_') && !p.startsWith('__') && p.length > 2) return <em key={i}>{p.slice(1, -1)}</em>;
+                    return p;
+                });
+            };
+
             // Fraction: [FRAC:num:den]
             if (part.startsWith('[FRAC:') && part.endsWith(']')) {
                 try {
                     const inner = part.slice(6, -1);
-                    const [num, den] = inner.split(':');
+                    const colonIdx = inner.indexOf(':');
+                    const num = colonIdx !== -1 ? inner.slice(0, colonIdx) : inner;
+                    const den = colonIdx !== -1 ? inner.slice(colonIdx + 1) : '';
                     return (
                         <span key={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                            <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
-                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                            <span style={{ display: 'block', fontSize: '0.85em' }}>{renderNestedFormat(num)}</span>
+                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{renderNestedFormat(den)}</span>
                         </span>
                     );
                 } catch (e) { return <span key={index}>{part}</span>; }
@@ -3700,13 +3717,17 @@ useEffect(() => {
             if (part.startsWith('[MIX:') && part.endsWith(']')) {
                 try {
                     const inner = part.slice(5, -1);
-                    const [whole, num, den] = inner.split(':');
+                    const firstColon = inner.indexOf(':');
+                    const secondColon = inner.indexOf(':', firstColon + 1);
+                    const whole = firstColon !== -1 ? inner.slice(0, firstColon) : inner;
+                    const num = firstColon !== -1 && secondColon !== -1 ? inner.slice(firstColon + 1, secondColon) : '';
+                    const den = secondColon !== -1 ? inner.slice(secondColon + 1) : '';
                     return (
                         <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                            <span style={{ fontSize: '0.95em' }}>{renderNestedFormat(whole)}</span>
                             <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
-                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                <span style={{ display: 'block', fontSize: '0.85em' }}>{renderNestedFormat(num)}</span>
+                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{renderNestedFormat(den)}</span>
                             </span>
                         </span>
                     );
@@ -5667,7 +5688,7 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
+                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
                                             // Check for formatting first
                                             // Superscript formatting
                                             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
@@ -5807,15 +5828,32 @@ useEffect(() => {
                                                 } catch (e) { return <span key={index}>{part}</span>; }
                                             }
 
+                                            // Helper to render nested formatting within fraction parts
+                                            const renderNestedFormat = (str) => {
+                                                if (!str) return str;
+                                                const nestedParts = str.split(/(\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_)/g);
+                                                return nestedParts.map((p, i) => {
+                                                    if (p.startsWith('[SUP]') && p.endsWith('[/SUP]')) return <sup key={i}>{p.slice(5, -6)}</sup>;
+                                                    if (p.startsWith('[SUB]') && p.endsWith('[/SUB]')) return <sub key={i}>{p.slice(5, -6)}</sub>;
+                                                    if (p.startsWith('**') && p.endsWith('**') && p.length > 4) return <strong key={i}>{p.slice(2, -2)}</strong>;
+                                                    if (p.startsWith('*') && p.endsWith('*') && !p.startsWith('**') && p.length > 2) return <em key={i}>{p.slice(1, -1)}</em>;
+                                                    if (p.startsWith('__') && p.endsWith('__') && p.length > 4) return <u key={i}>{p.slice(2, -2)}</u>;
+                                                    if (p.startsWith('_') && p.endsWith('_') && !p.startsWith('__') && p.length > 2) return <em key={i}>{p.slice(1, -1)}</em>;
+                                                    return p;
+                                                });
+                                            };
+
                                             // Fraction: [FRAC:num:den]
                                             if (part.startsWith('[FRAC:') && part.endsWith(']')) {
                                                 try {
                                                     const inner = part.slice(6, -1);
-                                                    const [num, den] = inner.split(':');
+                                                    const colonIdx = inner.indexOf(':');
+                                                    const num = colonIdx !== -1 ? inner.slice(0, colonIdx) : inner;
+                                                    const den = colonIdx !== -1 ? inner.slice(colonIdx + 1) : '';
                                                     return (
                                                         <span key={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                                                            <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
-                                                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                            <span style={{ display: 'block', fontSize: '0.85em' }}>{renderNestedFormat(num)}</span>
+                                                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{renderNestedFormat(den)}</span>
                                                         </span>
                                                     );
                                                 } catch (e) { return <span key={index}>{part}</span>; }
@@ -5825,13 +5863,17 @@ useEffect(() => {
                                             if (part.startsWith('[MIX:') && part.endsWith(']')) {
                                                 try {
                                                     const inner = part.slice(5, -1);
-                                                    const [whole, num, den] = inner.split(':');
+                                                    const firstColon = inner.indexOf(':');
+                                                    const secondColon = inner.indexOf(':', firstColon + 1);
+                                                    const whole = firstColon !== -1 ? inner.slice(0, firstColon) : inner;
+                                                    const num = firstColon !== -1 && secondColon !== -1 ? inner.slice(firstColon + 1, secondColon) : '';
+                                                    const den = secondColon !== -1 ? inner.slice(secondColon + 1) : '';
                                                     return (
                                                         <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                            <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                                                            <span style={{ fontSize: '0.95em' }}>{renderNestedFormat(whole)}</span>
                                                             <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                                                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
-                                                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                                <span style={{ display: 'block', fontSize: '0.85em' }}>{renderNestedFormat(num)}</span>
+                                                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{renderNestedFormat(den)}</span>
                                                             </span>
                                                         </span>
                                                     );
@@ -6297,7 +6339,7 @@ useEffect(() => {
                                     <div className="mb-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                                         <p className="text-xs font-bold text-blue-800 mb-2">📝 QUESTION PREVIEW:</p>
                                         <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
                                                 // Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
                                                 if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                                                     try {
@@ -6424,16 +6466,33 @@ useEffect(() => {
                                                     } catch (e) { return <span key={index}>{part}</span>; }
                                                 }
 
+                                                // Helper to render nested formatting
+                                                const renderNestedFormat = (str) => {
+                                                    if (!str) return str;
+                                                    const nestedParts = str.split(/(\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_)/g);
+                                                    return nestedParts.map((p, i) => {
+                                                        if (p.startsWith('[SUP]') && p.endsWith('[/SUP]')) return <sup key={i}>{p.slice(5, -6)}</sup>;
+                                                        if (p.startsWith('[SUB]') && p.endsWith('[/SUB]')) return <sub key={i}>{p.slice(5, -6)}</sub>;
+                                                        if (p.startsWith('**') && p.endsWith('**') && p.length > 4) return <strong key={i}>{p.slice(2, -2)}</strong>;
+                                                        if (p.startsWith('*') && p.endsWith('*') && !p.startsWith('**') && p.length > 2) return <em key={i}>{p.slice(1, -1)}</em>;
+                                                        if (p.startsWith('__') && p.endsWith('__') && p.length > 4) return <u key={i}>{p.slice(2, -2)}</u>;
+                                                        if (p.startsWith('_') && p.endsWith('_') && !p.startsWith('__') && p.length > 2) return <em key={i}>{p.slice(1, -1)}</em>;
+                                                        return p;
+                                                    });
+                                                };
+
                                                 // Check for formatting first
                                                 // Fraction: [FRAC:num:den]
                                                 if (part.startsWith('[FRAC:') && part.endsWith(']')) {
                                                     try {
                                                         const inner = part.slice(6, -1);
-                                                        const [num, den] = inner.split(':');
+                                                        const colonIdx = inner.indexOf(':');
+                                                        const num = colonIdx !== -1 ? inner.slice(0, colonIdx) : inner;
+                                                        const den = colonIdx !== -1 ? inner.slice(colonIdx + 1) : '';
                                                         return (
                                                             <span key={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                                                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
-                                                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                                <span style={{ display: 'block', fontSize: '0.85em' }}>{renderNestedFormat(num)}</span>
+                                                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{renderNestedFormat(den)}</span>
                                                             </span>
                                                         );
                                                     } catch (e) { return <span key={index}>{part}</span>; }
@@ -6443,13 +6502,17 @@ useEffect(() => {
                                                 if (part.startsWith('[MIX:') && part.endsWith(']')) {
                                                     try {
                                                         const inner = part.slice(5, -1);
-                                                        const [whole, num, den] = inner.split(':');
+                                                        const firstColon = inner.indexOf(':');
+                                                        const secondColon = inner.indexOf(':', firstColon + 1);
+                                                        const whole = firstColon !== -1 ? inner.slice(0, firstColon) : inner;
+                                                        const num = firstColon !== -1 && secondColon !== -1 ? inner.slice(firstColon + 1, secondColon) : '';
+                                                        const den = secondColon !== -1 ? inner.slice(secondColon + 1) : '';
                                                         return (
                                                             <span key={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                                <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                                                                <span style={{ fontSize: '0.95em' }}>{renderNestedFormat(whole)}</span>
                                                                 <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                                                                    <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
-                                                                    <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                                    <span style={{ display: 'block', fontSize: '0.85em' }}>{renderNestedFormat(num)}</span>
+                                                                    <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{renderNestedFormat(den)}</span>
                                                                 </span>
                                                             </span>
                                                         );
@@ -6547,7 +6610,7 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
+                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
                                             // Check for formatting first
                                             // Superscript formatting
                                             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
@@ -6687,15 +6750,32 @@ useEffect(() => {
                                                 } catch (e) { return <span key={index}>{part}</span>; }
                                             }
 
+                                            // Helper to render nested formatting within fractions
+                                            const renderNestedFormat = (str) => {
+                                                if (!str) return str;
+                                                const nestedParts = str.split(/(\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_)/g);
+                                                return nestedParts.map((p, i) => {
+                                                    if (p.startsWith('[SUP]') && p.endsWith('[/SUP]')) return <sup key={i}>{p.slice(5, -6)}</sup>;
+                                                    if (p.startsWith('[SUB]') && p.endsWith('[/SUB]')) return <sub key={i}>{p.slice(5, -6)}</sub>;
+                                                    if (p.startsWith('**') && p.endsWith('**') && p.length > 4) return <strong key={i}>{p.slice(2, -2)}</strong>;
+                                                    if (p.startsWith('*') && p.endsWith('*') && !p.startsWith('**') && p.length > 2) return <em key={i}>{p.slice(1, -1)}</em>;
+                                                    if (p.startsWith('__') && p.endsWith('__') && p.length > 4) return <u key={i}>{p.slice(2, -2)}</u>;
+                                                    if (p.startsWith('_') && p.endsWith('_') && !p.startsWith('__') && p.length > 2) return <em key={i}>{p.slice(1, -1)}</em>;
+                                                    return p;
+                                                });
+                                            };
+
                                             // Fraction: [FRAC:num:den]
                                             if (part.startsWith('[FRAC:') && part.endsWith(']')) {
                                                 try {
                                                     const inner = part.slice(6, -1);
-                                                    const [num, den] = inner.split(':');
+                                                    const colonIdx = inner.indexOf(':');
+                                                    const num = colonIdx !== -1 ? inner.slice(0, colonIdx) : inner;
+                                                    const den = colonIdx !== -1 ? inner.slice(colonIdx + 1) : '';
                                                     return (
                                                         <span key={index} data-text-index={index} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                                                            <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
-                                                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                            <span style={{ display: 'block', fontSize: '0.85em' }}>{renderNestedFormat(num)}</span>
+                                                            <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{renderNestedFormat(den)}</span>
                                                         </span>
                                                     );
                                                 } catch (e) { return <span key={index}>{part}</span>; }
@@ -6705,13 +6785,17 @@ useEffect(() => {
                                             if (part.startsWith('[MIX:') && part.endsWith(']')) {
                                                 try {
                                                     const inner = part.slice(5, -1);
-                                                    const [whole, num, den] = inner.split(':');
+                                                    const firstColon = inner.indexOf(':');
+                                                    const secondColon = inner.indexOf(':', firstColon + 1);
+                                                    const whole = firstColon !== -1 ? inner.slice(0, firstColon) : inner;
+                                                    const num = firstColon !== -1 && secondColon !== -1 ? inner.slice(firstColon + 1, secondColon) : '';
+                                                    const den = secondColon !== -1 ? inner.slice(secondColon + 1) : '';
                                                     return (
                                                         <span key={index} data-text-index={index} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                            <span style={{ fontSize: '0.95em' }}>{whole}</span>
+                                                            <span style={{ fontSize: '0.95em' }}>{renderNestedFormat(whole)}</span>
                                                             <span style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                                                                <span style={{ display: 'block', fontSize: '0.85em' }}>{num}</span>
-                                                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{den}</span>
+                                                                <span style={{ display: 'block', fontSize: '0.85em' }}>{renderNestedFormat(num)}</span>
+                                                                <span style={{ display: 'block', borderTop: '1px solid', paddingTop: '1px', fontSize: '0.85em' }}>{renderNestedFormat(den)}</span>
                                                             </span>
                                                         </span>
                                                     );
