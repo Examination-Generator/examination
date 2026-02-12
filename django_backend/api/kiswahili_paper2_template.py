@@ -633,9 +633,46 @@ def generate_kiswahili_paper2_html(coverpage_data, questions, coverpage_class=No
 
 
 def _process_question_text(text, images=None, answer_lines=None):
-    """Process question text to render images, answer lines, and formatting"""
+    """Process question text to render images, answer lines, and formatting with nested formatting support"""
     if not text:
         return ""
+    
+    # Helper function to render nested formatting within fractions and other content
+    def render_nested_format(content):
+        """Process nested formatting like [SUP], [SUB], bold, italic, underline"""
+        if not content:
+            return content
+        
+        # Pattern to match nested formatting tags
+        nested_pattern = r'(\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\*\*.*?\*\*|\*(?!\*)[^*]+?\*|__.*?__|_(?!_)[^_]+?_)'
+        nested_parts = re.split(nested_pattern, content)
+        
+        nested_result = []
+        for p in nested_parts:
+            if not p:
+                continue
+            # Superscript
+            if p.startswith('[SUP]') and p.endswith('[/SUP]'):
+                nested_result.append(f'<sup style="font-size: 0.75em;">{p[5:-6]}</sup>')
+            # Subscript
+            elif p.startswith('[SUB]') and p.endswith('[/SUB]'):
+                nested_result.append(f'<sub style="font-size: 0.75em;">{p[5:-6]}</sub>')
+            # Bold
+            elif p.startswith('**') and p.endswith('**') and len(p) > 4:
+                nested_result.append(f'<strong>{p[2:-2]}</strong>')
+            # Italic (single asterisk, not double)
+            elif p.startswith('*') and p.endswith('*') and not p.startswith('**') and len(p) > 2:
+                nested_result.append(f'<em>{p[1:-1]}</em>')
+            # Underline (double underscore)
+            elif p.startswith('__') and p.endswith('__') and len(p) > 4:
+                nested_result.append(f'<u>{p[2:-2]}</u>')
+            # Italic (single underscore)
+            elif p.startswith('_') and p.endswith('_') and not p.startswith('__') and len(p) > 2:
+                nested_result.append(f'<em>{p[1:-1]}</em>')
+            else:
+                nested_result.append(p)
+        
+        return ''.join(nested_result)
     
     # Create lookup dictionaries
     images_dict = {}
@@ -648,8 +685,8 @@ def _process_question_text(text, images=None, answer_lines=None):
         for line in answer_lines:
             lines_dict[float(line.get('id', 0))] = line
     
-    # Pattern for formatting tags
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
+    # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
     parts = re.split(pattern, text)
     
     result = []
@@ -657,6 +694,157 @@ def _process_question_text(text, images=None, answer_lines=None):
     for part in parts:
         if not part:
             continue
+        
+        # Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
+        if part.startswith('[TABLE:') and part.endswith(']'):
+            try:
+                inner = part[7:-1]
+                parts_list = inner.split(':')
+                dimension_match = re.match(r'(\d+)x(\d+)', parts_list[0])
+                if dimension_match:
+                    rows = int(dimension_match.group(1))
+                    cols = int(dimension_match.group(2))
+                    cell_data = parts_list[1].split('|') if len(parts_list) > 1 else []
+                    col_widths = [60] * cols
+                    row_heights = [30] * rows
+                    merged_cells = {}
+                    try:
+                        width_index = parts_list.index('W')
+                        if width_index != -1 and len(parts_list) > width_index + 1:
+                            col_widths = [int(w) or 60 for w in parts_list[width_index + 1].split(',')]
+                    except (ValueError, IndexError):
+                        pass
+                    try:
+                        height_index = parts_list.index('H')
+                        if height_index != -1 and len(parts_list) > height_index + 1:
+                            row_heights = [int(h) or 30 for h in parts_list[height_index + 1].split(',')]
+                    except (ValueError, IndexError):
+                        pass
+                    try:
+                        merge_index = parts_list.index('M')
+                        if merge_index != -1 and len(parts_list) > merge_index + 1:
+                            merge_data = parts_list[merge_index + 1].split(';')
+                            for m in merge_data:
+                                cell_info = m.split(',')
+                                if len(cell_info) == 4:
+                                    r, c, colspan, rowspan = map(int, cell_info)
+                                    if r not in merged_cells:
+                                        merged_cells[r] = {}
+                                    merged_cells[r][c] = {'colspan': colspan, 'rowspan': rowspan}
+                    except (ValueError, IndexError):
+                        pass
+                    def is_cell_merged(row_idx, col_idx):
+                        for r in range(row_idx + 1):
+                            for c in range(col_idx + 1):
+                                if r in merged_cells and c in merged_cells[r]:
+                                    cell = merged_cells[r][c]
+                                    colspan = cell.get('colspan', 1)
+                                    rowspan = cell.get('rowspan', 1)
+                                    if (row_idx >= r and row_idx <= r + rowspan - 1 and col_idx >= c and col_idx <= c + colspan - 1):
+                                        return r != row_idx or c != col_idx
+                        return False
+                    table_html = '<table style="border: 1px solid #000; border-collapse: collapse; margin: 8px 0; display: inline-table;"><tbody>'
+                    for row_idx in range(rows):
+                        table_html += '<tr>'
+                        for col_idx in range(cols):
+                            if is_cell_merged(row_idx, col_idx):
+                                continue
+                            cell_index = row_idx * cols + col_idx
+                            cell_value = cell_data[cell_index] if cell_index < len(cell_data) else ''
+                            cell_html = render_nested_format(cell_value) if cell_value else '&nbsp;'
+                            merge_info = merged_cells.get(row_idx, {}).get(col_idx, {'colspan': 1, 'rowspan': 1})
+                            colspan_attr = f' colspan="{merge_info["colspan"]}"' if merge_info['colspan'] > 1 else ''
+                            rowspan_attr = f' rowspan="{merge_info["rowspan"]}"' if merge_info['rowspan'] > 1 else ''
+                            table_html += f'<td{colspan_attr}{rowspan_attr} style="border: 1px solid #000; padding: 8px; width: {col_widths[col_idx]}px; height: {row_heights[row_idx]}px; min-width: 60px; min-height: 30px;">{cell_html}</td>'
+                        table_html += '</tr>'
+                    table_html += '</tbody></table>'
+                    result.append(table_html)
+                    continue
+            except Exception:
+                result.append(part)
+                continue
+        
+        # Matrix: [MATRIX:RxC:data]
+        if part.startswith('[MATRIX:') and part.endswith(']'):
+            try:
+                inner = part[8:-1]
+                parts_list = inner.split(':')
+                dimension_match = re.match(r'(\d+)x(\d+)', parts_list[0])
+                if dimension_match:
+                    rows = int(dimension_match.group(1))
+                    cols = int(dimension_match.group(2))
+                    cell_data = parts_list[1].split('|') if len(parts_list) > 1 else []
+                    matrix_html = '<span style="display: inline-flex; align-items: center; margin: 8px 4px; font-size: 1.2em;"><span style="font-size: 2em; line-height: 1;">⎡</span><table style="border-collapse: collapse; margin: 0 4px;"><tbody>'
+                    for row_idx in range(rows):
+                        matrix_html += '<tr>'
+                        for col_idx in range(cols):
+                            cell_index = row_idx * cols + col_idx
+                            cell_value = cell_data[cell_index] if cell_index < len(cell_data) else ''
+                            cell_html = render_nested_format(cell_value) if cell_value else '&nbsp;'
+                            matrix_html += f'<td style="padding: 4px 8px; text-align: center; min-width: 40px;">{cell_html}</td>'
+                        matrix_html += '</tr>'
+                    matrix_html += '</tbody></table><span style="font-size: 2em; line-height: 1;">⎤</span></span>'
+                    result.append(matrix_html)
+                    continue
+            except Exception:
+                result.append(part)
+                continue
+        
+        # Fraction: [FRAC:num:den]
+        if part.startswith('[FRAC:') and part.endswith(']'):
+            try:
+                inner = part[6:-1]
+                colon_idx = -1
+                bracket_depth = 0
+                for i, char in enumerate(inner):
+                    if char == '[':
+                        bracket_depth += 1
+                    elif char == ']':
+                        bracket_depth -= 1
+                    elif char == ':' and bracket_depth == 0:
+                        colon_idx = i
+                        break
+                num = inner[:colon_idx] if colon_idx != -1 else inner
+                den = inner[colon_idx + 1:] if colon_idx != -1 else ''
+                num_html = render_nested_format(num)
+                den_html = render_nested_format(den)
+                frac_html = f'<span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num_html}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den_html}</span></span>'
+                result.append(frac_html)
+                continue
+            except Exception:
+                result.append(part)
+                continue
+        
+        # Mixed fraction: [MIX:whole:num:den]
+        if part.startswith('[MIX:') and part.endswith(']'):
+            try:
+                inner = part[5:-1]
+                colon_positions = []
+                bracket_depth = 0
+                for i, char in enumerate(inner):
+                    if char == '[':
+                        bracket_depth += 1
+                    elif char == ']':
+                        bracket_depth -= 1
+                    elif char == ':' and bracket_depth == 0:
+                        colon_positions.append(i)
+                if len(colon_positions) >= 2:
+                    whole = inner[:colon_positions[0]]
+                    num = inner[colon_positions[0] + 1:colon_positions[1]]
+                    den = inner[colon_positions[1] + 1:]
+                else:
+                    whole = inner
+                    num = ''
+                    den = ''
+                whole_html = render_nested_format(whole)
+                num_html = render_nested_format(num)
+                den_html = render_nested_format(den)
+                mix_html = f'<span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 0.95em;">{whole_html}</span><span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num_html}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den_html}</span></span></span>'
+                result.append(mix_html)
+                continue
+            except Exception:
+                result.append(part)
+                continue
         
         # Superscript: [SUP]content[/SUP]
         if part.startswith('[SUP]') and part.endswith('[/SUP]'):

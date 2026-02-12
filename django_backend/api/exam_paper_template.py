@@ -849,10 +849,47 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
 def _process_question_text(text, images=None, answer_lines=None):
     """
     Process question text to render images, answer lines, tables, matrices, fractions, 
-    superscript, subscript, and other formatting
+    superscript, subscript, and other formatting with support for nested formatting
     """
     if not text:
         return ""
+    
+    # Helper function to render nested formatting within fractions and other content
+    def render_nested_format(content):
+        """Process nested formatting like [SUP], [SUB], bold, italic, underline"""
+        if not content:
+            return content
+        
+        # Pattern to match nested formatting tags
+        nested_pattern = r'(\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\*\*.*?\*\*|\*(?!\*)[^*]+?\*|__.*?__|_(?!_)[^_]+?_)'
+        nested_parts = re.split(nested_pattern, content)
+        
+        nested_result = []
+        for p in nested_parts:
+            if not p:
+                continue
+            # Superscript
+            if p.startswith('[SUP]') and p.endswith('[/SUP]'):
+                nested_result.append(f'<sup style="font-size: 0.75em;">{p[5:-6]}</sup>')
+            # Subscript
+            elif p.startswith('[SUB]') and p.endswith('[/SUB]'):
+                nested_result.append(f'<sub style="font-size: 0.75em;">{p[5:-6]}</sub>')
+            # Bold
+            elif p.startswith('**') and p.endswith('**') and len(p) > 4:
+                nested_result.append(f'<strong>{p[2:-2]}</strong>')
+            # Italic (single asterisk, not double)
+            elif p.startswith('*') and p.endswith('*') and not p.startswith('**') and len(p) > 2:
+                nested_result.append(f'<em>{p[1:-1]}</em>')
+            # Underline (double underscore)
+            elif p.startswith('__') and p.endswith('__') and len(p) > 4:
+                nested_result.append(f'<u>{p[2:-2]}</u>')
+            # Italic (single underscore)
+            elif p.startswith('_') and p.endswith('_') and not p.startswith('__') and len(p) > 2:
+                nested_result.append(f'<em>{p[1:-1]}</em>')
+            else:
+                nested_result.append(p)
+        
+        return ''.join(nested_result)
     
     # Create lookup dictionaries
     images_dict = {}
@@ -865,8 +902,8 @@ def _process_question_text(text, images=None, answer_lines=None):
         for line in answer_lines:
             lines_dict[float(line.get('id', 0))] = line
     
-    # Enhanced pattern to include SUP, SUB, FRAC, MIX, TABLE, MATRIX, LINES, and SPACE tags
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
+    # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
     parts = re.split(pattern, text)
     
     result = []
@@ -886,9 +923,10 @@ def _process_question_text(text, images=None, answer_lines=None):
                     cols = int(dimension_match.group(2))
                     cell_data = parts_list[1].split('|') if len(parts_list) > 1 else []
                     
-                    # Parse optional widths and heights
+                    # Parse optional widths, heights, and merged cells
                     col_widths = [60] * cols
                     row_heights = [30] * rows
+                    merged_cells = {}
                     
                     # Look for width data (W:width1,width2,...)
                     try:
@@ -906,18 +944,66 @@ def _process_question_text(text, images=None, answer_lines=None):
                     except (ValueError, IndexError):
                         pass
                     
+                    # Look for merged cell data (M:r,c,colspan,rowspan;...)
+                    try:
+                        merge_index = parts_list.index('M')
+                        if merge_index != -1 and len(parts_list) > merge_index + 1:
+                            merge_data = parts_list[merge_index + 1].split(';')
+                            for m in merge_data:
+                                cell_info = m.split(',')
+                                if len(cell_info) == 4:
+                                    r, c, colspan, rowspan = map(int, cell_info)
+                                    if r not in merged_cells:
+                                        merged_cells[r] = {}
+                                    merged_cells[r][c] = {'colspan': colspan, 'rowspan': rowspan}
+                    except (ValueError, IndexError):
+                        pass
+                    
+                    # Helper to check if cell should be skipped (part of merged cell)
+                    def is_cell_merged(row_idx, col_idx):
+                        for r in range(row_idx + 1):
+                            for c in range(col_idx + 1):
+                                if r in merged_cells and c in merged_cells[r]:
+                                    cell = merged_cells[r][c]
+                                    colspan = cell.get('colspan', 1)
+                                    rowspan = cell.get('rowspan', 1)
+                                    end_row = r + rowspan - 1
+                                    end_col = c + colspan - 1
+                                    
+                                    if (row_idx >= r and row_idx <= end_row and 
+                                        col_idx >= c and col_idx <= end_col):
+                                        # This cell is within a merged cell's span
+                                        if r == row_idx and c == col_idx:
+                                            return False  # This is the origin cell
+                                        return True  # This cell should be skipped
+                        return False
+                    
                     # Build HTML table
                     table_html = '<table style="border: 1px solid #000; border-collapse: collapse; margin: 8px 0; display: inline-table;"><tbody>'
                     
                     for row_idx in range(rows):
                         table_html += '<tr>'
                         for col_idx in range(cols):
+                            # Skip cells that are part of a merged cell
+                            if is_cell_merged(row_idx, col_idx):
+                                continue
+                            
                             cell_index = row_idx * cols + col_idx
                             cell_value = cell_data[cell_index] if cell_index < len(cell_data) else ''
+                            # Process nested formatting in table cells
+                            cell_html = render_nested_format(cell_value) if cell_value else '&nbsp;'
                             width = col_widths[col_idx] if col_idx < len(col_widths) else 60
                             height = row_heights[row_idx] if row_idx < len(row_heights) else 30
                             
-                            table_html += f'<td style="border: 1px solid #000; padding: 8px; width: {width}px; height: {height}px; min-width: 60px; min-height: 30px;">{cell_value or "&nbsp;"}</td>'
+                            # Check if this cell is the origin of a merged cell
+                            merge_info = merged_cells.get(row_idx, {}).get(col_idx, {'colspan': 1, 'rowspan': 1})
+                            colspan = merge_info.get('colspan', 1)
+                            rowspan = merge_info.get('rowspan', 1)
+                            
+                            colspan_attr = f' colspan="{colspan}"' if colspan > 1 else ''
+                            rowspan_attr = f' rowspan="{rowspan}"' if rowspan > 1 else ''
+                            
+                            table_html += f'<td{colspan_attr}{rowspan_attr} style="border: 1px solid #000; padding: 8px; width: {width}px; height: {height}px; min-width: 60px; min-height: 30px;">{cell_html}</td>'
                         table_html += '</tr>'
                     
                     table_html += '</tbody></table>'
@@ -927,7 +1013,7 @@ def _process_question_text(text, images=None, answer_lines=None):
                 result.append(part)
                 continue
         
-        # Matrix: [MATRIX:RxC:data]
+        # Matrix: [MATRIX:RxC:data] - with support for nested formatting in cells
         if part.startswith('[MATRIX:') and part.endswith(']'):
             try:
                 inner = part[8:-1]  # Remove [MATRIX: and ]
@@ -948,7 +1034,9 @@ def _process_question_text(text, images=None, answer_lines=None):
                         for col_idx in range(cols):
                             cell_index = row_idx * cols + col_idx
                             cell_value = cell_data[cell_index] if cell_index < len(cell_data) else ''
-                            matrix_html += f'<td style="padding: 4px 8px; text-align: center; min-width: 40px;">{cell_value or "&nbsp;"}</td>'
+                            # Process nested formatting in matrix cells
+                            cell_html = render_nested_format(cell_value) if cell_value else '&nbsp;'
+                            matrix_html += f'<td style="padding: 4px 8px; text-align: center; min-width: 40px;">{cell_html}</td>'
                         matrix_html += '</tr>'
                     
                     matrix_html += '</tbody></table>'
@@ -960,24 +1048,71 @@ def _process_question_text(text, images=None, answer_lines=None):
                 result.append(part)
                 continue
         
-        # Fraction: [FRAC:num:den]
+        # Fraction: [FRAC:num:den] - with support for nested formatting
         if part.startswith('[FRAC:') and part.endswith(']'):
             try:
                 inner = part[6:-1]
-                num, den = inner.split(':')
-                frac_html = f'<span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den}</span></span>'
+                # Find the colon that separates numerator and denominator
+                # Handle nested brackets within numerator/denominator
+                colon_idx = -1
+                bracket_depth = 0
+                for i, char in enumerate(inner):
+                    if char == '[':
+                        bracket_depth += 1
+                    elif char == ']':
+                        bracket_depth -= 1
+                    elif char == ':' and bracket_depth == 0:
+                        colon_idx = i
+                        break
+                
+                if colon_idx != -1:
+                    num = inner[:colon_idx]
+                    den = inner[colon_idx + 1:]
+                else:
+                    num = inner
+                    den = ''
+                
+                # Process nested formatting in numerator and denominator
+                num_html = render_nested_format(num)
+                den_html = render_nested_format(den)
+                
+                frac_html = f'<span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num_html}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den_html}</span></span>'
                 result.append(frac_html)
                 continue
             except Exception:
                 result.append(part)
                 continue
         
-        # Mixed fraction: [MIX:whole:num:den]
+        # Mixed fraction: [MIX:whole:num:den] - with support for nested formatting
         if part.startswith('[MIX:') and part.endswith(']'):
             try:
                 inner = part[5:-1]
-                whole, num, den = inner.split(':')
-                mix_html = f'<span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 0.95em;">{whole}</span><span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den}</span></span></span>'
+                # Parse with support for nested brackets
+                colon_positions = []
+                bracket_depth = 0
+                for i, char in enumerate(inner):
+                    if char == '[':
+                        bracket_depth += 1
+                    elif char == ']':
+                        bracket_depth -= 1
+                    elif char == ':' and bracket_depth == 0:
+                        colon_positions.append(i)
+                
+                if len(colon_positions) >= 2:
+                    whole = inner[:colon_positions[0]]
+                    num = inner[colon_positions[0] + 1:colon_positions[1]]
+                    den = inner[colon_positions[1] + 1:]
+                else:
+                    whole = inner
+                    num = ''
+                    den = ''
+                
+                # Process nested formatting
+                whole_html = render_nested_format(whole)
+                num_html = render_nested_format(num)
+                den_html = render_nested_format(den)
+                
+                mix_html = f'<span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 0.95em;">{whole_html}</span><span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num_html}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den_html}</span></span></span>'
                 result.append(mix_html)
                 continue
             except Exception:
