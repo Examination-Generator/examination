@@ -427,7 +427,7 @@ class KCSEPhysicsPaperGenerator:
                 'topic': {
                     'id': str(question.topic.id),
                     'name': question.topic.name
-                },
+                } if question.topic else {'id': None, 'name': 'Unknown Topic'},
                 'section': {
                     'id': str(question.section.id),
                     'name': question.section.name,
@@ -449,7 +449,8 @@ class KCSEPhysicsPaperGenerator:
         # Build topic distribution
         topic_distribution = defaultdict(int)
         for q in all_questions:
-            topic_distribution[str(q.topic.id)] += 1
+            topic_id = str(q.topic.id) if q.topic else 'unknown'
+            topic_distribution[topic_id] += 1
         
         # Build question type distribution
         question_type_distribution = defaultdict(int)

@@ -1188,7 +1188,7 @@ def _process_question_text(text, images=None, answer_lines=None):
                     result.append(f'<div style="margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 11pt;"> Answer Lines (ID: {int(line_id)})</div>')
         
         # Working space: [SPACE:id]
-        elif part.startswith('[SPACE:') and part.endsWith(']'):
+        elif part.startswith('[SPACE:') and part.endswith(']'):
             space_match = re.match(r'\[SPACE:([\d.]+)\]', part)
             if space_match:
                 space_id = float(space_match.group(1))

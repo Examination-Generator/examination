@@ -1305,7 +1305,7 @@ def preview_full_exam(request, paper_id):
                         'marks': question.marks,
                         'is_nested': question.is_nested,
                         'nested_parts': question.nested_parts if question.is_nested else None,
-                        'topic': question.topic.name,
+                        'topic': question.topic.name if question.topic else 'Unknown Topic',
                         'section': {
                             'id': str(question.section.id),
                             'name': question.section.name,
