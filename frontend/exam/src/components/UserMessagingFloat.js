@@ -194,7 +194,7 @@ export default function UserMessagingFloat() {
 
             {/* Messaging Panel */}
             {isOpen && (
-                <div className="fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden border-2 border-gray-200 print:hidden">
+                <div className="fixed bottom-6 left-[10%] right-[10%] sm:left-auto sm:right-6 z-50 w-[80%] sm:w-[460px] md:w-[520px] max-w-2xl h-[85vh] max-h-[36rem] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden border-2 border-gray-200 print:hidden">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-green-600 to-green-700 p-4 flex items-center justify-between">
                         <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -235,7 +235,7 @@ export default function UserMessagingFloat() {
                                     </button>
                                 </div>
 
-                                <div className="flex-1 space-y-4">
+                                <div className="flex-1 overflow-y-auto space-y-4 pr-2">
                                     <div>
                                         <label className="block text-sm font-bold text-gray-700 mb-1">
                                             Subject (Optional)
@@ -257,7 +257,7 @@ export default function UserMessagingFloat() {
                                             value={messageText}
                                             onChange={(e) => setMessageText(e.target.value)}
                                             placeholder="Describe your issue or question..."
-                                            rows={10}
+                                            rows={5}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
                                         />
                                     </div>
@@ -266,7 +266,7 @@ export default function UserMessagingFloat() {
                                 <button
                                     onClick={sendNewMessage}
                                     disabled={isSending || !messageText.trim()}
-                                    className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 mt-4"
+                                    className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-2 rounded-lg font-bold transition flex items-center justify-center gap-2 mt-4 flex-shrink-0"
                                 >
                                     {isSending ? (
                                         <>
@@ -341,7 +341,7 @@ export default function UserMessagingFloat() {
                                     )}
                                 </div>
 
-                                <div className="p-3 border-t border-gray-200">
+                                <div className="p-3 border-t border-gray-200 flex-shrink-0">
                                     <div className="flex items-end gap-2">
                                         <textarea
                                             value={replyText}
@@ -359,7 +359,7 @@ export default function UserMessagingFloat() {
                                         <button
                                             onClick={sendReply}
                                             disabled={isSending || !replyText.trim()}
-                                            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white p-2 rounded-lg transition"
+                                            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white p-2 rounded-lg transition flex-shrink-0"
                                         >
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
