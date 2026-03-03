@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as messagingService from '../services/messagingService';
+import AlertModal from './AlertModal';
+import ConfirmModal from './ConfirmModal';
 
 export default function SystemMessaging() {
     const [messages, setMessages] = useState([]);
@@ -12,6 +14,14 @@ export default function SystemMessaging() {
     const [showUnreadOnly, setShowUnreadOnly] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const messageEndRef = useRef(null);
+    
+    // Alert modal state
+    const [showAlert, setShowAlert] = useState(false);
+    const [alertConfig, setAlertConfig] = useState({ title: '', message: '', type: 'info' });
+    
+    // Confirm modal state
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [confirmConfig, setConfirmConfig] = useState({ title: '', message: '', onConfirm: null });
 
     useEffect(() => {
         loadMessages();
@@ -100,31 +110,45 @@ export default function SystemMessaging() {
             await loadMessages(true);
         } catch (error) {
             console.error('Failed to send reply:', error);
-            alert('Failed to send reply. Please try again.');
+            setAlertConfig({
+                title: 'Error',
+                message: 'Failed to send reply. Please try again.',
+                type: 'error'
+            });
+            setShowAlert(true);
         } finally {
             setIsSending(false);
         }
     };
 
     const deleteMessage = async (messageId) => {
-        if (!confirm('Are you sure you want to delete this message?')) {
-            return;
-        }
-
-        try {
-            await messagingService.deleteSystemMessage(messageId);
-            
-            if (selectedMessage?.id === messageId) {
-                setSelectedMessage(null);
-                setConversation(null);
+        setConfirmConfig({
+            title: 'Delete Message',
+            message: 'Are you sure you want to delete this message?',
+            onConfirm: async () => {
+                setShowConfirm(false);
+                try {
+                    await messagingService.deleteSystemMessage(messageId);
+                    
+                    if (selectedMessage?.id === messageId) {
+                        setSelectedMessage(null);
+                        setConversation(null);
+                    }
+                    
+                    await loadMessages();
+                    await loadUnreadCount();
+                } catch (error) {
+                    console.error('Failed to delete message:', error);
+                    setAlertConfig({
+                        title: 'Error',
+                        message: 'Failed to delete message. Please try again.',
+                        type: 'error'
+                    });
+                    setShowAlert(true);
+                }
             }
-            
-            await loadMessages();
-            await loadUnreadCount();
-        } catch (error) {
-            console.error('Failed to delete message:', error);
-            alert('Failed to delete message. Please try again.');
-        }
+        });
+        setShowConfirm(true);
     };
 
     const formatDate = (dateString) => {
@@ -439,6 +463,25 @@ export default function SystemMessaging() {
                     </>
                 )}
             </div>
+            
+            {/* Alert Modal */}
+            <AlertModal
+                isOpen={showAlert}
+                onClose={() => setShowAlert(false)}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+            />
+            
+            {/* Confirm Modal */}
+            <ConfirmModal
+                isOpen={showConfirm}
+                onClose={() => setShowConfirm(false)}
+                onConfirm={confirmConfig.onConfirm}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                type="warning"
+            />
         </div>
     );
 }

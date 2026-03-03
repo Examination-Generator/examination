@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import * as messagingService from '../services/messagingService';
+import AlertModal from './AlertModal';
 
 export default function SMSMessaging() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -15,6 +16,10 @@ export default function SMSMessaging() {
     const [quotedText, setQuotedText] = useState('');
     const searchTimeoutRef = useRef(null);
     const messageEndRef = useRef(null);
+    
+    // Alert modal state
+    const [showAlert, setShowAlert] = useState(false);
+    const [alertConfig, setAlertConfig] = useState({ title: '', message: '', type: 'info' });
 
     // Load all conversations on mount
     useEffect(() => {
@@ -94,10 +99,20 @@ export default function SMSMessaging() {
             // Reload conversations
             await loadConversations();
             
-            alert('Message sent successfully!');
+            setAlertConfig({
+                title: 'Success',
+                message: 'Message sent successfully!',
+                type: 'success'
+            });
+            setShowAlert(true);
         } catch (error) {
             console.error('Failed to send message:', error);
-            alert('Failed to send message. Please try again.');
+            setAlertConfig({
+                title: 'Error',
+                message: 'Failed to send message. Please try again.',
+                type: 'error'
+            });
+            setShowAlert(true);
         } finally {
             setIsSending(false);
         }
@@ -145,7 +160,12 @@ export default function SMSMessaging() {
             setQuotedText('');
         } catch (error) {
             console.error('Failed to send reply:', error);
-            alert('Failed to send reply. Please try again.');
+            setAlertConfig({
+                title: 'Error',
+                message: 'Failed to send reply. Please try again.',
+                type: 'error'
+            });
+            setShowAlert(true);
         } finally {
             setIsSending(false);
         }
@@ -437,6 +457,15 @@ export default function SMSMessaging() {
                     </>
                 )}
             </div>
+            
+            {/* Alert Modal */}
+            <AlertModal
+                isOpen={showAlert}
+                onClose={() => setShowAlert(false)}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+            />
         </div>
     );
 }

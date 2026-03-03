@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import * as messagingService from '../services/messagingService';
+import AlertModal from './AlertModal';
 
 export default function UserMessagingFloat() {
     const [isOpen, setIsOpen] = useState(false);
@@ -14,6 +15,10 @@ export default function UserMessagingFloat() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [showNewMessage, setShowNewMessage] = useState(false);
     const messageEndRef = useRef(null);
+    
+    // Alert modal state
+    const [showAlert, setShowAlert] = useState(false);
+    const [alertConfig, setAlertConfig] = useState({ title: '', message: '', type: 'info' });
 
     // Debug: Log component mount
     useEffect(() => {
@@ -100,10 +105,20 @@ export default function UserMessagingFloat() {
             
             await loadMessages();
             
-            alert('Message sent successfully!');
+            setAlertConfig({
+                title: 'Success',
+                message: 'Message sent successfully!',
+                type: 'success'
+            });
+            setShowAlert(true);
         } catch (error) {
             console.error('Failed to send message:', error);
-            alert('Failed to send message. Please try again.');
+            setAlertConfig({
+                title: 'Error',
+                message: 'Failed to send message. Please try again.',
+                type: 'error'
+            });
+            setShowAlert(true);
         } finally {
             setIsSending(false);
         }
@@ -130,7 +145,12 @@ export default function UserMessagingFloat() {
             await loadMessages(true);
         } catch (error) {
             console.error('Failed to send reply:', error);
-            alert('Failed to send reply. Please try again.');
+            setAlertConfig({
+                title: 'Error',
+                message: 'Failed to send reply. Please try again.',
+                type: 'error'
+            });
+            setShowAlert(true);
         } finally {
             setIsSending(false);
         }
@@ -418,6 +438,15 @@ export default function UserMessagingFloat() {
                     </div>
                 </div>
             )}
+            
+            {/* Alert Modal */}
+            <AlertModal
+                isOpen={showAlert}
+                onClose={() => setShowAlert(false)}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+            />
         </>
     );
 }
