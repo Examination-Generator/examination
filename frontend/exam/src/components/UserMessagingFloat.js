@@ -15,6 +15,11 @@ export default function UserMessagingFloat() {
     const [showNewMessage, setShowNewMessage] = useState(false);
     const messageEndRef = useRef(null);
 
+    // Debug: Log component mount
+    useEffect(() => {
+        console.log('UserMessagingFloat component mounted');
+    }, []);
+
     useEffect(() => {
         loadUnreadCount();
         
@@ -149,10 +154,11 @@ export default function UserMessagingFloat() {
     return (
         <>
             {/* Floating Button */}
-            <div className="fixed bottom-6 right-6 z-50">
+            <div className="fixed bottom-6 right-6 z-50 print:hidden">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className="relative bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-full p-4 shadow-2xl transition-all transform hover:scale-110"
+                    title="Support Messages"
                 >
                     <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -168,7 +174,7 @@ export default function UserMessagingFloat() {
 
             {/* Messaging Panel */}
             {isOpen && (
-                <div className="fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden border-2 border-gray-200">
+                <div className="fixed bottom-24 right-6 z-50 w-96 h-[32rem] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden border-2 border-gray-200 print:hidden">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-green-600 to-green-700 p-4 flex items-center justify-between">
                         <h3 className="text-lg font-bold text-white flex items-center gap-2">

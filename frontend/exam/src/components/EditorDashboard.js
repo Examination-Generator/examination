@@ -5126,10 +5126,10 @@ useEffect(() => {
 
             {/* Navigation Tabs */}
             <div className="max-w-8xl mx-auto px-4 pt-6 sm:px-6 lg:px-8">
-                <div className="bg-white rounded-lg shadow-md p-1 flex space-x-1">
+                <div className="bg-white rounded-lg shadow-md p-1 flex flex-wrap gap-1 overflow-x-auto">
                     <button
                         onClick={() => setActiveTab('questions')}
-                        className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-200 ${
+                        className={`flex-1 min-w-[150px] py-3 px-4 rounded-lg font-semibold transition duration-200 ${
                             activeTab === 'questions'
                                 ? 'bg-green-600 text-white shadow-md'
                                 : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -5144,7 +5144,7 @@ useEffect(() => {
                     </button>
                     <button
                         onClick={() => setActiveTab('stats')}
-                        className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-200 ${
+                        className={`flex-1 min-w-[150px] py-3 px-4 rounded-lg font-semibold transition duration-200 ${
                             activeTab === 'stats'
                                 ? 'bg-green-600 text-white shadow-md'
                                 : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -5159,7 +5159,7 @@ useEffect(() => {
                     </button>
                     <button
                         onClick={() => setActiveTab('subjects')}
-                        className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-200 ${
+                        className={`flex-1 min-w-[150px] py-3 px-4 rounded-lg font-semibold transition duration-200 ${
                             activeTab === 'subjects'
                                 ? 'bg-green-600 text-white shadow-md'
                                 : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -5169,12 +5169,13 @@ useEffect(() => {
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
-                            <span>Add New Subject</span>
+                            <span className="hidden sm:inline">Add New Subject</span>
+                            <span className="sm:hidden">Subjects</span>
                         </div>
                     </button>
                     <button
                         onClick={() => setActiveTab('edit')}
-                        className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-200 ${
+                        className={`flex-1 min-w-[150px] py-3 px-4 rounded-lg font-semibold transition duration-200 ${
                             activeTab === 'edit'
                                 ? 'bg-green-600 text-white shadow-md'
                                 : 'bg-white text-gray-600 hover:bg-gray-50'
@@ -5189,7 +5190,7 @@ useEffect(() => {
                     </button>
                     <button
                         onClick={() => setActiveTab('messaging')}
-                        className={`flex-1 py-3 px-6 rounded-lg font-semibold transition duration-200 ${
+                        className={`flex-1 min-w-[150px] py-3 px-4 rounded-lg font-semibold transition duration-200 ${
                             activeTab === 'messaging'
                                 ? 'bg-green-600 text-white shadow-md'
                                 : 'bg-white text-gray-600 hover:bg-gray-50'

@@ -1,9 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SMSMessaging from './SMSMessaging';
 import SystemMessaging from './SystemMessaging';
 
 export default function MessagingTab() {
     const [activeSubTab, setActiveSubTab] = useState('sms'); // 'sms' or 'system'
+
+    // Debug: Log component mount
+    useEffect(() => {
+        console.log('MessagingTab component mounted');
+    }, []);
 
     return (
         <div className="space-y-6">
