@@ -1,3 +1,13 @@
+// Custom API Error class
+export class APIError extends Error {
+    constructor(message, statusCode = 500, data = null) {
+        super(message);
+        this.name = 'APIError';
+        this.statusCode = statusCode;
+        this.data = data;
+    }
+}
+
 // User-friendly error helper for services
 export const friendlyErrorMessage = (raw, fallback = 'Something went wrong. Please try again or contact support.') => {
     const msg = typeof raw === 'string' ? raw : (raw && raw.message) ? raw.message : '';
@@ -26,6 +36,18 @@ export const friendlyErrorMessage = (raw, fallback = 'Something went wrong. Plea
     }
 
     return fallback;
+};
+
+// Handle API errors with friendly messages
+export const handleAPIError = (error, defaultMessage = 'An error occurred') => {
+    console.error('API Error:', error);
+    
+    if (error instanceof APIError) {
+        throw error;
+    }
+    
+    const message = friendlyErrorMessage(error, defaultMessage);
+    throw new APIError(message, error.statusCode || 500);
 };
 
 export default friendlyErrorMessage;

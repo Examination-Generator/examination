@@ -1,4 +1,5 @@
 import PaperGenerationDashboard from './PaperGenerationDashboard';
+import UserMessagingFloat from './UserMessagingFloat';
 
 export default function UserDashboard({ onLogout }) {
     return (
@@ -23,6 +24,9 @@ export default function UserDashboard({ onLogout }) {
 
             {/* Main Content */}
             <PaperGenerationDashboard />
+
+            {/* Messaging Float */}
+            <UserMessagingFloat />
         </div>
     );
 }
