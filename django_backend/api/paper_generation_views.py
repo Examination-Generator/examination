@@ -415,8 +415,8 @@ def get_generated_paper(request, paper_id):
                 'generation_time_seconds': generated_paper.generation_time_seconds,
                 'generation_attempts': generated_paper.generation_attempts,
             },
-            'questions': ordered_questions,  # For paper generation
-            'marking_scheme': marking_scheme,  # For marking scheme generation
+            'questions': ordered_questions,  
+            'marking_scheme': marking_scheme,  
             'created_at': generated_paper.created_at,
             'generated_by': {
                 'id': str(generated_paper.generated_by.id),

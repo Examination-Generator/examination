@@ -88,6 +88,10 @@ def home_view(request):
             },
             'subjects': '/api/subjects',
             'questions': '/api/questions',
+            'messaging': {
+                'system_messages': '/api/messaging/system/',
+                'sms': '/api/messaging/sms/',
+            },
         },
         'deployment': 'Vercel Serverless',
         'auto_migration': 'enabled',
@@ -113,6 +117,7 @@ urlpatterns = [
     # For cPanel: app is served at /api/, so we don't need another /api/ prefix
     # For local dev: use http://localhost:8000/api/
     path('api/', include('api.urls')) if settings.DEBUG else path('', include('api.urls')),
+    path('api/messaging/', include('messaging.urls')) if settings.DEBUG else path('messaging/', include('messaging.urls')),
     
     # API Documentation
     path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),

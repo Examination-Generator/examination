@@ -28,3 +28,5 @@ pytz>=2024.1
 # Production server
 gunicorn>=21.2
 whitenoise>=6.6
+# SMS Integration
+africastalking>=1.2.7

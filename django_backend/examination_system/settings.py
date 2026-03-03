@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     
     # Local apps
     'api.apps.ApiConfig',
+    'messaging.apps.MessagingConfig',
 ]
 
 MIDDLEWARE = [
@@ -219,9 +220,17 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
 X_FRAME_OPTIONS = 'ALLOWALL'  # Allow iframes from same origin
 
 # SMS Configuration
-SMS_PROVIDER = os.getenv('SMS_PROVIDER', 'mock')
+SMS_PROVIDER = os.getenv('SMS_PROVIDER', 'africastalking')
+SMS_USERNAME = os.getenv('SMS_USERNAME', 'sandbox')
 SMS_API_KEY = os.getenv('SMS_API_KEY', '')
-SMS_SENDER_ID = os.getenv('SMS_SENDER_ID', 'ExamSystem')
+SMS_SENDER_ID = os.getenv('SMS_SENDER_ID', 'speedstar')
+SMS_MOCK_MODE = os.getenv('SMS_MOCK_MODE', 'true')
+
+# Messaging Configuration
+MAX_SMS_PER_MINUTE = int(os.getenv('MAX_SMS_PER_MINUTE', '10'))
+MAX_SYSTEM_MESSAGES_PER_MINUTE = int(os.getenv('MAX_SYSTEM_MESSAGES_PER_MINUTE', '5'))
+MESSAGE_MAX_LENGTH = int(os.getenv('MESSAGE_MAX_LENGTH', '5000'))
+SMS_MAX_LENGTH = int(os.getenv('SMS_MAX_LENGTH', '160'))
 
 # Logging Configuration
 LOGGING = {
