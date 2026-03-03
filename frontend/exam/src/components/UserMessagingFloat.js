@@ -257,7 +257,7 @@ export default function UserMessagingFloat() {
                                             value={messageText}
                                             onChange={(e) => setMessageText(e.target.value)}
                                             placeholder="Describe your issue or question..."
-                                            rows={5}
+                                            rows={8}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
                                         />
                                     </div>
