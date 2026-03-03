@@ -29,4 +29,4 @@ pytz>=2024.1
 gunicorn>=21.2
 whitenoise>=6.6
 # SMS Integration
-africastalking>=1.2.7
+africastalking 
