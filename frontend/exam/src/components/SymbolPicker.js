@@ -40,6 +40,7 @@ const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
         'Mathematical Operators': [
             { symbol: '÷', name: 'division' },
             { symbol: '×', name: 'multiplication' },
+            { symbol: '✓︎', name: 'tick/check mark' },
             { symbol: '±', name: 'plus-minus' },
             { symbol: '∓', name: 'minus-plus' },
             { symbol: '≠', name: 'not equal' },
