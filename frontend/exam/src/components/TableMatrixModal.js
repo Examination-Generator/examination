@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-export default function TableMatrixModal({ open, onClose, onInsert, type = 'table' }) {
+export default function TableMatrixModal({ open, onClose, onInsert, type = 'table', initialData = null }) {
     const [rows, setRows] = useState(type === 'table' ? '3' : '2');
     const [cols, setCols] = useState(type === 'table' ? '3' : '2');
     const [showGrid, setShowGrid] = useState(false);
@@ -23,7 +23,18 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
     const tableRef = useRef(null);
 
     useEffect(() => {
-        if (open) {
+        if (!open) return;
+
+        const parsedRows = parseInt(initialData?.rows, 10);
+        const parsedCols = parseInt(initialData?.cols, 10);
+        const hasValidInitialData =
+            initialData &&
+            Number.isFinite(parsedRows) &&
+            Number.isFinite(parsedCols) &&
+            parsedRows > 0 &&
+            parsedCols > 0;
+
+        if (!hasValidInitialData) {
             setRows(type === 'table' ? '3' : '2');
             setCols(type === 'table' ? '3' : '2');
             setShowGrid(false);
@@ -32,8 +43,69 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
             setRowHeights([]);
             setMergedCells({});
             setSelectedCells([]);
+            return;
         }
-    }, [open, type]);
+
+        const dataList = Array.isArray(initialData.data)
+            ? initialData.data
+            : (typeof initialData.data === 'string' ? initialData.data.split('|') : []);
+
+        const normalizedData = Array.from({ length: parsedRows }, (_, rowIndex) =>
+            Array.from({ length: parsedCols }, (_, colIndex) => {
+                const cellIndex = (rowIndex * parsedCols) + colIndex;
+                return dataList[cellIndex] || '';
+            })
+        );
+
+        const parseNumericList = (value, fallback, expectedLength) => {
+            let list = [];
+            if (Array.isArray(value)) {
+                list = value.map(v => parseInt(v, 10));
+            } else if (typeof value === 'string' && value.trim() !== '') {
+                list = value.split(',').map(v => parseInt(v, 10));
+            }
+
+            return Array.from({ length: expectedLength }, (_, idx) => {
+                const parsed = list[idx];
+                return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+            });
+        };
+
+        const parseMergedCells = (value) => {
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+                return value;
+            }
+
+            if (typeof value !== 'string' || value.trim() === '') {
+                return {};
+            }
+
+            const merged = {};
+            value.split(';').forEach(entry => {
+                const [r, c, colspan, rowspan] = entry.split(',').map(n => parseInt(n, 10));
+                if (!Number.isFinite(r) || !Number.isFinite(c) || !Number.isFinite(colspan) || !Number.isFinite(rowspan)) {
+                    return;
+                }
+
+                if (!merged[r]) merged[r] = {};
+                merged[r][c] = {
+                    colspan: Math.max(1, colspan),
+                    rowspan: Math.max(1, rowspan)
+                };
+            });
+
+            return merged;
+        };
+
+        setRows(String(parsedRows));
+        setCols(String(parsedCols));
+        setCellData(normalizedData);
+        setColWidths(parseNumericList(initialData.widths, 120, parsedCols));
+        setRowHeights(parseNumericList(initialData.heights, 40, parsedRows));
+        setMergedCells(parseMergedCells(initialData.merged));
+        setSelectedCells([]);
+        setShowGrid(true);
+    }, [open, type, initialData]);
 
     if (!open) return null;
 
@@ -68,6 +140,26 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
         const newData = [...cellData];
         newData[rowIndex][colIndex] = value;
         setCellData(newData);
+    };
+
+    const handleAddRow = () => {
+        const colCount = parseInt(cols, 10);
+        if (!Number.isFinite(colCount) || colCount < 1) return;
+
+        setCellData(prev => [...prev, Array(colCount).fill('')]);
+        setRowHeights(prev => [...prev, 40]);
+        setRows(prev => String((parseInt(prev, 10) || 0) + 1));
+        setSelectedCells([]);
+    };
+
+    const handleAddColumn = () => {
+        const rowCount = parseInt(rows, 10);
+        if (!Number.isFinite(rowCount) || rowCount < 1) return;
+
+        setCellData(prev => prev.map(row => [...row, '']));
+        setColWidths(prev => [...prev, 120]);
+        setCols(prev => String((parseInt(prev, 10) || 0) + 1));
+        setSelectedCells([]);
     };
     
     // Handle column resize
@@ -360,6 +452,18 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
                         {type === 'table' && (
                             <div className="flex flex-col gap-2 mb-3">
                                 <div className="flex gap-2">
+                                    <button
+                                        onClick={handleAddRow}
+                                        className="px-3 py-1 rounded text-sm bg-emerald-600 text-white hover:bg-emerald-700"
+                                    >
+                                        Add Row
+                                    </button>
+                                    <button
+                                        onClick={handleAddColumn}
+                                        className="px-3 py-1 rounded text-sm bg-emerald-600 text-white hover:bg-emerald-700"
+                                    >
+                                        Add Column
+                                    </button>
                                     <button
                                         onClick={handleMergeCells}
                                         disabled={selectedCells.length < 2}

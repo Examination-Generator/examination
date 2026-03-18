@@ -258,10 +258,72 @@ export default function EditorDashboard({ onLogout }) {
     const [showTableMatrixModal, setShowTableMatrixModal] = useState(false);
     const [tableMatrixTarget, setTableMatrixTarget] = useState(null);
     const [tableMatrixType, setTableMatrixType] = useState('table'); // 'table' or 'matrix'
+    const [tableMatrixInitialData, setTableMatrixInitialData] = useState(null);
+    const [tableMatrixEditRange, setTableMatrixEditRange] = useState(null);
+
+    const closeTableMatrixModal = () => {
+        setShowTableMatrixModal(false);
+        setTableMatrixInitialData(null);
+        setTableMatrixEditRange(null);
+    };
+
+    const parseExistingTableToken = (token) => {
+        if (typeof token !== 'string' || !token.startsWith('[TABLE:') || !token.endsWith(']')) {
+            return null;
+        }
+
+        try {
+            const inner = token.slice(7, -1);
+            const tokenParts = inner.split(':');
+            const dimensionMatch = tokenParts[0]?.match(/^(\d+)x(\d+)$/);
+            if (!dimensionMatch) return null;
+
+            const rows = parseInt(dimensionMatch[1], 10);
+            const cols = parseInt(dimensionMatch[2], 10);
+            if (!Number.isFinite(rows) || !Number.isFinite(cols) || rows < 1 || cols < 1) {
+                return null;
+            }
+
+            const data = tokenParts[1] || '';
+            const widthIndex = tokenParts.findIndex(part => part === 'W');
+            const heightIndex = tokenParts.findIndex(part => part === 'H');
+            const mergeIndex = tokenParts.findIndex(part => part === 'M');
+
+            return {
+                rows,
+                cols,
+                data,
+                widths: widthIndex !== -1 ? (tokenParts[widthIndex + 1] || '') : '',
+                heights: heightIndex !== -1 ? (tokenParts[heightIndex + 1] || '') : '',
+                merged: mergeIndex !== -1 ? (tokenParts[mergeIndex + 1] || '') : ''
+            };
+        } catch (error) {
+            console.error('Unable to parse table token for editing:', error);
+            return null;
+        }
+    };
+
+    const openExistingTableModal = (token, startIndex, setText) => {
+        const parsedTable = parseExistingTableToken(token);
+        if (!parsedTable || !setText || !Number.isFinite(startIndex)) {
+            return;
+        }
+
+        setTableMatrixTarget({ textareaRef: null, setText, currentText: '' });
+        setTableMatrixType('table');
+        setTableMatrixInitialData(parsedTable);
+        setTableMatrixEditRange({
+            start: startIndex,
+            end: startIndex + token.length
+        });
+        setShowTableMatrixModal(true);
+    };
 
     const openTableMatrixModal = (textareaRef, setText, currentText, type) => {
         setTableMatrixTarget({ textareaRef, setText, currentText });
         setTableMatrixType(type);
+        setTableMatrixInitialData(null);
+        setTableMatrixEditRange(null);
         setShowTableMatrixModal(true);
     };
 
@@ -288,10 +350,18 @@ export default function EditorDashboard({ onLogout }) {
             token += ']';
         }
 
+        if (tableMatrixEditRange && Number.isFinite(tableMatrixEditRange.start) && Number.isFinite(tableMatrixEditRange.end)) {
+            setText(prev => (
+                prev.substring(0, tableMatrixEditRange.start) + token + prev.substring(tableMatrixEditRange.end)
+            ));
+            closeTableMatrixModal();
+            return;
+        }
+
         const textarea = textareaRef?.current;
         if (!textarea) {
             setText(prev => prev + token);
-            setShowTableMatrixModal(false);
+            closeTableMatrixModal();
             return;
         }
 
@@ -306,7 +376,7 @@ export default function EditorDashboard({ onLogout }) {
             textarea.setSelectionRange(pos, pos);
         }, 0);
 
-        setShowTableMatrixModal(false);
+        closeTableMatrixModal();
     };
 
     const applyQuestionTable = () => openTableMatrixModal(questionTextareaRef, setQuestionText, questionText, 'table');
@@ -5102,7 +5172,13 @@ useEffect(() => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
             <FractionModal open={showFractionModal} onClose={() => setShowFractionModal(false)} onInsert={handleFractionInsert} />
-            <TableMatrixModal open={showTableMatrixModal} onClose={() => setShowTableMatrixModal(false)} onInsert={handleTableMatrixInsert} type={tableMatrixType} />
+            <TableMatrixModal
+                open={showTableMatrixModal}
+                onClose={closeTableMatrixModal}
+                onInsert={handleTableMatrixInsert}
+                type={tableMatrixType}
+                initialData={tableMatrixInitialData}
+            />
             {/* Header */}
             <header className="bg-white shadow-md">
                 <div className="max-w-8xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -5705,7 +5781,8 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
+                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index, splitParts) => {
+                                            const partStart = splitParts.slice(0, index).reduce((sum, segment) => sum + segment.length, 0);
                                             // Check for formatting first
                                             // Superscript formatting
                                             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
@@ -5772,7 +5849,12 @@ useEffect(() => {
                                                         };
                                                         
                                                         return (
-                                                            <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                                            <table
+                                                                key={index}
+                                                                style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table', cursor: 'pointer' }}
+                                                                title="Click to edit this table"
+                                                                onClick={() => openExistingTableModal(part, partStart, setQuestionText)}
+                                                            >
                                                                 <tbody>
                                                                     {[...Array(rows)].map((_, rowIdx) => (
                                                                         <tr key={rowIdx}>
@@ -6356,7 +6438,8 @@ useEffect(() => {
                                     <div className="mb-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                                         <p className="text-xs font-bold text-blue-800 mb-2">📝 QUESTION PREVIEW:</p>
                                         <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index) => {
+                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index, splitParts) => {
+                                                const partStart = splitParts.slice(0, index).reduce((sum, segment) => sum + segment.length, 0);
                                                 // Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
                                                 if (part.startsWith('[TABLE:') && part.endsWith(']')) {
                                                     try {
@@ -6410,7 +6493,12 @@ useEffect(() => {
                                                             };
                                                             
                                                             return (
-                                                                <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                                                <table
+                                                                    key={index}
+                                                                    style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table', cursor: 'pointer' }}
+                                                                    title="Click to edit this table"
+                                                                    onClick={() => openExistingTableModal(part, partStart, setQuestionText)}
+                                                                >
                                                                     <tbody>
                                                                         {[...Array(rows)].map((_, rowIdx) => (
                                                                             <tr key={rowIdx}>
@@ -6627,7 +6715,8 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
+                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index, splitParts) => {
+                                            const partStart = splitParts.slice(0, index).reduce((sum, segment) => sum + segment.length, 0);
                                             // Check for formatting first
                                             // Superscript formatting
                                             if (part.startsWith('[SUP]') && part.endsWith('[/SUP]')) {
@@ -6694,7 +6783,12 @@ useEffect(() => {
                                                         };
                                                         
                                                         return (
-                                                            <table key={index} style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table' }}>
+                                                            <table
+                                                                key={index}
+                                                                style={{ border: '1px solid #000', borderCollapse: 'collapse', margin: '8px 0', display: 'inline-table', cursor: 'pointer' }}
+                                                                title="Click to edit this table"
+                                                                onClick={() => openExistingTableModal(part, partStart, setAnswerText)}
+                                                            >
                                                                 <tbody>
                                                                     {[...Array(rows)].map((_, rowIdx) => (
                                                                         <tr key={rowIdx}>
