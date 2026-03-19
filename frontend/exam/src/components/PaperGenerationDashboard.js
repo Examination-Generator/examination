@@ -211,6 +211,41 @@ export default function PaperGenerationDashboard() {
                 } catch (e) { return <span key={index}>{part}</span>; }
             }
 
+            // Graph formatting: [GRAPH:id:WxHcm]
+            if (part.startsWith('[GRAPH:') && part.endsWith(']')) {
+                try {
+                    const match = part.match(/^\[GRAPH:([\d.]+):([\d.]+)x([\d.]+)cm\]$/);
+                    if (match) {
+                        const graphId = parseFloat(match[1]);
+                        const widthCm = Math.max(1, parseFloat(match[2]));
+                        const heightCm = Math.max(1, parseFloat(match[3]));
+                        
+                        return (
+                            <span key={index} style={{ display: 'inline-block', margin: '8px 4px', verticalAlign: 'middle' }}>
+                                <span
+                                    style={{
+                                        display: 'block',
+                                        width: `${widthCm}cm`,
+                                        height: `${heightCm}cm`,
+                                        border: '2px solid #0f766e',
+                                        borderRadius: '4px',
+                                        boxSizing: 'border-box',
+                                        backgroundColor: 'white',
+                                        backgroundImage: [
+                                            'repeating-linear-gradient(to right, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm)',
+                                            'repeating-linear-gradient(to bottom, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm)',
+                                            'repeating-linear-gradient(to right, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm)',
+                                            'repeating-linear-gradient(to bottom, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm)'
+                                        ].join(', ')
+                                    }}
+                                    title={`${widthCm}cm × ${heightCm}cm graph`}
+                                />
+                            </span>
+                        );
+                    }
+                } catch (e) { return <span key={index}>{part}</span>; }
+            }
+
             // Matrix formatting
             if (part.startsWith('[MATRIX:') && part.endsWith(']')) {
                 try {

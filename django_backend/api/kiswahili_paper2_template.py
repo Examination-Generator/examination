@@ -686,7 +686,7 @@ def _process_question_text(text, images=None, answer_lines=None):
             lines_dict[float(line.get('id', 0))] = line
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
     parts = re.split(pattern, text)
     
     result = []
@@ -906,6 +906,42 @@ def _process_question_text(text, images=None, answer_lines=None):
                 height_px = 100
                 space_html = f'<div style="margin: 8px 0; max-width: {max_width}px;"><div style="height: {height_px}px; width: 100%; background: white; border: none;"></div></div>'
                 result.append(space_html)
+        
+        # Graphs: [GRAPH:id:WxHcm]
+        elif part.startswith('[GRAPH:') and part.endswith(']'):
+            graph_match = re.match(r'\[GRAPH:([\d.]+):([\d.]+)x([\d.]+)cm\]', part)
+            if graph_match:
+                graph_id = float(graph_match.group(1))
+                width_cm = float(graph_match.group(2))
+                height_cm = float(graph_match.group(3))
+                
+                # Validate dimensions
+                width_cm = max(1, width_cm)
+                height_cm = max(1, height_cm)
+                
+                # Convert cm to pixels for CSS (1cm ≈ 37.8px at 96 DPI)
+                width_px = int(width_cm * 37.8)
+                height_px = int(height_cm * 37.8)
+                
+                # Create grid pattern background
+                graph_html = f'''<span style="display: inline-block; margin: 8px 4px; vertical-align: middle;">
+<span style="
+    display: block;
+    width: {width_cm}cm;
+    height: {height_cm}cm;
+    border: 2px solid #0f766e;
+    border-radius: 4px;
+    box-sizing: border-box;
+    background-color: white;
+    background-image: 
+        repeating-linear-gradient(to right, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm),
+        repeating-linear-gradient(to bottom, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm),
+        repeating-linear-gradient(to right, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm),
+        repeating-linear-gradient(to bottom, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm);
+    title=\"Graph {int(graph_id)}: {width_cm}cm × {height_cm}cm\";
+">&nbsp;</span>
+</span>'''
+                result.append(graph_html)
         
         # Images: [IMAGE:id:WxH] or [IMAGE:id:Wpx]
         elif part.startswith('[IMAGE:') and part.endswith('px]'):
