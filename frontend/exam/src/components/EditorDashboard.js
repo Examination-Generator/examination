@@ -5748,7 +5748,7 @@ useEffect(() => {
                                     </label>
                                     
                                     {/* Inline Toolbar */}
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                         {/* Image Upload */}
                                         <label className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg cursor-pointer transition text-xs flex items-center gap-1.5">
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -5862,50 +5862,52 @@ useEffect(() => {
                                                 ⎡⎤
                                             </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setSymbolPickerTarget('question');
-                                                setShowSymbolPicker(true);
-                                            }}
-                                            className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
-                                            title="Insert special symbols (π, α, β, ∫, etc.)"
-                                        >
-                                            <span className="text-lg leading-none">Ω</span>
-                                            <span>Symbols</span>
-                                        </button>
+                                        <div className="w-full flex items-center gap-2 mt-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSymbolPickerTarget('question');
+                                                    setShowSymbolPicker(true);
+                                                }}
+                                                className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                                title="Insert special symbols (π, α, β, ∫, etc.)"
+                                            >
+                                                <span className="text-lg leading-none">Ω</span>
+                                                <span>Symbols</span>
+                                            </button>
 
-                                        {/* Answer Lines Button */}
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setAnswerLinesConfig(prev => ({ ...prev, targetSection: 'question' }));
-                                                setShowAnswerLinesModal(true);
-                                            }}
-                                            className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
-                                            title="Add answer lines for students"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                                            </svg>
-                                            <span>Lines</span>
-                                        </button>
+                                            {/* Answer Lines Button */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setAnswerLinesConfig(prev => ({ ...prev, targetSection: 'question' }));
+                                                    setShowAnswerLinesModal(true);
+                                                }}
+                                                className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                                title="Add answer lines for students"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                                </svg>
+                                                <span>Lines</span>
+                                            </button>
 
-                                        {/* Working Space Button */}
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setWorkingSpaceConfig(prev => ({ ...prev, targetSection: 'question' }));
-                                                setShowWorkingSpaceModal(true);
-                                            }}
-                                            className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
-                                            title="Add blank working space for students"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
-                                            </svg>
-                                            <span>Space</span>
-                                        </button>
+                                            {/* Working Space Button */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setWorkingSpaceConfig(prev => ({ ...prev, targetSection: 'question' }));
+                                                    setShowWorkingSpaceModal(true);
+                                                }}
+                                                className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5"
+                                                title="Add blank working space for students"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+                                                </svg>
+                                                <span>Space</span>
+                                            </button>
+                                        </div>
 
                                         {/* Voice Recording */}
                                         <button
