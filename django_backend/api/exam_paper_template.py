@@ -1715,6 +1715,22 @@ def _generate_physics_paper2_continuous_pages(questions, start_page, total_pages
     """
     questions_html = ""
     for q in questions:
+        q_number = int(q.get('number', 0))
+
+        # Physics Paper 2 section headers:
+        # - Section A starts before Question 1 (25 marks)
+        # - Section B starts after Question 13, i.e., before Question 14 (55 marks)
+        if q_number == 1:
+            questions_html += """
+        <div class="simple-section-title" style="text-align: center;">SECTION A (25 MARKS)</div>
+        <div class="section-instruction" style="text-align: center; font-style: italic;">Answer all question in this section</div>
+"""
+        elif q_number == 14:
+            questions_html += """
+        <div class="simple-section-title" style="text-align: center;">SECTION B (55 MARKS)</div>
+        <div class="section-instruction" style="text-align: center; font-style: italic;">Answer all question in this section</div>
+"""
+
         processed_text = _process_question_text(
             q.get('text', ''),
             q.get('question_inline_images', []),
