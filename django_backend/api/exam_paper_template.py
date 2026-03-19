@@ -1365,7 +1365,12 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
 
         # Add answer lines if needed
         if answer_lines_pages > 0:
-            answer_lines_html = _generate_answer_lines_pages(answer_lines_pages, current_page, total_pages)
+            answer_lines_html = _generate_answer_lines_pages(
+                answer_lines_pages,
+                current_page,
+                total_pages,
+                show_page_numbers=False
+            )
             pages_html.append(answer_lines_html)
 
         return '\n'.join(pages_html)
@@ -1746,7 +1751,6 @@ def _generate_physics_paper2_continuous_pages(questions, start_page, total_pages
     page_html = f"""
     <div class="exam-page page-break">
         {questions_html}
-        <div class="page-number">Page {start_page} of {total_pages}</div>
     </div>
 """
 
@@ -1804,7 +1808,7 @@ def _generate_non_sectioned_pages(questions, start_page, total_pages):
     return {'html': '\n'.join(pages_html), 'next_page': current_page}
 
 
-def _generate_answer_lines_pages(num_pages, start_page, total_pages):
+def _generate_answer_lines_pages(num_pages, start_page, total_pages, show_page_numbers=True):
     """
     Generate continuous answer line pages
     
@@ -1823,10 +1827,13 @@ def _generate_answer_lines_pages(num_pages, start_page, total_pages):
         lines_html = ''
         for _ in range(lines_per_page):
             lines_html += '<div class="answer-line dotted" style="height: 28px; margin: 8px 0;"></div>'
+        page_number_html = ''
+        if show_page_numbers:
+            page_number_html = f'<div class="page-number">Page {start_page + i} of {total_pages}</div>'
         page_html = f'''
     <div class="exam-page page-break">
         {lines_html}
-        <div class="page-number">Page {start_page + i} of {total_pages}</div>
+        {page_number_html}
     </div>
 '''
         pages_html.append(page_html)
