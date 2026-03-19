@@ -9,7 +9,9 @@ from .coverpage_templates import MarkingSchemeCoverpage
 
 def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage_class=None):
     """
-    Generate complete marking scheme HTML with coverpage, answers, and page numbers
+    Generate complete marking scheme HTML with continuous flow.
+    The answer content follows immediately after the cover instructions
+    with no forced page sections or page numbers.
     
     Args:
         coverpage_data (dict): Coverpage information
@@ -34,12 +36,8 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
     else:
         coverpage_content = coverpage_html
     
-    # Calculate total pages (coverpage + answer pages)
-    # Assuming ~2 answers per page
-    total_pages = 1 + ((len(marking_scheme_items) + 1) // 2)
-    
-    # Generate answer pages
-    answers_html = _generate_answer_pages(marking_scheme_items, total_pages)
+    # Generate continuous answer flow
+    answers_html = _generate_answer_flow(marking_scheme_items)
     
     # Combine everything
     full_html = f"""
@@ -55,13 +53,6 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
             margin: 0;
         }}
         
-        @media print {{
-            .page-break {{
-                page-break-after: always;
-                break-after: page;
-            }}
-        }}
-        
         * {{
             margin: 0;
             padding: 0;
@@ -75,7 +66,6 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         
         .exam-page {{
             width: 210mm;
-            min-height: 297mm;
             padding: 20mm;
             background: white;
             margin: 10mm auto;
@@ -88,17 +78,6 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
                 margin: 0;
                 box-shadow: none;
             }}
-            
-        }}
-        
-        /* Page number styling */
-        .page-number {{
-            position: absolute;
-            bottom: 15mm;
-            right: 20mm;
-            font-size: 11pt;
-            font-weight: bold;
-            color: #666;
         }}
         
         /* Answer page header */
@@ -117,6 +96,10 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         .answer-page-header p {{
             font-size: 12px;
             font-style: italic;
+        }}
+
+        .answers-flow {{
+            margin-top: 12px;
         }}
         
         /* Answer item styling */
@@ -211,10 +194,14 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         /* Coverpage styles */
         .coverpage {{
             width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            height: auto !important;
+            display: block !important;
+            page-break-after: avoid;
+        }}
+
+        .coverpage .instructions {{
+            flex-grow: 0 !important;
+            margin-bottom: 14px !important;
         }}
         
         .header {{
@@ -265,13 +252,12 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
     </style>
 </head>
 <body>
-    <!-- Page 1: Coverpage -->
-    <div class="exam-page page-break">
+    <div class="exam-page">
         {coverpage_content}
+        <div class="answers-flow">
+            {answers_html}
+        </div>
     </div>
-    
-    <!-- Answer Pages -->
-    {answers_html}
 </body>
 </html>
 """
@@ -279,48 +265,20 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
     return full_html.strip()
 
 
-def _generate_answer_pages(marking_scheme_items, total_pages):
+def _generate_answer_flow(marking_scheme_items):
     """
-    Generate paginated answer pages
+    Generate one continuous answer flow without page sections
     
     Args:
         marking_scheme_items (list): List of marking scheme items
-        total_pages (int): Total number of pages in the marking scheme
-    
     Returns:
-        str: HTML for all answer pages
+        str: HTML for all answers in one flow
     """
-    
-    answers_per_page = 2  # Approximately 2 answers per page
-    pages_html = []
-    current_page = 2  # Page 1 is coverpage
-    
-    for i in range(0, len(marking_scheme_items), answers_per_page):
-        page_answers = marking_scheme_items[i:i + answers_per_page]
-        
-        answers_html = ""
-        for item in page_answers:
-            answer_html = _generate_single_answer_html(item)
-            answers_html += answer_html
-        
-        page_html = f"""
-    <!-- Page {current_page} -->
-    <div class="exam-page {'page-break' if current_page < total_pages else ''}">
-        <div class="answer-page-header">
-            <h2>MARKING SCHEME</h2>
-            <p>(Detailed answers and marking points)</p>
-        </div>
-        
-        {answers_html}
-        
-        <div class="page-number">Page {current_page} of {total_pages}</div>
-    </div>
-"""
-        
-        pages_html.append(page_html)
-        current_page += 1
-    
-    return '\n'.join(pages_html)
+    answers_html = ""
+    for item in marking_scheme_items:
+        answers_html += _generate_single_answer_html(item)
+
+    return answers_html
 
 
 def _generate_single_answer_html(item):
