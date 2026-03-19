@@ -17,6 +17,16 @@ import MessagingTab from './MessagingTab';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api' ;
 
+const MM_PER_CM = 10;
+const A4_WIDTH_MM = 210;
+const A4_HEIGHT_MM = 297;
+const PX_PER_MM = 96 / 25.4;
+const A4_CANVAS_SCALE = 2;
+const A4_DISPLAY_WIDTH_PX = Math.round(A4_WIDTH_MM * PX_PER_MM);
+const A4_DISPLAY_HEIGHT_PX = Math.round(A4_HEIGHT_MM * PX_PER_MM);
+const MAX_GRAPH_BOXES_X = Math.floor(A4_WIDTH_MM / MM_PER_CM);
+const MAX_GRAPH_BOXES_Y = Math.floor(A4_HEIGHT_MM / MM_PER_CM);
+
 // Configure PDF.js worker using a more reliable CDN
 if (typeof window !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
@@ -62,6 +72,8 @@ export default function EditorDashboard({ onLogout }) {
     const [drawingTool, setDrawingTool] = useState('pen'); // 'pen', 'eraser', 'line', 'rectangle', 'circle'
     const [drawingColor, setDrawingColor] = useState('#000000');
     const [drawingWidth, setDrawingWidth] = useState(2);
+    const [graphBoxesX, setGraphBoxesX] = useState(MAX_GRAPH_BOXES_X);
+    const [graphBoxesY, setGraphBoxesY] = useState(MAX_GRAPH_BOXES_Y);
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [startPos, setStartPos] = useState({ x: 0, y: 0 }); // For shape drawing
@@ -107,6 +119,8 @@ export default function EditorDashboard({ onLogout }) {
     const [answerDrawingTool, setAnswerDrawingTool] = useState('pen');
     const [answerDrawingColor, setAnswerDrawingColor] = useState('#000000');
     const [answerDrawingWidth, setAnswerDrawingWidth] = useState(2);
+    const [answerGraphBoxesX, setAnswerGraphBoxesX] = useState(MAX_GRAPH_BOXES_X);
+    const [answerGraphBoxesY, setAnswerGraphBoxesY] = useState(MAX_GRAPH_BOXES_Y);
     const [showAnswerGraphPaper, setShowAnswerGraphPaper] = useState(false);
 
     // Answer lines modal
@@ -523,6 +537,8 @@ export default function EditorDashboard({ onLogout }) {
     const [editQuestionDrawingTool, setEditQuestionDrawingTool] = useState('pen');
     const [editQuestionDrawingColor, setEditQuestionDrawingColor] = useState('#000000');
     const [editQuestionDrawingWidth, setEditQuestionDrawingWidth] = useState(2);
+    const [editQuestionGraphBoxesX, setEditQuestionGraphBoxesX] = useState(MAX_GRAPH_BOXES_X);
+    const [editQuestionGraphBoxesY, setEditQuestionGraphBoxesY] = useState(MAX_GRAPH_BOXES_Y);
     const editQuestionCanvasRef = useRef(null);
     const [isEditQuestionDrawing, setIsEditQuestionDrawing] = useState(false);
     const [editQuestionStartPos, setEditQuestionStartPos] = useState({ x: 0, y: 0 });
@@ -533,6 +549,8 @@ export default function EditorDashboard({ onLogout }) {
     const [editAnswerDrawingTool, setEditAnswerDrawingTool] = useState('pen');
     const [editAnswerDrawingColor, setEditAnswerDrawingColor] = useState('#000000');
     const [editAnswerDrawingWidth, setEditAnswerDrawingWidth] = useState(2);
+    const [editAnswerGraphBoxesX, setEditAnswerGraphBoxesX] = useState(MAX_GRAPH_BOXES_X);
+    const [editAnswerGraphBoxesY, setEditAnswerGraphBoxesY] = useState(MAX_GRAPH_BOXES_Y);
     const editAnswerCanvasRef = useRef(null);
     const [isEditAnswerDrawing, setIsEditAnswerDrawing] = useState(false);
     const [editAnswerStartPos, setEditAnswerStartPos] = useState({ x: 0, y: 0 });
@@ -2202,15 +2220,21 @@ export default function EditorDashboard({ onLogout }) {
 
     // ====== EDIT QUESTION DRAWING FUNCTIONS ======
 
+    const clampGraphBoxCount = (value, max) => {
+        const parsed = parseInt(value, 10);
+        if (!Number.isFinite(parsed)) return 1;
+        return Math.max(1, Math.min(max, parsed));
+    };
+
     // Initialize edit question canvas
     useEffect(() => {
         if (showEditQuestionDrawing && editQuestionCanvasRef.current) {
             const canvas = editQuestionCanvasRef.current;
             const ctx = canvas.getContext('2d');
             
-            const scale = 2;
-            const displayWidth = 794;
-            const displayHeight = 1123;
+            const scale = A4_CANVAS_SCALE;
+            const displayWidth = A4_DISPLAY_WIDTH_PX;
+            const displayHeight = A4_DISPLAY_HEIGHT_PX;
             
             canvas.width = displayWidth * scale;
             canvas.height = displayHeight * scale;
@@ -2224,10 +2248,10 @@ export default function EditorDashboard({ onLogout }) {
             ctx.fillRect(0, 0, displayWidth, displayHeight);
             
             if (showEditQuestionGraphPaper) {
-                drawGraphPaper(ctx, displayWidth, displayHeight);
+                drawGraphPaper(ctx, displayWidth, displayHeight, editQuestionGraphBoxesX, editQuestionGraphBoxesY);
             }
         }
-    }, [showEditQuestionDrawing, showEditQuestionGraphPaper]);
+    }, [showEditQuestionDrawing, showEditQuestionGraphPaper, editQuestionGraphBoxesX, editQuestionGraphBoxesY]);
 
     const startEditQuestionDrawing = (e) => {
         setIsEditQuestionDrawing(true);
@@ -2311,11 +2335,12 @@ export default function EditorDashboard({ onLogout }) {
 
     const clearEditQuestionCanvas = () => {
         const canvas = editQuestionCanvasRef.current;
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, A4_DISPLAY_WIDTH_PX, A4_DISPLAY_HEIGHT_PX);
         if (showEditQuestionGraphPaper) {
-            drawGraphPaper(ctx, canvas.width, canvas.height);
+            drawGraphPaper(ctx, A4_DISPLAY_WIDTH_PX, A4_DISPLAY_HEIGHT_PX, editQuestionGraphBoxesX, editQuestionGraphBoxesY);
         }
     };
 
@@ -2380,9 +2405,9 @@ export default function EditorDashboard({ onLogout }) {
             const canvas = editAnswerCanvasRef.current;
             const ctx = canvas.getContext('2d');
             
-            const scale = 2;
-            const displayWidth = 794;
-            const displayHeight = 1123;
+            const scale = A4_CANVAS_SCALE;
+            const displayWidth = A4_DISPLAY_WIDTH_PX;
+            const displayHeight = A4_DISPLAY_HEIGHT_PX;
             
             canvas.width = displayWidth * scale;
             canvas.height = displayHeight * scale;
@@ -2391,13 +2416,13 @@ export default function EditorDashboard({ onLogout }) {
             
             ctx.scale(scale, scale);
             ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, displayWidth, displayHeight);
             
             if (showEditAnswerGraphPaper) {
-                drawGraphPaper(ctx, displayWidth, displayHeight);
+                drawGraphPaper(ctx, displayWidth, displayHeight, editAnswerGraphBoxesX, editAnswerGraphBoxesY);
             }
         }
-    }, [showEditAnswerDrawing, showEditAnswerGraphPaper]);
+    }, [showEditAnswerDrawing, showEditAnswerGraphPaper, editAnswerGraphBoxesX, editAnswerGraphBoxesY]);
 
     const startEditAnswerDrawing = (e) => {
         setIsEditAnswerDrawing(true);
@@ -2480,11 +2505,12 @@ export default function EditorDashboard({ onLogout }) {
 
     const clearEditAnswerCanvas = () => {
         const canvas = editAnswerCanvasRef.current;
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, A4_DISPLAY_WIDTH_PX, A4_DISPLAY_HEIGHT_PX);
         if (showEditAnswerGraphPaper) {
-            drawGraphPaper(ctx, canvas.width, canvas.height);
+            drawGraphPaper(ctx, A4_DISPLAY_WIDTH_PX, A4_DISPLAY_HEIGHT_PX, editAnswerGraphBoxesX, editAnswerGraphBoxesY);
         }
     };
 
@@ -2888,9 +2914,9 @@ useEffect(() => {
             // Set canvas size to A4 printable area: 210mm x 297mm
             // At 96 DPI: 210mm = ~794px, 297mm = ~1123px
             // Using 2x scale for better image quality (prevents blur)
-            const scale = 2;
-            const displayWidth = 794;  // A4 width at 96 DPI
-            const displayHeight = 1123; // A4 height at 96 DPI
+            const scale = A4_CANVAS_SCALE;
+            const displayWidth = A4_DISPLAY_WIDTH_PX;
+            const displayHeight = A4_DISPLAY_HEIGHT_PX;
             
             canvas.width = displayWidth * scale;
             canvas.height = displayHeight * scale;
@@ -2909,47 +2935,65 @@ useEffect(() => {
             ctx.fillRect(0, 0, displayWidth, displayHeight);
             
             if (showGraphPaper) {
-                drawGraphPaper(ctx, displayWidth, displayHeight);
+                drawGraphPaper(ctx, displayWidth, displayHeight, graphBoxesX, graphBoxesY);
             }
         }
-    }, [showDrawingTool, showGraphPaper]);
+    }, [showDrawingTool, showGraphPaper, graphBoxesX, graphBoxesY]);
 
-    const drawGraphPaper = (ctx, width, height) => {
-        const gridSize = 10; // 10px per unit square
-        ctx.strokeStyle = '#e0e0e0';
-        ctx.lineWidth = 0.5;
+    const drawGraphPaper = (ctx, width, height, boxesX = MAX_GRAPH_BOXES_X, boxesY = MAX_GRAPH_BOXES_Y) => {
+        const safeBoxesX = clampGraphBoxCount(boxesX, MAX_GRAPH_BOXES_X);
+        const safeBoxesY = clampGraphBoxCount(boxesY, MAX_GRAPH_BOXES_Y);
+        const totalMmX = safeBoxesX * MM_PER_CM;
+        const totalMmY = safeBoxesY * MM_PER_CM;
+        const graphWidth = Math.min(width, totalMmX * PX_PER_MM);
+        const graphHeight = Math.min(height, totalMmY * PX_PER_MM);
 
-        // Draw vertical lines
-        for (let x = 0; x <= width; x += gridSize) {
+        ctx.save();
+
+        // Minor grid: 1 mm spacing
+        ctx.strokeStyle = '#e6e6e6';
+        ctx.lineWidth = 0.4;
+        for (let mmX = 0; mmX <= totalMmX; mmX++) {
+            if (mmX % MM_PER_CM === 0) continue;
+            const x = Math.min(graphWidth, mmX * PX_PER_MM);
             ctx.beginPath();
             ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
+            ctx.lineTo(x, graphHeight);
             ctx.stroke();
         }
-
-        // Draw horizontal lines
-        for (let y = 0; y <= height; y += gridSize) {
+        for (let mmY = 0; mmY <= totalMmY; mmY++) {
+            if (mmY % MM_PER_CM === 0) continue;
+            const y = Math.min(graphHeight, mmY * PX_PER_MM);
             ctx.beginPath();
             ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
+            ctx.lineTo(graphWidth, y);
             ctx.stroke();
         }
 
-        // Draw thicker lines every 10 grid units (100px = 10 squares)
-        ctx.strokeStyle = '#b0b0b0';
+        // Major grid: 1 cm spacing
+        ctx.strokeStyle = '#9ca3af';
         ctx.lineWidth = 1;
-        for (let x = 0; x <= width; x += gridSize * 10) {
+        for (let cmX = 0; cmX <= safeBoxesX; cmX++) {
+            const x = Math.min(graphWidth, cmX * MM_PER_CM * PX_PER_MM);
             ctx.beginPath();
             ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
+            ctx.lineTo(x, graphHeight);
             ctx.stroke();
         }
-        for (let y = 0; y <= height; y += gridSize * 10) {
+        for (let cmY = 0; cmY <= safeBoxesY; cmY++) {
+            const y = Math.min(graphHeight, cmY * MM_PER_CM * PX_PER_MM);
             ctx.beginPath();
             ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
+            ctx.lineTo(graphWidth, y);
             ctx.stroke();
         }
+
+        // Outline the selected graph area for clearer measurement boundaries.
+        ctx.strokeStyle = '#4b5563';
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(0, 0, graphWidth, graphHeight);
+
+        ctx.restore();
     };
 
     const startDrawing = (e) => {
@@ -3044,11 +3088,12 @@ useEffect(() => {
 
     const clearCanvas = () => {
         const canvas = canvasRef.current;
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, A4_DISPLAY_WIDTH_PX, A4_DISPLAY_HEIGHT_PX);
         if (showGraphPaper) {
-            drawGraphPaper(ctx, canvas.width, canvas.height);
+            drawGraphPaper(ctx, A4_DISPLAY_WIDTH_PX, A4_DISPLAY_HEIGHT_PX, graphBoxesX, graphBoxesY);
         }
     };
 
@@ -3086,9 +3131,9 @@ useEffect(() => {
             const ctx = canvas.getContext('2d');
             
             // Set canvas size
-            const scale = 2;
-            const displayWidth = 794;
-            const displayHeight = 1123;
+            const scale = A4_CANVAS_SCALE;
+            const displayWidth = A4_DISPLAY_WIDTH_PX;
+            const displayHeight = A4_DISPLAY_HEIGHT_PX;
             
             canvas.width = displayWidth * scale;
             canvas.height = displayHeight * scale;
@@ -3097,13 +3142,13 @@ useEffect(() => {
             
             ctx.scale(scale, scale);
             ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, displayWidth, displayHeight);
             
             if (showAnswerGraphPaper) {
-                drawGraphPaper(ctx, displayWidth, displayHeight);
+                drawGraphPaper(ctx, displayWidth, displayHeight, answerGraphBoxesX, answerGraphBoxesY);
             }
         }
-    }, [showAnswerDrawingTool, showAnswerGraphPaper]);
+    }, [showAnswerDrawingTool, showAnswerGraphPaper, answerGraphBoxesX, answerGraphBoxesY]);
     
     const startAnswerDrawing = (e) => {
         setIsAnswerDrawing(true);
@@ -3186,11 +3231,12 @@ useEffect(() => {
     
     const clearAnswerCanvas = () => {
         const canvas = answerCanvasRef.current;
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, A4_DISPLAY_WIDTH_PX, A4_DISPLAY_HEIGHT_PX);
         if (showAnswerGraphPaper) {
-            drawGraphPaper(ctx, canvas.width, canvas.height);
+            drawGraphPaper(ctx, A4_DISPLAY_WIDTH_PX, A4_DISPLAY_HEIGHT_PX, answerGraphBoxesX, answerGraphBoxesY);
         }
     };
     
@@ -6257,7 +6303,7 @@ useEffect(() => {
                                     </div>
                                     
                                     {/* Enhanced Drawing Controls */}
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
                                         {/* Drawing Tool Selection */}
                                         <div>
                                             <label className="text-xs font-semibold text-gray-700 mb-1 block">Tool</label>
@@ -6352,6 +6398,34 @@ useEffect(() => {
                                                 onChange={(e) => setDrawingWidth(e.target.value)} 
                                                 className="w-full h-9"
                                             />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-700 mb-1 block">
+                                                Graph Size (cm boxes)
+                                            </label>
+                                            <div className="flex items-center gap-1">
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max={MAX_GRAPH_BOXES_X}
+                                                    value={graphBoxesX}
+                                                    onChange={(e) => setGraphBoxesX(clampGraphBoxCount(e.target.value, MAX_GRAPH_BOXES_X))}
+                                                    className="w-full px-2 py-2 text-xs border border-gray-300 rounded"
+                                                    title={`X axis max ${MAX_GRAPH_BOXES_X} cm on A4 width`}
+                                                />
+                                                <span className="text-xs text-gray-500">x</span>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max={MAX_GRAPH_BOXES_Y}
+                                                    value={graphBoxesY}
+                                                    onChange={(e) => setGraphBoxesY(clampGraphBoxCount(e.target.value, MAX_GRAPH_BOXES_Y))}
+                                                    className="w-full px-2 py-2 text-xs border border-gray-300 rounded"
+                                                    title={`Y axis max ${MAX_GRAPH_BOXES_Y} cm on A4 height`}
+                                                />
+                                            </div>
+                                            <p className="text-[11px] text-gray-500 mt-1">1 cm major boxes, 1 mm minor subdivisions</p>
                                         </div>
                                     </div>
                                     
@@ -7493,6 +7567,28 @@ useEffect(() => {
                                             />
                                             <span className="text-sm font-medium">Graph Paper</span>
                                         </label>
+
+                                        <div className="flex items-center gap-2">
+                                            <label className="text-sm font-medium">Boxes (X,Y):</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max={MAX_GRAPH_BOXES_X}
+                                                value={answerGraphBoxesX}
+                                                onChange={(e) => setAnswerGraphBoxesX(clampGraphBoxCount(e.target.value, MAX_GRAPH_BOXES_X))}
+                                                className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                                                title={`X axis max ${MAX_GRAPH_BOXES_X} cm on A4 width`}
+                                            />
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max={MAX_GRAPH_BOXES_Y}
+                                                value={answerGraphBoxesY}
+                                                onChange={(e) => setAnswerGraphBoxesY(clampGraphBoxCount(e.target.value, MAX_GRAPH_BOXES_Y))}
+                                                className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                                                title={`Y axis max ${MAX_GRAPH_BOXES_Y} cm on A4 height`}
+                                            />
+                                        </div>
                                         
                                         {/* Clear Canvas */}
                                         <button
@@ -9863,7 +9959,7 @@ useEffect(() => {
                                             </button>
                                         </div>
                                         {/* Drawing Controls */}
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
                                             {/* Tool Selection */}
                                             <div>
                                                 <label className="text-xs font-semibold text-gray-700 mb-1 block">Tool</label>
@@ -9949,6 +10045,34 @@ useEffect(() => {
                                                     onChange={(e) => setEditQuestionDrawingWidth(e.target.value)} 
                                                     className="w-full h-9"
                                                 />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-xs font-semibold text-gray-700 mb-1 block">
+                                                    Graph Size (cm boxes)
+                                                </label>
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max={MAX_GRAPH_BOXES_X}
+                                                        value={editQuestionGraphBoxesX}
+                                                        onChange={(e) => setEditQuestionGraphBoxesX(clampGraphBoxCount(e.target.value, MAX_GRAPH_BOXES_X))}
+                                                        className="w-full px-2 py-2 text-xs border border-gray-300 rounded"
+                                                        title={`X axis max ${MAX_GRAPH_BOXES_X} cm on A4 width`}
+                                                    />
+                                                    <span className="text-xs text-gray-500">x</span>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        max={MAX_GRAPH_BOXES_Y}
+                                                        value={editQuestionGraphBoxesY}
+                                                        onChange={(e) => setEditQuestionGraphBoxesY(clampGraphBoxCount(e.target.value, MAX_GRAPH_BOXES_Y))}
+                                                        className="w-full px-2 py-2 text-xs border border-gray-300 rounded"
+                                                        title={`Y axis max ${MAX_GRAPH_BOXES_Y} cm on A4 height`}
+                                                    />
+                                                </div>
+                                                <p className="text-[11px] text-gray-500 mt-1">1 cm major boxes, 1 mm minor subdivisions</p>
                                             </div>
                                         </div>
                                         
@@ -10253,6 +10377,28 @@ useEffect(() => {
                                                 <input type="checkbox" checked={showEditAnswerGraphPaper} onChange={(e) => setShowEditAnswerGraphPaper(e.target.checked)} className="w-4 h-4"/>
                                                 <span className="text-sm font-medium">Graph Paper</span>
                                             </label>
+
+                                            <div className="flex items-center gap-2">
+                                                <label className="text-sm font-medium">Boxes (X,Y):</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max={MAX_GRAPH_BOXES_X}
+                                                    value={editAnswerGraphBoxesX}
+                                                    onChange={(e) => setEditAnswerGraphBoxesX(clampGraphBoxCount(e.target.value, MAX_GRAPH_BOXES_X))}
+                                                    className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                                                    title={`X axis max ${MAX_GRAPH_BOXES_X} cm on A4 width`}
+                                                />
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max={MAX_GRAPH_BOXES_Y}
+                                                    value={editAnswerGraphBoxesY}
+                                                    onChange={(e) => setEditAnswerGraphBoxesY(clampGraphBoxCount(e.target.value, MAX_GRAPH_BOXES_Y))}
+                                                    className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                                                    title={`Y axis max ${MAX_GRAPH_BOXES_Y} cm on A4 height`}
+                                                />
+                                            </div>
                                             
                                             <button type="button" onClick={clearEditAnswerCanvas} className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600">🗑️ Clear</button>
                                         </div>
