@@ -1356,8 +1356,11 @@ export default function EditorDashboard({ onLogout }) {
                 setIsSearching(true);
                 
                 try {
-                    // Extract just the text content (remove image placeholders)
-                    const cleanText = questionText.replace(/\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]/g, '').trim();
+                    // Extract just the text content (remove image/graph placeholders)
+                    const cleanText = questionText
+                        .replace(/\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]/g, '')
+                        .replace(/\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]/g, '')
+                        .trim();
                     
                     if (cleanText.length < 15) {
                         setSimilarQuestions([]);
@@ -1448,6 +1451,61 @@ export default function EditorDashboard({ onLogout }) {
             setEditAvailableTopics([]);
         }
     }, [editFilterPaper, editAvailablePapers, editFilterSubject]);
+
+    const parseGraphToken = (token) => {
+        const match = token.match(/^\[GRAPH:([\d.]+):([\d.]+)x([\d.]+)cm\]$/);
+        if (!match) return null;
+
+        const id = parseFloat(match[1]);
+        const widthCm = parseFloat(match[2]);
+        const heightCm = parseFloat(match[3]);
+
+        if (!Number.isFinite(id) || !Number.isFinite(widthCm) || !Number.isFinite(heightCm)) {
+            return null;
+        }
+
+        return {
+            id,
+            widthCm: Math.max(1, widthCm),
+            heightCm: Math.max(1, heightCm)
+        };
+    };
+
+    const renderGraphPaperBlock = (graphId, widthCm, heightCm, key, onRemoveGraph = null) => (
+        <span key={key} className="inline-block align-middle my-2 mx-1">
+            <span className="relative inline-block group">
+                <span
+                    style={{
+                        width: `${widthCm}cm`,
+                        height: `${heightCm}cm`,
+                        display: 'block',
+                        border: '2px solid #0f766e',
+                        borderRadius: '4px',
+                        boxSizing: 'border-box',
+                        backgroundColor: 'white',
+                        backgroundImage: [
+                            'repeating-linear-gradient(to right, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm)',
+                            'repeating-linear-gradient(to bottom, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm)',
+                            'repeating-linear-gradient(to right, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm)',
+                            'repeating-linear-gradient(to bottom, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm)'
+                        ].join(', ')
+                    }}
+                    title={`${widthCm}cm × ${heightCm}cm graph`}
+                />
+
+                {onRemoveGraph && (
+                    <button
+                        type="button"
+                        onClick={() => onRemoveGraph(graphId)}
+                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg text-xs font-bold z-10"
+                        title="Remove graph"
+                    >
+                        ✕
+                    </button>
+                )}
+            </span>
+        </span>
+    );
 
     // ====== HELPER FUNCTION: RENDER TEXT WITH IMAGES ======
     /**
@@ -1696,6 +1754,18 @@ export default function EditorDashboard({ onLogout }) {
                     continue;
                 }
                 
+                // Graph blocks
+                const graphMatch = remaining.match(/^\[GRAPH:([\d.]+):([\d.]+)x([\d.]+)cm\]/);
+                if (graphMatch) {
+                    const graphData = parseGraphToken(graphMatch[0]);
+                    if (graphData) {
+                        results.push(renderGraphPaperBlock(graphData.id, graphData.widthCm, graphData.heightCm, keyCounter++));
+                        currentIndex += graphMatch[0].length;
+                        matched = true;
+                        continue;
+                    }
+                }
+
                 // Images
                 const imageMatchNew = remaining.match(/^\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
                 const imageMatchOld = remaining.match(/^\[IMAGE:([\d.]+):(\d+)px\]/);
@@ -1726,7 +1796,7 @@ export default function EditorDashboard({ onLogout }) {
         
         // Helper function to check if string starts with any of our patterns
         const startsWithPattern = (str) => {
-            return str.match(/^(\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[IMAGE:)/);
+            return str.match(/^(\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[GRAPH:|\[IMAGE:)/);
         };
         
         // Helper to find matching closing tag for nested structures
@@ -2383,6 +2453,15 @@ export default function EditorDashboard({ onLogout }) {
 
     const saveEditQuestionDrawing = () => {
         const canvas = editQuestionCanvasRef.current;
+        if (showEditQuestionGraphPaper) {
+            const graphId = Date.now() + Math.random();
+            const graphPlaceholder = `\n[GRAPH:${graphId}:${editQuestionGraphBoxesX}x${editQuestionGraphBoxesY}cm]\n`;
+            setEditQuestionText(prev => prev + graphPlaceholder);
+            setShowEditQuestionDrawing(false);
+            showSuccess('✅ Graph inserted at exact cm size!');
+            return;
+        }
+
         const { width, height } = getCanvasExportDimensions(
             showEditQuestionGraphPaper,
             editQuestionGraphBoxesX,
@@ -2558,6 +2637,15 @@ export default function EditorDashboard({ onLogout }) {
 
     const saveEditAnswerDrawing = () => {
         const canvas = editAnswerCanvasRef.current;
+        if (showEditAnswerGraphPaper) {
+            const graphId = Date.now() + Math.random();
+            const graphPlaceholder = `\n[GRAPH:${graphId}:${editAnswerGraphBoxesX}x${editAnswerGraphBoxesY}cm]\n`;
+            setEditAnswerText(prev => prev + graphPlaceholder);
+            setShowEditAnswerDrawing(false);
+            showSuccess('Graph inserted at exact cm size!');
+            return;
+        }
+
         const { width, height } = getCanvasExportDimensions(
             showEditAnswerGraphPaper,
             editAnswerGraphBoxesX,
@@ -3141,6 +3229,15 @@ useEffect(() => {
 
     const saveDrawing = () => {
         const canvas = canvasRef.current;
+        if (showGraphPaper) {
+            const graphId = Date.now() + Math.random();
+            const graphPlaceholder = `\n[GRAPH:${graphId}:${graphBoxesX}x${graphBoxesY}cm]\n`;
+            setQuestionText(prev => prev + graphPlaceholder);
+            setShowDrawingTool(false);
+            showSuccess('✅ Graph inserted at exact cm size!');
+            return;
+        }
+
         const { width, height } = getCanvasExportDimensions(showGraphPaper, graphBoxesX, graphBoxesY);
         const imageUrl = exportCanvasImage(canvas, width, height);
         const newImage = {
@@ -3284,6 +3381,15 @@ useEffect(() => {
     
     const saveAnswerDrawing = () => {
         const canvas = answerCanvasRef.current;
+        if (showAnswerGraphPaper) {
+            const graphId = Date.now() + Math.random();
+            const graphPlaceholder = `\n[GRAPH:${graphId}:${answerGraphBoxesX}x${answerGraphBoxesY}cm]\n`;
+            setAnswerText(prev => prev + graphPlaceholder);
+            setShowAnswerDrawingTool(false);
+            showSuccess('Answer graph inserted at exact cm size!');
+            return;
+        }
+
         const { width, height } = getCanvasExportDimensions(showAnswerGraphPaper, answerGraphBoxesX, answerGraphBoxesY);
         const imageUrl = exportCanvasImage(canvas, width, height);
         const newImage = {
@@ -3710,7 +3816,7 @@ useEffect(() => {
         if (!text) return null;
 
         // Split by markdown patterns while preserving image placeholders
-        const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
+        const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g);
 
         return parts.map((part, index) => {
             // Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
@@ -5870,7 +5976,7 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index, splitParts) => {
+                                        {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index, splitParts) => {
                                             const partStart = splitParts.slice(0, index).reduce((sum, segment) => sum + segment.length, 0);
                                             // Check for formatting first
                                             // Superscript formatting
@@ -6178,6 +6284,21 @@ useEffect(() => {
                                                 );
                                             }
                                             
+                                            // Check for graph blocks
+                                            const graphMatch = part.match(/\[GRAPH:([\d.]+):([\d.]+)x([\d.]+)cm\]/);
+                                            if (graphMatch) {
+                                                const graphData = parseGraphToken(graphMatch[0]);
+                                                if (graphData) {
+                                                    return renderGraphPaperBlock(
+                                                        graphData.id,
+                                                        graphData.widthCm,
+                                                        graphData.heightCm,
+                                                        index,
+                                                        (graphId) => setQuestionText(prev => prev.replace(new RegExp(`\\[GRAPH:${graphId}:\\d+(?:\\.\\d+)?x\\d+(?:\\.\\d+)?cm\\]`, 'g'), ''))
+                                                    );
+                                                }
+                                            }
+
                                             // Check for images
                                             const imageMatchNew = part.match(/\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
                                             const imageMatchOld = part.match(/\[IMAGE:([\d.]+):(\d+)px\]/);
@@ -6555,7 +6676,7 @@ useEffect(() => {
                                     <div className="mb-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
                                         <p className="text-xs font-bold text-blue-800 mb-2">📝 QUESTION PREVIEW:</p>
                                         <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index, splitParts) => {
+                                            {questionText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\])/g).map((part, index, splitParts) => {
                                                 const partStart = splitParts.slice(0, index).reduce((sum, segment) => sum + segment.length, 0);
                                                 // Table: [TABLE:RxC:data] or [TABLE:RxC:data:W:widths:H:heights:M:merged]
                                                 if (part.startsWith('[TABLE:') && part.endsWith(']')) {
@@ -6762,6 +6883,15 @@ useEffect(() => {
                                                     return <em key={index} className="italic">{content}</em>;
                                                 }
                                                 
+                                                // Check for graph blocks
+                                                const graphMatch = part.match(/\[GRAPH:([\d.]+):([\d.]+)x([\d.]+)cm\]/);
+                                                if (graphMatch) {
+                                                    const graphData = parseGraphToken(graphMatch[0]);
+                                                    if (graphData) {
+                                                        return renderGraphPaperBlock(graphData.id, graphData.widthCm, graphData.heightCm, index);
+                                                    }
+                                                }
+
                                                 // Check for images
                                                 const imageMatchNew = part.match(/\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
                                                 const imageMatchOld = part.match(/\[IMAGE:([\d.]+):(\d+)px\]/);
@@ -6832,7 +6962,7 @@ useEffect(() => {
                                             }
                                         }}
                                     >
-                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index, splitParts) => {
+                                        {answerText.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index, splitParts) => {
                                             const partStart = splitParts.slice(0, index).reduce((sum, segment) => sum + segment.length, 0);
                                             // Check for formatting first
                                             // Superscript formatting
@@ -7167,6 +7297,21 @@ useEffect(() => {
                                                 );
                                             }
                                             
+                                            // Check for graph blocks
+                                            const graphMatch = part.match(/\[GRAPH:([\d.]+):([\d.]+)x([\d.]+)cm\]/);
+                                            if (graphMatch) {
+                                                const graphData = parseGraphToken(graphMatch[0]);
+                                                if (graphData) {
+                                                    return renderGraphPaperBlock(
+                                                        graphData.id,
+                                                        graphData.widthCm,
+                                                        graphData.heightCm,
+                                                        index,
+                                                        (graphId) => setAnswerText(prev => prev.replace(new RegExp(`\\[GRAPH:${graphId}:\\d+(?:\\.\\d+)?x\\d+(?:\\.\\d+)?cm\\]`, 'g'), ''))
+                                                    );
+                                                }
+                                            }
+
                                             // Check for images
                                             const imageMatchNew = part.match(/\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
                                             const imageMatchOld = part.match(/\[IMAGE:([\d.]+):(\d+)px\]/);
