@@ -107,6 +107,13 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
         setShowGrid(true);
     }, [open, type, initialData]);
 
+    useEffect(() => {
+        return () => {
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+    }, []);
+
     if (!open) return null;
 
     const handleCreateGrid = () => {
@@ -165,7 +172,9 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
     // Handle column resize
     const handleColumnResize = (colIndex, startX) => {
         const startWidth = colWidths[colIndex];
-        
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+
         const onMouseMove = (e) => {
             const delta = e.clientX - startX;
             const newWidth = Math.max(60, startWidth + delta);
@@ -173,21 +182,25 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
             newWidths[colIndex] = newWidth;
             setColWidths(newWidths);
         };
-        
+
         const onMouseUp = () => {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
             setResizing(null);
         };
-        
+
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
     };
-    
+
     // Handle row resize
     const handleRowResize = (rowIndex, startY) => {
         const startHeight = rowHeights[rowIndex];
-        
+        document.body.style.cursor = 'ns-resize';
+        document.body.style.userSelect = 'none';
+
         const onMouseMove = (e) => {
             const delta = e.clientY - startY;
             const newHeight = Math.max(30, startHeight + delta);
@@ -195,13 +208,15 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
             newHeights[rowIndex] = newHeight;
             setRowHeights(newHeights);
         };
-        
+
         const onMouseUp = () => {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
             setResizing(null);
         };
-        
+
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
     };
@@ -536,7 +551,7 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
                                                             width: `${colWidths[colIndex]}px`,
                                                             height: `${rowHeights[rowIndex]}px`,
                                                             position: 'relative',
-                                                            cursor: 'pointer'
+                                                            cursor: 'default'
                                                         }}
                                                         onMouseDown={(e) => handleCellMouseDown(rowIndex, colIndex, e)}
                                                         onMouseEnter={(e) => handleCellMouseEnter(rowIndex, colIndex, e)}
@@ -568,32 +583,46 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
                                                             }}
                                                         />
                                                         
-                                                        {/* Right border resize handle */}
+                                                        {/* Right border resize handle with grip indicator */}
                                                         {type === 'table' && colIndex < cellData[0].length - 1 && (
                                                             <div
-                                                                className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-400 bg-gray-300"
-                                                                style={{ transform: 'translateX(50%)' }}
+                                                                className={`absolute top-0 -right-1 w-2 h-full z-30 cursor-ew-resize flex items-center justify-center ${resizing?.type === 'col' && resizing?.index === colIndex ? 'bg-blue-500/40' : 'bg-transparent hover:bg-blue-400/35'}`}
+                                                                title="Drag to resize column"
                                                                 onMouseDown={(e) => {
                                                                     e.preventDefault();
                                                                     e.stopPropagation();
                                                                     setResizing({ type: 'col', index: colIndex });
                                                                     handleColumnResize(colIndex, e.clientX);
                                                                 }}
-                                                            />
+                                                            >
+                                                                {/* Vertical grip dots */}
+                                                                <div className="flex flex-col gap-1 pointer-events-none">
+                                                                    <div className="w-0.5 h-0.5 bg-blue-600 rounded-full opacity-60"></div>
+                                                                    <div className="w-0.5 h-0.5 bg-blue-600 rounded-full opacity-60"></div>
+                                                                    <div className="w-0.5 h-0.5 bg-blue-600 rounded-full opacity-60"></div>
+                                                                </div>
+                                                            </div>
                                                         )}
-                                                        
-                                                        {/* Bottom border resize handle */}
+
+                                                        {/* Bottom border resize handle with grip indicator */}
                                                         {type === 'table' && rowIndex < cellData.length - 1 && (
                                                             <div
-                                                                className="absolute bottom-0 left-0 w-full h-1 cursor-row-resize hover:bg-blue-400 bg-gray-300"
-                                                                style={{ transform: 'translateY(50%)' }}
+                                                                className={`absolute -bottom-1 left-0 w-full h-2 z-30 cursor-ns-resize flex items-center justify-center ${resizing?.type === 'row' && resizing?.index === rowIndex ? 'bg-blue-500/40' : 'bg-transparent hover:bg-blue-400/35'}`}
+                                                                title="Drag to resize row"
                                                                 onMouseDown={(e) => {
                                                                     e.preventDefault();
                                                                     e.stopPropagation();
                                                                     setResizing({ type: 'row', index: rowIndex });
                                                                     handleRowResize(rowIndex, e.clientY);
                                                                 }}
-                                                            />
+                                                            >
+                                                                {/* Horizontal grip dots */}
+                                                                <div className="flex gap-1 pointer-events-none">
+                                                                    <div className="w-0.5 h-0.5 bg-blue-600 rounded-full opacity-60"></div>
+                                                                    <div className="w-0.5 h-0.5 bg-blue-600 rounded-full opacity-60"></div>
+                                                                    <div className="w-0.5 h-0.5 bg-blue-600 rounded-full opacity-60"></div>
+                                                                </div>
+                                                            </div>
                                                         )}
                                                     </td>
                                                 );
