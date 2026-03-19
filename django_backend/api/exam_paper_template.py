@@ -1351,6 +1351,24 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
         paper_number = extract_paper_number_from_name(paper_name)
     except ValueError:
         raise ValueError(f"Invalid paper name format. Cannot extract paper number.{paper_name}")
+
+    # Physics Paper 2: render questions in one continuous flow (no forced per-page splitting)
+    is_physics_paper2 = 'PHYSICS' in paper_name and paper_number == 2
+    if is_physics_paper2:
+        all_questions_html = _generate_physics_paper2_continuous_pages(
+            questions,
+            current_page,
+            total_pages
+        )
+        pages_html.append(all_questions_html['html'])
+        current_page = all_questions_html['next_page']
+
+        # Add answer lines if needed
+        if answer_lines_pages > 0:
+            answer_lines_html = _generate_answer_lines_pages(answer_lines_pages, current_page, total_pages)
+            pages_html.append(answer_lines_html)
+
+        return '\n'.join(pages_html)
     
     # ================================================================================================
     # ABSOLUTE PRIORITY: Route Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1 immediately
@@ -1683,6 +1701,39 @@ def _generate_english_paper1_pages(questions, start_page, total_pages):
     </div>
 """
     
+    return {
+        'html': page_html,
+        'next_page': start_page + 1
+    }
+
+
+def _generate_physics_paper2_continuous_pages(questions, start_page, total_pages):
+    """
+    Generate Physics Paper 2 questions in continuous flow.
+    This avoids splitting questions into fixed pages and reduces wasted space
+    during preview and print.
+    """
+    questions_html = ""
+    for q in questions:
+        processed_text = _process_question_text(
+            q.get('text', ''),
+            q.get('question_inline_images', []),
+            q.get('question_answer_lines', [])
+        )
+
+        questions_html += f"""
+        <div class="question">
+            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
+        </div>
+"""
+
+    page_html = f"""
+    <div class="exam-page page-break">
+        {questions_html}
+        <div class="page-number">Page {start_page} of {total_pages}</div>
+    </div>
+"""
+
     return {
         'html': page_html,
         'next_page': start_page + 1
