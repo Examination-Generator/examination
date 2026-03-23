@@ -47,17 +47,25 @@ export default function SystemMessaging() {
     const loadMessages = async (silent = false) => {
         if (!silent) setIsLoading(true);
         try {
-            const data = await messagingService.getSystemMessages(
+            const baseData = await messagingService.getSystemMessages(
                 showUnreadOnly ? { unreadOnly: true } : {}
             );
 
-            // Fallback: if all-list is empty but unread badge exists, try unread endpoint for recovery.
-            if (!showUnreadOnly && (!data || data.length === 0) && unreadCount > 0) {
-                const unreadData = await messagingService.getSystemMessages({ unreadOnly: true });
-                setMessages(unreadData || []);
-            } else {
-                setMessages(data || []);
+            if (showUnreadOnly) {
+                setMessages(baseData || []);
+                return;
             }
+
+            if (baseData && baseData.length > 0) {
+                setMessages(baseData);
+                return;
+            }
+
+            // Recovery path: keep list visible when only unread endpoint returns data.
+            const unreadData = await messagingService.getSystemMessages({ unreadOnly: true });
+            const merged = [...(baseData || []), ...(unreadData || [])];
+            const uniqueById = Array.from(new Map(merged.map(item => [item.id, item])).values());
+            setMessages(uniqueById);
         } catch (error) {
             console.error('Failed to load messages:', error);
         } finally {

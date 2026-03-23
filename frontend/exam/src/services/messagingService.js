@@ -16,6 +16,34 @@ const getAuthHeaders = () => {
     };
 };
 
+const normalizeMessageList = (payload) => {
+    if (Array.isArray(payload)) {
+        return payload;
+    }
+
+    if (Array.isArray(payload?.data)) {
+        return payload.data;
+    }
+
+    if (Array.isArray(payload?.results)) {
+        return payload.results;
+    }
+
+    return [];
+};
+
+const normalizeCount = (payload) => {
+    if (typeof payload?.count === 'number') {
+        return payload.count;
+    }
+
+    if (typeof payload?.data?.count === 'number') {
+        return payload.data.count;
+    }
+
+    return 0;
+};
+
 // ==================== SMS Messaging ====================
 
 /**
@@ -162,7 +190,8 @@ export const getSystemMessages = async (params = {}) => {
             throw new APIError('Failed to fetch messages', response.status);
         }
 
-        return await response.json();
+        const data = await response.json();
+        return normalizeMessageList(data);
     } catch (error) {
         return handleAPIError(error, 'Failed to fetch messages');
     }
@@ -263,7 +292,7 @@ export const getUnreadMessageCount = async () => {
         }
 
         const data = await response.json();
-        return data.count || 0;
+        return normalizeCount(data);
     } catch (error) {
         console.error('Failed to fetch unread count:', error);
         return 0;

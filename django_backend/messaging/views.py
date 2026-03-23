@@ -139,9 +139,10 @@ def get_system_messages(request):
             else:
                 queryset = queryset.filter(unread_replies_count__gt=0)
         
-        # Annotate with reply count
+        # Keep thread ordering by latest activity.
+        # Do not annotate `replies_count` here because SystemMessage defines it as
+        # a @property, and Django cannot assign an annotation to a read-only property.
         queryset = queryset.annotate(
-            replies_count=Count('replies', filter=Q(replies__deleted_at__isnull=True)),
             last_activity_at=Coalesce(Max('replies__created_at'), F('created_at'))
         )
         
@@ -369,7 +370,9 @@ def get_unread_count(request):
                     deleted_at__isnull=True,
                     parent_message__isnull=False,
                     is_read=False,
-                    is_from_admin=False
+                    is_from_admin=False,
+                    parent_message__deleted_at__isnull=True,
+                    parent_message__parent_message__isnull=True
                 ).values_list('parent_message_id', flat=True)
             )
             count = len(unread_root_ids.union(unread_reply_root_ids))
