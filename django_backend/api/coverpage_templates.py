@@ -5,6 +5,53 @@ Generates professional coverpages with dynamic marking grids
 
 from datetime import datetime
 
+from .models import Question
+
+
+def _extract_physics_section_b_marks(generated_paper, section_b_count=5):
+    """
+    Return Section B marks in question order (Q14-Q18 for Physics).
+
+    Priority:
+    1) metadata['section_b_question_marks'] if present and valid
+    2) derive from generated_paper.question_ids (last section_b_count IDs)
+    3) fallback defaults for legacy records
+    """
+    fallback_marks = [11, 10, 10, 12, 12]
+
+    metadata = getattr(generated_paper, 'metadata', {}) or {}
+    metadata_marks = metadata.get('section_b_question_marks')
+    if isinstance(metadata_marks, list) and metadata_marks:
+        normalized = []
+        for i in range(section_b_count):
+            value = metadata_marks[i] if i < len(metadata_marks) else fallback_marks[i]
+            try:
+                normalized.append(int(value))
+            except (TypeError, ValueError):
+                normalized.append(fallback_marks[i])
+        return normalized
+
+    question_ids = list(getattr(generated_paper, 'question_ids', []) or [])
+    if len(question_ids) >= section_b_count:
+        section_b_ids = [str(qid) for qid in question_ids[-section_b_count:]]
+        questions = Question.objects.filter(id__in=section_b_ids).only('id', 'marks')
+        question_map = {str(question.id): question for question in questions}
+
+        ordered_marks = []
+        for qid in section_b_ids:
+            question = question_map.get(qid)
+            if question is None:
+                break
+            try:
+                ordered_marks.append(int(question.marks))
+            except (TypeError, ValueError):
+                break
+
+        if len(ordered_marks) == section_b_count:
+            return ordered_marks
+
+    return fallback_marks[:section_b_count]
+
 
 def format_time_allocation(minutes):
     """
@@ -1761,6 +1808,7 @@ class PhysicsPaper1Coverpage:
         section_a_marks = data.get('section_a_marks', 25)
         section_b_questions = data.get('section_b_questions', 5)
         section_b_marks = data.get('section_b_marks', 55)
+        section_b_question_marks = data.get('section_b_question_marks', [11, 10, 10, 12, 12])
         total_marks = data.get('total_marks', 80)
         total_questions = section_a_questions + section_b_questions
         total_pages = data.get('total_pages', 12)
@@ -1788,6 +1836,7 @@ class PhysicsPaper1Coverpage:
         marking_grid_html = PhysicsPaper1Coverpage._generate_marking_grid(
             section_a_questions, section_a_marks,
             section_b_questions, section_b_marks,
+            section_b_question_marks,
             total_marks
         )
         
@@ -2099,12 +2148,24 @@ class PhysicsPaper1Coverpage:
     
     @staticmethod
     def _generate_marking_grid(section_a_questions, section_a_marks, 
-                               section_b_questions, section_b_marks, total_marks):
+                               section_b_questions, section_b_marks,
+                               section_b_question_marks, total_marks):
         """
         Generate marking grid HTML for Physics Paper 1
         Similar to Biology Paper 2 grid structure
         """
         
+        # Keep legacy defaults for older papers that may not have stored per-question Section B marks.
+        fallback_marks = [11, 10, 10, 12, 12]
+        section_b_question_marks = section_b_question_marks or fallback_marks
+        normalized_marks = []
+        for i in range(5):
+            mark_value = section_b_question_marks[i] if i < len(section_b_question_marks) else fallback_marks[i]
+            try:
+                normalized_marks.append(int(mark_value))
+            except (TypeError, ValueError):
+                normalized_marks.append(fallback_marks[i])
+
         html = f"""
             <table class="marking-grid" style="border: none; border-collapse: collapse;">
                 <thead>
@@ -2131,27 +2192,27 @@ class PhysicsPaper1Coverpage:
                     <tr>
                         <td class="section-label" rowspan="7">B</td>
                         <td>14</td>
-                        <td>11</td>
+                        <td>{normalized_marks[0]}</td>
                         <td></td>
                     </tr>
                     <tr>
                         <td>15</td>
-                        <td>10</td>
+                        <td>{normalized_marks[1]}</td>
                         <td></td>
                     </tr>
                     <tr>
                         <td>16</td>
-                        <td>10</td>
+                        <td>{normalized_marks[2]}</td>
                         <td></td>
                     </tr>
                     <tr>
                         <td>17</td>
-                        <td>12</td>
+                        <td>{normalized_marks[3]}</td>
                         <td></td>
                     </tr>
                     <tr>
                         <td>18</td>
-                        <td>12</td>
+                        <td>{normalized_marks[4]}</td>
                         <td></td>
                     </tr>
                     <tr>
@@ -2188,6 +2249,7 @@ class PhysicsPaper1Coverpage:
         metadata = getattr(generated_paper, 'metadata', {}) or {}
         section_a_questions = int(metadata.get('section_a_questions', 13))
         section_b_questions = int(metadata.get('section_b_questions', 5))
+        section_b_question_marks = _extract_physics_section_b_marks(generated_paper, section_b_count=section_b_questions)
 
         # Compute total pages dynamically: coverpage + question pages
         total_questions = getattr(generated_paper, 'total_questions', None) or (section_a_questions + section_b_questions)
@@ -2216,6 +2278,7 @@ class PhysicsPaper1Coverpage:
             'section_a_marks': 25,
             'section_b_questions': section_b_questions,
             'section_b_marks': 55,
+            'section_b_question_marks': section_b_question_marks,
             'total_marks': generated_paper.total_marks or 80,
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
@@ -2294,11 +2357,13 @@ class PhysicsPaper2Coverpage:
         section_a_marks = data.get('section_a_marks', 25)
         section_b_questions = data.get('section_b_questions', 5)
         section_b_marks = data.get('section_b_marks', 55)
+        section_b_question_marks = data.get('section_b_question_marks', [11, 10, 10, 12, 12])
         
         # Generate marking grid for Physics Paper 2
         marking_grid_html = PhysicsPaper2Coverpage._generate_marking_grid(
             section_a_questions, section_a_marks,
             section_b_questions, section_b_marks,
+            section_b_question_marks,
             total_marks
         )
         
@@ -2606,12 +2671,24 @@ class PhysicsPaper2Coverpage:
     
     @staticmethod
     def _generate_marking_grid(section_a_questions, section_a_marks, 
-                               section_b_questions, section_b_marks, total_marks):
+                               section_b_questions, section_b_marks,
+                               section_b_question_marks, total_marks):
         """
         Generate marking grid HTML for Physics Paper 2
         Similar to Physics Paper 1 grid structure
         """
         
+        # Keep legacy defaults for older papers that may not have stored per-question Section B marks.
+        fallback_marks = [11, 10, 10, 12, 12]
+        section_b_question_marks = section_b_question_marks or fallback_marks
+        normalized_marks = []
+        for i in range(5):
+            mark_value = section_b_question_marks[i] if i < len(section_b_question_marks) else fallback_marks[i]
+            try:
+                normalized_marks.append(int(mark_value))
+            except (TypeError, ValueError):
+                normalized_marks.append(fallback_marks[i])
+
         html = f"""
             <table class="marking-grid" style="border: none; border-collapse: collapse;">
                 <thead>
@@ -2638,27 +2715,27 @@ class PhysicsPaper2Coverpage:
                     <tr>
                         <td class="section-label" rowspan="7">B</td>
                         <td>14</td>
-                        <td>11</td>
+                        <td>{normalized_marks[0]}</td>
                         <td></td>
                     </tr>
                     <tr>
                         <td>15</td>
-                        <td>10</td>
+                        <td>{normalized_marks[1]}</td>
                         <td></td>
                     </tr>
                     <tr>
                         <td>16</td>
-                        <td>10</td>
+                        <td>{normalized_marks[2]}</td>
                         <td></td>
                     </tr>
                     <tr>
                         <td>17</td>
-                        <td>12</td>
+                        <td>{normalized_marks[3]}</td>
                         <td></td>
                     </tr>
                     <tr>
                         <td>18</td>
-                        <td>12</td>
+                        <td>{normalized_marks[4]}</td>
                         <td></td>
                     </tr>
                     <tr>
@@ -2701,6 +2778,9 @@ class PhysicsPaper2Coverpage:
         
         # Get section details from metadata if available
         metadata = getattr(generated_paper, 'metadata', {}) or {}
+        section_a_questions = int(metadata.get('section_a_questions', 13))
+        section_b_questions = int(metadata.get('section_b_questions', 5))
+        section_b_question_marks = _extract_physics_section_b_marks(generated_paper, section_b_count=section_b_questions)
         
         # Calculate total pages
         total_pages = 16  # Standard for Physics Paper 2
@@ -2713,10 +2793,11 @@ class PhysicsPaper2Coverpage:
             'exam_title': 'END TERM EXAMINATION 2025',
             'paper_name': display_paper_name,
             'paper_type': 'Paper 2',
-            'section_a_questions': 13,
+            'section_a_questions': section_a_questions,
             'section_a_marks': 25,
-            'section_b_questions': 5,
+            'section_b_questions': section_b_questions,
             'section_b_marks': 55,
+            'section_b_question_marks': section_b_question_marks,
             'total_marks': generated_paper.total_marks or 80,
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
