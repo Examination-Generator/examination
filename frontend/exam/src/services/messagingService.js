@@ -351,3 +351,61 @@ export const deleteSystemMessage = async (messageId) => {
         return handleAPIError(error, 'Failed to delete message');
     }
 };
+
+const extractFilenameFromContentDisposition = (contentDisposition) => {
+    if (!contentDisposition) {
+        return null;
+    }
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (utf8Match?.[1]) {
+        try {
+            return decodeURIComponent(utf8Match[1].trim());
+        } catch {
+            return utf8Match[1].trim();
+        }
+    }
+
+    const basicMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+    return basicMatch?.[1]?.trim() || null;
+};
+
+/**
+ * Download an attachment from a system message
+ * @param {string} attachmentUrl - Attachment URL
+ * @param {string} fallbackName - Fallback filename when server doesn't provide one
+ * @returns {Promise<boolean>} Download started
+ */
+export const downloadSystemAttachment = async (attachmentUrl, fallbackName = 'attachment') => {
+    try {
+        if (!attachmentUrl) {
+            throw new APIError('Attachment URL is missing', 400);
+        }
+
+        const response = await fetch(attachmentUrl, {
+            method: 'GET',
+            headers: getAuthHeaders(false)
+        });
+
+        if (!response.ok) {
+            throw new APIError('Failed to download attachment', response.status);
+        }
+
+        const blob = await response.blob();
+        const objectUrl = window.URL.createObjectURL(blob);
+        const contentDisposition = response.headers.get('content-disposition');
+        const filename = extractFilenameFromContentDisposition(contentDisposition) || fallbackName;
+
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(objectUrl);
+
+        return true;
+    } catch (error) {
+        return handleAPIError(error, 'Failed to download attachment');
+    }
+};

@@ -216,6 +216,20 @@ export default function UserMessagingFloat() {
         </span>
     );
 
+    const handleDownloadAttachment = async (item) => {
+        try {
+            await messagingService.downloadSystemAttachment(item?.attachment_url, item?.attachment_name || 'attachment');
+        } catch (error) {
+            console.error('Failed to download attachment:', error);
+            setAlertConfig({
+                title: 'Download Error',
+                message: 'Could not download this file. Please try again.',
+                type: 'error'
+            });
+            setShowAlert(true);
+        }
+    };
+
     const renderAttachment = (item) => {
         if (!item?.attachment_url) {
             return null;
@@ -226,21 +240,33 @@ export default function UserMessagingFloat() {
             || attachmentName.toLowerCase().endsWith('.pdf');
 
         return (
-            <a
-                href={item.attachment_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-white border border-gray-300 hover:border-green-400 hover:bg-green-50 transition text-sm text-green-700"
-            >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {isPdf ? (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V7l-5-5H7a2 2 0 00-2 2v15a2 2 0 002 2zM14 2v5h5M10 13h4M10 17h4M9 9h1" />
-                    ) : (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.828a4 4 0 00-5.657-5.657L5.757 10.757a6 6 0 108.486 8.486L20 13" />
-                    )}
-                </svg>
-                <span className="truncate max-w-[240px]">{attachmentName}</span>
-            </a>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+                <a
+                    href={item.attachment_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-300 hover:border-green-400 hover:bg-green-50 transition text-sm text-green-700"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {isPdf ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V7l-5-5H7a2 2 0 00-2 2v15a2 2 0 002 2zM14 2v5h5M10 13h4M10 17h4M9 9h1" />
+                        ) : (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.828a4 4 0 00-5.657-5.657L5.757 10.757a6 6 0 108.486 8.486L20 13" />
+                        )}
+                    </svg>
+                    <span className="truncate max-w-[200px]">{attachmentName}</span>
+                </a>
+                <button
+                    type="button"
+                    onClick={() => handleDownloadAttachment(item)}
+                    className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-green-600 text-green-700 hover:bg-green-50 transition text-sm font-semibold"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3" />
+                    </svg>
+                    Download
+                </button>
+            </div>
         );
     };
 
