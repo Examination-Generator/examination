@@ -8,7 +8,8 @@ import { APIError, handleAPIError } from './errors';
 
 // Get auth token
 const getAuthHeaders = () => {
-    const token = localStorage.getItem('auth_token');
+    // Keep backward compatibility with older key while aligning with authService.
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
     return {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` })
