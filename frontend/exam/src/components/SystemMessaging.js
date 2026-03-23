@@ -373,74 +373,78 @@ export default function SystemMessaging() {
                                 </div>
                             ) : (
                                 <>
-                                    {/* Original Message */}
-                                    <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-600">
-                                        <div className="flex items-start gap-4">
-                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center flex-shrink-0">
-                                                <span className="text-white font-bold">
-                                                    {conversation.sender_name ? conversation.sender_name[0].toUpperCase() : 'U'}
-                                                </span>
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div>
-                                                        <p className="font-bold text-gray-900">{conversation.sender_name || 'User'}</p>
-                                                        <p className="text-sm text-gray-500">{formatDate(conversation.created_at)}</p>
-                                                    </div>
-                                                    <span className="bg-purple-100 text-purple-800 text-xs px-3 py-1 rounded-full font-semibold">
-                                                        Original Message
+                                    {/* Original Message (incoming - right) */}
+                                    <div className="flex justify-end">
+                                        <div className="w-[85%] bg-white rounded-2xl shadow-md p-6 border-r-4 border-purple-600">
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                                    <span className="text-white font-bold">
+                                                        {conversation.sender_name ? conversation.sender_name[0].toUpperCase() : 'U'}
                                                     </span>
                                                 </div>
-                                                {conversation.subject && (
-                                                    <p className="font-semibold text-gray-900 mb-2">{conversation.subject}</p>
-                                                )}
-                                                <p className="text-gray-700 whitespace-pre-wrap">{conversation.message}</p>
+                                                <div className="flex-1">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div>
+                                                            <p className="font-bold text-gray-900">{conversation.sender_name || 'User'}</p>
+                                                            <p className="text-sm text-gray-500">{formatDate(conversation.created_at)}</p>
+                                                        </div>
+                                                        <span className="bg-purple-100 text-purple-800 text-xs px-3 py-1 rounded-full font-semibold">
+                                                            Original Message
+                                                        </span>
+                                                    </div>
+                                                    {conversation.subject && (
+                                                        <p className="font-semibold text-gray-900 mb-2">{conversation.subject}</p>
+                                                    )}
+                                                    <p className="text-gray-700 whitespace-pre-wrap">{conversation.message}</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Replies */}
                                     {conversation.replies && conversation.replies.length > 0 && (
-                                        <div className="space-y-4 ml-8">
+                                        <div className="space-y-4">
                                             {conversation.replies.map((reply, idx) => (
-                                                <div key={idx} className={`rounded-lg shadow-md p-4 ${
-                                                    reply.is_from_admin 
-                                                        ? 'bg-green-50 border-l-4 border-green-600' 
-                                                        : 'bg-blue-50 border-l-4 border-blue-600'
-                                                }`}>
-                                                    <div className="flex items-start gap-3">
-                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                                            reply.is_from_admin
-                                                                ? 'bg-green-600'
-                                                                : 'bg-blue-600'
-                                                        }`}>
-                                                            <span className="text-white font-bold text-sm">
-                                                                {reply.sender_name ? reply.sender_name[0].toUpperCase() : 'A'}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <div className="flex justify-between items-start mb-2">
-                                                                <div>
-                                                                    <p className="font-semibold text-gray-900">{reply.sender_name || 'Admin'}</p>
-                                                                    <p className="text-xs text-gray-500">{formatDate(reply.created_at)}</p>
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    {reply.is_from_admin && <ReadReceipt seen={reply.is_read} />}
-                                                                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                                                                        reply.is_from_admin
-                                                                            ? 'bg-green-200 text-green-800'
-                                                                            : 'bg-blue-200 text-blue-800'
-                                                                    }`}>
-                                                                        {reply.is_from_admin ? 'Editor' : 'User'}
-                                                                    </span>
-                                                                </div>
+                                                <div key={idx} className={`flex ${reply.is_from_admin ? 'justify-start' : 'justify-end'}`}>
+                                                    <div className={`w-[85%] rounded-2xl shadow-md p-4 ${
+                                                        reply.is_from_admin
+                                                            ? 'bg-green-50 border-l-4 border-green-600'
+                                                            : 'bg-blue-50 border-r-4 border-blue-600'
+                                                    }`}>
+                                                        <div className="flex items-start gap-3">
+                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                                                reply.is_from_admin
+                                                                    ? 'bg-green-600'
+                                                                    : 'bg-blue-600'
+                                                            }`}>
+                                                                <span className="text-white font-bold text-sm">
+                                                                    {reply.sender_name ? reply.sender_name[0].toUpperCase() : 'A'}
+                                                                </span>
                                                             </div>
-                                                            {reply.quoted_text && (
-                                                                <div className="bg-white bg-opacity-50 border-l-2 border-gray-400 pl-3 py-1 mb-2">
-                                                                    <p className="text-xs text-gray-600 italic">"{reply.quoted_text}"</p>
+                                                            <div className="flex-1">
+                                                                <div className="flex justify-between items-start mb-2">
+                                                                    <div>
+                                                                        <p className="font-semibold text-gray-900">{reply.sender_name || 'Admin'}</p>
+                                                                        <p className="text-xs text-gray-500">{formatDate(reply.created_at)}</p>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        {reply.is_from_admin && <ReadReceipt seen={reply.is_read} />}
+                                                                        <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                                                                            reply.is_from_admin
+                                                                                ? 'bg-green-200 text-green-800'
+                                                                                : 'bg-blue-200 text-blue-800'
+                                                                        }`}>
+                                                                            {reply.is_from_admin ? 'Editor' : 'User'}
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
-                                                            )}
-                                                            <p className="text-gray-700 whitespace-pre-wrap">{reply.message}</p>
+                                                                {reply.quoted_text && (
+                                                                    <div className="bg-white bg-opacity-50 border-l-2 border-gray-400 pl-3 py-1 mb-2">
+                                                                        <p className="text-xs text-gray-600 italic">"{reply.quoted_text}"</p>
+                                                                    </div>
+                                                                )}
+                                                                <p className="text-gray-700 whitespace-pre-wrap">{reply.message}</p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>

@@ -357,36 +357,195 @@ export default function UserMessagingFloat() {
                                         </div>
                                     ) : (
                                         <>
-                                            {/* Original Message */}
-                                            <div className="bg-blue-50 rounded-lg p-3 border-l-4 border-blue-600">
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <p className="text-xs text-gray-500">You • {formatDate(conversation.created_at)}</p>
-                                                    <ReadReceipt seen={conversation.is_read} />
+                                            {/* Original Message (sender - left) */}
+                                            <div className="flex justify-start">
+                                                <div className="w-[85%] bg-blue-50 rounded-2xl p-3 border-l-4 border-blue-600 shadow-sm">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <p className="text-xs text-gray-500">You • {formatDate(conversation.created_at)}</p>
+                                                        <ReadReceipt seen={conversation.is_read} />
+                                                    </div>
+                                                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{conversation.message}</p>
                                                 </div>
-                                                <p className="text-sm text-gray-700 whitespace-pre-wrap">{conversation.message}</p>
                                             </div>
 
                                             {/* Replies */}
                                             {conversation.replies && conversation.replies.map((reply, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    className={`rounded-lg p-3 border-l-4 ${
-                                                        reply.is_from_admin
-                                                            ? 'bg-green-50 border-green-600'
-                                                            : 'bg-blue-50 border-blue-600'
+                                                <div key={idx} className={`flex ${reply.is_from_admin ? 'justify-end' : 'justify-start'}`}>
+                                                    <div
+                                                        className={`w-[85%] rounded-2xl p-3 border-l-4 shadow-sm ${
+                                                            reply.is_from_admin
+                                                                ? 'bg-green-50 border-green-600'
+                                                                : 'bg-blue-50 border-blue-600'
+                                                        }`}
+                                                    >
+                                                        <p className="text-xs text-gray-600 mb-1 font-semibold">
+                                                            {reply.is_from_admin ? 'Admin' : 'You'} • {formatDate(reply.created_at)}
+                                                        </p>
+                                                        {!reply.is_from_admin && (
+                                                            <div className="mb-1">
+                                                                <ReadReceipt seen={reply.is_read} />
+                                                            </div>
+                                                        )}
+                                                        {reply.quoted_text && (
+                                                            <div className="bg-white bg-opacity-50 border-l-2 border-gray-400 pl-2 py-1 mb-2">
+                                                                <p className="text-xs text-gray-600 italic">"{reply.quoted_text}"</p>
+                                                            </div>
+                                                        )}
+                                                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{reply.message}</p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            <div ref={messageEndRef} />
+                                        </>
+                                    )}
+                                </div>
+
+                                <div className="p-3 border-t border-gray-200 flex-shrink-0">
+                                    <div className="flex items-end gap-2">
+                                        <textarea
+                                            value={replyText}
+                                            onChange={(e) => setReplyText(e.target.value)}
+                                            placeholder="Type a reply..."
+                                            rows={2}
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none text-sm"
+                                            onKeyPress={(e) => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    sendReply();
+                                                }
+                                            }}
+                                        />
+                                        <button
+                                            onClick={sendReply}
+                                            disabled={isSending || !replyText.trim()}
+                                            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white p-2 rounded-lg transition flex-shrink-0"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            // Messages List
+                            <>
+                                <div className="p-3 border-b border-gray-200">
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => {
+                                                if (messages.length > 0) {
+                                                    openMessage(messages[0]);
+                                                    return;
+                                                }
+                                                setForceNewConversation(true);
+                                                setShowNewMessage(true);
+                                            }}
+                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold transition flex items-center justify-center gap-2"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                            </svg>
+                                            {messages.length > 0 ? 'Continue Conversation' : 'New Message'}
+                                        </button>
+                                        {messages.length > 0 && (
+                                            <button
+                                                onClick={() => {
+                                                    setForceNewConversation(true);
+                                                    setShowNewMessage(true);
+                                                }}
+                                                className="px-3 py-2 rounded-lg border border-green-600 text-green-700 hover:bg-green-50 text-xs font-semibold"
+                                                title="Start a separate conversation"
+                                            >
+                                                New Thread
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto">
+                                    {isLoading ? (
+                                        <div className="flex justify-center items-center h-full">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                                        </div>
+                                    ) : messages.length === 0 ? (
+                                        <div className="p-6 text-center text-gray-500">
+                                            <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                                            </svg>
+                                            <p className="font-semibold">No messages</p>
+                                            <p className="text-xs mt-1">Start a conversation</p>
+                                        </div>
+                                    ) : (
+                                        <div className="divide-y divide-gray-200">
+                                            {messages.map(message => {
+                                                const hasUnreadIncoming = (message.unread_replies_count || 0) > 0;
+
+                                                return (
+                                                <button
+                                                    key={message.id}
+                                                    onClick={() => openMessage(message)}
+                                                    className={`w-full text-left p-3 hover:bg-gray-50 transition relative ${
+                                                        hasUnreadIncoming ? 'bg-blue-50' : ''
                                                     }`}
                                                 >
-                                                    <p className="text-xs text-gray-600 mb-1 font-semibold">
-                                                        {reply.is_from_admin ? 'Admin' : 'You'} • {formatDate(reply.created_at)}
-                                                    </p>
-                                                    {!reply.is_from_admin && (
-                                                        <div className="mb-1">
-                                                            <ReadReceipt seen={reply.is_read} />
-                                                        </div>
+                                                    {hasUnreadIncoming && (
+                                                        <div className="absolute top-3 left-1 w-2 h-2 bg-blue-600 rounded-full"></div>
                                                     )}
-                                                    {reply.quoted_text && (
-                                                        <div className="bg-white bg-opacity-50 border-l-2 border-gray-400 pl-2 py-1 mb-2">
-                                                            <p className="text-xs text-gray-600 italic">"{reply.quoted_text}"</p>
+                                                    <div className="ml-3">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <p className={`text-sm font-semibold text-gray-900 truncate ${hasUnreadIncoming ? 'font-bold' : ''}`}>
+                                                                {message.subject || 'No subject'}
+                                                            </p>
+                                                            <span className="text-xs text-gray-500 ml-2">
+                                                                {formatDate(message.created_at)}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-gray-600 truncate">{message.message}</p>
+                                                        <div className="mt-1 flex items-center justify-between">
+                                                            {(message.unread_replies_count || 0) > 0 ? (
+                                                                <span className="text-[11px] font-semibold text-blue-700 bg-blue-100 rounded-full px-2 py-0.5">
+                                                                    {message.unread_replies_count} {message.unread_replies_count > 1 ? 'new replies' : 'new reply'}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[11px] text-gray-500">No new reply</span>
+                                                            )}
+                                                            <span className="inline-flex items-center gap-1 text-[11px] text-gray-500">
+                                                                <ReadReceipt seen={message.is_read} />
+                                                            </span>
+                                                        </div>
+                                                        {message.replies_count > 0 && (
+                                                            <div className="mt-1 flex items-center gap-1 text-xs text-green-600">
+                                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                                                </svg>
+                                                                {message.replies_count}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+            
+            {/* Alert Modal */}
+            <AlertModal
+                isOpen={showAlert}
+                onClose={() => setShowAlert(false)}
+                title={alertConfig.title}
+                message={alertConfig.message}
+                type={alertConfig.type}
+            />
+        </>
+    );
+}
                                                         </div>
                                                     )}
                                                     <p className="text-sm text-gray-700 whitespace-pre-wrap">{reply.message}</p>
