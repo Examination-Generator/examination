@@ -2289,8 +2289,18 @@ class PhysicsPaper2Coverpage:
         show_number = data.get('candidate_number_field', True)
         show_date = data.get('date_field', True)
         
+        # Get section details for marking grid
+        section_a_questions = data.get('section_a_questions', 13)
+        section_a_marks = data.get('section_a_marks', 25)
+        section_b_questions = data.get('section_b_questions', 5)
+        section_b_marks = data.get('section_b_marks', 55)
+        
         # Generate marking grid for Physics Paper 2
-        marking_grid_html = PhysicsPaper2Coverpage._generate_marking_grid()
+        marking_grid_html = PhysicsPaper2Coverpage._generate_marking_grid(
+            section_a_questions, section_a_marks,
+            section_b_questions, section_b_marks,
+            total_marks
+        )
         
         # Build HTML
         html = f"""
@@ -2595,77 +2605,78 @@ class PhysicsPaper2Coverpage:
         return html
     
     @staticmethod
-    def _generate_marking_grid():
+    def _generate_marking_grid(section_a_questions, section_a_marks, 
+                               section_b_questions, section_b_marks, total_marks):
         """
         Generate marking grid HTML for Physics Paper 2
-        
-        Based on screenshot, the grid structure is:
-        - Section A: Questions 1-13 (25 marks), 14 (10 marks), 15 (18 marks)
-        - Section B: Questions 16 (9 marks), 17 (13 marks), 18 (11 marks)
-        - Total Score: 80 marks
-        
-        Returns:
-            str: HTML for marking grid
+        Similar to Physics Paper 1 grid structure
         """
         
-        grid_html = """
-            <table class="marking-grid">
+        html = f"""
+            <table class="marking-grid" style="border: none; border-collapse: collapse;">
                 <thead>
                     <tr>
-                        <th>Section</th>
-                        <th>Questions</th>
-                        <th>Maximum<br>Score</th>
-                        <th>Candidate's<br>Score</th>
+                        <th style="background-color: white;">Section</th>
+                        <th style="background-color: white;">Question</th>
+                        <th style="background-color: white;">Maximum Score</th>
+                        <th style="background-color: white;">Candidate's Score</th>
                     </tr>
                 </thead>
                 <tbody>
                     <!-- Section A -->
                     <tr>
-                        <td rowspan="3" class="section-label">A</td>
-                        <td>1-13</td>
-                        <td>25</td>
+                        <td class="section-label" rowspan="2">A</td>
+                        <td>1-{section_a_questions}</td>
+                        <td>{section_a_marks}</td>
                         <td></td>
                     </tr>
                     <tr>
-                        <td>14</td>
-                        <td>10</td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td>15</td>
-                        <td>18</td>
-                        <td></td>
+                        <td colspan="3" style="border-top: none; border-right: 1px solid black; "></td>
                     </tr>
                     
                     <!-- Section B -->
                     <tr>
-                        <td rowspan="3" class="section-label">B</td>
+                        <td class="section-label" rowspan="7">B</td>
+                        <td>14</td>
+                        <td>11</td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>15</td>
+                        <td>10</td>
+                        <td></td>
+                    </tr>
+                    <tr>
                         <td>16</td>
-                        <td>9</td>
+                        <td>10</td>
                         <td></td>
                     </tr>
                     <tr>
                         <td>17</td>
-                        <td>13</td>
+                        <td>12</td>
                         <td></td>
                     </tr>
                     <tr>
                         <td>18</td>
-                        <td>11</td>
+                        <td>12</td>
                         <td></td>
                     </tr>
+                    <tr>
+                        <td colspan="3"></td>
+                    </tr>
                     
-                    <!-- Total Score -->
+                    <!-- Total -->
                     <tr class="total-row">
-                        <td colspan="2">Total Score</td>
-                        <td>80</td>
-                        <td></td>
+                        <td style="background-color: white;">Total Score</td>
+                        <td style="background-color: white;">{total_marks}</td>
+                        <td style="background-color: white;"></td>
                     </tr>
                 </tbody>
             </table>
-        """
+"""
         
-        return grid_html
+        return html
+
     
     @staticmethod
     def generate_default_coverpage_data(generated_paper, paper):
@@ -2702,8 +2713,10 @@ class PhysicsPaper2Coverpage:
             'exam_title': 'END TERM EXAMINATION 2025',
             'paper_name': display_paper_name,
             'paper_type': 'Paper 2',
-            'section_a_questions': 5,
-            'section_b_questions': 3,
+            'section_a_questions': 13,
+            'section_a_marks': 25,
+            'section_b_questions': 5,
+            'section_b_marks': 55,
             'total_marks': generated_paper.total_marks or 80,
             'time_allocation': format_time_allocation(paper.time_allocation),
             'total_pages': total_pages,
