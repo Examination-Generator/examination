@@ -24,6 +24,7 @@ import logging
 import time
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
+from django.http import Http404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -69,6 +70,33 @@ logger = logging.getLogger(__name__)
 class PaperGenerationException(Exception):
     """Exception raised when paper generation fails"""
     pass
+
+
+def _get_user_generated_paper_or_404(user, paper_id):
+    """
+    Resolve a generated paper for the current user.
+
+    - Primary path: paper owned by the authenticated user.
+    - Legacy compatibility: if the paper is unowned (generated_by is NULL),
+      claim it for this user on first access.
+    """
+    generated_paper = GeneratedPaper.objects.filter(
+        id=paper_id,
+        generated_by=user
+    ).first()
+    if generated_paper:
+        return generated_paper
+
+    legacy_unowned = GeneratedPaper.objects.filter(
+        id=paper_id,
+        generated_by__isnull=True
+    ).first()
+    if legacy_unowned:
+        legacy_unowned.generated_by = user
+        legacy_unowned.save(update_fields=['generated_by'])
+        return legacy_unowned
+
+    raise Http404('No GeneratedPaper matches the given query.')
 
 
 def _select_coverpage_class_and_default(generated_paper, paper, is_marking_scheme=False):
@@ -337,7 +365,7 @@ def get_generated_paper(request, paper_id):
         - Answers (for marking scheme)
     """
     try:
-        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id, generated_by=request.user)
+        generated_paper = _get_user_generated_paper_or_404(request.user, paper_id)
         
         # Load all questions in order using the stored question_ids list
         question_ids = generated_paper.question_ids
@@ -424,6 +452,11 @@ def get_generated_paper(request, paper_id):
             } if generated_paper.generated_by else None,
         })
         
+    except Http404 as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
         logger.error(f"[GET_PAPER] Error: {str(e)}", exc_info=True)
         return Response(
@@ -738,7 +771,7 @@ def view_full_paper(request, paper_id):
         - Special rendering for Business Paper 2 (6 sections with paired questions a and b)
     """
     try:
-        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id, generated_by=request.user)
+        generated_paper = _get_user_generated_paper_or_404(request.user, paper_id)
         
         # Check if this is Business Paper 2
         subject_name = generated_paper.paper.subject.name.upper()
@@ -944,6 +977,11 @@ def view_full_paper(request, paper_id):
             } if generated_paper.generated_by else None,
         })
         
+    except Http404 as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
         logger.error(f"[VIEW_PAPER] Error: {str(e)}", exc_info=True)
         return Response(
@@ -986,7 +1024,7 @@ def coverpage_data(request, paper_id):
         # Use 'output' instead of 'format' to avoid DRF content negotiation conflicts
         output_format = request.GET.get('output', 'json') if request.method == 'GET' else 'json'
         
-        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id, generated_by=request.user)
+        generated_paper = _get_user_generated_paper_or_404(request.user, paper_id)
         
         if request.method == 'GET':
             # Get coverpage data (stored in generated_paper or use defaults)
@@ -1052,6 +1090,11 @@ def coverpage_data(request, paper_id):
                 'coverpage': generated_paper.coverpage_data,
             })
         
+    except Http404 as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
         logger.error(f"[COVERPAGE] Error: {str(e)}", exc_info=True)
         return Response(
@@ -1077,7 +1120,7 @@ def download_paper(request, paper_id):
         Complete paper data formatted for printing/download
     """
     try:
-        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id, generated_by=request.user)
+        generated_paper = _get_user_generated_paper_or_404(request.user, paper_id)
         
         # Query params
         format_type = request.query_params.get('format', 'pdf')
@@ -1146,6 +1189,11 @@ def download_paper(request, paper_id):
             'generated_at': generated_paper.created_at,
         })
         
+    except Http404 as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
         logger.error(f"[DOWNLOAD] Error: {str(e)}", exc_info=True)
         return Response(
@@ -1166,7 +1214,7 @@ def update_paper_status(request, paper_id):
     }
     """
     try:
-        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id, generated_by=request.user)
+        generated_paper = _get_user_generated_paper_or_404(request.user, paper_id)
         
         new_status = request.data.get('status')
         if new_status not in ['draft', 'review', 'published', 'archived']:
@@ -1188,6 +1236,11 @@ def update_paper_status(request, paper_id):
             }
         })
         
+    except Http404 as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
         logger.error(f"[UPDATE_STATUS] Error: {str(e)}", exc_info=True)
         return Response(
@@ -1213,7 +1266,7 @@ def preview_full_exam(request, paper_id):
         
         output_format = request.GET.get('output', 'json')
         view_type = request.GET.get('view', 'questions')  # 'questions' or 'marking_scheme'
-        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id, generated_by=request.user)
+        generated_paper = _get_user_generated_paper_or_404(request.user, paper_id)
         
         if view_type == 'marking_scheme':
             # Generate marking scheme preview
@@ -1382,6 +1435,11 @@ def preview_full_exam(request, paper_id):
             'total_pages': len(ordered_questions) // 3 + 2  # Rough estimate
         })
         
+    except Http404 as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_404_NOT_FOUND
+        )
     except Exception as e:
         logger.error(f"[PREVIEW_FULL_EXAM] Error: {str(e)}", exc_info=True)
         return Response(
