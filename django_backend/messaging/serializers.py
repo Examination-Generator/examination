@@ -20,13 +20,15 @@ class SystemMessageSerializer(serializers.ModelSerializer):
     """Serializer for system messages"""
     replies_count = serializers.IntegerField(read_only=True)
     unread_replies_count = serializers.IntegerField(read_only=True)
+    sender_phone_number = serializers.CharField(source='sender.phone_number', read_only=True)
     
     class Meta:
         model = SystemMessage
         fields = [
             'id', 'sender_id', 'sender_name', 'subject', 'message',
             'is_read', 'is_from_admin', 'created_at', 'updated_at',
-            'parent_message_id', 'quoted_text', 'replies_count', 'unread_replies_count'
+            'parent_message_id', 'quoted_text', 'replies_count', 'unread_replies_count',
+            'sender_phone_number'
         ]
         read_only_fields = ['id', 'sender_id', 'sender_name', 'created_at', 'updated_at', 'is_from_admin']
     
@@ -36,18 +38,19 @@ class SystemMessageSerializer(serializers.ModelSerializer):
         if request and hasattr(request, 'user'):
             validated_data['sender'] = request.user
             validated_data['sender_name'] = request.user.full_name
-            validated_data['is_from_admin'] = request.user.role == 'admin'
+            validated_data['is_from_admin'] = request.user.role in ('admin', 'editor')
         return super().create(validated_data)
 
 
 class SystemMessageReplySerializer(serializers.ModelSerializer):
     """Serializer for message replies"""
+    sender_phone_number = serializers.CharField(source='sender.phone_number', read_only=True)
     
     class Meta:
         model = SystemMessage
         fields = [
             'id', 'sender_id', 'sender_name', 'message',
-            'quoted_text', 'is_from_admin', 'is_read', 'created_at'
+            'quoted_text', 'is_from_admin', 'is_read', 'created_at', 'sender_phone_number'
         ]
         read_only_fields = ['id', 'sender_id', 'sender_name', 'created_at', 'is_from_admin', 'is_read']
 
@@ -55,12 +58,13 @@ class SystemMessageReplySerializer(serializers.ModelSerializer):
 class SystemMessageConversationSerializer(serializers.ModelSerializer):
     """Serializer for message conversation with replies"""
     replies = SystemMessageReplySerializer(many=True, read_only=True)
+    sender_phone_number = serializers.CharField(source='sender.phone_number', read_only=True)
     
     class Meta:
         model = SystemMessage
         fields = [
             'id', 'sender_id', 'sender_name', 'subject', 'message',
-            'is_read', 'is_from_admin', 'created_at', 'replies'
+            'is_read', 'is_from_admin', 'created_at', 'replies', 'sender_phone_number'
         ]
         read_only_fields = ['id', 'sender_id', 'sender_name', 'created_at', 'is_from_admin']
 

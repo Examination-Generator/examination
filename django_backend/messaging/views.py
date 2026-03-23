@@ -31,6 +31,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def is_support_staff(user):
+    """Users allowed to manage support inbox in editor/admin dashboard."""
+    return getattr(user, 'role', None) in ('admin', 'editor')
+
+
 # ==================== SYSTEM MESSAGING ENDPOINTS ====================
 
 @api_view(['POST'])
@@ -54,7 +59,7 @@ def send_system_message(request):
             sender_name=request.user.full_name,
             subject=serializer.validated_data.get('subject', ''),
             message=serializer.validated_data['message'],
-            is_from_admin=request.user.role == 'admin'
+            is_from_admin=is_support_staff(request.user)
         )
         
         result_serializer = SystemMessageSerializer(message)
@@ -92,7 +97,7 @@ def get_system_messages(request):
         )
         
         # Filter based on user role
-        if request.user.role == 'admin':
+        if is_support_staff(request.user):
             # Admins see all messages
             pass
         else:
@@ -100,7 +105,7 @@ def get_system_messages(request):
             queryset = queryset.filter(sender=request.user)
         
         # Annotate reply counts and unread incoming replies for conversation-level inbox behavior
-        if request.user.role == 'admin':
+        if is_support_staff(request.user):
             queryset = queryset.annotate(
                 unread_replies_count=Count(
                     'replies',
@@ -125,7 +130,7 @@ def get_system_messages(request):
 
         # Filter for unread only at conversation level
         if unread_only:
-            if request.user.role == 'admin':
+            if is_support_staff(request.user):
                 queryset = queryset.filter(
                     Q(is_read=False, is_from_admin=False) |
                     Q(unread_replies_count__gt=0)
@@ -170,14 +175,14 @@ def get_message_conversation(request, message_id):
         )
         
         # Check permissions
-        if request.user.role != 'admin' and message.sender != request.user:
+        if not is_support_staff(request.user) and message.sender != request.user:
             return Response(
                 {'error': 'You do not have permission to view this message'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
         # Mark incoming messages in this thread as read for the current viewer.
-        if request.user.role == 'admin':
+        if is_support_staff(request.user):
             if not message.is_from_admin and not message.is_read:
                 message.mark_as_read()
 
@@ -250,7 +255,7 @@ def reply_to_message(request, message_id):
             root_message = parent_message.parent_message
         
         # Check permissions
-        if request.user.role != 'admin' and root_message.sender != request.user:
+        if not is_support_staff(request.user) and root_message.sender != request.user:
             return Response(
                 {'error': 'You do not have permission to reply to this message'},
                 status=status.HTTP_403_FORBIDDEN
@@ -262,7 +267,7 @@ def reply_to_message(request, message_id):
             sender_name=request.user.full_name,
             message=serializer.validated_data['message'],
             quoted_text=serializer.validated_data.get('quoted_text', ''),
-            is_from_admin=request.user.role == 'admin',
+            is_from_admin=is_support_staff(request.user),
             parent_message=root_message,
             subject=root_message.subject
         )
@@ -303,7 +308,7 @@ def mark_message_as_read(request, message_id):
         # Check permissions by recipient perspective (read receipts)
         root_message = message.parent_message if message.parent_message else message
 
-        if request.user.role == 'admin':
+        if is_support_staff(request.user):
             # Admin can only mark user-originated messages as read
             if message.is_from_admin:
                 return Response(
@@ -349,7 +354,7 @@ def get_unread_count(request):
     Get count of unread messages
     """
     try:
-        if request.user.role == 'admin':
+        if is_support_staff(request.user):
             unread_root_ids = set(
                 SystemMessage.objects.filter(
                     deleted_at__isnull=True,
@@ -407,7 +412,7 @@ def delete_message(request, message_id):
         )
         
         # Check permissions
-        if request.user.role != 'admin' and message.sender != request.user:
+        if not is_support_staff(request.user) and message.sender != request.user:
             return Response(
                 {'error': 'You do not have permission to delete this message'},
                 status=status.HTTP_403_FORBIDDEN

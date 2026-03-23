@@ -52,6 +52,13 @@ export default function UserMessagingFloat() {
     }, [isOpen]);
 
     useEffect(() => {
+        // Keep user chat continuous by default: open latest thread automatically.
+        if (isOpen && !showNewMessage && !selectedMessage && messages.length > 0) {
+            openMessage(messages[0]);
+        }
+    }, [isOpen, showNewMessage, selectedMessage, messages]);
+
+    useEffect(() => {
         messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [conversation]);
 
@@ -105,16 +112,29 @@ export default function UserMessagingFloat() {
 
         setIsSending(true);
         try {
-            await messagingService.sendSystemMessage({
-                subject: messageSubject.trim() || 'Support Request',
-                message: messageText
-            });
+            const latestConversationId = selectedMessage?.id || messages?.[0]?.id;
+
+            if (latestConversationId) {
+                await messagingService.replyToSystemMessage(latestConversationId, {
+                    message: messageText
+                });
+            } else {
+                await messagingService.sendSystemMessage({
+                    subject: messageSubject.trim() || 'Support Request',
+                    message: messageText
+                });
+            }
 
             setMessageSubject('');
             setMessageText('');
             setShowNewMessage(false);
             
             await loadMessages();
+
+            // Move into conversation view after first send/reply for continuous to-and-fro chat.
+            if (latestConversationId) {
+                await loadConversation(latestConversationId, true);
+            }
             
             setAlertConfig({
                 title: 'Success',
@@ -402,13 +422,19 @@ export default function UserMessagingFloat() {
                             <>
                                 <div className="p-3 border-b border-gray-200">
                                     <button
-                                        onClick={() => setShowNewMessage(true)}
+                                        onClick={() => {
+                                            if (messages.length > 0) {
+                                                openMessage(messages[0]);
+                                                return;
+                                            }
+                                            setShowNewMessage(true);
+                                        }}
                                         className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-bold transition flex items-center justify-center gap-2"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                         </svg>
-                                        New Message
+                                        {messages.length > 0 ? 'Continue Conversation' : 'New Message'}
                                     </button>
                                 </div>
 

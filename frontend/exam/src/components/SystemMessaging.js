@@ -240,6 +240,8 @@ export default function SystemMessaging() {
                         <div className="divide-y divide-gray-200">
                             {messages.map(message => {
                                 const hasUnreadIncoming = (message.unread_replies_count || 0) > 0 || !message.is_read;
+                                const displayIdentity = message.sender_name || message.sender_phone_number || 'Unknown User';
+                                const avatarSeed = displayIdentity;
                                 return (
                                 <button
                                     key={message.id}
@@ -254,13 +256,13 @@ export default function SystemMessaging() {
                                     <div className="flex items-start gap-3 ml-3">
                                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center flex-shrink-0">
                                             <span className="text-white font-bold text-sm">
-                                                {message.sender_name ? message.sender_name[0].toUpperCase() : 'U'}
+                                                {avatarSeed ? avatarSeed[0].toUpperCase() : 'U'}
                                             </span>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-start mb-1">
                                                 <p className={`font-semibold text-gray-900 truncate ${!message.is_read ? 'font-bold' : ''}`}>
-                                                    {message.sender_name || 'User'}
+                                                    {displayIdentity}
                                                 </p>
                                                 <span className="text-xs text-gray-500 ml-2">
                                                     {formatDate(message.created_at)}
@@ -326,12 +328,12 @@ export default function SystemMessaging() {
                                     </button>
                                     <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
                                         <span className="text-purple-700 font-bold">
-                                            {selectedMessage.sender_name ? selectedMessage.sender_name[0].toUpperCase() : 'U'}
+                                            {(selectedMessage.sender_name || selectedMessage.sender_phone_number || 'U')[0].toUpperCase()}
                                         </span>
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-bold text-white">
-                                            {selectedMessage.sender_name || 'User'}
+                                            {selectedMessage.sender_name || selectedMessage.sender_phone_number || 'Unknown User'}
                                         </h3>
                                         <p className="text-sm text-purple-100">{selectedMessage.subject || 'No subject'}</p>
                                     </div>
