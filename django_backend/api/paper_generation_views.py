@@ -337,7 +337,7 @@ def get_generated_paper(request, paper_id):
         - Answers (for marking scheme)
     """
     try:
-        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id)
+        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id, generated_by=request.user)
         
         # Load all questions in order using the stored question_ids list
         question_ids = generated_paper.question_ids
@@ -436,9 +436,9 @@ def get_generated_paper(request, paper_id):
 @permission_classes([IsAuthenticated])
 def list_generated_papers(request):
     """
-    List generated papers from the last 30 days with filtering
+    List generated papers from the last 30 days for the authenticated user
     
-    GET /api/papers/generated?paper_id=uuid&status=validated&user_only=true
+    GET /api/papers/generated?paper_id=uuid&status=validated
     
     Note: Papers older than 30 days are automatically archived/hidden
     """
@@ -453,19 +453,15 @@ def list_generated_papers(request):
             'paper__subject',
             'generated_by'
         ).filter(
+            generated_by=request.user,
             created_at__gte=thirty_days_ago  # Only papers from last 30 days
         ).order_by('-created_at')
         
         # Filters
         paper_status = request.query_params.get('status')
-        user_only = request.query_params.get('user_only', 'false').lower() == 'true'
         
         if paper_status:
             queryset = queryset.filter(status=paper_status)
-        
-        # Filter by current user if requested
-        if user_only:
-            queryset = queryset.filter(generated_by=request.user)
         
         papers = []
         for gp in queryset[:100]:  # Limit to 100 recent papers (increased from 50)
@@ -742,7 +738,7 @@ def view_full_paper(request, paper_id):
         - Special rendering for Business Paper 2 (6 sections with paired questions a and b)
     """
     try:
-        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id)
+        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id, generated_by=request.user)
         
         # Check if this is Business Paper 2
         subject_name = generated_paper.paper.subject.name.upper()
@@ -990,7 +986,7 @@ def coverpage_data(request, paper_id):
         # Use 'output' instead of 'format' to avoid DRF content negotiation conflicts
         output_format = request.GET.get('output', 'json') if request.method == 'GET' else 'json'
         
-        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id)
+        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id, generated_by=request.user)
         
         if request.method == 'GET':
             # Get coverpage data (stored in generated_paper or use defaults)
@@ -1081,7 +1077,7 @@ def download_paper(request, paper_id):
         Complete paper data formatted for printing/download
     """
     try:
-        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id)
+        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id, generated_by=request.user)
         
         # Query params
         format_type = request.query_params.get('format', 'pdf')
@@ -1170,7 +1166,7 @@ def update_paper_status(request, paper_id):
     }
     """
     try:
-        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id)
+        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id, generated_by=request.user)
         
         new_status = request.data.get('status')
         if new_status not in ['draft', 'review', 'published', 'archived']:
@@ -1217,7 +1213,7 @@ def preview_full_exam(request, paper_id):
         
         output_format = request.GET.get('output', 'json')
         view_type = request.GET.get('view', 'questions')  # 'questions' or 'marking_scheme'
-        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id)
+        generated_paper = get_object_or_404(GeneratedPaper, id=paper_id, generated_by=request.user)
         
         if view_type == 'marking_scheme':
             # Generate marking scheme preview
