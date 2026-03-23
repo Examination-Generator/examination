@@ -116,19 +116,18 @@ export default function SystemMessaging() {
 
         setIsSending(true);
         try {
+            const messageToSend = replyText;
             await messagingService.replyToSystemMessage(selectedMessage.id, {
-                message: replyText,
+                message: messageToSend,
                 quotedText: quotedText || undefined
             });
 
-            // Reload conversation
-            await loadConversation(selectedMessage.id, true);
-            
+            // Clear composer immediately after successful send for snappier UX.
             setReplyText('');
             setQuotedText('');
-            
-            // Reload messages list
-            await loadMessages(true);
+
+            // Refresh in background (do not block send spinner/UI).
+            loadConversation(selectedMessage.id, true);
         } catch (error) {
             console.error('Failed to send reply:', error);
             setAlertConfig({
