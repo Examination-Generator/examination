@@ -33,7 +33,8 @@ logger = logging.getLogger(__name__)
 
 def is_support_staff(user):
     """Users allowed to manage support inbox in editor/admin dashboard."""
-    return getattr(user, 'role', None) in ('admin', 'editor')
+    role = (getattr(user, 'role', '') or '').strip().lower()
+    return role in ('admin', 'editor')
 
 
 # ==================== SYSTEM MESSAGING ENDPOINTS ====================

@@ -38,7 +38,8 @@ class SystemMessageSerializer(serializers.ModelSerializer):
         if request and hasattr(request, 'user'):
             validated_data['sender'] = request.user
             validated_data['sender_name'] = request.user.full_name
-            validated_data['is_from_admin'] = request.user.role in ('admin', 'editor')
+            role = (getattr(request.user, 'role', '') or '').strip().lower()
+            validated_data['is_from_admin'] = role in ('admin', 'editor')
         return super().create(validated_data)
 
 

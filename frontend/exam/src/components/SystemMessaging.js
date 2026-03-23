@@ -50,7 +50,14 @@ export default function SystemMessaging() {
             const data = await messagingService.getSystemMessages(
                 showUnreadOnly ? { unreadOnly: true } : {}
             );
-            setMessages(data || []);
+
+            // Fallback: if all-list is empty but unread badge exists, try unread endpoint for recovery.
+            if (!showUnreadOnly && (!data || data.length === 0) && unreadCount > 0) {
+                const unreadData = await messagingService.getSystemMessages({ unreadOnly: true });
+                setMessages(unreadData || []);
+            } else {
+                setMessages(data || []);
+            }
         } catch (error) {
             console.error('Failed to load messages:', error);
         } finally {
