@@ -9,11 +9,13 @@ export default function SystemMessaging() {
     const [conversation, setConversation] = useState(null);
     const [replyText, setReplyText] = useState('');
     const [quotedText, setQuotedText] = useState('');
+    const [attachmentFile, setAttachmentFile] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const [showUnreadOnly, setShowUnreadOnly] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const messageEndRef = useRef(null);
+    const attachmentInputRef = useRef(null);
     
     // Alert modal state
     const [showAlert, setShowAlert] = useState(false);
@@ -110,7 +112,7 @@ export default function SystemMessaging() {
     };
 
     const sendReply = async () => {
-        if (!replyText.trim() || !selectedMessage) {
+        if ((!replyText.trim() && !attachmentFile) || !selectedMessage) {
             return;
         }
 
@@ -119,12 +121,17 @@ export default function SystemMessaging() {
             const messageToSend = replyText;
             await messagingService.replyToSystemMessage(selectedMessage.id, {
                 message: messageToSend,
-                quotedText: quotedText || undefined
+                quotedText: quotedText || undefined,
+                attachment: attachmentFile || undefined
             });
 
             // Clear composer immediately after successful send for snappier UX.
             setReplyText('');
             setQuotedText('');
+            setAttachmentFile(null);
+            if (attachmentInputRef.current) {
+                attachmentInputRef.current.value = '';
+            }
 
             // Refresh in background (do not block send spinner/UI).
             loadConversation(selectedMessage.id, true);
@@ -196,6 +203,34 @@ export default function SystemMessaging() {
             </svg>
         </span>
     );
+
+    const renderAttachment = (item) => {
+        if (!item?.attachment_url) {
+            return null;
+        }
+
+        const attachmentName = item.attachment_name || 'attachment';
+        const isPdf = (item.attachment_content_type || '').toLowerCase().includes('pdf')
+            || attachmentName.toLowerCase().endsWith('.pdf');
+
+        return (
+            <a
+                href={item.attachment_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-white border border-gray-300 hover:border-purple-400 hover:bg-purple-50 transition text-sm text-purple-700"
+            >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {isPdf ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V7l-5-5H7a2 2 0 00-2 2v15a2 2 0 002 2zM14 2v5h5M10 13h4M10 17h4M9 9h1" />
+                    ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.828a4 4 0 00-5.657-5.657L5.757 10.757a6 6 0 108.486 8.486L20 13" />
+                    )}
+                </svg>
+                <span className="truncate max-w-[260px]">{attachmentName}</span>
+            </a>
+        );
+    };
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-250px)]">
@@ -395,6 +430,7 @@ export default function SystemMessaging() {
                                                         <p className="font-semibold text-gray-900 mb-2">{conversation.subject}</p>
                                                     )}
                                                     <p className="text-gray-700 whitespace-pre-wrap">{conversation.message}</p>
+                                                    {renderAttachment(conversation)}
                                                 </div>
                                             </div>
                                         </div>
@@ -443,6 +479,7 @@ export default function SystemMessaging() {
                                                                     </div>
                                                                 )}
                                                                 <p className="text-gray-700 whitespace-pre-wrap">{reply.message}</p>
+                                                                {renderAttachment(reply)}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -487,9 +524,31 @@ export default function SystemMessaging() {
                                         }
                                     }}
                                 />
+                                <div className="flex flex-col items-center gap-2">
+                                    <input
+                                        ref={attachmentInputRef}
+                                        type="file"
+                                        accept=".pdf,.doc,.docx,.txt,.rtf,.odt"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0] || null;
+                                            setAttachmentFile(file);
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => attachmentInputRef.current?.click()}
+                                        className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                                        title="Attach document or PDF"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.828a4 4 0 00-5.657-5.657L5.757 10.757a6 6 0 108.486 8.486L20 13" />
+                                        </svg>
+                                    </button>
+                                </div>
                                 <button
                                     onClick={sendReply}
-                                    disabled={isSending || !replyText.trim()}
+                                    disabled={isSending || (!replyText.trim() && !attachmentFile)}
                                     className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-bold transition flex items-center gap-2"
                                 >
                                     {isSending ? (
@@ -507,6 +566,26 @@ export default function SystemMessaging() {
                                     )}
                                 </button>
                             </div>
+                            {attachmentFile && (
+                                <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-50 border border-purple-200 text-sm text-purple-700">
+                                    <span className="truncate max-w-[320px]">{attachmentFile.name}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setAttachmentFile(null);
+                                            if (attachmentInputRef.current) {
+                                                attachmentInputRef.current.value = '';
+                                            }
+                                        }}
+                                        className="text-purple-700 hover:text-purple-900"
+                                        title="Remove attachment"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </>
                 )}

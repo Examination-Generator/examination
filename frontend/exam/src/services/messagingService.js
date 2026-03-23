@@ -7,12 +7,38 @@ import { APIError, handleAPIError } from './errors';
  */
 
 // Get auth token
-const getAuthHeaders = () => {
+const getAuthHeaders = (includeJsonContentType = true) => {
     // Keep backward compatibility with older key while aligning with authService.
     const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-    return {
-        'Content-Type': 'application/json',
+    const headers = {
         ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+
+    if (includeJsonContentType) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    return headers;
+};
+
+const buildSystemMessagePayload = (data = {}) => {
+    const normalizedData = {
+        ...data,
+        quoted_text: data.quoted_text ?? data.quotedText
+    };
+
+    if (normalizedData.attachment) {
+        const formData = new FormData();
+        if (normalizedData.subject !== undefined) formData.append('subject', normalizedData.subject || '');
+        if (normalizedData.message !== undefined) formData.append('message', normalizedData.message || '');
+        if (normalizedData.quoted_text !== undefined) formData.append('quoted_text', normalizedData.quoted_text || '');
+        formData.append('attachment', normalizedData.attachment);
+        return { body: formData, isMultipart: true };
+    }
+
+    return {
+        body: JSON.stringify(normalizedData),
+        isMultipart: false
     };
 };
 
@@ -153,10 +179,11 @@ export const getAllSMSConversations = async () => {
  */
 export const sendSystemMessage = async (data) => {
     try {
+        const payload = buildSystemMessagePayload(data);
         const response = await fetch(`${API_URL}/messaging/system/send`, {
             method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(data)
+            headers: getAuthHeaders(!payload.isMultipart),
+            body: payload.body
         });
 
         if (!response.ok) {
@@ -232,12 +259,13 @@ export const getSystemMessageConversation = async (messageId) => {
  */
 export const replyToSystemMessage = async (messageId, data) => {
     try {
+        const payload = buildSystemMessagePayload(data);
         const response = await fetch(
             `${API_URL}/messaging/system/messages/${messageId}/reply`,
             {
                 method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify(data)
+                headers: getAuthHeaders(!payload.isMultipart),
+                body: payload.body
             }
         );
 

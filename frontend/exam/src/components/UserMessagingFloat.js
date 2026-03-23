@@ -216,6 +216,34 @@ export default function UserMessagingFloat() {
         </span>
     );
 
+    const renderAttachment = (item) => {
+        if (!item?.attachment_url) {
+            return null;
+        }
+
+        const attachmentName = item.attachment_name || 'attachment';
+        const isPdf = (item.attachment_content_type || '').toLowerCase().includes('pdf')
+            || attachmentName.toLowerCase().endsWith('.pdf');
+
+        return (
+            <a
+                href={item.attachment_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-white border border-gray-300 hover:border-green-400 hover:bg-green-50 transition text-sm text-green-700"
+            >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {isPdf ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V7l-5-5H7a2 2 0 00-2 2v15a2 2 0 002 2zM14 2v5h5M10 13h4M10 17h4M9 9h1" />
+                    ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.828a4 4 0 00-5.657-5.657L5.757 10.757a6 6 0 108.486 8.486L20 13" />
+                    )}
+                </svg>
+                <span className="truncate max-w-[240px]">{attachmentName}</span>
+            </a>
+        );
+    };
+
     return (
         <>
             {/* Floating Button */}
@@ -365,6 +393,7 @@ export default function UserMessagingFloat() {
                                                         <ReadReceipt seen={conversation.is_read} />
                                                     </div>
                                                     <p className="text-sm text-gray-700 whitespace-pre-wrap">{conversation.message}</p>
+                                                    {renderAttachment(conversation)}
                                                 </div>
                                             </div>
 
@@ -392,6 +421,7 @@ export default function UserMessagingFloat() {
                                                             </div>
                                                         )}
                                                         <p className="text-sm text-gray-700 whitespace-pre-wrap">{reply.message}</p>
+                                                        {renderAttachment(reply)}
                                                     </div>
                                                 </div>
                                             ))}

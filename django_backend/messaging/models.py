@@ -23,6 +23,9 @@ class SystemMessage(models.Model):
     sender_name = models.CharField(max_length=255)
     subject = models.CharField(max_length=500, null=True, blank=True)
     message = models.TextField()
+    attachment = models.FileField(upload_to='system_messages/', null=True, blank=True)
+    attachment_name = models.CharField(max_length=255, null=True, blank=True)
+    attachment_content_type = models.CharField(max_length=100, null=True, blank=True)
     is_read = models.BooleanField(default=False, db_index=True)
     parent_message = models.ForeignKey(
         'self',
@@ -48,6 +51,11 @@ class SystemMessage(models.Model):
     
     def __str__(self):
         return f"{self.sender_name}: {self.subject or 'No Subject'}"
+
+    def save(self, *args, **kwargs):
+        if self.attachment and not self.attachment_name:
+            self.attachment_name = self.attachment.name.split('/')[-1]
+        super().save(*args, **kwargs)
     
     def soft_delete(self):
         """Soft delete the message"""

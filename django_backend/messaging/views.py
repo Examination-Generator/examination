@@ -59,11 +59,14 @@ def send_system_message(request):
             sender=request.user,
             sender_name=request.user.full_name,
             subject=serializer.validated_data.get('subject', ''),
-            message=serializer.validated_data['message'],
+            message=serializer.validated_data.get('message', ''),
+            attachment=serializer.validated_data.get('attachment'),
+            attachment_name=(serializer.validated_data.get('attachment').name if serializer.validated_data.get('attachment') else None),
+            attachment_content_type=(getattr(serializer.validated_data.get('attachment'), 'content_type', None) if serializer.validated_data.get('attachment') else None),
             is_from_admin=is_support_staff(request.user)
         )
         
-        result_serializer = SystemMessageSerializer(message)
+        result_serializer = SystemMessageSerializer(message, context={'request': request})
         
         return Response(
             result_serializer.data,
@@ -149,7 +152,7 @@ def get_system_messages(request):
         # Order by most recent activity in the thread
         queryset = queryset.order_by('-last_activity_at')
         
-        serializer = SystemMessageSerializer(queryset, many=True)
+        serializer = SystemMessageSerializer(queryset, many=True, context={'request': request})
         
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -213,7 +216,7 @@ def get_message_conversation(request, message_id):
             )
         ).get(id=message_id)
         
-        serializer = SystemMessageConversationSerializer(message)
+        serializer = SystemMessageConversationSerializer(message, context={'request': request})
         
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -267,14 +270,17 @@ def reply_to_message(request, message_id):
         reply = SystemMessage.objects.create(
             sender=request.user,
             sender_name=request.user.full_name,
-            message=serializer.validated_data['message'],
+            message=serializer.validated_data.get('message', ''),
             quoted_text=serializer.validated_data.get('quoted_text', ''),
+            attachment=serializer.validated_data.get('attachment'),
+            attachment_name=(serializer.validated_data.get('attachment').name if serializer.validated_data.get('attachment') else None),
+            attachment_content_type=(getattr(serializer.validated_data.get('attachment'), 'content_type', None) if serializer.validated_data.get('attachment') else None),
             is_from_admin=is_support_staff(request.user),
             parent_message=root_message,
             subject=root_message.subject
         )
         
-        result_serializer = SystemMessageReplySerializer(reply)
+        result_serializer = SystemMessageReplySerializer(reply, context={'request': request})
         
         return Response(
             result_serializer.data,
