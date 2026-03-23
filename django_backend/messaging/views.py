@@ -7,7 +7,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.db.models import Q, Count, Max, Prefetch
+from django.db.models import Q, Count, Max, Prefetch, F
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -98,17 +99,48 @@ def get_system_messages(request):
             # Users see only their own messages
             queryset = queryset.filter(sender=request.user)
         
-        # Filter for unread only
+        # Annotate reply counts and unread incoming replies for conversation-level inbox behavior
+        if request.user.role == 'admin':
+            queryset = queryset.annotate(
+                unread_replies_count=Count(
+                    'replies',
+                    filter=Q(
+                        replies__deleted_at__isnull=True,
+                        replies__is_read=False,
+                        replies__is_from_admin=False
+                    )
+                )
+            )
+        else:
+            queryset = queryset.annotate(
+                unread_replies_count=Count(
+                    'replies',
+                    filter=Q(
+                        replies__deleted_at__isnull=True,
+                        replies__is_read=False,
+                        replies__is_from_admin=True
+                    )
+                )
+            )
+
+        # Filter for unread only at conversation level
         if unread_only:
-            queryset = queryset.filter(is_read=False)
+            if request.user.role == 'admin':
+                queryset = queryset.filter(
+                    Q(is_read=False, is_from_admin=False) |
+                    Q(unread_replies_count__gt=0)
+                )
+            else:
+                queryset = queryset.filter(unread_replies_count__gt=0)
         
         # Annotate with reply count
         queryset = queryset.annotate(
-            replies_count=Count('replies', filter=Q(replies__deleted_at__isnull=True))
+            replies_count=Count('replies', filter=Q(replies__deleted_at__isnull=True)),
+            last_activity_at=Coalesce(Max('replies__created_at'), F('created_at'))
         )
         
-        # Order by most recent
-        queryset = queryset.order_by('-created_at')
+        # Order by most recent activity in the thread
+        queryset = queryset.order_by('-last_activity_at')
         
         serializer = SystemMessageSerializer(queryset, many=True)
         
@@ -144,9 +176,27 @@ def get_message_conversation(request, message_id):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Mark as read if user is reading it
-        if not message.is_read:
-            message.mark_as_read()
+        # Mark incoming messages in this thread as read for the current viewer.
+        if request.user.role == 'admin':
+            if not message.is_from_admin and not message.is_read:
+                message.mark_as_read()
+
+            SystemMessage.objects.filter(
+                parent_message=message,
+                deleted_at__isnull=True,
+                is_read=False,
+                is_from_admin=False
+            ).update(is_read=True, updated_at=timezone.now())
+        else:
+            if message.sender == request.user and message.is_from_admin and not message.is_read:
+                message.mark_as_read()
+
+            SystemMessage.objects.filter(
+                parent_message=message,
+                deleted_at__isnull=True,
+                is_read=False,
+                is_from_admin=True
+            ).update(is_read=True, updated_at=timezone.now())
         
         # Prefetch replies
         message = SystemMessage.objects.prefetch_related(
@@ -250,13 +300,24 @@ def mark_message_as_read(request, message_id):
             deleted_at__isnull=True
         )
         
-        # Check permissions
-        if request.user.role != 'admin' and message.sender != request.user:
-            return Response(
-                {'error': 'You do not have permission to modify this message'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
+        # Check permissions by recipient perspective (read receipts)
+        root_message = message.parent_message if message.parent_message else message
+
+        if request.user.role == 'admin':
+            # Admin can only mark user-originated messages as read
+            if message.is_from_admin:
+                return Response(
+                    {'error': 'You do not have permission to modify this message'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        else:
+            # User can only mark admin-originated messages in their own thread as read
+            if root_message.sender != request.user or not message.is_from_admin:
+                return Response(
+                    {'error': 'You do not have permission to modify this message'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
         message.mark_as_read()
         
         return Response(
@@ -288,21 +349,36 @@ def get_unread_count(request):
     Get count of unread messages
     """
     try:
-        queryset = SystemMessage.objects.filter(
-            deleted_at__isnull=True,
-            is_read=False,
-            parent_message__isnull=True
-        )
-        
-        # Filter based on user role
         if request.user.role == 'admin':
-            # Admins count all unread messages
-            pass
+            unread_root_ids = set(
+                SystemMessage.objects.filter(
+                    deleted_at__isnull=True,
+                    parent_message__isnull=True,
+                    is_read=False,
+                    is_from_admin=False
+                ).values_list('id', flat=True)
+            )
+            unread_reply_root_ids = set(
+                SystemMessage.objects.filter(
+                    deleted_at__isnull=True,
+                    parent_message__isnull=False,
+                    is_read=False,
+                    is_from_admin=False
+                ).values_list('parent_message_id', flat=True)
+            )
+            count = len(unread_root_ids.union(unread_reply_root_ids))
         else:
-            # Users count their own unread messages
-            queryset = queryset.filter(sender=request.user)
-        
-        count = queryset.count()
+            unread_reply_root_ids = set(
+                SystemMessage.objects.filter(
+                    deleted_at__isnull=True,
+                    parent_message__isnull=False,
+                    is_read=False,
+                    is_from_admin=True,
+                    parent_message__sender=request.user,
+                    parent_message__deleted_at__isnull=True
+                ).values_list('parent_message_id', flat=True)
+            )
+            count = len(unread_reply_root_ids)
         
         return Response(
             {'count': count},

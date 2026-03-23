@@ -28,13 +28,19 @@ export default function UserMessagingFloat() {
     useEffect(() => {
         loadUnreadCount();
         
-        // Poll for updates every 30 seconds
+        // Poll frequently so support conversation updates feel near real-time.
         const interval = setInterval(() => {
             loadUnreadCount();
-            if (isOpen && !selectedMessage) {
+            if (!isOpen) {
+                return;
+            }
+
+            if (selectedMessage) {
+                loadConversation(selectedMessage.id, true);
+            } else {
                 loadMessages(true);
             }
-        }, 30000);
+        }, 5000);
 
         return () => clearInterval(interval);
     }, [isOpen, selectedMessage]);
@@ -73,15 +79,20 @@ export default function UserMessagingFloat() {
     const openMessage = async (message) => {
         setSelectedMessage(message);
         try {
-            const conv = await messagingService.getSystemMessageConversation(message.id);
+            await loadConversation(message.id);
+        } catch (error) {
+            console.error('Failed to load conversation:', error);
+        }
+    };
+
+    const loadConversation = async (messageId, silent = false) => {
+        try {
+            const conv = await messagingService.getSystemMessageConversation(messageId);
             setConversation(conv);
-            
-            // Mark as read if not already
-            if (!message.is_read) {
-                await messagingService.markSystemMessageAsRead(message.id);
-                await loadMessages(true);
-                await loadUnreadCount();
-            }
+
+            // Keep list/badges in sync after read-state updates on the backend.
+            await loadMessages(silent);
+            await loadUnreadCount();
         } catch (error) {
             console.error('Failed to load conversation:', error);
         }
@@ -136,8 +147,7 @@ export default function UserMessagingFloat() {
             });
 
             // Reload conversation
-            const conv = await messagingService.getSystemMessageConversation(selectedMessage.id);
-            setConversation(conv);
+            await loadConversation(selectedMessage.id, true);
             
             setReplyText('');
             
@@ -170,6 +180,17 @@ export default function UserMessagingFloat() {
             return date.toLocaleDateString();
         }
     };
+
+    const ReadReceipt = ({ seen }) => (
+        <span className={`inline-flex items-center gap-0.5 ${seen ? 'text-blue-600' : 'text-gray-400'}`} title={seen ? 'Seen' : 'Sent'}>
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <svg className="w-3 h-3 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+        </span>
+    );
 
     return (
         <>
@@ -311,7 +332,10 @@ export default function UserMessagingFloat() {
                                         <>
                                             {/* Original Message */}
                                             <div className="bg-blue-50 rounded-lg p-3 border-l-4 border-blue-600">
-                                                <p className="text-xs text-gray-500 mb-1">You • {formatDate(conversation.created_at)}</p>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <p className="text-xs text-gray-500">You • {formatDate(conversation.created_at)}</p>
+                                                    <ReadReceipt seen={conversation.is_read} />
+                                                </div>
                                                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{conversation.message}</p>
                                             </div>
 
@@ -328,6 +352,11 @@ export default function UserMessagingFloat() {
                                                     <p className="text-xs text-gray-600 mb-1 font-semibold">
                                                         {reply.is_from_admin ? 'Admin' : 'You'} • {formatDate(reply.created_at)}
                                                     </p>
+                                                    {!reply.is_from_admin && (
+                                                        <div className="mb-1">
+                                                            <ReadReceipt seen={reply.is_read} />
+                                                        </div>
+                                                    )}
                                                     {reply.quoted_text && (
                                                         <div className="bg-white bg-opacity-50 border-l-2 border-gray-400 pl-2 py-1 mb-2">
                                                             <p className="text-xs text-gray-600 italic">"{reply.quoted_text}"</p>
@@ -398,20 +427,23 @@ export default function UserMessagingFloat() {
                                         </div>
                                     ) : (
                                         <div className="divide-y divide-gray-200">
-                                            {messages.map(message => (
+                                            {messages.map(message => {
+                                                const hasUnreadIncoming = (message.unread_replies_count || 0) > 0;
+
+                                                return (
                                                 <button
                                                     key={message.id}
                                                     onClick={() => openMessage(message)}
                                                     className={`w-full text-left p-3 hover:bg-gray-50 transition relative ${
-                                                        !message.is_read ? 'bg-blue-50' : ''
+                                                        hasUnreadIncoming ? 'bg-blue-50' : ''
                                                     }`}
                                                 >
-                                                    {!message.is_read && (
+                                                    {hasUnreadIncoming && (
                                                         <div className="absolute top-3 left-1 w-2 h-2 bg-blue-600 rounded-full"></div>
                                                     )}
                                                     <div className="ml-3">
                                                         <div className="flex justify-between items-start mb-1">
-                                                            <p className={`text-sm font-semibold text-gray-900 truncate ${!message.is_read ? 'font-bold' : ''}`}>
+                                                            <p className={`text-sm font-semibold text-gray-900 truncate ${hasUnreadIncoming ? 'font-bold' : ''}`}>
                                                                 {message.subject || 'No subject'}
                                                             </p>
                                                             <span className="text-xs text-gray-500 ml-2">
@@ -419,6 +451,18 @@ export default function UserMessagingFloat() {
                                                             </span>
                                                         </div>
                                                         <p className="text-xs text-gray-600 truncate">{message.message}</p>
+                                                        <div className="mt-1 flex items-center justify-between">
+                                                            {(message.unread_replies_count || 0) > 0 ? (
+                                                                <span className="text-[11px] font-semibold text-blue-700 bg-blue-100 rounded-full px-2 py-0.5">
+                                                                    {message.unread_replies_count} {message.unread_replies_count > 1 ? 'new replies' : 'new reply'}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[11px] text-gray-500">No new reply</span>
+                                                            )}
+                                                            <span className="inline-flex items-center gap-1 text-[11px] text-gray-500">
+                                                                <ReadReceipt seen={message.is_read} />
+                                                            </span>
+                                                        </div>
                                                         {message.replies_count > 0 && (
                                                             <div className="mt-1 flex items-center gap-1 text-xs text-green-600">
                                                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -429,7 +473,8 @@ export default function UserMessagingFloat() {
                                                         )}
                                                     </div>
                                                 </button>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>

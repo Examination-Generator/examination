@@ -1,13 +1,31 @@
 import { useState, useEffect } from 'react';
 import SMSMessaging from './SMSMessaging';
 import SystemMessaging from './SystemMessaging';
+import * as messagingService from '../services/messagingService';
 
 export default function MessagingTab() {
     const [activeSubTab, setActiveSubTab] = useState('sms'); // 'sms' or 'system'
+    const [pendingSupportCount, setPendingSupportCount] = useState(0);
 
     // Debug: Log component mount
     useEffect(() => {
         console.log('MessagingTab component mounted');
+    }, []);
+
+    useEffect(() => {
+        const loadPendingSupportCount = async () => {
+            try {
+                const count = await messagingService.getUnreadMessageCount();
+                setPendingSupportCount(count || 0);
+            } catch (error) {
+                console.error('Failed to load pending support count:', error);
+            }
+        };
+
+        loadPendingSupportCount();
+        const interval = setInterval(loadPendingSupportCount, 5000);
+
+        return () => clearInterval(interval);
     }, []);
 
     return (
@@ -57,9 +75,16 @@ export default function MessagingTab() {
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
+                        <span className="relative inline-flex items-center">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            {pendingSupportCount > 0 && (
+                                <span className="absolute -top-2 -right-3 bg-red-600 text-white text-[10px] leading-none font-bold rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
+                                    {pendingSupportCount > 99 ? '99+' : pendingSupportCount}
+                                </span>
+                            )}
+                        </span>
                         Support Messages
                     </button>
                 </div>

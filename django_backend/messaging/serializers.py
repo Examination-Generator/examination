@@ -19,13 +19,14 @@ class UserContactSerializer(serializers.ModelSerializer):
 class SystemMessageSerializer(serializers.ModelSerializer):
     """Serializer for system messages"""
     replies_count = serializers.IntegerField(read_only=True)
+    unread_replies_count = serializers.IntegerField(read_only=True)
     
     class Meta:
         model = SystemMessage
         fields = [
             'id', 'sender_id', 'sender_name', 'subject', 'message',
             'is_read', 'is_from_admin', 'created_at', 'updated_at',
-            'parent_message_id', 'quoted_text', 'replies_count'
+            'parent_message_id', 'quoted_text', 'replies_count', 'unread_replies_count'
         ]
         read_only_fields = ['id', 'sender_id', 'sender_name', 'created_at', 'updated_at', 'is_from_admin']
     
@@ -46,9 +47,9 @@ class SystemMessageReplySerializer(serializers.ModelSerializer):
         model = SystemMessage
         fields = [
             'id', 'sender_id', 'sender_name', 'message',
-            'quoted_text', 'is_from_admin', 'created_at'
+            'quoted_text', 'is_from_admin', 'is_read', 'created_at'
         ]
-        read_only_fields = ['id', 'sender_id', 'sender_name', 'created_at', 'is_from_admin']
+        read_only_fields = ['id', 'sender_id', 'sender_name', 'created_at', 'is_from_admin', 'is_read']
 
 
 class SystemMessageConversationSerializer(serializers.ModelSerializer):

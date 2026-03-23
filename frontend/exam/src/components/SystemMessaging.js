@@ -27,14 +27,18 @@ export default function SystemMessaging() {
         loadMessages();
         loadUnreadCount();
         
-        // Poll for new messages every 30 seconds
+        // Poll frequently so admin can see new support traffic quickly.
         const interval = setInterval(() => {
-            loadMessages(true);
+            if (selectedMessage) {
+                loadConversation(selectedMessage.id, true);
+            } else {
+                loadMessages(true);
+            }
             loadUnreadCount();
-        }, 30000);
+        }, 5000);
 
         return () => clearInterval(interval);
-    }, [showUnreadOnly]);
+    }, [showUnreadOnly, selectedMessage]);
 
     useEffect(() => {
         messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -66,15 +70,18 @@ export default function SystemMessaging() {
     const openMessage = async (message) => {
         setSelectedMessage(message);
         try {
-            const conv = await messagingService.getSystemMessageConversation(message.id);
+            await loadConversation(message.id);
+        } catch (error) {
+            console.error('Failed to load conversation:', error);
+        }
+    };
+
+    const loadConversation = async (messageId, silent = false) => {
+        try {
+            const conv = await messagingService.getSystemMessageConversation(messageId);
             setConversation(conv);
-            
-            // Mark as read if not already
-            if (!message.is_read) {
-                await messagingService.markSystemMessageAsRead(message.id);
-                await loadMessages(true);
-                await loadUnreadCount();
-            }
+            await loadMessages(silent);
+            await loadUnreadCount();
         } catch (error) {
             console.error('Failed to load conversation:', error);
         }
@@ -100,8 +107,7 @@ export default function SystemMessaging() {
             });
 
             // Reload conversation
-            const conv = await messagingService.getSystemMessageConversation(selectedMessage.id);
-            setConversation(conv);
+            await loadConversation(selectedMessage.id, true);
             
             setReplyText('');
             setQuotedText('');
@@ -166,6 +172,17 @@ export default function SystemMessaging() {
         }
     };
 
+    const ReadReceipt = ({ seen }) => (
+        <span className={`inline-flex items-center gap-0.5 ${seen ? 'text-blue-600' : 'text-gray-400'}`} title={seen ? 'Seen by user' : 'Sent'}>
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <svg className="w-3 h-3 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+        </span>
+    );
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-250px)]">
             {/* Left Panel: Messages Inbox */}
@@ -221,15 +238,17 @@ export default function SystemMessaging() {
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-200">
-                            {messages.map(message => (
+                            {messages.map(message => {
+                                const hasUnreadIncoming = (message.unread_replies_count || 0) > 0 || !message.is_read;
+                                return (
                                 <button
                                     key={message.id}
                                     onClick={() => openMessage(message)}
                                     className={`w-full text-left p-4 hover:bg-gray-50 transition relative ${
                                         selectedMessage?.id === message.id ? 'bg-purple-50' : ''
-                                    } ${!message.is_read ? 'bg-blue-50' : ''}`}
+                                    } ${hasUnreadIncoming ? 'bg-blue-50' : ''}`}
                                 >
-                                    {!message.is_read && (
+                                    {hasUnreadIncoming && (
                                         <div className="absolute top-4 left-2 w-2 h-2 bg-blue-600 rounded-full"></div>
                                     )}
                                     <div className="flex items-start gap-3 ml-3">
@@ -253,6 +272,11 @@ export default function SystemMessaging() {
                                             <p className="text-xs text-gray-500 truncate mt-1">
                                                 {message.message}
                                             </p>
+                                            {(message.unread_replies_count || 0) > 0 && (
+                                                <div className="mt-2 inline-flex items-center text-xs font-semibold text-blue-700 bg-blue-100 rounded-full px-2 py-0.5">
+                                                    {message.unread_replies_count} {message.unread_replies_count > 1 ? 'new replies' : 'new reply'}
+                                                </div>
+                                            )}
                                             {message.replies_count > 0 && (
                                                 <div className="mt-2 flex items-center gap-1 text-xs text-purple-600">
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -264,7 +288,8 @@ export default function SystemMessaging() {
                                         </div>
                                     </div>
                                 </button>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -382,13 +407,16 @@ export default function SystemMessaging() {
                                                                     <p className="font-semibold text-gray-900">{reply.sender_name || 'Admin'}</p>
                                                                     <p className="text-xs text-gray-500">{formatDate(reply.created_at)}</p>
                                                                 </div>
-                                                                <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                                                                    reply.is_from_admin
-                                                                        ? 'bg-green-200 text-green-800'
-                                                                        : 'bg-blue-200 text-blue-800'
-                                                                }`}>
-                                                                    {reply.is_from_admin ? 'Editor' : 'User'}
-                                                                </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    {reply.is_from_admin && <ReadReceipt seen={reply.is_read} />}
+                                                                    <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+                                                                        reply.is_from_admin
+                                                                            ? 'bg-green-200 text-green-800'
+                                                                            : 'bg-blue-200 text-blue-800'
+                                                                    }`}>
+                                                                        {reply.is_from_admin ? 'Editor' : 'User'}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                             {reply.quoted_text && (
                                                                 <div className="bg-white bg-opacity-50 border-l-2 border-gray-400 pl-3 py-1 mb-2">
