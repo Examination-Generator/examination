@@ -76,9 +76,12 @@ export default function UserMessagingFloat() {
         if (!silent) setIsLoading(true);
         try {
             const data = await messagingService.getSystemMessages();
-            setMessages(data || []);
+            const nextMessages = data || [];
+            setMessages(nextMessages);
+            return nextMessages;
         } catch (error) {
             console.error('Failed to load messages:', error);
+            return [];
         } finally {
             if (!silent) setIsLoading(false);
         }
@@ -114,16 +117,18 @@ export default function UserMessagingFloat() {
         setIsSending(true);
         try {
             const latestConversationId = selectedMessage?.id || messages?.[0]?.id;
+            let createdConversationId = null;
 
             if (latestConversationId && !forceNewConversation) {
                 await messagingService.replyToSystemMessage(latestConversationId, {
                     message: messageText
                 });
             } else {
-                await messagingService.sendSystemMessage({
+                const created = await messagingService.sendSystemMessage({
                     subject: messageSubject.trim() || 'Support Request',
                     message: messageText
                 });
+                createdConversationId = created?.id || null;
             }
 
             setMessageSubject('');
@@ -131,11 +136,12 @@ export default function UserMessagingFloat() {
             setShowNewMessage(false);
             setForceNewConversation(false);
             
-            await loadMessages();
+            const refreshedMessages = await loadMessages();
 
             // Move into conversation view after first send/reply for continuous to-and-fro chat.
-            if (latestConversationId) {
-                await loadConversation(latestConversationId, true);
+            const targetConversationId = latestConversationId || createdConversationId || refreshedMessages?.[0]?.id;
+            if (targetConversationId) {
+                await loadConversation(targetConversationId, true);
             }
             
         } catch (error) {
