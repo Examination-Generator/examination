@@ -220,6 +220,60 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
     };
+
+    // Handle external right border resize (resize last column)
+    const handleExternalRightBorderResize = (startX) => {
+        const lastColIndex = colWidths.length - 1;
+        const startWidth = colWidths[lastColIndex];
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+
+        const onMouseMove = (e) => {
+            const delta = e.clientX - startX;
+            const newWidth = Math.max(60, startWidth + delta);
+            const newWidths = [...colWidths];
+            newWidths[lastColIndex] = newWidth;
+            setColWidths(newWidths);
+        };
+
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            setResizing(null);
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    };
+
+    // Handle external bottom border resize (resize last row)
+    const handleExternalBottomBorderResize = (startY) => {
+        const lastRowIndex = rowHeights.length - 1;
+        const startHeight = rowHeights[lastRowIndex];
+        document.body.style.cursor = 'ns-resize';
+        document.body.style.userSelect = 'none';
+
+        const onMouseMove = (e) => {
+            const delta = e.clientY - startY;
+            const newHeight = Math.max(30, startHeight + delta);
+            const newHeights = [...rowHeights];
+            newHeights[lastRowIndex] = newHeight;
+            setRowHeights(newHeights);
+        };
+
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            setResizing(null);
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    };
     
     // Check if a cell is merged (hidden)
     const isCellMerged = (rowIndex, colIndex) => {
@@ -524,12 +578,55 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
                             </div>
                         )}
                         
-                        <div className="overflow-x-auto mb-4" onMouseUp={handleMouseUp}>
-                            <table 
-                                ref={tableRef}
-                                className="border-collapse border-2 border-gray-500 mx-auto"
-                                style={{ userSelect: 'none' }}
-                            >
+                        <div className="overflow-x-auto mb-4 relative" onMouseUp={handleMouseUp}>
+                            <div className="relative inline-block">
+                                {/* External right border resize handle */}
+                                {type === 'table' && (
+                                    <div
+                                        className={`absolute top-0 -right-2 w-2 h-full z-40 cursor-ew-resize flex items-center justify-center ${resizing?.type === 'external-right' ? 'bg-red-500/40' : 'bg-transparent hover:bg-red-400/35'}`}
+                                        title="Drag to resize table width"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setResizing({ type: 'external-right' });
+                                            handleExternalRightBorderResize(e.clientX);
+                                        }}
+                                        style={{ transform: 'translateX(100%)', height: '100%' }}
+                                    >
+                                        <div className="flex flex-col gap-1 pointer-events-none">
+                                            <div className="w-0.5 h-0.5 bg-red-600 rounded-full opacity-60"></div>
+                                            <div className="w-0.5 h-0.5 bg-red-600 rounded-full opacity-60"></div>
+                                            <div className="w-0.5 h-0.5 bg-red-600 rounded-full opacity-60"></div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* External bottom border resize handle */}
+                                {type === 'table' && (
+                                    <div
+                                        className={`absolute -bottom-2 left-0 w-full h-2 z-40 cursor-ns-resize flex items-center justify-center ${resizing?.type === 'external-bottom' ? 'bg-red-500/40' : 'bg-transparent hover:bg-red-400/35'}`}
+                                        title="Drag to resize table height"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setResizing({ type: 'external-bottom' });
+                                            handleExternalBottomBorderResize(e.clientY);
+                                        }}
+                                        style={{ transform: 'translateY(100%)' }}
+                                    >
+                                        <div className="flex gap-1 pointer-events-none">
+                                            <div className="w-0.5 h-0.5 bg-red-600 rounded-full opacity-60"></div>
+                                            <div className="w-0.5 h-0.5 bg-red-600 rounded-full opacity-60"></div>
+                                            <div className="w-0.5 h-0.5 bg-red-600 rounded-full opacity-60"></div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <table 
+                                    ref={tableRef}
+                                    className="border-collapse border-2 border-gray-500 mx-auto"
+                                    style={{ userSelect: 'none' }}
+                                >
                                 <tbody>
                                     {cellData.map((row, rowIndex) => (
                                         <tr key={rowIndex}>
@@ -631,6 +728,7 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         </div>
 
                         <div className="flex justify-end gap-2">
