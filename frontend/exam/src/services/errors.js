@@ -14,7 +14,7 @@ export const friendlyErrorMessage = (raw, fallback = 'Something went wrong. Plea
     const s = (msg || '').toString();
 
     if (/insufficient|insufficient questions|insufficient question|not enough questions/i.test(s)) {
-        return 'Not enough questions are available to generate this paper. Try selecting more topics or add more questions.';
+        return 'Select more topics';
     }
     if (/encoding|ascii|codec|unicode/i.test(s)) {
         return 'A server encoding error occurred while processing your request. Please try again later.';
