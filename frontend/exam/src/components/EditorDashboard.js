@@ -1095,11 +1095,11 @@ export default function EditorDashboard({ onLogout }) {
     // Fetch topics for a specific paper (for edit question dropdown)
     const fetchTopicsForPaper = async (paperId) => {
         try {
-            console.log('[fetchTopicsForPaper] Starting fetch for paper ID:', paperId);
+            // console.log('[fetchTopicsForPaper] Starting fetch for paper ID:', paperId);
             
             const token = localStorage.getItem('token');
             if (!token) {
-                console.error('[fetchTopicsForPaper] No auth token found');
+                // console.error('[fetchTopicsForPaper] No auth token found');
                 setEditQuestionTopics([]);
                 return;
             }
@@ -1111,48 +1111,48 @@ export default function EditorDashboard({ onLogout }) {
                 }
             });
             
-            console.log('[fetchTopicsForPaper] Response status:', response.status, response.ok);
+            // console.log('[fetchTopicsForPaper] Response status:', response.status, response.ok);
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('[fetchTopicsForPaper] Failed to fetch subjects. Status:', response.status);
-                console.error('[fetchTopicsForPaper] Error text:', errorText);
+                // console.error('[fetchTopicsForPaper] Failed to fetch subjects. Status:', response.status);
+                // console.error('[fetchTopicsForPaper] Error text:', errorText);
                 throw new Error(`Failed to fetch subjects: ${response.status}`);
             }
             
             const data = await response.json();
-            console.log('[fetchTopicsForPaper] Received data:', data);
+            // console.log('[fetchTopicsForPaper] Received data:', data);
             const subjects = data.data || [];
-            console.log('[fetchTopicsForPaper] Processing', subjects.length, 'subjects to find paper:', paperId);
+            // console.log('[fetchTopicsForPaper] Processing', subjects.length, 'subjects to find paper:', paperId);
             
             // Find the paper in subjects and get its topics
             for (const subject of subjects) {
-                console.log('[fetchTopicsForPaper] Checking subject:', subject.name, '| Papers count:', subject.papers?.length);
+                // console.log('[fetchTopicsForPaper] Checking subject:', subject.name, '| Papers count:', subject.papers?.length);
                 if (subject.papers) {
                     subject.papers.forEach(p => {
-                        console.log('  Paper ID:', p.id, '| Name:', p.name, '| Topics count:', p.topics?.length);
+                        // console.log('  Paper ID:', p.id, '| Name:', p.name, '| Topics count:', p.topics?.length);
                     });
                 }
                 const paper = subject.papers?.find(p => p.id === paperId);
                 if (paper) {
-                    console.log('[fetchTopicsForPaper] FOUND matching paper!');
-                    console.log('[fetchTopicsForPaper] Paper name:', paper.name);
-                    console.log('[fetchTopicsForPaper] Topics:', paper.topics);
-                    console.log('[fetchTopicsForPaper] Sections:', paper.sections);
-                    console.log('[fetchTopicsForPaper] Setting editQuestionTopics with', paper.topics?.length, 'topics');
+                    // console.log('[fetchTopicsForPaper] FOUND matching paper!');
+                    // console.log('[fetchTopicsForPaper] Paper name:', paper.name);
+                    // console.log('[fetchTopicsForPaper] Topics:', paper.topics);
+                    // console.log('[fetchTopicsForPaper] Sections:', paper.sections);
+                    // console.log('[fetchTopicsForPaper] Setting editQuestionTopics with', paper.topics?.length, 'topics');
                     setEditQuestionTopics(paper.topics || []);
                     setEditQuestionSections(paper.sections || []); // Set sections too
                     return;
                 }
             }
             
-            console.warn('[fetchTopicsForPaper] No paper found with ID:', paperId);
-            console.warn('[fetchTopicsForPaper] Setting editQuestionTopics and sections to empty array');
+            // console.warn('[fetchTopicsForPaper] No paper found with ID:', paperId);
+            // console.warn('[fetchTopicsForPaper] Setting editQuestionTopics and sections to empty array');
             setEditQuestionTopics([]);
             setEditQuestionSections([]);
         } catch (error) {
-            console.error('[fetchTopicsForPaper] Error:', error);
-            console.error('[fetchTopicsForPaper] Error stack:', error.stack);
+            // console.error('[fetchTopicsForPaper] Error:', error);
+            // console.error('[fetchTopicsForPaper] Error stack:', error.stack);
             setEditQuestionTopics([]);
         }
     };
@@ -1215,9 +1215,9 @@ export default function EditorDashboard({ onLogout }) {
         setIsLoadingCreators(true);
         try {
             const token = authService.getAuthToken();
-            console.log('🔍 Fetching creator statistics...');
-            console.log('   Token:', token ? 'Present' : 'Missing');
-            console.log('   Endpoint:', `${API_URL}/questions/creator-statistics/`);
+            // console.log('🔍 Fetching creator statistics...');
+            // console.log('   Token:', token ? 'Present' : 'Missing');
+            // console.log('   Endpoint:', `${API_URL}/questions/creator-statistics/`);
             
             const response = await fetch(`${API_URL}/questions/creator-statistics/`, {
                 headers: {
@@ -1226,36 +1226,36 @@ export default function EditorDashboard({ onLogout }) {
                 }
             });
             
-            console.log(' Response status:', response.status, response.statusText);
+            // console.log(' Response status:', response.status, response.statusText);
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error(' API Error Response:', errorText);
+                // console.error(' API Error Response:', errorText);
                 throw new Error(`Failed to fetch creator statistics: ${response.status} ${response.statusText}`);
             }
             
             const data = await response.json();
-            console.log(' Creator statistics received:', data);
-            console.log('   Data structure:', {
-                hasData: !!data.data,
-                hasOverallSummary: !!data.overallSummary,
-                hasTopContributors: !!data.topContributors,
-                dataKeys: Object.keys(data)
-            });
+            // console.log(' Creator statistics received:', data);
+            // console.log('   Data structure:', {
+              //  hasData: !!data.data,
+             //   hasOverallSummary: !!data.overallSummary,
+             //   hasTopContributors: !!data.topContributors,
+            //    dataKeys: Object.keys(data)
+           // });
             
             // Extract data from wrapper if it exists (success_response wraps data in 'data' field)
             const statsData = data.data || data;
-            console.log('   Using stats data:', statsData);
-            console.log('   Stats data keys:', Object.keys(statsData));
+            // console.log('   Using stats data:', statsData);
+            // console.log('   Stats data keys:', Object.keys(statsData));
             
             setCreatorStats(statsData);
         } catch (error) {
-            console.error(' Error fetching creator statistics:', error);
-            console.error('   Error details:', {
-                message: error.message,
-                stack: error.stack,
-                name: error.name
-            });
+            // console.error(' Error fetching creator statistics:', error);
+            // console.error('   Error details:', {
+            //     message: error.message,
+            //     stack: error.stack,
+            //     name: error.name
+            // });
             showError('Failed to load creator statistics: ' + error.message);
         } finally {
             setIsLoadingCreators(false);
@@ -1394,16 +1394,16 @@ export default function EditorDashboard({ onLogout }) {
                     
                     if (response.ok) {
                         const data = await response.json();
-                        console.log('Similar questions response:', data);
+                        // console.log('Similar questions response:', data);
                         const similarQuestions = data.data?.similar_questions || data.similar_questions || [];
-                        console.log('Similar questions found:', similarQuestions.length, similarQuestions);
+                        // console.log('Similar questions found:', similarQuestions.length, similarQuestions);
                         setSimilarQuestions(similarQuestions);
                     } else {
-                        console.error('Failed to fetch similar questions:', response.status);
+                        // console.error('Failed to fetch similar questions:', response.status);
                         setSimilarQuestions([]);
                     }
                 } catch (error) {
-                    console.error('Error searching for similar questions:', error);
+                    // console.error('Error searching for similar questions:', error);
                     setSimilarQuestions([]);
                 } finally {
                     setIsSearching(false);
@@ -2225,12 +2225,12 @@ export default function EditorDashboard({ onLogout }) {
 
     // Handle opening printable document modal for a paper
     const handleOpenPrintableDocument = async (paperData) => {
-        console.log('📄 Paper card clicked:', paperData);
-        console.log('Subject ID:', paperData.subjectId);
-        console.log('Paper ID:', paperData.paperId);
+        // // console.log('📄 Paper card clicked:', paperData);
+        // // console.log('Subject ID:', paperData.subjectId);
+        // // console.log('Paper ID:', paperData.paperId);
         
         if (!paperData.subjectId || !paperData.paperId) {
-            console.error('❌ Missing IDs - Subject ID:', paperData.subjectId, 'Paper ID:', paperData.paperId);
+           // console.error('❌ Missing IDs - Subject ID:', paperData.subjectId, 'Paper ID:', paperData.paperId);
             showError('Cannot generate printable document: Missing subject or paper ID');
             return;
         }
@@ -2242,13 +2242,13 @@ export default function EditorDashboard({ onLogout }) {
             setShowPrintableModal(true);
             setPrintableHtmlContent(''); // Clear previous content
 
-            console.log('🔄 Fetching printable document for paper...');
+            // console.log('🔄 Fetching printable document for paper...');
             const htmlContent = await getPrintableDocument(paperData.subjectId, { paperId: paperData.paperId });
-            console.log('✅ Document fetched successfully');
+            // console.log('✅ Document fetched successfully');
             setPrintableHtmlContent(htmlContent);
             
         } catch (error) {
-            console.error('❌ Error fetching printable document:', error);
+            // console.error('❌ Error fetching printable document:', error);
             showError(`Failed to generate printable document: ${error.message}`);
             setShowPrintableModal(false);
         } finally {
@@ -2258,12 +2258,12 @@ export default function EditorDashboard({ onLogout }) {
 
     // Handle opening printable document modal for a topic
     const handleOpenPrintableDocumentByTopic = async (topicData) => {
-        console.log('📄 Topic card clicked:', topicData);
-        console.log('Subject ID:', topicData.subjectId);
-        console.log('Topic ID:', topicData.topicId);
+        //console.log('📄 Topic card clicked:', topicData);
+        // console.log('Subject ID:', topicData.subjectId);
+        // console.log('Topic ID:', topicData.topicId);
         
         if (!topicData.subjectId || !topicData.topicId) {
-            console.error('❌ Missing IDs - Subject ID:', topicData.subjectId, 'Topic ID:', topicData.topicId);
+            // console.error('❌ Missing IDs - Subject ID:', topicData.subjectId, 'Topic ID:', topicData.topicId);
             showError('Cannot generate printable document: Missing subject or topic ID');
             return;
         }
@@ -2275,9 +2275,9 @@ export default function EditorDashboard({ onLogout }) {
             setShowPrintableModal(true);
             setPrintableHtmlContent(''); // Clear previous content
 
-            console.log('🔄 Fetching printable document for topic...');
+            //console.log('🔄 Fetching printable document for topic...');
             const htmlContent = await getPrintableDocument(topicData.subjectId, { topicId: topicData.topicId });
-            console.log('✅ Document fetched successfully');
+            //console.log('✅ Document fetched successfully');
             setPrintableHtmlContent(htmlContent);
             
         } catch (error) {
@@ -2458,7 +2458,7 @@ export default function EditorDashboard({ onLogout }) {
             const graphPlaceholder = `\n[GRAPH:${graphId}:${editQuestionGraphBoxesX}x${editQuestionGraphBoxesY}cm]\n`;
             setEditQuestionText(prev => prev + graphPlaceholder);
             setShowEditQuestionDrawing(false);
-            showSuccess('✅ Graph inserted at exact cm size!');
+            showSuccess('Graph inserted at exact cm size!');
             return;
         }
 
@@ -2480,7 +2480,7 @@ export default function EditorDashboard({ onLogout }) {
         const imagePlaceholder = `\n[IMAGE:${newImage.id}:${newImage.width}x${newImage.height}px]\n`;
         setEditQuestionText(prev => prev + imagePlaceholder);
         setShowEditQuestionDrawing(false);
-        showSuccess('✅ Drawing inserted!');
+        showSuccess(' Drawing inserted!');
     };
 
     // ====== SET QUESTION MODE (ESSAY/GRAPH/REGULAR) ======
@@ -2907,21 +2907,21 @@ useEffect(() => {
                 is_active: isQuestionActive
             };
 
-            console.log('💾 Submitting question to database:', questionData);
-            console.log('📋 Question Status Being Saved:', {
-                isActive: isQuestionActive,
-                isNested: isNested,
-                isEssayQuestion: isEssayQuestion,
-                isGraphQuestion: isGraphQuestion,
-                marks: parseInt(marks),
-                questionLength: questionText.length,
-                answerLength: answerText.length
-            });
-            console.log('💾 Question images being saved:', {
-                count: questionInlineImages.length,
-                images: questionInlineImages,
-                firstImageUrl: questionInlineImages[0]?.url?.substring(0, 50) + '...'
-            });
+            // console.log('💾 Submitting question to database:', questionData);
+            // console.log('📋 Question Status Being Saved:', {
+                // isActive: isQuestionActive,
+                // isNested: isNested,
+                // isEssayQuestion: isEssayQuestion,
+                // isGraphQuestion: isGraphQuestion,
+                // marks: parseInt(marks),
+                // questionLength: questionText.length,
+                // answerLength: answerText.length
+            // });
+            // console.log('💾 Question images being saved:', {
+                // count: questionInlineImages.length,
+                // images: questionInlineImages,
+                // firstImageUrl: questionInlineImages[0]?.url?.substring(0, 50) + '...'
+        //     });
             console.log('💾 Answer images being saved:', {
                 count: answerInlineImages.length,
                 images: answerInlineImages
