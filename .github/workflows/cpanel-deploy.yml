@@ -24,7 +24,7 @@ jobs:
 
   # Deploy frontend to cPanel
   deploy-frontend:
-    # needs: wait-for-staging
+    needs: wait-for-staging
     runs-on: ubuntu-latest
     
     steps:
