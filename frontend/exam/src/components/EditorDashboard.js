@@ -312,7 +312,7 @@ export default function EditorDashboard({ onLogout }) {
                 merged: mergeIndex !== -1 ? (tokenParts[mergeIndex + 1] || '') : ''
             };
         } catch (error) {
-            console.error('Unable to parse table token for editing:', error);
+            // console.error('Unable to parse table token for editing:', error);
             return null;
         }
     };
@@ -683,30 +683,30 @@ export default function EditorDashboard({ onLogout }) {
         // If there is any search text, do a fast local filter for immediate UX
         if (searchQuery && searchQuery.length >= 2) {
             const local = localFilter(source, searchQuery);
-            console.debug('[EditFilter] local search:', {
+            // console.debug('[EditFilter] local search:', {
                 sourceCount: Array.isArray(source) ? source.length : 0,
-                filters: { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
-                searchQuery,
-                resultCount: local.length
-            });
-            if (local.length === 0 && Array.isArray(source) && source.length > 0) {
-                console.debug('[EditFilter] sample source items:', source.slice(0,5).map(q => ({ id: q.id, subject_name: q.subject_name, paper_name: q.paper_name, topic_name: q.topic_name })));
-            }
+             //   filters: { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
+              //  searchQuery,
+             //   resultCount: local.length
+            // });
+           // if (local.length === 0 && Array.isArray(source) && source.length > 0) {
+                // console.debug('[EditFilter] sample source items:', source.slice(0,5).map(q => ({ id: q.id, subject_name: q.subject_name, paper_name: q.paper_name, topic_name: q.topic_name })));
+           // }
             setSearchResults(local);
             setIsSearchingQuestions(true); // indicate loading while we refresh remote results
             // trigger an up-to-date remote query (react-query will use current filters)
-            try { refetchQuestions(); console.debug('[EditFilter] triggered refetchQuestions'); } catch (e) { /* ignore */ }
+            try { refetchQuestions(); /* console.debug('[EditFilter] triggered refetchQuestions'); */ } catch (e) { /* ignore */ }
         } else {
             // No text search: apply advanced filters locally and show results immediately
             const local = localFilter(source, null);
-            console.debug('[EditFilter] local filter (no search):', {
+            // console.debug('[EditFilter] local filter (no search):', {
                 sourceCount: Array.isArray(source) ? source.length : 0,
-                filters: { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
-                resultCount: local.length
-            });
-            if (local.length === 0 && Array.isArray(source) && source.length > 0) {
-                console.debug('[EditFilter] sample source items:', source.slice(0,5).map(q => ({ id: q.id, subject_name: q.subject_name, paper_name: q.paper_name, topic_name: q.topic_name })));
-            }
+                //filters: { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
+              //  resultCount: local.length
+           // });
+           // if (local.length === 0 && Array.isArray(source) && source.length > 0) {
+                // console.debug('[EditFilter] sample source items:', source.slice(0,5).map(q => ({ id: q.id, subject_name: q.subject_name, paper_name: q.paper_name, topic_name: q.topic_name })));
+           // }
             setSearchResults(local);
             setIsSearchingQuestions(false);
             // If we don't have a local source, fetch from server using filters
@@ -4365,15 +4365,15 @@ useEffect(() => {
                 marks: parseFloat(editMarks),
                 topic: editTopic
             });
-            console.log('  - selectedQuestion.section:', selectedQuestion.section);
-            console.log('  - Computed sectionValue:', sectionValue);
-            console.log('  - Full updatedData:', JSON.stringify(updatedData, null, 2));
+            // console.log('  - selectedQuestion.section:', selectedQuestion.section);
+            // console.log('  - Computed sectionValue:', sectionValue);
+            // console.log('  - Full updatedData:', JSON.stringify(updatedData, null, 2));
 
-            console.log('information sent to update')
-            console.log(updatedData);
+           // console.log('information sent to update')
+            // console.log(updatedData);
             
             const result = await questionService.updateQuestion(selectedQuestion.id, updatedData);
-            console.log('✅ Update result:', result);
+            // console.log('✅ Update result:', result);
             
             showSuccess('Question updated successfully!');
             
@@ -4383,23 +4383,23 @@ useEffect(() => {
             // Fetch the updated question to refresh the form with latest data
             try {
                 const updatedQuestion = await questionService.getQuestionById(selectedQuestion.id);
-                console.log('📥 Fetched updated question:', updatedQuestion);
+                //  console.log('📥 Fetched updated question:', updatedQuestion);
                 
                 // Update the selected question with fresh data
                 if (updatedQuestion) {
                     setSelectedQuestion(updatedQuestion);
                     setEditSection(updatedQuestion.section || '');
-                    console.log('✅ Refreshed form with updated section:', updatedQuestion.section);
+                    // console.log('✅ Refreshed form with updated section:', updatedQuestion.section);
                 }
             } catch (fetchError) {
-                console.error('Error fetching updated question:', fetchError);
+                // console.error('Error fetching updated question:', fetchError);
             }
             
             // Don't clear the form - keep it open with updated data
             // This allows user to verify the changes were saved correctly
             
         } catch (error) {
-            console.error('Error updating question:', error);
+            // console.error('Error updating question:', error);
             showError('Failed to update question: ' + (error.message || 'Unknown error'));
         }
         // After update, the backend may process graph/essay detection asynchronously.
@@ -4422,7 +4422,7 @@ useEffect(() => {
                                 return res;
                             }
                         } catch (e) {
-                            console.warn('[pollCheckGraphEssay] attempt failed', i + 1, e);
+                            // console.warn('[pollCheckGraphEssay] attempt failed', i + 1, e);
                         }
                         // wait before next attempt
                         await new Promise(r => setTimeout(r, delay));
@@ -4436,7 +4436,7 @@ useEffect(() => {
                 }).catch(e => console.warn('pollCheckGraphEssay error:', e));
             }
         } catch (e) {
-            console.warn('Error scheduling pollCheckGraphEssay:', e);
+            // console.warn('Error scheduling pollCheckGraphEssay:', e);
         }
     };
 
@@ -4451,7 +4451,7 @@ useEffect(() => {
         }
 
         try {
-            console.log('🗑️ Deleting question:', selectedQuestion.id);
+            // console.log('🗑️ Deleting question:', selectedQuestion.id);
             await questionService.deleteQuestion(selectedQuestion.id);
             
             showSuccess('Question deleted successfully!');
@@ -4481,10 +4481,10 @@ useEffect(() => {
             // Refresh search results - this will re-fetch questions
             await refetchQuestions();
             
-            console.log('✅ Question deleted and search results refreshed');
+            // console.log('✅ Question deleted and search results refreshed');
             
         } catch (error) {
-            console.error('Error deleting question:', error);
+            // console.error('Error deleting question:', error);
             showError('Failed to delete question: ' + (error.message || 'Unknown error'));
         }
     };
@@ -4527,7 +4527,7 @@ useEffect(() => {
                 extractedText = result.value;
                 
                 if (result.messages.length > 0) {
-                    console.log('Mammoth warnings:', result.messages);
+                    // console.log('Mammoth warnings:', result.messages);
                 }
             }
             else if (file.name.endsWith('.pdf') || file.type === 'application/pdf') {
@@ -4551,18 +4551,18 @@ useEffect(() => {
             }
 
             if (!extractedText.trim()) {
-                showError('❌ No text content found in the file. Please check the file and try again.');
+                showError(' No text content found in the file. Please check the file and try again.');
                 e.target.value = '';
                 return;
             }
 
             setBulkText(extractedText);
             const questionCount = extractedText.split('\n\n').filter(s => s.trim()).length;
-            showSuccess(`✅ File "${file.name}" loaded successfully!\n\n📊 ${questionCount} potential questions found.\n\nClick "Process Bulk Questions" to continue.`);
+            showSuccess(`File "${file.name}" loaded successfully!\n\n ${questionCount} potential questions found.\n\nClick "Process Bulk Questions" to continue.`);
             
         } catch (error) {
-            console.error('Error reading file:', error);
-            showError('❌ Error reading file: ' + error.message + '\n\nPlease try again or paste the text directly.');
+            // console.error('Error reading file:', error);
+            showError(' Error reading file: ' + error.message + '\n\nPlease try again or paste the text directly.');
         }
         
         e.target.value = ''; // Reset file input for re-upload
@@ -4716,7 +4716,7 @@ useEffect(() => {
             const subjects = await subjectService.getAllSubjects();
             setExistingSubjects(subjects);
         } catch (error) {
-            console.error('Error fetching subjects:', error);
+            // console.error('Error fetching subjects:', error);
             // Display the actual error message from backend
             showError(error.message || 'Failed to load subjects. Please try again.');
         } finally {
@@ -4818,7 +4818,7 @@ useEffect(() => {
                 loadDynamicSubjects();
             }, 500);
         } catch (error) {
-            console.error('Error creating subject:', error);
+            // console.error('Error creating subject:', error);
             // Display the actual error message from backend
             showError(error.message || 'Failed to add subject. Please try again.');
         }
@@ -4998,7 +4998,7 @@ useEffect(() => {
                 loadDynamicSubjects();
             }, 500);
         } catch (error) {
-            console.error('Error updating:', error);
+            // console.error('Error updating:', error);
             showError(error.message || `Failed to update ${editingItem.type}. Please try again.`);
         }
     };
@@ -5264,7 +5264,7 @@ useEffect(() => {
                 loadDynamicSubjects();
             }, 300);
         } catch (error) {
-            console.error('Error updating subject:', error);
+            // console.error('Error updating subject:', error);
             showError(error.message || 'Failed to update subject. Please try again.');
         }
     };
@@ -5359,7 +5359,7 @@ useEffect(() => {
                 loadDynamicSubjects();
             }, 500);
         } catch (error) {
-            console.error('Error deleting:', error);
+            // console.error('Error deleting:', error);
             showError(error.message || `Failed to delete ${deletingItem.type}. Please try again.`);
         }
     };
