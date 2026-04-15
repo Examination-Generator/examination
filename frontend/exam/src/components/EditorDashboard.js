@@ -5211,8 +5211,8 @@ useEffect(() => {
                     name: paper.name.trim(),
                     topics: Array.from(topicsMap.values()),
                     sections: Array.from(sectionsMap.values()),
-                    durationHours: paper.durationHours || 2,
-                    durationMinutes: paper.durationMinutes || 0
+                    durationHours: paper.durationHours,
+                    durationMinutes: paper.durationMinutes
                 };
                 
                 // Include ID for existing papers to preserve them
