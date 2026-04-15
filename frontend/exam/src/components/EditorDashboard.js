@@ -684,7 +684,7 @@ export default function EditorDashboard({ onLogout }) {
         if (searchQuery && searchQuery.length >= 2) {
             const local = localFilter(source, searchQuery);
             // console.debug('[EditFilter] local search:', {
-                sourceCount: Array.isArray(source) ? source.length : 0,
+               // sourceCount: Array.isArray(source) ? source.length : 0,
              //   filters: { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
               //  searchQuery,
              //   resultCount: local.length
@@ -700,7 +700,7 @@ export default function EditorDashboard({ onLogout }) {
             // No text search: apply advanced filters locally and show results immediately
             const local = localFilter(source, null);
             // console.debug('[EditFilter] local filter (no search):', {
-                sourceCount: Array.isArray(source) ? source.length : 0,
+               // sourceCount: Array.isArray(source) ? source.length : 0,
                 //filters: { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
               //  resultCount: local.length
            // });
