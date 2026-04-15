@@ -52,6 +52,7 @@ export default function PaperGenerationDashboard() {
         school_name: 'EXAMINATION CENTRE',
         school_logo: '/exam.png',
         logo_position: 'center',
+        class_name: '',
         exam_title: 'END TERM 3 EXAMINATION 2025'
     });
     const [previewMode, setPreviewMode] = useState(false);
@@ -90,6 +91,7 @@ export default function PaperGenerationDashboard() {
                 school_name: coverpage?.school_name || 'EXAMINATION CENTRE',
                 school_logo: coverpage?.school_logo || '/exam.png',
                 logo_position: coverpage?.logo_position || 'center',
+                class_name: coverpage?.class_name || '',
                 exam_title: coverpage?.exam_title || 'END TERM 3 EXAMINATION 2025'
             });
             setLogoPreview(coverpage?.school_logo || '/exam.png');
@@ -1111,6 +1113,18 @@ export default function PaperGenerationDashboard() {
                                     <div className="space-y-3">
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Class
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editableData.class_name}
+                                                onChange={(e) => setEditableData({ ...editableData, class_name: e.target.value })}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                placeholder="e.g., Form 1, Grade 8, etc."
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Exam Title
                                             </label>
                                             <input
@@ -1156,17 +1170,7 @@ export default function PaperGenerationDashboard() {
                                     >
                                         📋 Preview Full Exam
                                     </button>
-                                    {/* <button
-                                        onClick={() => {
-                                            const iframe = document.getElementById('coverpage-iframe');
-                                            if (iframe && iframe.contentWindow) {
-                                                iframe.contentWindow.print();
-                                            }
-                                        }}
-                                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition text-sm"
-                                    >
-                                        🖨️ Print
-                                    </button> */}
+                                        
                                 </div>
                             </div>
                             
