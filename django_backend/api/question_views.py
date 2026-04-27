@@ -1468,22 +1468,43 @@ def question_statistics_only(request):
     This reduces payload and frontend processing time.
     """
     try:
-        user = request.user
-        
-        # Get statistics for current user's questions
-        total_questions = Question.objects.filter(creator=user).count()
-        active_questions = Question.objects.filter(creator=user, is_active=True).count()
-        inactive_questions = Question.objects.filter(creator=user, is_active=False).count()
-        
-        # Count questions with unknown topics
-        unknown_topics = Question.objects.filter(
-            creator=user,
-            topic__isnull=True
-        ).count() + Question.objects.filter(
-            creator=user,
-            topic=''
-        ).count()
-        
+        # Build a database-wide queryset so stats reflect all questions,
+        # not just the logged-in user's data or a paginated subset.
+        queryset = Question.objects.all()
+
+        total_questions = queryset.count()
+        active_questions = queryset.filter(is_active=True).count()
+        inactive_questions = queryset.filter(is_active=False).count()
+
+        unknown_topics = queryset.filter(topic__isnull=True).count()
+
+        overview = queryset.filter(is_active=True).aggregate(
+            total_marks=Sum('marks'),
+            avg_marks=Avg('marks'),
+            total_usage=Sum('times_used')
+        )
+
+        by_subject = queryset.values(
+            'subject__id',
+            'subject__name'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        by_paper = queryset.values(
+            'paper__id',
+            'paper__name'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')
+
+        by_topic = queryset.values(
+            'topic__id',
+            'topic__name'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')
+
         from rest_framework.response import Response
         return Response({
             'success': True,
@@ -1491,7 +1512,39 @@ def question_statistics_only(request):
                 'total': total_questions,
                 'active': active_questions,
                 'inactive': inactive_questions,
-                'unknownTopics': unknown_topics
+                'unknownTopics': unknown_topics,
+                'overview': {
+                    'totalQuestions': total_questions,
+                    'activeQuestions': active_questions,
+                    'inactiveQuestions': inactive_questions,
+                    'totalMarks': overview['total_marks'] or 0,
+                    'avgMarks': round(overview['avg_marks'], 2) if overview['avg_marks'] else 0,
+                    'totalUsage': overview['total_usage'] or 0
+                },
+                'bySubject': [
+                    {
+                        'subjectId': str(item['subject__id']) if item['subject__id'] else None,
+                        'subjectName': item['subject__name'],
+                        'count': item['count']
+                    }
+                    for item in by_subject
+                ],
+                'byPaper': [
+                    {
+                        'paperId': str(item['paper__id']) if item['paper__id'] else None,
+                        'paperName': item['paper__name'],
+                        'count': item['count']
+                    }
+                    for item in by_paper
+                ],
+                'byTopic': [
+                    {
+                        'topicId': str(item['topic__id']) if item['topic__id'] else None,
+                        'topicName': item['topic__name'],
+                        'count': item['count']
+                    }
+                    for item in by_topic
+                ]
             }
         })
     except Exception as e:
