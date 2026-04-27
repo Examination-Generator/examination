@@ -691,46 +691,56 @@ export default function EditorDashboard({ onLogout }) {
         // Prefer the full cached dataset if available for instant filtering
         const source = Array.isArray(allQuestions) && allQuestions.length > 0 ? allQuestions : savedQuestions;
 
-        // If there is any search text, do a fast local filter for immediate UX
+        // Determine whether Edit tab should use paginated server-side loading
+        const hasEditFilters = !!(editFilterSubject || editFilterPaper || editFilterTopic || (editFilterStatus && editFilterStatus !== 'all') || (editFilterType && editFilterType !== 'all'));
+        const usePagination = hasEditFilters || (searchQuery && searchQuery.trim().length >= 2);
+
+        // If search text exists, do a fast local filter for immediate UX and also trigger server refetch
         if (searchQuery && searchQuery.length >= 2) {
             const local = localFilter(source, searchQuery);
-            // console.debug('[EditFilter] local search:', {
-               // sourceCount: Array.isArray(source) ? source.length : 0,
-             //   filters: { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
-              //  searchQuery,
-             //   resultCount: local.length
-            // });
-           // if (local.length === 0 && Array.isArray(source) && source.length > 0) {
-                // console.debug('[EditFilter] sample source items:', source.slice(0,5).map(q => ({ id: q.id, subject_name: q.subject_name, paper_name: q.paper_name, topic_name: q.topic_name })));
-           // }
             setSearchResults(local);
             setIsSearchingQuestions(true); // indicate loading while we refresh remote results
-            // trigger an up-to-date remote query (react-query will use current filters)
-            try { refetchQuestions(); /* console.debug('[EditFilter] triggered refetchQuestions'); */ } catch (e) { /* ignore */ }
+            try { refetchQuestions(); } catch (e) { /* ignore */ }
+
+            // If using pagination for server-side search, load paginated results
+            if (usePagination) {
+                setEditUsingPagination(true);
+                setCurrentPage(1);
+                setPaginatedQuestions([]);
+                setHasMoreQuestions(true);
+                const apiParams = resolveEditFiltersToApi();
+                apiParams.search = searchQuery.trim();
+                fetchPaginatedQuestions(1, apiParams);
+            } else {
+                setEditUsingPagination(false);
+            }
+
         } else {
             // No text search: apply advanced filters locally and show results immediately
             const local = localFilter(source, null);
-            // console.debug('[EditFilter] local filter (no search):', {
-               // sourceCount: Array.isArray(source) ? source.length : 0,
-                //filters: { editFilterSubject, editFilterPaper, editFilterTopic, editFilterStatus, editFilterType },
-              //  resultCount: local.length
-           // });
-           // if (local.length === 0 && Array.isArray(source) && source.length > 0) {
-                // console.debug('[EditFilter] sample source items:', source.slice(0,5).map(q => ({ id: q.id, subject_name: q.subject_name, paper_name: q.paper_name, topic_name: q.topic_name })));
-           // }
             setSearchResults(local);
             setIsSearchingQuestions(false);
-            // If we don't have a local source, fetch from server using filters
-            if ((!Array.isArray(allQuestions) || allQuestions.length === 0) && (!Array.isArray(savedQuestions) || savedQuestions.length === 0)) {
-                // Build API filters from edit filters
-                const apiFilters = {};
-                if (editFilterSubject) apiFilters.subject = editFilterSubject;
-                if (editFilterPaper) apiFilters.paper = editFilterPaper;
-                if (editFilterTopic) apiFilters.topic = editFilterTopic;
-                if (editFilterStatus === 'active') apiFilters.isActive = 'true';
-                if (editFilterStatus === 'inactive') apiFilters.isActive = 'false';
-                // Fetch once with the applied filters
-                fetchQuestions(apiFilters).then(qs => setSearchResults(qs || []));
+
+            // If there are edit filters but no local cache, use server-side pagination
+            if (usePagination) {
+                setEditUsingPagination(true);
+                setCurrentPage(1);
+                setPaginatedQuestions([]);
+                setHasMoreQuestions(true);
+                const apiParams = resolveEditFiltersToApi();
+                fetchPaginatedQuestions(1, apiParams);
+            } else {
+                setEditUsingPagination(false);
+                // If we don't have a local source, fetch from server using non-paginated API once
+                if ((!Array.isArray(allQuestions) || allQuestions.length === 0) && (!Array.isArray(savedQuestions) || savedQuestions.length === 0)) {
+                    const apiFilters = {};
+                    if (editFilterSubject) apiFilters.subject = editFilterSubject;
+                    if (editFilterPaper) apiFilters.paper = editFilterPaper;
+                    if (editFilterTopic) apiFilters.topic = editFilterTopic;
+                    if (editFilterStatus === 'active') apiFilters.isActive = 'true';
+                    if (editFilterStatus === 'inactive') apiFilters.isActive = 'false';
+                    fetchQuestions(apiFilters).then(qs => setSearchResults(qs || []));
+                }
             }
         }
     }, [
@@ -745,6 +755,30 @@ export default function EditorDashboard({ onLogout }) {
         editFilterStatus,
         editFilterType
     ]);
+
+    // Track whether Edit tab is currently using paginated server loading
+    const [editUsingPagination, setEditUsingPagination] = useState(false);
+
+    // Helper: resolve edit filters (names) to API params (ids where possible)
+    const resolveEditFiltersToApi = () => {
+        const params = {};
+        // map subject name -> id
+        if (editFilterSubject) {
+            const subj = existingSubjects.find(s => s.name === editFilterSubject);
+            if (subj && subj.id) params.subject = subj.id;
+        }
+        if (editFilterPaper) {
+            const p = editAvailablePapers.find(x => x.name === editFilterPaper);
+            if (p && p.id) params.paper = p.id;
+        }
+        if (editFilterTopic) {
+            const t = editAvailableTopics.find(x => x.name === editFilterTopic);
+            if (t && t.id) params.topic = t.id;
+        }
+        if (editFilterStatus && editFilterStatus !== 'all') params.isActive = editFilterStatus === 'active' ? 'true' : 'false';
+        if (searchQuery && searchQuery.trim().length >= 2) params.search = searchQuery.trim();
+        return params;
+    };
     
     // Bulk entry states
     const [bulkText, setBulkText] = useState('');
@@ -1411,12 +1445,25 @@ export default function EditorDashboard({ onLogout }) {
                 if (lastEntry.isIntersecting && hasMoreQuestions && !isLoadingMoreQuestions) {
                     console.log('[Infinite Scroll] Reached bottom, loading next page...');
                     const nextPage = currentPage + 1;
-                    fetchPaginatedQuestions(nextPage, {
-                        subject: filterSubjectId,
-                        paper: filterPaperId,
-                        topic: filterTopicId,
-                        status: filterStatus
-                    });
+
+                    // Choose appropriate filters depending on which tab is active
+                    if (activeTab === 'edit' && editUsingPagination) {
+                        const apiParams = resolveEditFiltersToApi();
+                        // include type mapping
+                        if (editFilterType && editFilterType !== 'all') {
+                            if (editFilterType === 'nested') apiParams.isNested = 'true';
+                            if (editFilterType === 'standalone') apiParams.isNested = 'false';
+                        }
+                        if (searchQuery && searchQuery.trim().length >= 2) apiParams.search = searchQuery.trim();
+                        fetchPaginatedQuestions(nextPage, apiParams);
+                    } else if (activeTab === 'questions') {
+                        fetchPaginatedQuestions(nextPage, {
+                            subject: filterSubjectId,
+                            paper: filterPaperId,
+                            topic: filterTopicId,
+                            status: filterStatus
+                        });
+                    }
                 }
             },
             { threshold: 0.1 }
@@ -1432,7 +1479,7 @@ export default function EditorDashboard({ onLogout }) {
                 observer.unobserve(currentRef);
             }
         };
-    }, [hasMoreQuestions, isLoadingMoreQuestions, currentPage, filterSubjectId, filterPaperId, filterTopicId, filterStatus]);
+    }, [hasMoreQuestions, isLoadingMoreQuestions, currentPage, filterSubjectId, filterPaperId, filterTopicId, filterStatus, activeTab, editUsingPagination, editFilterType, searchQuery]);
 
     // Load subjects when component mounts or when subjects tab is active
     useEffect(() => {
