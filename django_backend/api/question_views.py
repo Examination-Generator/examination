@@ -1577,7 +1577,7 @@ def questions_paginated(request):
         
         # Get pagination parameters
         page = int(request.GET.get('page', 1))
-        limit = min(int(request.GET.get('limit', 50)), 100)  # Cap at 100
+        limit = min(int(request.GET.get('limit', 50)), 1000)  # Cap at 100
         
         # Validate page number
         if page < 1:
