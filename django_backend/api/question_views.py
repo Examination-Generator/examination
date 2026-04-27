@@ -1584,7 +1584,7 @@ def questions_paginated(request):
             page = 1
         
         # Start with base queryset
-        queryset = Question.objects.filter(creator=user)
+        queryset = Question.objects.all()
         
         # Apply filters
         subject = request.GET.get('subject')
