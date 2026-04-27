@@ -1465,54 +1465,79 @@ def generate_topic_printable_document(request):
 def question_statistics_only(request):
     """
     Lightweight endpoint that returns ONLY statistics without question data.
+    Returns aggregated statistics across ALL questions in the database.
     This reduces payload and frontend processing time.
+    
+    GET /api/questions/statistics-only/
     """
     try:
-        # Build a database-wide queryset so stats reflect all questions,
-        # not just the logged-in user's data or a paginated subset.
+        # Build a database-wide queryset - no user filter, no pagination
         queryset = Question.objects.all()
 
+        # Get total counts
         total_questions = queryset.count()
         active_questions = queryset.filter(is_active=True).count()
         inactive_questions = queryset.filter(is_active=False).count()
 
+        # Count questions with unknown topics
         unknown_topics = queryset.filter(topic__isnull=True).count()
 
+        # Get overview statistics for active questions only
         overview = queryset.filter(is_active=True).aggregate(
             total_marks=Sum('marks'),
             avg_marks=Avg('marks'),
             total_usage=Sum('times_used')
         )
 
+        # Get questions by subject
         by_subject = queryset.values(
-            'subject__id',
             'subject__name'
         ).annotate(
             count=Count('id')
         ).order_by('-count')
 
-        by_paper = queryset.values(
-            'paper__id',
-            'paper__name'
+        # Get questions by subject and creator
+        by_subject_creator = queryset.select_related('subject', 'created_by').values(
+            'subject__name',
+            'created_by__id',
+            'created_by__full_name'
         ).annotate(
             count=Count('id')
-        ).order_by('-count')
+        ).order_by('subject__name', '-count')
 
-        by_topic = queryset.values(
-            'topic__id',
-            'topic__name'
-        ).annotate(
-            count=Count('id')
-        ).order_by('-count')
+        # Organize by subject with creator breakdown
+        subject_breakdown = {}
+        for item in by_subject_creator:
+            subject_name = item['subject__name']
+            if subject_name not in subject_breakdown:
+                subject_breakdown[subject_name] = {
+                    'subjectName': subject_name,
+                    'total': 0,
+                    'creators': []
+                }
+            
+            creator_name = item['created_by__full_name'] or 'Unknown'
+            creator_id = item['created_by__id']
+            question_count = item['count']
+            
+            subject_breakdown[subject_name]['total'] += question_count
+            subject_breakdown[subject_name]['creators'].append({
+                'creatorId': str(creator_id) if creator_id else None,
+                'creatorName': creator_name,
+                'count': question_count
+            })
 
         from rest_framework.response import Response
         return Response({
             'success': True,
             'data': {
+                # Core stats
                 'total': total_questions,
                 'active': active_questions,
                 'inactive': inactive_questions,
                 'unknownTopics': unknown_topics,
+                
+                # Overview
                 'overview': {
                     'totalQuestions': total_questions,
                     'activeQuestions': active_questions,
@@ -1521,30 +1546,16 @@ def question_statistics_only(request):
                     'avgMarks': round(overview['avg_marks'], 2) if overview['avg_marks'] else 0,
                     'totalUsage': overview['total_usage'] or 0
                 },
+                
+                # Breakdowns
                 'bySubject': [
                     {
-                        'subjectId': str(item['subject__id']) if item['subject__id'] else None,
                         'subjectName': item['subject__name'],
                         'count': item['count']
                     }
                     for item in by_subject
                 ],
-                'byPaper': [
-                    {
-                        'paperId': str(item['paper__id']) if item['paper__id'] else None,
-                        'paperName': item['paper__name'],
-                        'count': item['count']
-                    }
-                    for item in by_paper
-                ],
-                'byTopic': [
-                    {
-                        'topicId': str(item['topic__id']) if item['topic__id'] else None,
-                        'topicName': item['topic__name'],
-                        'count': item['count']
-                    }
-                    for item in by_topic
-                ]
+                'bySubjectWithCreators': list(subject_breakdown.values())
             }
         })
     except Exception as e:
@@ -1577,14 +1588,14 @@ def questions_paginated(request):
         
         # Get pagination parameters
         page = int(request.GET.get('page', 1))
-        limit = min(int(request.GET.get('limit', 50)), 1000)  # Cap at 100
+        limit = min(int(request.GET.get('limit', 50)), 100)  # Cap at 100
         
         # Validate page number
         if page < 1:
             page = 1
         
-        # Start with base queryset
-        queryset = Question.objects.all()
+        # Start with base queryset - scoped to current user's questions only
+        queryset = Question.objects.filter(created_by=user)
         
         # Apply filters
         subject = request.GET.get('subject')
