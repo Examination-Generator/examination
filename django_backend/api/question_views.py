@@ -5,6 +5,7 @@ Equivalent to Node.js questions routes
 
 import logging
 from rest_framework import status
+from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Count, Sum, Avg
@@ -1464,107 +1465,101 @@ def generate_topic_printable_document(request):
 @permission_classes([IsAuthenticated])
 def question_statistics_only(request):
     """
-    Lightweight endpoint that returns ONLY statistics without question data.
-    Returns aggregated statistics across ALL questions in the database.
-    This reduces payload and frontend processing time.
-    
     GET /api/questions/statistics-only/
+    Returns aggregated statistics across ALL questions in the DB (no question objects).
     """
     try:
-        # Build a database-wide queryset - no user filter, no pagination
         queryset = Question.objects.all()
 
-        # Get total counts
+        # Core counts
         total_questions = queryset.count()
         active_questions = queryset.filter(is_active=True).count()
         inactive_questions = queryset.filter(is_active=False).count()
+        unknown_topics = queryset.filter(Q(topic__isnull=True) | Q(topic='')).count()
 
-        # Count questions with unknown topics
-        unknown_topics = queryset.filter(topic__isnull=True).count()
-
-        # Get overview statistics for active questions only
-        overview = queryset.filter(is_active=True).aggregate(
+        # Overview aggregates (active questions example)
+        overview = queryset.aggregate(
             total_marks=Sum('marks'),
             avg_marks=Avg('marks'),
             total_usage=Sum('times_used')
         )
 
-        # Get questions by subject
-        by_subject = queryset.values(
-            'subject__name'
-        ).annotate(
-            count=Count('id')
-        ).order_by('-count')
+        # Breakdown by subject (total, active, inactive)
+        by_subject_qs = queryset.values('subject__id', 'subject__name').annotate(
+            total=Count('id'),
+            active=Count('id', filter=Q(is_active=True)),
+            inactive=Count('id', filter=Q(is_active=False))
+        ).order_by('-total')
 
-        # Get questions by subject and creator
-        by_subject_creator = queryset.select_related('subject', 'created_by').values(
-            'subject__name',
-            'created_by__id',
-            'created_by__full_name'
-        ).annotate(
-            count=Count('id')
-        ).order_by('subject__name', '-count')
+        by_subject = [
+            {
+                'subjectId': str(item['subject__id']) if item['subject__id'] is not None else None,
+                'subjectName': item['subject__name'] or 'Unknown',
+                'total': item['total'] or 0,
+                'active': item['active'] or 0,
+                'inactive': item['inactive'] or 0
+            } for item in by_subject_qs
+        ]
 
-        # Organize by subject with creator breakdown
-        subject_breakdown = {}
-        for item in by_subject_creator:
-            subject_name = item['subject__name']
-            if subject_name not in subject_breakdown:
-                subject_breakdown[subject_name] = {
-                    'subjectName': subject_name,
-                    'total': 0,
-                    'creators': []
-                }
-            
-            creator_name = item['created_by__full_name'] or 'Unknown'
-            creator_id = item['created_by__id']
-            question_count = item['count']
-            
-            subject_breakdown[subject_name]['total'] += question_count
-            subject_breakdown[subject_name]['creators'].append({
-                'creatorId': str(creator_id) if creator_id else None,
-                'creatorName': creator_name,
-                'count': question_count
-            })
+        # Breakdown by paper (groups under subject->paper)
+        by_paper_qs = queryset.values('subject__name', 'paper__id', 'paper__name').annotate(
+            total=Count('id'),
+            active=Count('id', filter=Q(is_active=True)),
+            inactive=Count('id', filter=Q(is_active=False))
+        ).order_by('subject__name', '-total')
 
-        from rest_framework.response import Response
+        by_paper = [
+            {
+                'subject': item['subject__name'] or 'Unknown',
+                'paperId': str(item['paper__id']) if item['paper__id'] is not None else None,
+                'paper': item['paper__name'] or 'Unknown',
+                'total': item['total'] or 0,
+                'active': item['active'] or 0,
+                'inactive': item['inactive'] or 0
+            } for item in by_paper_qs
+        ]
+
+        # Breakdown by topic (total, active, inactive); include marks distribution optionally
+        by_topic_qs = queryset.values('subject__name', 'paper__name', 'topic__id', 'topic__name').annotate(
+            total=Count('id'),
+            active=Count('id', filter=Q(is_active=True)),
+            inactive=Count('id', filter=Q(is_active=False))
+        ).order_by('-total')
+
+        by_topic = [
+            {
+                'subject': item['subject__name'] or 'Unknown',
+                'paper': item['paper__name'] or 'Unknown',
+                'topicId': str(item['topic__id']) if item['topic__id'] is not None else None,
+                'topicName': item['topic__name'] or 'Unknown',
+                'total': item['total'] or 0,
+                'active': item['active'] or 0,
+                'inactive': item['inactive'] or 0
+            } for item in by_topic_qs
+        ]
+
         return Response({
             'success': True,
             'data': {
-                # Core stats
                 'total': total_questions,
                 'active': active_questions,
                 'inactive': inactive_questions,
                 'unknownTopics': unknown_topics,
-                
-                # Overview
                 'overview': {
                     'totalQuestions': total_questions,
                     'activeQuestions': active_questions,
                     'inactiveQuestions': inactive_questions,
                     'totalMarks': overview['total_marks'] or 0,
-                    'avgMarks': round(overview['avg_marks'], 2) if overview['avg_marks'] else 0,
+                    'avgMarks': float(round(overview['avg_marks'],2)) if overview['avg_marks'] else 0,
                     'totalUsage': overview['total_usage'] or 0
                 },
-                
-                # Breakdowns
-                'bySubject': [
-                    {
-                        'subjectName': item['subject__name'],
-                        'count': item['count']
-                    }
-                    for item in by_subject
-                ],
-                'bySubjectWithCreators': list(subject_breakdown.values())
+                'bySubject': by_subject,
+                'byPaper': by_paper,
+                'byTopic': by_topic
             }
         })
     except Exception as e:
-        from rest_framework.response import Response
-        return Response({
-            'success': False,
-            'error': str(e)
-        }, status=500)
-
+        return Response({'success': False, 'error': str(e)}, status=500)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

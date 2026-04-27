@@ -57,7 +57,7 @@ export const getAllQuestions = async (filters = {}) => {
 export const getQuestionStats = async () => {
     try {
         // Use the new statistics-only endpoint for better performance
-        const response = await fetch(`${API_BASE_URL}/questions/stats/overview`, {
+        const response = await fetch(`${API_BASE_URL}/questions/statistics-only/`, {
             method: 'GET',
             headers: getHeaders()
         });
