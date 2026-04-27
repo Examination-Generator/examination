@@ -53,10 +53,11 @@ export const getAllQuestions = async (filters = {}) => {
     }
 };
 
-// Get question statistics
+// Get question statistics (OPTIMIZED - lightweight, stats only)
 export const getQuestionStats = async () => {
     try {
-        const response = await fetch(`${API_BASE_URL}/questions/stats/overview`, {
+        // Use the new statistics-only endpoint for better performance
+        const response = await fetch(`${API_BASE_URL}/questions/statistics-only/`, {
             method: 'GET',
             headers: getHeaders()
         });
@@ -71,6 +72,47 @@ export const getQuestionStats = async () => {
         return result.data || {};
     } catch (error) {
         console.error('Error fetching question stats:', error);
+        throw error;
+    }
+};
+
+// Get paginated questions (OPTIMIZED - 50 at a time with infinite scroll support)
+export const getPaginatedQuestions = async (filters = {}) => {
+    try {
+        const params = new URLSearchParams();
+        
+        // Pagination params
+        if (filters.page) params.append('page', filters.page);
+        params.append('limit', filters.limit || 50);
+        
+        // Filter params
+        if (filters.subject) params.append('subject', filters.subject);
+        if (filters.paper) params.append('paper', filters.paper);
+        if (filters.topic) params.append('topic', filters.topic);
+        if (filters.section) params.append('section', filters.section);
+        if (filters.isActive !== undefined) params.append('isActive', filters.isActive);
+        if (filters.search) params.append('search', filters.search);
+        
+        const url = `${API_BASE_URL}/questions/paginated/${params.toString() ? '?' + params.toString() : ''}`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: getHeaders()
+        });
+        
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('Error fetching paginated questions:', text);
+            throw new Error(friendlyErrorMessage(text));
+        }
+        
+        const result = await response.json();
+        return {
+            questions: result.data?.questions || [],
+            pagination: result.data?.pagination || {}
+        };
+    } catch (error) {
+        console.error('Error fetching paginated questions:', error);
         throw error;
     }
 };

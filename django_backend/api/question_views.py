@@ -15,7 +15,8 @@ from django.template.loader import render_to_string
 from .models import Question, Subject, Paper, Topic, Section
 from .serializers import (
     QuestionListSerializer, QuestionDetailSerializer,
-    QuestionCreateSerializer, QuestionBulkCreateSerializer
+    QuestionCreateSerializer, QuestionBulkCreateSerializer,
+    QuestionListLightweightSerializer
 )
 from .utils import success_response, error_response
 from .exam_paper_template import _process_question_text
@@ -29,9 +30,12 @@ logger = logging.getLogger(__name__)
 @permission_classes([IsAuthenticated])
 def questions_list_create(request):
     """
-    List all questions (GET) or create new question (POST)
-    GET /api/questions
+    List all questions with pagination (GET) or create new question (POST)
+    GET /api/questions?page=1&limit=50
     POST /api/questions
+    
+    NEW: Returns lightweight metadata only by default. For full question details, use /api/questions/<id>
+    This prevents frontend freeze when loading large question datasets.
     """
     if request.method == 'GET':
         # List questions with filters
@@ -42,6 +46,11 @@ def questions_list_create(request):
         is_active = request.query_params.get('isActive')
         page = int(request.query_params.get('page', 1))
         limit = int(request.query_params.get('limit', 50))
+        include_details = request.query_params.get('include_details', 'false').lower() == 'true'
+        
+        # Cap limit to prevent unbounded requests
+        if limit > 100:
+            limit = 100
         
         # Optimized query: use select_related to fetch all related data in one query
         # This prevents N+1 query problem (1 query instead of 1 + 5*N queries)
@@ -65,14 +74,16 @@ def questions_list_create(request):
         end = start + limit
         questions = queryset.order_by('-created_at')[start:end]
         
-        serializer = QuestionListSerializer(questions, many=True)
+        # Use lightweight serializer by default (excludes text and images for performance)
+        # Use full serializer only if explicitly requested
+        if include_details:
+            serializer = QuestionListSerializer(questions, many=True)
+        else:
+            serializer = QuestionListLightweightSerializer(questions, many=True)
         
-        # Log image data to debug
-        if len(serializer.data) > 0:
+        if len(serializer.data) > 0 and include_details:
             first_q = serializer.data[0]
             logger.info(f"[QUESTION] First question serialized data - ID: {first_q.get('id')}")
-            logger.info(f"[QUESTION] question_inline_images: {first_q.get('question_inline_images')}")
-            logger.info(f"[QUESTION] answer_inline_images: {first_q.get('answer_inline_images')}")
         
         return success_response(
             'Questions retrieved successfully',
@@ -80,6 +91,7 @@ def questions_list_create(request):
                 'questions': serializer.data,
                 'total': total,
                 'page': page,
+                'limit': limit,
                 'pages': (total + limit - 1) // limit
             }
         )
@@ -191,7 +203,10 @@ def create_question(request):
 def list_questions(request):
     """
     Get all questions with filters
-    GET /api/questions
+    GET /api/questions?page=1&limit=50
+    
+    Uses lightweight serializer (excludes full text/images) for performance.
+    Pass include_details=true to get full question data.
     """
     # Get filter parameters
     subject_id = request.query_params.get('subject')
@@ -200,7 +215,12 @@ def list_questions(request):
     section_id = request.query_params.get('section')
     is_active = request.query_params.get('isActive')
     page = int(request.query_params.get('page', 1))
-    limit = int(request.query_params.get('limit', 10000))
+    limit = int(request.query_params.get('limit', 50))  # Changed from 10000 to 50
+    include_details = request.query_params.get('include_details', 'false').lower() == 'true'
+    
+    # Cap limit to prevent unbounded requests
+    if limit > 100:
+        limit = 100
     
     # Build query
     queryset = Question.objects.select_related(
@@ -226,7 +246,11 @@ def list_questions(request):
     end = start + limit
     questions = queryset.order_by('-created_at')[start:end]
     
-    serializer = QuestionListSerializer(questions, many=True)
+    # Use appropriate serializer based on request
+    if include_details:
+        serializer = QuestionListSerializer(questions, many=True)
+    else:
+        serializer = QuestionListLightweightSerializer(questions, many=True)
     
     return success_response(
         'Questions retrieved successfully',
@@ -234,6 +258,7 @@ def list_questions(request):
             'questions': serializer.data,
             'total': total,
             'page': page,
+            'limit': limit,
             'pages': (total + limit - 1) // limit  # Ceiling division
         }
     )
@@ -257,6 +282,94 @@ def get_question(request, question_id):
         )
     
     serializer = QuestionDetailSerializer(question)
+    return success_response(
+        'Question retrieved successfully',
+        serializer.data
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_questions_paginated(request):
+    """
+    Progressive loading endpoint for infinite scroll pagination.
+    Returns lightweight question metadata (no text/images) for fast rendering.
+    Frontend loads 50 at a time as user scrolls (social media style).
+    
+    GET /api/questions/paginated/scroll?page=1&limit=50&subject=...&paper=...
+    
+    Query Parameters:
+    - page: Page number (default 1)
+    - limit: Items per page (default 50, max 100)
+    - subject: Filter by subject ID
+    - paper: Filter by paper ID
+    - topic: Filter by topic ID
+    - section: Filter by section ID
+    - isActive: Filter by active status (true/false)
+    """
+    # Get filter parameters
+    subject_id = request.query_params.get('subject')
+    paper_id = request.query_params.get('paper')
+    topic_id = request.query_params.get('topic')
+    section_id = request.query_params.get('section')
+    is_active = request.query_params.get('isActive')
+    page = int(request.query_params.get('page', 1))
+    limit = int(request.query_params.get('limit', 50))
+    
+    # Cap limit to prevent unbounded requests
+    if limit > 100:
+        limit = 100
+    if limit < 1:
+        limit = 50
+    
+    # Build optimized query with minimal data
+    queryset = Question.objects.select_related(
+        'subject', 'paper', 'topic', 'section', 'created_by'
+    ).only(
+        'id', 'subject_id', 'paper_id', 'topic_id', 'section_id', 'created_by_id',
+        'marks', 'question_type', 'kcse_question_type', 'paper2_category',
+        'difficulty', 'is_nested', 'is_active', 'times_used', 'created_at'
+    )
+    
+    if subject_id:
+        queryset = queryset.filter(subject_id=subject_id)
+    if paper_id:
+        queryset = queryset.filter(paper_id=paper_id)
+    if topic_id:
+        queryset = queryset.filter(topic_id=topic_id)
+    if section_id:
+        queryset = queryset.filter(section_id=section_id)
+    if is_active is not None:
+        queryset = queryset.filter(is_active=(is_active.lower() == 'true'))
+    
+    # Get total count before pagination
+    total = queryset.count()
+    
+    # Apply pagination
+    start = (page - 1) * limit
+    end = start + limit
+    questions = queryset.order_by('-created_at')[start:end]
+    
+    # Use lightweight serializer
+    serializer = QuestionListLightweightSerializer(questions, many=True)
+    
+    # Determine if there's a next page (useful for infinite scroll)
+    has_next = (start + limit) < total
+    
+    return success_response(
+        'Questions paginated successfully',
+        {
+            'questions': serializer.data,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total,
+                'pages': (total + limit - 1) // limit,
+                'has_next': has_next,
+                'has_previous': page > 1
+            }
+        }
+    )
     
     return success_response(
         'Question retrieved successfully',
@@ -522,8 +635,13 @@ def bulk_create_questions(request):
 @permission_classes([IsAuthenticated])
 def get_question_stats(request):
     """
-    Get question statistics
-    GET /api/questions/stats/overview
+    Get question statistics ONLY - lightweight endpoint that does NOT load question data.
+    Returns aggregated statistics: counts, marks, usage metrics.
+    
+    GET /api/questions/stats/overview?subject=...&paper=...
+    
+    OPTIMIZED: Uses aggregate queries only, never loads question text/images/answers.
+    This is intentionally separated from question list endpoint to prevent frontend freezing.
     """
     subject_id = request.query_params.get('subject')
     paper_id = request.query_params.get('paper')
@@ -624,11 +742,14 @@ def get_question_stats(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_creator_statistics(request):
+    """
+    Get creator statistics ONLY - lightweight endpoint that counts and aggregates creator contributions.
+    Does NOT load individual question data, only aggregates by creator and subject.
     
-    from django.db.models import Count, Q
-    from django.contrib.auth import get_user_model
+    GET /api/questions/creator-statistics/
     
-    User = get_user_model()
+    OPTIMIZED: Uses aggregation queries only. Separated from question list to prevent frontend freeze.
+    """
     
     # Get all active questions with creator info
     questions = Question.objects.filter(
@@ -1335,3 +1456,150 @@ def generate_topic_printable_document(request):
             {'error': str(e)},
             status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# ==================== NEW LIGHTWEIGHT ENDPOINTS ====================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def question_statistics_only(request):
+    """
+    Lightweight endpoint that returns ONLY statistics without question data.
+    This reduces payload and frontend processing time.
+    """
+    try:
+        user = request.user
+        
+        # Get statistics for current user's questions
+        total_questions = Question.objects.filter(creator=user).count()
+        active_questions = Question.objects.filter(creator=user, is_active=True).count()
+        inactive_questions = Question.objects.filter(creator=user, is_active=False).count()
+        
+        # Count questions with unknown topics
+        unknown_topics = Question.objects.filter(
+            creator=user,
+            topic__isnull=True
+        ).count() + Question.objects.filter(
+            creator=user,
+            topic=''
+        ).count()
+        
+        from rest_framework.response import Response
+        return Response({
+            'success': True,
+            'data': {
+                'total': total_questions,
+                'active': active_questions,
+                'inactive': inactive_questions,
+                'unknownTopics': unknown_topics
+            }
+        })
+    except Exception as e:
+        from rest_framework.response import Response
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def questions_paginated(request):
+    """
+    Paginated questions endpoint for infinite scroll loading.
+    Returns 50 questions at a time with pagination info.
+    
+    Query params:
+    - page: page number (default: 1)
+    - limit: items per page (default: 50, max: 100)
+    - subject: filter by subject UUID
+    - paper: filter by paper UUID
+    - topic: filter by topic UUID
+    - section: filter by section UUID
+    - isActive: filter by active status (true/false)
+    - search: search in question text
+    """
+    try:
+        user = request.user
+        
+        # Get pagination parameters
+        page = int(request.GET.get('page', 1))
+        limit = min(int(request.GET.get('limit', 50)), 100)  # Cap at 100
+        
+        # Validate page number
+        if page < 1:
+            page = 1
+        
+        # Start with base queryset
+        queryset = Question.objects.filter(creator=user)
+        
+        # Apply filters
+        subject = request.GET.get('subject')
+        if subject:
+            queryset = queryset.filter(subject__id=subject)
+        
+        paper = request.GET.get('paper')
+        if paper:
+            queryset = queryset.filter(paper__id=paper)
+        
+        topic = request.GET.get('topic')
+        if topic:
+            queryset = queryset.filter(topic__id=topic)
+        
+        section = request.GET.get('section')
+        if section:
+            queryset = queryset.filter(section__id=section)
+        
+        is_active = request.GET.get('isActive')
+        if is_active is not None:
+            is_active_bool = is_active.lower() == 'true'
+            queryset = queryset.filter(is_active=is_active_bool)
+        
+        search = request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(question_text__icontains=search) | Q(answer_text__icontains=search)
+            )
+        
+        # Get total count
+        total_count = queryset.count()
+        
+        # Calculate offset
+        offset = (page - 1) * limit
+        
+        # Get paginated results
+        questions = queryset.select_related(
+            'subject', 'paper', 'topic', 'section', 'created_by'
+        ).order_by('-created_at')[offset:offset + limit]
+        
+        # Serialize questions using QuestionListSerializer
+        serializer = QuestionListSerializer(questions, many=True)
+        questions_data = serializer.data
+        
+        # Calculate pagination metadata
+        total_pages = (total_count + limit - 1) // limit
+        has_next = page < total_pages
+        has_previous = page > 1
+        
+        from rest_framework.response import Response
+        return Response({
+            'success': True,
+            'data': {
+                'questions': questions_data,
+                'pagination': {
+                    'page': page,
+                    'limit': limit,
+                    'total': total_count,
+                    'total_pages': total_pages,
+                    'has_next': has_next,
+                    'has_previous': has_previous,
+                    'offset': offset
+                }
+            }
+        })
+    except Exception as e:
+        from rest_framework.response import Response
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)

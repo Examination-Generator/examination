@@ -620,10 +620,21 @@ export default function EditorDashboard({ onLogout }) {
     });
     const [isLoadingStats, setIsLoadingStats] = useState(false);
     const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0); // Trigger for stats refresh
+    
+    // OPTIMIZED: Pagination states for infinite scroll
+    const [paginatedQuestions, setPaginatedQuestions] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [isLoadingMoreQuestions, setIsLoadingMoreQuestions] = useState(false);
+    const [hasMoreQuestions, setHasMoreQuestions] = useState(true);
+    const [totalQuestionsCount, setTotalQuestionsCount] = useState(0);
+    const endOfQuestionsRef = useRef(null); // For intersection observer
     const [filterSubject, setFilterSubject] = useState('');
     const [filterPaper, setFilterPaper] = useState('');
     const [filterTopic, setFilterTopic] = useState('');
     const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'active', 'inactive'
+    
+    // OPTIMIZED: Pagination filters
+    const [filterChangedFlag, setFilterChangedFlag] = useState(false); // Trigger reset when filters change
 
     // Printable Document Modal states
     const [showPrintableModal, setShowPrintableModal] = useState(false);
@@ -1005,6 +1016,54 @@ export default function EditorDashboard({ onLogout }) {
         }
     };
 
+    // OPTIMIZED: Fetch paginated questions for infinite scroll
+    const fetchPaginatedQuestions = async (pageNum = 1, filters = {}) => {
+        try {
+            setIsLoadingMoreQuestions(true);
+            
+            const filterParams = {
+                page: pageNum,
+                limit: 50,
+                subject: filters.subject || filterSubjectId,
+                paper: filters.paper || filterPaperId,
+                topic: filters.topic || filterTopicId,
+                isActive: filters.status === 'active' ? 'true' : filters.status === 'inactive' ? 'false' : undefined,
+            };
+            
+            // Remove undefined values
+            Object.keys(filterParams).forEach(key => filterParams[key] === undefined && delete filterParams[key]);
+            
+            const result = await questionService.getPaginatedQuestions(filterParams);
+            const { questions, pagination } = result;
+            
+            console.log(`[Pagination] Loaded page ${pageNum} with ${questions.length} questions`, pagination);
+            
+            if (pageNum === 1) {
+                // First page: replace all questions
+                setPaginatedQuestions(questions);
+            } else {
+                // Subsequent pages: append to existing questions
+                setPaginatedQuestions(prev => [...prev, ...questions]);
+            }
+            
+            // Update pagination state
+            setTotalQuestionsCount(pagination.total || 0);
+            setHasMoreQuestions(pagination.has_next || false);
+            setCurrentPage(pageNum);
+            
+            return questions;
+        } catch (error) {
+            console.error('Error fetching paginated questions:', error);
+            if (pageNum === 1) {
+                setPaginatedQuestions([]);
+            }
+            showError('Failed to load questions: ' + error.message);
+            return [];
+        } finally {
+            setIsLoadingMoreQuestions(false);
+        }
+    };
+
     // Fetch statistics from database
     const fetchStatistics = async () => {
         setIsLoadingStats(true);
@@ -1326,6 +1385,54 @@ export default function EditorDashboard({ onLogout }) {
             }
         }
     }, [filterSubjectId, filterPaperId, filterTopicId, filterStatus, activeTab, allQuestions]);
+
+    // OPTIMIZED: Reset pagination and load first page when filters change
+    useEffect(() => {
+        if (activeTab === 'questions') {
+            setCurrentPage(1);
+            setPaginatedQuestions([]);
+            setHasMoreQuestions(true);
+            
+            // Load first page with current filters
+            fetchPaginatedQuestions(1, {
+                subject: filterSubjectId,
+                paper: filterPaperId,
+                topic: filterTopicId,
+                status: filterStatus
+            });
+        }
+    }, [filterSubjectId, filterPaperId, filterTopicId, filterStatus, activeTab]);
+
+    // OPTIMIZED: Intersection Observer for infinite scroll (loads next page when user scrolls near bottom)
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            entries => {
+                const lastEntry = entries[0];
+                if (lastEntry.isIntersecting && hasMoreQuestions && !isLoadingMoreQuestions) {
+                    console.log('[Infinite Scroll] Reached bottom, loading next page...');
+                    const nextPage = currentPage + 1;
+                    fetchPaginatedQuestions(nextPage, {
+                        subject: filterSubjectId,
+                        paper: filterPaperId,
+                        topic: filterTopicId,
+                        status: filterStatus
+                    });
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        const currentRef = endOfQuestionsRef.current;
+        if (currentRef) {
+            observer.observe(currentRef);
+        }
+
+        return () => {
+            if (currentRef) {
+                observer.unobserve(currentRef);
+            }
+        };
+    }, [hasMoreQuestions, isLoadingMoreQuestions, currentPage, filterSubjectId, filterPaperId, filterTopicId, filterStatus]);
 
     // Load subjects when component mounts or when subjects tab is active
     useEffect(() => {
@@ -11406,26 +11513,26 @@ useEffect(() => {
                                 </div>
                             </div>
 
-                            {/* Filtered Questions List */}
+                            {/* OPTIMIZED: Paginated Questions List with Infinite Scroll */}
                             <div className="bg-white rounded-xl shadow-lg p-6">
                                 <h3 className="text-lg font-bold mb-4">
-                                    Questions List ({filteredQuestions.length})
-                                    {isLoadingStats && <span className="ml-2 text-sm text-gray-500">Loading...</span>}
+                                    Questions List ({paginatedQuestions.length} / {totalQuestionsCount})
+                                    {isLoadingMoreQuestions && <span className="ml-2 text-sm text-gray-500">Loading...</span>}
                                 </h3>
-                                {filteredQuestions.length === 0 ? (
+                                {paginatedQuestions.length === 0 && !isLoadingMoreQuestions ? (
                                     <div className="text-center py-8 text-gray-500">
                                         <p>No questions found</p>
                                         <p className="text-sm mt-2">Try adjusting your filters or add some questions</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-3 max-h-96 overflow-y-auto">
-                                        {filteredQuestions.map(q => {
+                                        {paginatedQuestions.map(q => {
                                             // Use API field names (subject_name, paper_name, etc.)
                                             const subjectName = q.subject_name || q.subject?.name || 'Unknown Subject';
                                             const paperName = q.paper_name || q.paper?.name || 'Unknown Paper';
                                             const topicName = q.topic_name || q.topic?.name || 'Unknown';
                                             const sectionName = q.section_name || q.section?.name || 'No Section';
-                                            const isActive = q.is_active !== false;
+                                            const isActive = q.is_active !== false && q.isActive !== false;
                                             
                                             return (
                                                 <div key={q.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
@@ -11445,13 +11552,26 @@ useEffect(() => {
                                                         </div>
                                                         <span className="text-sm font-bold text-blue-600">{q.marks || 0} marks</span>
                                                     </div>
-                                                    <p className="text-sm text-gray-600 line-clamp-2">{q.question_text || 'No question text'}</p>
+                                                    <p className="text-sm text-gray-600 line-clamp-2">{q.question_text || q.question || 'No question text'}</p>
                                                     <p className="text-xs text-gray-500 mt-1">
                                                         Topic: {topicName} | Section: {sectionName}
                                                     </p>
                                                 </div>
                                             );
                                         })}
+                                        
+                                        {/* Infinite Scroll Trigger Point */}
+                                        <div ref={endOfQuestionsRef} className="py-4 text-center">
+                                            {isLoadingMoreQuestions && (
+                                                <div className="flex justify-center items-center">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                                                    <span className="ml-2 text-gray-600">Loading more questions...</span>
+                                                </div>
+                                            )}
+                                            {!hasMoreQuestions && paginatedQuestions.length > 0 && (
+                                                <p className="text-sm text-gray-500">✓ All questions loaded ({paginatedQuestions.length} total)</p>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>

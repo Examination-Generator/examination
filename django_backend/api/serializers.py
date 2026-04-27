@@ -494,6 +494,28 @@ class QuestionListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'times_used']
 
 
+class QuestionListLightweightSerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for list pagination - excludes heavy fields like question/answer text and images
+    Used for progressive loading when scrolling. Frontend can fetch full details for specific question as needed.
+    """
+    
+    subject_name = serializers.CharField(source='subject.name', read_only=True)
+    paper_name = serializers.CharField(source='paper.name', read_only=True)
+    topic_name = serializers.CharField(source='topic.name', read_only=True)
+    section_name = serializers.CharField(source='section.name', read_only=True, allow_null=True)
+    created_by_name = serializers.CharField(source='created_by.full_name', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = Question
+        fields = ['id', 'subject', 'subject_name', 'paper', 'paper_name', 
+                  'topic', 'topic_name', 'section', 'section_name',
+                  'marks', 'question_type', 'kcse_question_type', 'paper2_category',
+                  'difficulty', 'is_nested', 'is_active', 'times_used',
+                  'created_by', 'created_by_name', 'created_at']
+        read_only_fields = ['id', 'created_at', 'times_used']
+
+
 class QuestionDetailSerializer(serializers.ModelSerializer):
     """Serializer for question detail view"""
     subject_name = serializers.SerializerMethodField()

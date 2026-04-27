@@ -70,6 +70,9 @@ urlpatterns = [
     
     # QUESTION ROUTES 
     path('questions', question_views.questions_list_create, name='questions-list-create'),
+    path('questions/paginated/scroll', question_views.list_questions_paginated, name='questions-paginated-scroll'),
+    path('questions/statistics-only/', question_views.question_statistics_only, name='question-statistics-only'),
+    path('questions/paginated/', question_views.questions_paginated, name='questions-paginated'),
     path('questions/<uuid:question_id>', question_views.question_detail, name='question-detail'),
     path('questions/search/similar', question_views.search_similar_questions, name='search-similar'),
     path('questions/search-similar/', question_views.search_similar_questions_post, name='search-similar-post'),
