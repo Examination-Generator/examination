@@ -19,6 +19,15 @@ sys.path.insert(0, os.path.dirname(__file__))
 # Set Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'examination_system.settings_production')
 
+# Minimal placeholder WSGI app so Vercel can statically detect a top-level `app`
+def _vercel_placeholder_app(environ, start_response):
+    start_response('500 Internal Server Error', [('Content-Type', 'text/plain')])
+    return [b'Application not initialized']
+
+# Ensure a top-level `app` exists for Vercel static analysis; it will be
+# replaced by the real Django WSGI app during initialization below.
+app = _vercel_placeholder_app
+
 # Global error handler to catch runtime errors
 class ErrorCatchingWSGI:
     """WSGI middleware to catch and log all runtime errors"""
