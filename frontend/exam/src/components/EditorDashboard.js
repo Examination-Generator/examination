@@ -692,9 +692,9 @@ export default function EditorDashboard({ onLogout }) {
         // Prefer the full cached dataset if available for instant filtering
         const source = Array.isArray(allQuestions) && allQuestions.length > 0 ? allQuestions : savedQuestions;
 
-        // Determine whether Edit tab should use paginated server-side loading
+        // Edit tab should always use paginated loading so infinite scroll can continue past the first page.
         const hasEditFilters = !!(editFilterSubject || editFilterPaper || editFilterTopic || (editFilterStatus && editFilterStatus !== 'all') || (editFilterType && editFilterType !== 'all'));
-        const usePagination = hasEditFilters || (searchQuery && searchQuery.trim().length >= 2);
+        const usePagination = activeTab === 'edit' || hasEditFilters || (searchQuery && searchQuery.trim().length >= 2);
 
         // If search text exists, do a fast local filter for immediate UX and also trigger server refetch
         if (searchQuery && searchQuery.length >= 2) {
@@ -731,17 +731,8 @@ export default function EditorDashboard({ onLogout }) {
                 const apiParams = resolveEditFiltersToApi();
                 fetchPaginatedQuestions(1, apiParams);
             } else {
-                setEditUsingPagination(false);
-                // If we don't have a local source, fetch from server using non-paginated API once
-                if ((!Array.isArray(allQuestions) || allQuestions.length === 0) && (!Array.isArray(savedQuestions) || savedQuestions.length === 0)) {
-                    const apiFilters = {};
-                    if (editFilterSubject) apiFilters.subject = editFilterSubject;
-                    if (editFilterPaper) apiFilters.paper = editFilterPaper;
-                    if (editFilterTopic) apiFilters.topic = editFilterTopic;
-                    if (editFilterStatus === 'active') apiFilters.isActive = 'true';
-                    if (editFilterStatus === 'inactive') apiFilters.isActive = 'false';
-                    fetchQuestions(apiFilters).then(qs => setSearchResults(qs || []));
-                }
+                // Keep edit mode on the paginated source; this branch is only for non-edit tabs.
+                setEditUsingPagination(true);
             }
         }
     }, [
@@ -1145,7 +1136,12 @@ export default function EditorDashboard({ onLogout }) {
             
             // Update pagination state
             setTotalQuestionsCount(pagination.total || 0);
-            setHasMoreQuestions(pagination.has_next || false);
+            // Derive hasMore: prefer server flag but fall back to comparing total vs loaded
+            const prevLoaded = pageNum === 1 ? 0 : (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0);
+            const newLoaded = prevLoaded + questions.length;
+            const derivedHasMore = (pagination.has_next === true) || ((pagination.total || 0) > newLoaded);
+            console.log('[Pagination] derivedHasMore:', derivedHasMore, 'prevLoaded:', prevLoaded, 'newLoaded:', newLoaded, 'pagination.total:', pagination.total, 'pagination.has_next:', pagination.has_next);
+            setHasMoreQuestions(derivedHasMore);
             setCurrentPage(pageNum);
             
             return questions;
@@ -1546,9 +1542,9 @@ export default function EditorDashboard({ onLogout }) {
         const observer = new IntersectionObserver(
             entries => {
                 const lastEntry = entries[0];
-                if (lastEntry.isIntersecting && hasMoreQuestions && !isLoadingMoreQuestions) {
-                    console.log('[Infinite Scroll] Reached bottom, loading next page...');
-                    const nextPage = currentPage + 1;
+                    if (lastEntry.isIntersecting && !isLoadingMoreQuestions && (hasMoreQuestions || (totalQuestionsCount > (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0)))) {
+                        console.log('[Infinite Scroll] Reached bottom, loading next page... (hasMore:', hasMoreQuestions, 'fallbackAllowed:', (totalQuestionsCount > (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0)), ')');
+                        const nextPage = currentPage + 1;
 
                     // Choose appropriate filters depending on which tab is active
                     if (activeTab === 'edit' && editUsingPagination) {
@@ -5948,8 +5944,8 @@ useEffect(() => {
                                 disabled={!selectedPaper}
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition disabled:bg-gray-100"
                             >
-                                <option value="">Choose Topic or leave as Unknown</option>
-                                <option value="Unknown" className="font-bold text-orange-600">⚠️ Unknown Topic</option>
+                                <option value="">Choose Topic </option>
+                                {/* <option value="Unknown" className="font-bold text-orange-600">⚠️ Unknown Topic</option> */}
                                 {selectedSubject && selectedPaper && subjects[selectedSubject]?.topics?.[selectedPaper]?.map((topic) => (
                                     <option key={topic} value={topic}>{topic}</option>
                                 ))}
