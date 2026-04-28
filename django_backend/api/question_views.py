@@ -1634,20 +1634,8 @@ def questions_paginated(request):
         ).order_by('-created_at')[offset:offset + limit]
 
         # Return the full question payload so the edit list can render question/answer text reliably.
-        serializer = QuestionListSerializer(questions, many=True)
-        questions_data = []
-        for item in serializer.data:
-            questions_data.append({
-                **item,
-                'question_text': item.get('question_text') or '',
-                'answer_text': item.get('answer_text') or '',
-                'question_inline_images': item.get('question_inline_images') or [],
-                'answer_inline_images': item.get('answer_inline_images') or [],
-                'question_image_positions': item.get('question_image_positions') or [],
-                'answer_image_positions': item.get('answer_image_positions') or [],
-                'question_answer_lines': item.get('question_answer_lines') or [],
-                'answer_answer_lines': item.get('answer_answer_lines') or []
-            })
+        serializer = QuestionDetailSerializer(questions, many=True)
+        questions_data = serializer.data
         
         # Calculate pagination metadata
         total_pages = (total_count + limit - 1) // limit
