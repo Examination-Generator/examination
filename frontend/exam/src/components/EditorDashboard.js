@@ -4452,75 +4452,93 @@ useEffect(() => {
         }
     }, [fetchTopicsForPaper]);
 
+    const getQuestionText = useCallback((question) => {
+        return question?.question_text || question?.question || question?.questionText || '';
+    }, []);
+
+    const getQuestionAnswer = useCallback((question) => {
+        return question?.answer_text || question?.answer || question?.question_answer || question?.questionAnswer || '';
+    }, []);
+
     // Memoize rendered search results to avoid re-rendering list items unnecessarily
     const renderedSearchResults = useMemo(() => (
-        (Array.isArray(searchResults) ? searchResults : []).map((question) => (
-            <div
-                key={question.id}
-                onClick={() => handleSelectQuestion(question)}
-                className={`p-4 border rounded-lg cursor-pointer transition ${
-                    selectedQuestion?.id === question.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                }`}
-            >
-                <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-800 line-clamp-2">
-                            {question.question_text?.substring(0, 150)}...
-                        </p>
+        (Array.isArray(searchResults) ? searchResults : []).map((question) => {
+            const questionText = getQuestionText(question);
+            const answerText = getQuestionAnswer(question);
+
+            return (
+                <div
+                    key={question.id}
+                    onClick={() => handleSelectQuestion(question)}
+                    className={`p-4 border rounded-lg cursor-pointer transition ${
+                        selectedQuestion?.id === question.id
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                    }`}
+                >
+                    <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1">
+                            <p className="text-sm font-semibold text-gray-800 line-clamp-2">
+                                {questionText ? `${questionText.substring(0, 150)}${questionText.length > 150 ? '...' : ''}` : 'No question text available'}
+                            </p>
+                            {answerText && (
+                                <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                                    <span className="font-semibold text-gray-700">Answer:</span> {answerText.substring(0, 180)}{answerText.length > 180 ? '...' : ''}
+                                </p>
+                            )}
+                        </div>
+                        <span className="ml-3 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full whitespace-nowrap">
+                            {question.marks} marks
+                        </span>
                     </div>
-                    <span className="ml-3 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full whitespace-nowrap">
-                        {question.marks} marks
-                    </span>
+                    <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+                        <span className="bg-gray-100 px-2 py-1 rounded">
+                            📚 {question.subject_name || question.subject?.name || 'Unknown Subject'}
+                        </span>
+                        {question.paper_name && (
+                            <span className="bg-gray-100 px-2 py-1 rounded">
+                                📄 {question.paper_name}
+                            </span>
+                        )}
+                        {question.topic_name && (
+                            <span className="bg-gray-100 px-2 py-1 rounded">
+                                📖 {question.topic_name}
+                            </span>
+                        )}
+                        {question.created_by_name && (
+                            <span className="bg-gray-100 px-2 py-1 rounded">
+                                👤 {question.created_by_name}
+                            </span>
+                        )}
+                        <span className={`px-2 py-1 rounded font-semibold ${
+                            question.is_active !== false 
+                                ? 'bg-green-100 text-green-700' 
+                                : 'bg-red-100 text-red-700'
+                        }`}>
+                            {question.is_active !== false ? '✓ Active' : '✕ Inactive'}
+                        </span>
+                        <span className={`px-2 py-1 rounded font-semibold ${
+                            question.is_nested === true 
+                                ? 'bg-purple-100 text-purple-700' 
+                                : 'bg-blue-100 text-blue-700'
+                        }`}>
+                            {question.is_nested === true ? '⊕ Nested' : '◉ Standalone'}
+                        </span>
+                        {/* Essay/Graph/Regular status highlight - backend flags: is_essay_question/is_graph_question or fallback keys */}
+                        <span className={`px-2 py-1 rounded font-semibold ${
+                            (question.is_essay_question === true || question.is_essay === true) ? 'bg-yellow-100 text-yellow-800' :
+                            (question.is_graph_question === true || question.is_graph === true) ? 'bg-teal-100 text-teal-800' :
+                            'bg-gray-100 text-gray-700'
+                        }`}>
+                            {(question.is_essay_question === true || question.is_essay === true) ? '✎ Essay' :
+                             (question.is_graph_question === true || question.is_graph === true) ? '📈 Graph' :
+                             '📄 Regular'}
+                        </span>
+                    </div>
                 </div>
-                <div className="flex flex-wrap gap-2 text-xs text-gray-600">
-                    <span className="bg-gray-100 px-2 py-1 rounded">
-                        📚 {question.subject_name}
-                    </span>
-                    {question.paper_name && (
-                        <span className="bg-gray-100 px-2 py-1 rounded">
-                            📄 {question.paper_name}
-                        </span>
-                    )}
-                    {question.topic_name && (
-                        <span className="bg-gray-100 px-2 py-1 rounded">
-                            📖 {question.topic_name}
-                        </span>
-                    )}
-                    {question.created_by_name && (
-                        <span className="bg-gray-100 px-2 py-1 rounded">
-                            👤 {question.created_by_name}
-                        </span>
-                    )}
-                    <span className={`px-2 py-1 rounded font-semibold ${
-                        question.is_active !== false 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-red-100 text-red-700'
-                    }`}>
-                        {question.is_active !== false ? '✓ Active' : '✕ Inactive'}
-                    </span>
-                    <span className={`px-2 py-1 rounded font-semibold ${
-                        question.is_nested === true 
-                            ? 'bg-purple-100 text-purple-700' 
-                            : 'bg-blue-100 text-blue-700'
-                    }`}>
-                        {question.is_nested === true ? '⊕ Nested' : '◉ Standalone'}
-                    </span>
-                    {/* Essay/Graph/Regular status highlight - backend flags: is_essay_question/is_graph_question or fallback keys */}
-                    <span className={`px-2 py-1 rounded font-semibold ${
-                        (question.is_essay_question === true || question.is_essay === true) ? 'bg-yellow-100 text-yellow-800' :
-                        (question.is_graph_question === true || question.is_graph === true) ? 'bg-teal-100 text-teal-800' :
-                        'bg-gray-100 text-gray-700'
-                    }`}>
-                        {(question.is_essay_question === true || question.is_essay === true) ? '✎ Essay' :
-                         (question.is_graph_question === true || question.is_graph === true) ? '📈 Graph' :
-                         '📄 Regular'}
-                    </span>
-                </div>
-            </div>
-        ))
-    ), [searchResults, selectedQuestion, handleSelectQuestion]);
+            );
+        })
+    ), [searchResults, selectedQuestion, handleSelectQuestion, getQuestionText, getQuestionAnswer]);
 
     const handleUpdateQuestion = async (e) => {
         e.preventDefault();
@@ -9993,10 +10011,76 @@ useEffect(() => {
                                 )}
                             </div>
 
-                            {/* Search Results */}
+                            {/* Search / Paginated Results */}
                             {isSearchingQuestions ? (
                                 <div className="flex justify-center items-center py-12">
                                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                                </div>
+                            ) : editUsingPagination ? (
+                                <div className="space-y-3">
+                                    <p className="text-sm text-gray-600 mb-3">Showing {paginatedQuestions.length} / {totalQuestionsCount} question(s)</p>
+                                    <div className="max-h-96 overflow-y-auto space-y-2">
+                                        {paginatedQuestions.map((question) => {
+                                            const questionText = getQuestionText(question);
+                                            const answerText = getQuestionAnswer(question);
+
+                                            return (
+                                                <div
+                                                    key={question.id}
+                                                    onClick={() => handleSelectQuestion(question)}
+                                                    className={`p-4 border rounded-lg cursor-pointer transition ${
+                                                        selectedQuestion?.id === question.id
+                                                            ? 'border-blue-500 bg-blue-50'
+                                                            : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="flex-1">
+                                                            <p className="text-sm font-semibold text-gray-800 line-clamp-2">
+                                                                {questionText ? `${questionText.substring(0, 180)}${questionText.length > 180 ? '...' : ''}` : 'No question text available'}
+                                                            </p>
+                                                            {answerText && (
+                                                                <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                                                                    <span className="font-semibold text-gray-700">Answer:</span> {answerText.substring(0, 220)}{answerText.length > 220 ? '...' : ''}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        <span className="ml-3 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full whitespace-nowrap">
+                                                            {question.marks} marks
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+                                                        <span className="bg-gray-100 px-2 py-1 rounded">
+                                                            📚 {question.subject_name || question.subject?.name || 'Unknown Subject'}
+                                                        </span>
+                                                        <span className="bg-gray-100 px-2 py-1 rounded">
+                                                            📄 {question.paper_name || question.paper?.name || 'Unknown Paper'}
+                                                        </span>
+                                                        <span className="bg-gray-100 px-2 py-1 rounded">
+                                                            📖 {question.topic_name || question.topic?.name || 'Unknown Topic'}
+                                                        </span>
+                                                        <span className="bg-gray-100 px-2 py-1 rounded">
+                                                            📑 {question.section_name || question.section?.name || 'No Section'}
+                                                        </span>
+                                                        <span className={`px-2 py-1 rounded font-semibold ${question.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                            {question.is_active !== false ? '✓ Active' : '✕ Inactive'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        <div ref={endOfQuestionsRef} className="py-4 text-center">
+                                            {isLoadingMoreQuestions && (
+                                                <div className="flex justify-center items-center">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                                                    <span className="ml-2 text-gray-600">Loading more questions...</span>
+                                                </div>
+                                            )}
+                                            {!hasMoreQuestions && paginatedQuestions.length > 0 && (
+                                                <p className="text-sm text-gray-500">✓ All questions loaded ({paginatedQuestions.length} total)</p>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             ) : searchResults.length > 0 ? (
                                 <div className="space-y-3">
