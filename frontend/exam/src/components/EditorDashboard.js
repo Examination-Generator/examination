@@ -1485,26 +1485,26 @@ export default function EditorDashboard({ onLogout }) {
     }, [filterSubjectId, filterPaperId, filterTopicId, filterStatus, activeTab, allQuestions]);
 
     // // OPTIMIZED: Initialize pagination for statistics tab when it loads
-    // useEffect(() => {
-    //     if (activeTab === 'stats') {
-    //         setCurrentPage(1);
-    //         setPaginatedQuestions([]);
-    //         setHasMoreQuestions(true);
+    useEffect(() => {
+        if (activeTab === 'stats') {
+            setCurrentPage(1);
+            setPaginatedQuestions([]);
+            setHasMoreQuestions(true);
             
-    //         // Load first page with current filters for stats tab
-    //         const filterParams = {
-    //             page: 1,
-    //             limit: 50
-    //         };
-    //         if (filterSubjectId) filterParams.subject = filterSubjectId;
-    //         if (filterPaperId) filterParams.paper = filterPaperId;
-    //         if (filterTopicId) filterParams.topic = filterTopicId;
-    //         if (filterStatus === 'active') filterParams.isActive = 'true';
-    //         if (filterStatus === 'inactive') filterParams.isActive = 'false';
+            // Load first page with current filters for stats tab
+            const filterParams = {
+                page: 1,
+                limit: 50
+            };
+            if (filterSubjectId) filterParams.subject = filterSubjectId;
+            if (filterPaperId) filterParams.paper = filterPaperId;
+            if (filterTopicId) filterParams.topic = filterTopicId;
+            if (filterStatus === 'active') filterParams.isActive = 'true';
+            if (filterStatus === 'inactive') filterParams.isActive = 'false';
             
-    //         fetchPaginatedQuestions(1, filterParams);
-    //     }
-    // }, [activeTab, filterSubjectId, filterPaperId, filterTopicId, filterStatus]);
+            fetchPaginatedQuestions(1, filterParams);
+        }
+    }, [activeTab, filterSubjectId, filterPaperId, filterTopicId, filterStatus]);
 
     // OPTIMIZED: Reset pagination and load first page when filters change
     useEffect(() => {
