@@ -107,9 +107,13 @@ export const getPaginatedQuestions = async (filters = {}) => {
         }
         
         const result = await response.json();
+        // Defensive: ensure questions array exists, extract from result.data.questions
+        const questionsArray = result?.data?.questions || result?.questions || [];
+        const paginationData = result?.data?.pagination || result?.pagination || {};
+        
         return {
-            questions: result.data?.questions || [],
-            pagination: result.data?.pagination || {}
+            questions: Array.isArray(questionsArray) ? questionsArray : [],
+            pagination: paginationData
         };
     } catch (error) {
         console.error('Error fetching paginated questions:', error);

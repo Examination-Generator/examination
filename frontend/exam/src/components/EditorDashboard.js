@@ -1128,7 +1128,9 @@ export default function EditorDashboard({ onLogout }) {
             Object.keys(filterParams).forEach(key => filterParams[key] === undefined && delete filterParams[key]);
             
             const result = await questionService.getPaginatedQuestions(filterParams);
-            const { questions, pagination } = result;
+            // Defensive: extract questions array and pagination metadata from result
+            const questions = Array.isArray(result?.questions) ? result.questions : [];
+            const pagination = result?.pagination || {};
             
             console.log(`[Pagination] Loaded page ${pageNum} with ${questions.length} questions`, pagination);
             
@@ -4479,7 +4481,7 @@ useEffect(() => {
                     <div className="flex justify-between items-start mb-2">
                         <div className="flex-1">
                             <p className="text-sm font-semibold text-gray-800 line-clamp-2">
-                                {questionText ? `${questionText.substring(0, 150)}${questionText.length > 150 ? '...' : ''}` : 'No question text available'}
+                                {questionText ? `${questionText.substring(0, 150)}${questionText.length > 150 ? '...' : ''}` : null}
                             </p>
                             {answerText && (
                                 <p className="mt-2 text-sm text-gray-600 line-clamp-2">
@@ -10037,7 +10039,7 @@ useEffect(() => {
                                                     <div className="flex justify-between items-start mb-2">
                                                         <div className="flex-1">
                                                             <p className="text-sm font-semibold text-gray-800 line-clamp-2">
-                                                                {questionText ? `${questionText.substring(0, 180)}${questionText.length > 180 ? '...' : ''}` : 'No question text available'}
+                                                                {questionText ? `${questionText.substring(0, 180)}${questionText.length > 180 ? '...' : ''}` : null}
                                                             </p>
                                                             {answerText && (
                                                                 <p className="mt-2 text-sm text-gray-600 line-clamp-2">
