@@ -1501,6 +1501,24 @@ export default function EditorDashboard({ onLogout }) {
         }
     }, [filterSubjectId, filterPaperId, filterTopicId, filterStatus, activeTab]);
 
+    // OPTIMIZED: Initialize pagination for edit tab when it loads
+    useEffect(() => {
+        if (activeTab === 'edit' && !editUsingPagination && !searchQuery) {
+            setCurrentPage(1);
+            setPaginatedQuestions([]);
+            setHasMoreQuestions(true);
+            setEditUsingPagination(true);
+            
+            // Load first page with current edit filters
+            const apiParams = resolveEditFiltersToApi();
+            if (editFilterType && editFilterType !== 'all') {
+                if (editFilterType === 'nested') apiParams.isNested = 'true';
+                if (editFilterType === 'standalone') apiParams.isNested = 'false';
+            }
+            fetchPaginatedQuestions(1, apiParams);
+        }
+    }, [activeTab, searchQuery]);
+
     // OPTIMIZED: Intersection Observer for infinite scroll (loads next page when user scrolls near bottom)
     useEffect(() => {
         const observer = new IntersectionObserver(
