@@ -619,6 +619,7 @@ export default function EditorDashboard({ onLogout }) {
         unknownTopics: 0
     });
     const [isLoadingStats, setIsLoadingStats] = useState(false);
+    const [serverStats, setServerStats] = useState(null);
     const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0); // Trigger for stats refresh
     
     // OPTIMIZED: Pagination states for infinite scroll
@@ -978,6 +979,65 @@ export default function EditorDashboard({ onLogout }) {
     // Memoize statistics computation to avoid repeated heavy recalculation
     const memoizedStatistics = useMemo(() => getStatistics(), [getStatistics]);
 
+    const transformServerStats = useCallback((srv) => {
+        if (!srv) return null;
+
+        const stats = {
+            totalQuestions: srv.total || 0,
+            activeQuestions: srv.active || 0,
+            inactiveQuestions: srv.inactive || 0,
+            unknownTopics: srv.unknownTopics || 0,
+            bySubject: {},
+            byPaper: {},
+            byTopic: {}
+        };
+
+        if (Array.isArray(srv.bySubject)) {
+            srv.bySubject.forEach(item => {
+                const subjectName = item.subjectName || 'Unknown';
+                stats.bySubject[subjectName] = {
+                    total: item.total || 0,
+                    active: item.active || 0,
+                    inactive: item.inactive || 0,
+                    subjectId: item.subjectId || null
+                };
+            });
+        }
+
+        if (Array.isArray(srv.byPaper)) {
+            srv.byPaper.forEach(item => {
+                const paperKey = `${item.subject || 'Unknown'} - ${item.paper || 'Unknown'}`;
+                stats.byPaper[paperKey] = {
+                    total: item.total || 0,
+                    active: item.active || 0,
+                    inactive: item.inactive || 0,
+                    subject: item.subject || 'Unknown',
+                    paper: item.paper || 'Unknown',
+                    subjectId: item.subjectId || null,
+                    paperId: item.paperId || null
+                };
+            });
+        }
+
+        if (Array.isArray(srv.byTopic)) {
+            srv.byTopic.forEach(item => {
+                const topicName = item.topicName || 'Unknown';
+                stats.byTopic[topicName] = {
+                    total: item.total || 0,
+                    active: item.active || 0,
+                    inactive: item.inactive || 0,
+                    byMarks: {},
+                    topicId: item.topicId || null,
+                    subjectId: item.subjectId || null,
+                    paper: item.paper || 'Unknown',
+                    subject: item.subject || 'Unknown'
+                };
+            });
+        }
+
+        return stats;
+    }, []);
+
     // Memoize filtered questions used in stats to avoid recomputing during render
     const memoizedFilteredQuestions = useMemo(() => getFilteredQuestions(), [savedQuestions]);
 
@@ -1109,6 +1169,7 @@ export default function EditorDashboard({ onLogout }) {
                 inactiveQuestions: stats.inactive || 0,
                 unknownTopics: stats.unknownTopics || 0
             });
+            setServerStats(stats || null);
         } catch (error) {
             console.error('Error fetching statistics:', error);
         } finally {
@@ -11272,7 +11333,12 @@ useEffect(() => {
 
                 {/* Statistics Tab Content */}
                 {activeTab === 'stats' && (() => {
-                    const stats = memoizedStatistics;
+                    const stats = serverStats ? transformServerStats(serverStats) : {
+                        ...questionStats,
+                        bySubject: {},
+                        byPaper: {},
+                        byTopic: {}
+                    };
                     const filteredQuestions = memoizedFilteredQuestions;
                     
                     return (
