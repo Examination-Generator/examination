@@ -1475,7 +1475,9 @@ def question_statistics_only(request):
         total_questions = queryset.count()
         active_questions = queryset.filter(is_active=True).count()
         inactive_questions = queryset.filter(is_active=False).count()
-        unknown_topics = queryset.filter(Q(topic__isnull=True) | Q(topic='')).count()
+        # Avoid comparing FK directly to an empty string (causes UUID validation errors).
+        # Check for null topic or topics with an empty name instead.
+        unknown_topics = queryset.filter(Q(topic__isnull=True) | Q(topic__name='')).count()
 
         # Overview aggregates (active questions example)
         overview = queryset.aggregate(
