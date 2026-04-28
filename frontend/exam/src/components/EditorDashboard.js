@@ -1129,6 +1129,7 @@ export default function EditorDashboard({ onLogout }) {
             
             const result = await questionService.getPaginatedQuestions(filterParams);
             // Defensive: extract questions array and pagination metadata from result
+            console.log('Received paginated questions response:', result);
             const questions = Array.isArray(result?.questions) ? result.questions : [];
             const pagination = result?.pagination || {};
             
