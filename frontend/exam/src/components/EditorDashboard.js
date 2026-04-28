@@ -1123,6 +1123,7 @@ export default function EditorDashboard({ onLogout }) {
             console.log('Received paginated questions response:', result);
             const questions = Array.isArray(result?.questions) ? result.questions : [];
             const pagination = result?.pagination || {};
+            const requestedLimit = Number(filterParams.limit || 50);
             
             console.log(`[Pagination] Loaded page ${pageNum} with ${questions.length} questions`, pagination);
             
@@ -1139,8 +1140,10 @@ export default function EditorDashboard({ onLogout }) {
             // Derive hasMore: prefer server flag but fall back to comparing total vs loaded
             const prevLoaded = pageNum === 1 ? 0 : (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0);
             const newLoaded = prevLoaded + questions.length;
-            const derivedHasMore = (pagination.has_next === true) || ((pagination.total || 0) > newLoaded);
-            console.log('[Pagination] derivedHasMore:', derivedHasMore, 'prevLoaded:', prevLoaded, 'newLoaded:', newLoaded, 'pagination.total:', pagination.total, 'pagination.has_next:', pagination.has_next);
+            const derivedHasMore = (pagination.has_next === true)
+                || questions.length >= requestedLimit
+                || ((pagination.total || 0) > newLoaded);
+            console.log('[Pagination] derivedHasMore:', derivedHasMore, 'prevLoaded:', prevLoaded, 'newLoaded:', newLoaded, 'requestedLimit:', requestedLimit, 'questions.length:', questions.length, 'pagination.total:', pagination.total, 'pagination.has_next:', pagination.has_next);
             setHasMoreQuestions(derivedHasMore);
             setCurrentPage(pageNum);
             
