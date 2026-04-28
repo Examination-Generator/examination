@@ -4453,11 +4453,11 @@ useEffect(() => {
     }, [fetchTopicsForPaper]);
 
     const getQuestionText = useCallback((question) => {
-        return question?.question_text || question?.question || question?.questionText || '';
+        return question?.question_text || '';
     }, []);
 
     const getQuestionAnswer = useCallback((question) => {
-        return question?.answer_text || question?.answer || question?.question_answer || question?.questionAnswer || '';
+        return question?.answer_text || '';
     }, []);
 
     // Memoize rendered search results to avoid re-rendering list items unnecessarily
@@ -8284,7 +8284,7 @@ useEffect(() => {
                                             {/* Question Text */}
                                             <div className="text-sm text-gray-800 mb-3 leading-relaxed border-l-2 border-green-400 pl-3">
                                                 {renderTextWithImages(
-                                                    question.question_text || question.text,
+                                                    question.question_text,
                                                     question.question_inline_images || [],
                                                     question.question_image_positions || {},
                                                     question.question_answer_lines || [],
