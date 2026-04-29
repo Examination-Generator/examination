@@ -42,13 +42,13 @@ export default function Login({ onSwitchToSignup, onLoginSuccess }){
                 localStorage.removeItem('rememberedPhone');
             }
             
-            console.log('Login successful:', response.user);
+            // console.log('Login successful:', response.user);
             
             // Determine role based on checkbox and actual user role
             const role = isEditor ? 'editor' : 'user';
             onLoginSuccess(role);
         } catch (error) {
-            console.error('Login error:', error);
+            // console.error('Login error:', error);
             setError(error.message || 'Login failed. Please check your credentials and try again.');
         } finally {
             setIsLoading(false);
@@ -109,7 +109,7 @@ export default function Login({ onSwitchToSignup, onLoginSuccess }){
                         </div>
                         <div className="mb-6">
                             <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password-mobile">
-                                Password (4 digits)
+                                Password
                             </label>
                             <input
                                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
@@ -231,7 +231,7 @@ export default function Login({ onSwitchToSignup, onLoginSuccess }){
                             </div>
                             <div className="mb-6">
                                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password-desktop">
-                                    Password (4 digits)
+                                    Password 
                                 </label>
                                 <input
                                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"

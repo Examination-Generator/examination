@@ -69,7 +69,7 @@ export default function SystemMessaging() {
             const uniqueById = Array.from(new Map(merged.map(item => [item.id, item])).values());
             setMessages(uniqueById);
         } catch (error) {
-            console.error('Failed to load messages:', error);
+            // console.error('Failed to load messages:', error);
         } finally {
             if (!silent) setIsLoading(false);
         }
@@ -80,7 +80,7 @@ export default function SystemMessaging() {
             const count = await messagingService.getUnreadMessageCount();
             setUnreadCount(count);
         } catch (error) {
-            console.error('Failed to load unread count:', error);
+            // console.error('Failed to load unread count:', error);
         }
     };
 
@@ -89,7 +89,7 @@ export default function SystemMessaging() {
         try {
             await loadConversation(message.id);
         } catch (error) {
-            console.error('Failed to load conversation:', error);
+            // console.error('Failed to load conversation:', error);
         }
     };
 
@@ -100,7 +100,7 @@ export default function SystemMessaging() {
             await loadMessages(silent);
             await loadUnreadCount();
         } catch (error) {
-            console.error('Failed to load conversation:', error);
+            // console.error('Failed to load conversation:', error);
         }
     };
 
@@ -136,7 +136,7 @@ export default function SystemMessaging() {
             // Refresh in background (do not block send spinner/UI).
             loadConversation(selectedMessage.id, true);
         } catch (error) {
-            console.error('Failed to send reply:', error);
+            // console.error('Failed to send reply:', error);
             setAlertConfig({
                 title: 'Error',
                 message: 'Failed to send reply. Please try again.',
@@ -165,7 +165,7 @@ export default function SystemMessaging() {
                     await loadMessages();
                     await loadUnreadCount();
                 } catch (error) {
-                    console.error('Failed to delete message:', error);
+                    // console.error('Failed to delete message:', error);
                     setAlertConfig({
                         title: 'Error',
                         message: 'Failed to delete message. Please try again.',

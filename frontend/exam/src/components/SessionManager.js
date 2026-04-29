@@ -50,7 +50,7 @@ const SessionManager = ({ showDebugInfo = false }) => {
             <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
                 Session Info
             </div>
-            <div>Status: {sessionInfo.isValid ? '✅ Active' : '❌ Expired'}</div>
+            <div>Status: {sessionInfo.isValid ? 'Active' : 'Expired'}</div>
             <div>Time remaining: {timeRemaining} min</div>
             {sessionInfo.lastActivity && (
                 <div style={{ fontSize: '10px', marginTop: '5px', color: '#666' }}>

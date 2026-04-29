@@ -14,7 +14,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                 iframe.contentWindow.focus();
                 iframe.contentWindow.print();
             } catch (error) {
-                console.error('Print error:', error);
+                // console.error('Print error:', error);
                 // Fallback: open in new window
                 handlePrintInNewWindow();
             }
@@ -121,7 +121,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             // Cleanup
             document.body.removeChild(tempContainer);
         } catch (error) {
-            console.error('Error generating PDF:', error);
+            // console.error('Error generating PDF:', error);
             alert(`Failed to generate PDF: ${error.message}. Please try using the Print button instead.`);
         } finally {
             setIsGeneratingPdf(false);

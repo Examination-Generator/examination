@@ -8,9 +8,9 @@ export default function MessagingTab() {
     const [pendingSupportCount, setPendingSupportCount] = useState(0);
 
     // Debug: Log component mount
-    useEffect(() => {
-        console.log('MessagingTab component mounted');
-    }, []);
+    // useEffect(() => {
+    //     console.log('MessagingTab component mounted');
+    // }, []);
 
     useEffect(() => {
         const loadPendingSupportCount = async () => {
@@ -18,7 +18,7 @@ export default function MessagingTab() {
                 const count = await messagingService.getUnreadMessageCount();
                 setPendingSupportCount(count || 0);
             } catch (error) {
-                console.error('Failed to load pending support count:', error);
+                // console.error('Failed to load pending support count:', error);
             }
         };
 
@@ -46,10 +46,10 @@ export default function MessagingTab() {
                     </div>
                     
                     {/* Info Badge */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+                    {/* <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
                         <p className="text-xs text-blue-700 font-semibold">Admin Tools</p>
                         <p className="text-xs text-blue-600 mt-1">Multi-channel messaging</p>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Sub-tabs */}

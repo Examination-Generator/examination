@@ -72,7 +72,7 @@ const SessionWarning = ({ onExtendSession, onLogout }) => {
                 boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
             }}>
                 <h3 style={{ marginTop: 0, color: '#f59e0b' }}>
-                    ⚠️ Session Expiring Soon
+                    Session Expiring Soon
                 </h3>
                 <p>
                     Your session will expire in <strong>{countdown} minute{countdown !== 1 ? 's' : ''}</strong> due to inactivity.

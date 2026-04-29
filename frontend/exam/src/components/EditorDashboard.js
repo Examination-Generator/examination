@@ -1453,7 +1453,7 @@ export default function EditorDashboard({ onLogout }) {
                 // Only set savedQuestions if none set yet (avoid overwriting user filters)
                 setSavedQuestions(prev => (Array.isArray(prev) && prev.length > 0 ? prev : (questions || [])));
             } catch (err) {
-                console.error('Initial load failed:', err);
+                // console.error('Initial load failed:', err);
             }
         };
         initialLoad();
@@ -1546,7 +1546,7 @@ export default function EditorDashboard({ onLogout }) {
             entries => {
                 const lastEntry = entries[0];
                     if (lastEntry.isIntersecting && !isLoadingMoreQuestions && (hasMoreQuestions || (totalQuestionsCount > (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0)))) {
-                        console.log('[Infinite Scroll] Reached bottom, loading next page... (hasMore:', hasMoreQuestions, 'fallbackAllowed:', (totalQuestionsCount > (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0)), ')');
+                        // console.log('[Infinite Scroll] Reached bottom, loading next page... (hasMore:', hasMoreQuestions, 'fallbackAllowed:', (totalQuestionsCount > (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0)), ')');
                         const nextPage = currentPage + 1;
 
                     // Choose appropriate filters depending on which tab is active
@@ -1629,7 +1629,7 @@ export default function EditorDashboard({ onLogout }) {
                     const token = localStorage.getItem('token');
                     
                     if (!token) {
-                        console.warn('No auth token found for similar questions search');
+                        // console.warn('No auth token found for similar questions search');
                         setSimilarQuestions([]);
                         setIsSearching(false);
                         return;
@@ -2538,7 +2538,7 @@ export default function EditorDashboard({ onLogout }) {
             setPrintableHtmlContent(htmlContent);
             
         } catch (error) {
-            console.error('❌ Error fetching printable document:', error);
+            // console.error('❌ Error fetching printable document:', error);
             showError(`Failed to generate printable document: ${error.message}`);
             setShowPrintableModal(false);
         } finally {
@@ -2967,7 +2967,7 @@ export default function EditorDashboard({ onLogout }) {
             };
             
             recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
+                // console.error('Speech recognition error:', event.error);
                 setIsEditQuestionListening(false);
                 if (event.error !== 'no-speech') {
                     showError('Voice recognition error: ' + event.error);
@@ -3022,7 +3022,7 @@ export default function EditorDashboard({ onLogout }) {
             };
             
             recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
+                // console.error('Speech recognition error:', event.error);
                 setIsEditAnswerListening(false);
                 if (event.error !== 'no-speech') {
                     showError('Voice recognition error: ' + event.error);
@@ -3179,10 +3179,10 @@ useEffect(() => {
                 // images: questionInlineImages,
                 // firstImageUrl: questionInlineImages[0]?.url?.substring(0, 50) + '...'
         //     });
-            console.log('💾 Answer images being saved:', {
-                count: answerInlineImages.length,
-                images: answerInlineImages
-            });
+            // console.log('💾 Answer images being saved:', {
+            //     count: answerInlineImages.length,
+            //     images: answerInlineImages
+            // });
 
             // Get auth token from localStorage
             const token = localStorage.getItem('token');
@@ -3250,13 +3250,13 @@ useEffect(() => {
                 setSimilarQuestions([]);
                 
                 showSuccess('Question saved to database successfully!');
-                console.log('Question saved:', result);
+                // console.log('Question saved:', result);
             } else {
-                console.error('Failed to save question:', result);
+                // console.error('Failed to save question:', result);
                 showError(`Failed to save question: ${result.message || 'Unknown error'}`);
             }
         } catch (error) {
-            console.error('Error submitting question:', error);
+            // console.error('Error submitting question:', error);
             showError('Error submitting question. Please check your connection and try again.');
         }
     };
@@ -3921,7 +3921,7 @@ useEffect(() => {
             };
             
             recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
+                // console.error('Speech recognition error:', event.error);
                 setIsQuestionListening(false);
                 if (event.error !== 'no-speech') {
                     showError('Voice recognition error: ' + event.error);
@@ -3981,7 +3981,7 @@ useEffect(() => {
             };
             
             recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
+                // console.error('Speech recognition error:', event.error);
                 setIsAnswerListening(false);
                 if (event.error !== 'no-speech') {
                     showError('Voice recognition error: ' + event.error);
@@ -4300,15 +4300,15 @@ useEffect(() => {
         try {
             await refetchQuestions();
         } catch (e) {
-            console.error('Error refetching questions via handleSearchQuestions wrapper', e);
+            // console.error('Error refetching questions via handleSearchQuestions wrapper', e);
         }
     };
 
     const handleSelectQuestion = useCallback((question) => {
-        console.log('RAW question data received:', question);
-        console.log('🔍 question_inline_images field:', question.question_inline_images);
-        console.log('🔍 answer_inline_images field:', question.answer_inline_images);
-        console.log('🔍 SECTION field:', question.section, 'section_name:', question.section_name);
+        // console.log('RAW question data received:', question);
+        // console.log('🔍 question_inline_images field:', question.question_inline_images);
+        // console.log('🔍 answer_inline_images field:', question.answer_inline_images);
+        // console.log('🔍 SECTION field:', question.section, 'section_name:', question.section_name);
         
         setSelectedQuestion(question);
         setEditQuestionText(question.question_text || '');
@@ -4316,60 +4316,60 @@ useEffect(() => {
         setEditMarks(question.marks || '');
         setEditTopic(question.topic || ''); // Set the topic ID for editing
         setEditSection(question.section || ''); // Set the section ID for editing
-        console.log('✅ Set editSection to:', question.section || '');
+        // console.log('✅ Set editSection to:', question.section || '');
         setEditIsActive(question.is_active !== false); // Load active status
         setEditIsNested(question.is_nested === true); // Load nested status
         setEditIsEssayQuestion(question.is_essay_question === true); // Load essay status
         setEditIsGraphQuestion(question.is_graph_question === true); // Load graph status
         setEditIsMapQuestion(question.is_map_question === true); // Load map status
         
-        console.log('📋 Question Status Loaded for Editing:', {
-            questionId: question.id,
-            isActive: question.is_active !== false,
-            isNested: question.is_nested === true,
-            isEssayQuestion: question.is_essay_question === true,
-            isGraphQuestion: question.is_graph_question === true,
-            marks: question.marks,
-            topic: question.topic_name || 'Unknown'
-        });
+        // console.log('📋 Question Status Loaded for Editing:', {
+        //     questionId: question.id,
+        //     isActive: question.is_active !== false,
+        //     isNested: question.is_nested === true,
+        //     isEssayQuestion: question.is_essay_question === true,
+        //     isGraphQuestion: question.is_graph_question === true,
+        //     marks: question.marks,
+        //     topic: question.topic_name || 'Unknown'
+        // });
         
         // Fetch topics for the selected paper
-        console.log('🔄 About to fetch topics for paper:', question.paper);
-        if (question.paper) {
-            console.log('✅ Calling fetchTopicsForPaper with paper ID:', question.paper);
-            fetchTopicsForPaper(question.paper);
-        } else {
-            console.warn('⚠️ No paper ID found in question:', question);
-        }
+        // console.log('🔄 About to fetch topics for paper:', question.paper);
+        // if (question.paper) {
+        //     console.log('✅ Calling fetchTopicsForPaper with paper ID:', question.paper);
+        //     fetchTopicsForPaper(question.paper);
+        // } else {
+        //     console.warn('⚠️ No paper ID found in question:', question);
+        // }
         
         // Load inline images (if stored in database)
         const questionImages = question.question_inline_images || [];
         const answerImages = question.answer_inline_images || [];
         
         // Debug: Log image data to check structure
-        console.log('📸 Loading question images:', {
-            questionId: question.id,
-            questionImages,
-            answerImages,
-            questionImagesCount: questionImages.length,
-            answerImagesCount: answerImages.length,
-            // Log first image structure if available
-            firstQuestionImage: questionImages[0],
-            firstAnswerImage: answerImages[0]
-        });
+        // console.log('📸 Loading question images:', {
+        //     questionId: question.id,
+        //     questionImages,
+        //     answerImages,
+        //     questionImagesCount: questionImages.length,
+        //     answerImagesCount: answerImages.length,
+        //     // Log first image structure if available
+        //     firstQuestionImage: questionImages[0],
+        //     firstAnswerImage: answerImages[0]
+        // });
         
         // Validate image structure
-        if (questionImages.length > 0) {
-            questionImages.forEach((img, idx) => {
-                if (!img.url) {
-                    console.error(`❌ Question image ${idx} is missing URL:`, img);
-                } else if (!img.url.startsWith('data:')) {
-                    console.warn(`⚠️ Question image ${idx} URL doesn't start with data::`, img.url.substring(0, 50));
-                } else {
-                    console.log(`✅ Question image ${idx} looks valid (${img.url.length} bytes)`);
-                }
-            });
-        }
+        // if (questionImages.length > 0) {
+        //     questionImages.forEach((img, idx) => {
+        //         if (!img.url) {
+        //             console.error(`❌ Question image ${idx} is missing URL:`, img);
+        //         } else if (!img.url.startsWith('data:')) {
+        //             console.warn(`⚠️ Question image ${idx} URL doesn't start with data::`, img.url.substring(0, 50));
+        //         } else {
+        //             console.log(`✅ Question image ${idx} looks valid (${img.url.length} bytes)`);
+        //         }
+        //     });
+        // }
         
         // Check for IMAGE placeholders in text
         const questionText = question.question_text || '';
@@ -4378,21 +4378,21 @@ useEffect(() => {
         const answerImageMatches = answerText.match(/\[IMAGE:([\d.]+):(?:\d+x\d+|\d+)px\]/g) || [];
         
         if (questionImageMatches.length > 0 || answerImageMatches.length > 0) {
-            console.log('📷 Image placeholders found:', {
-                questionPlaceholders: questionImageMatches,
-                answerPlaceholders: answerImageMatches,
-                questionImagesInDB: questionImages.length,
-                answerImagesInDB: answerImages.length
-            });
+            // console.log('📷 Image placeholders found:', {
+            //     questionPlaceholders: questionImageMatches,
+            //     answerPlaceholders: answerImageMatches,
+            //     questionImagesInDB: questionImages.length,
+            //     answerImagesInDB: answerImages.length
+            // });
             
             // Warn if placeholders exist but no images - DATA INTEGRITY ISSUE
             if (questionImageMatches.length > 0 && questionImages.length === 0) {
-                console.error('❌ Question has IMAGE placeholders but no image data in database - DATA CORRUPTION!');
-                showError('⚠️ Warning: This question has image placeholders but the actual images are missing from the database. The images were not saved properly when the question was created.');
+                // console.error(' Question has IMAGE placeholders but no image data in database - DATA CORRUPTION!');
+                showError(' Warning: This question has image placeholders but the actual images are missing from the database. The images were not saved properly when the question was created.');
             }
             if (answerImageMatches.length > 0 && answerImages.length === 0) {
-                console.error('❌ Answer has IMAGE placeholders but no image data in database - DATA CORRUPTION!');
-                showError('⚠️ Warning: This answer has image placeholders but the actual images are missing from the database. The images were not saved properly.');
+                // console.error(' Answer has IMAGE placeholders but no image data in database - DATA CORRUPTION!');
+                showError(' Warning: This answer has image placeholders but the actual images are missing from the database. The images were not saved properly.');
             }
         }
         
@@ -4412,13 +4412,13 @@ useEffect(() => {
         const answerHasLines = answerText.includes('[LINES:');
         
         if ((questionHasLines && questionLines.length === 0) || (answerHasLines && answerLines.length === 0)) {
-            console.warn('⚠️ Question has LINES placeholders but no configuration:', {
-                questionId: question.id,
-                questionHasLines,
-                answerHasLines,
-                questionLinesCount: questionLines.length,
-                answerLinesCount: answerLines.length
-            });
+            // console.warn('⚠️ Question has LINES placeholders but no configuration:', {
+            //     questionId: question.id,
+            //     questionHasLines,
+            //     answerHasLines,
+            //     questionLinesCount: questionLines.length,
+            //     answerLinesCount: answerLines.length
+            // });
             
             // Auto-generate default line configurations for missing lines
             if (questionHasLines && questionLines.length === 0) {
@@ -4435,7 +4435,7 @@ useEffect(() => {
                     });
                 }
                 setEditQuestionAnswerLines(defaultLines);
-                console.log('✅ Auto-generated question line configurations:', defaultLines);
+                // console.log('✅ Auto-generated question line configurations:', defaultLines);
             } else {
                 setEditQuestionAnswerLines(questionLines);
             }
@@ -4454,7 +4454,7 @@ useEffect(() => {
                     });
                 }
                 setEditAnswerAnswerLines(defaultLines);
-                console.log('✅ Auto-generated answer line configurations:', defaultLines);
+                // console.log('✅ Auto-generated answer line configurations:', defaultLines);
             } else {
                 setEditAnswerAnswerLines(answerLines);
             }
@@ -4480,17 +4480,17 @@ useEffect(() => {
                         const hasGraph = !!res.has_graph;
                         const hasEssay = !!res.has_essay;
                         const hasMap = !!res.has_map;
-                        console.debug('[checkGraphEssay] result for', question.id, { hasGraph, hasEssay, hasMap });
+                        // console.debug('[checkGraphEssay] result for', question.id, { hasGraph, hasEssay, hasMap });
                         setEditIsGraphQuestion(hasGraph);
                         setEditIsEssayQuestion(hasEssay);
                         setEditIsMapQuestion(hasMap);
                     }
                 }).catch(err => {
-                    console.warn('checkGraphEssay failed (will ignore):', err);
+                    // console.warn('checkGraphEssay failed (will ignore):', err);
                 });
             }
         } catch (e) {
-            console.warn('Error initiating checkGraphEssay request:', e);
+            // console.warn('Error initiating checkGraphEssay request:', e);
         }
     }, [fetchTopicsForPaper]);
 
@@ -4629,17 +4629,17 @@ useEffect(() => {
                 is_map: editIsMapQuestion // Use edited map status
             };
 
-            console.log('🔄 Updating question - Full details:');
-            console.log('  - Question ID:', selectedQuestion.id);
-            console.log('  - editSection state:', editSection);
-            console.log('📋 Question Status Being Updated:', {
-                isActive: editIsActive,
-                isNested: editIsNested,
-                isEssayQuestion: editIsEssayQuestion,
-                isGraphQuestion: editIsGraphQuestion,
-                marks: parseFloat(editMarks),
-                topic: editTopic
-            });
+            // console.log('🔄 Updating question - Full details:');
+            // console.log('  - Question ID:', selectedQuestion.id);
+            // console.log('  - editSection state:', editSection);
+            // console.log('📋 Question Status Being Updated:', {
+            //     isActive: editIsActive,
+            //     isNested: editIsNested,
+            //     isEssayQuestion: editIsEssayQuestion,
+            //     isGraphQuestion: editIsGraphQuestion,
+            //     marks: parseFloat(editMarks),
+            //     topic: editTopic
+            // });
             // console.log('  - selectedQuestion.section:', selectedQuestion.section);
             // console.log('  - Computed sectionValue:', sectionValue);
             // console.log('  - Full updatedData:', JSON.stringify(updatedData, null, 2));
@@ -4692,7 +4692,7 @@ useEffect(() => {
                                 setEditIsGraphQuestion(hasGraph);
                                 setEditIsEssayQuestion(hasEssay);
                                 setEditIsMapQuestion(hasMap);
-                                console.debug('[pollCheckGraphEssay] attempt', i + 1, 'for', qId, { hasGraph, hasEssay, hasMap });
+                                // console.debug('[pollCheckGraphEssay] attempt', i + 1, 'for', qId, { hasGraph, hasEssay, hasMap });
                                 // If either flag is true or all determinate, stop polling
                                 return res;
                             }
@@ -4706,9 +4706,9 @@ useEffect(() => {
                 };
 
                 // run in background; no need to await here
-                pollCheckGraphEssay(selectedQuestion.id, 4, 3000).then(res => {
-                    if (!res) console.debug('[pollCheckGraphEssay] no result after attempts');
-                }).catch(e => console.warn('pollCheckGraphEssay error:', e));
+                // pollCheckGraphEssay(selectedQuestion.id, 4, 3000).then(res => {
+                //     if (!res) console.debug('[pollCheckGraphEssay] no result after attempts');
+                // }).catch(e => console.warn('pollCheckGraphEssay error:', e));
             }
         } catch (e) {
             // console.warn('Error scheduling pollCheckGraphEssay:', e);

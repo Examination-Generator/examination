@@ -39,11 +39,11 @@ export default function Signup({ onSwitchToLogin }) {
             
             // Request OTP
             const response = await authService.requestOTP(formData.phone, formData.name);
-            console.log('OTP requested:', response);
+            // console.log('OTP requested:', response);
             setSuccessMessage(response.message || 'OTP sent successfully!');
             setStep(2);
         } catch (error) {
-            console.error('Error requesting OTP:', error);
+            // console.error('Error requesting OTP:', error);
             setError(error.message || 'Failed to send OTP. Please try again.');
         } finally {
             setIsLoading(false);
@@ -64,14 +64,14 @@ export default function Signup({ onSwitchToLogin }) {
             
             // Verify OTP
             const response = await authService.verifyOTP(formData.phone, formData.otp);
-            console.log('OTP verified:', response);
+            // console.log('OTP verified:', response);
             setSuccessMessage('OTP verified successfully!');
             setTimeout(() => {
                 setStep(3);
                 setSuccessMessage('');
             }, 1000);
         } catch (error) {
-            console.error('Error verifying OTP:', error);
+            // console.error('Error verifying OTP:', error);
             setError(error.message || 'Invalid OTP. Please try again.');
         } finally {
             setIsLoading(false);
@@ -104,7 +104,7 @@ export default function Signup({ onSwitchToLogin }) {
                 'user' // Default role is 'user', admin can change to 'editor' later
             );
             
-            console.log('Registration successful:', response);
+            // console.log('Registration successful:', response);
             setSuccessMessage('Registration successful! Redirecting to login...');
             
             // Redirect to login after 2 seconds
@@ -112,7 +112,7 @@ export default function Signup({ onSwitchToLogin }) {
                 onSwitchToLogin();
             }, 2000);
         } catch (error) {
-            console.error('Error registering:', error);
+            // console.error('Error registering:', error);
             setError(error.message || 'Registration failed. Please try again.');
         } finally {
             setIsLoading(false);
@@ -126,10 +126,10 @@ export default function Signup({ onSwitchToLogin }) {
         
         try {
             const response = await authService.requestOTP(formData.phone, formData.name);
-            console.log('OTP resent:', response);
+            // console.log('OTP resent:', response);
             setSuccessMessage('OTP resent successfully!');
         } catch (error) {
-            console.error('Error resending OTP:', error);
+            // console.error('Error resending OTP:', error);
             setError(error.message || 'Failed to resend OTP. Please try again.');
         } finally {
             setIsLoading(false);

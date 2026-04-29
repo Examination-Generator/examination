@@ -36,7 +36,7 @@ export default function SMSMessaging() {
             const data = await messagingService.getAllSMSConversations();
             setConversations(data || []);
         } catch (error) {
-            console.error('Failed to load conversations:', error);
+            // console.error('Failed to load conversations:', error);
         }
     };
 
@@ -59,7 +59,7 @@ export default function SMSMessaging() {
                 const results = await messagingService.searchContacts(query);
                 setSearchResults(results || []);
             } catch (error) {
-                console.error('Search failed:', error);
+                // console.error('Search failed:', error);
                 setSearchResults([]);
             } finally {
                 setIsSearching(false);
@@ -106,7 +106,7 @@ export default function SMSMessaging() {
             });
             setShowAlert(true);
         } catch (error) {
-            console.error('Failed to send message:', error);
+            // console.error('Failed to send message:', error);
             setAlertConfig({
                 title: 'Error',
                 message: 'Failed to send message. Please try again.',
@@ -125,7 +125,7 @@ export default function SMSMessaging() {
             const messages = await messagingService.getSMSConversation(phoneNumber);
             setConversationMessages(messages || []);
         } catch (error) {
-            console.error('Failed to load conversation:', error);
+            // console.error('Failed to load conversation:', error);
             setConversationMessages([]);
         } finally {
             setIsLoadingConversation(false);
@@ -159,7 +159,7 @@ export default function SMSMessaging() {
             setMessageText('');
             setQuotedText('');
         } catch (error) {
-            console.error('Failed to send reply:', error);
+            // console.error('Failed to send reply:', error);
             setAlertConfig({
                 title: 'Error',
                 message: 'Failed to send reply. Please try again.',

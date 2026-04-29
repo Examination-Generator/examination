@@ -22,9 +22,9 @@ export default function UserMessagingFloat() {
     const [alertConfig, setAlertConfig] = useState({ title: '', message: '', type: 'info' });
 
     // Debug: Log component mount
-    useEffect(() => {
-        console.log('UserMessagingFloat component mounted');
-    }, []);
+    // useEffect(() => {
+    //     console.log('UserMessagingFloat component mounted');
+    // }, []);
 
     useEffect(() => {
         loadUnreadCount();
@@ -68,7 +68,7 @@ export default function UserMessagingFloat() {
             const count = await messagingService.getUnreadMessageCount();
             setUnreadCount(count);
         } catch (error) {
-            console.error('Failed to load unread count:', error);
+            // console.error('Failed to load unread count:', error);
         }
     };
 
@@ -80,7 +80,7 @@ export default function UserMessagingFloat() {
             setMessages(nextMessages);
             return nextMessages;
         } catch (error) {
-            console.error('Failed to load messages:', error);
+            // console.error('Failed to load messages:', error);
             return [];
         } finally {
             if (!silent) setIsLoading(false);
@@ -92,7 +92,7 @@ export default function UserMessagingFloat() {
         try {
             await loadConversation(message.id);
         } catch (error) {
-            console.error('Failed to load conversation:', error);
+            // console.error('Failed to load conversation:', error);
         }
     };
 
@@ -105,7 +105,7 @@ export default function UserMessagingFloat() {
             await loadMessages(silent);
             await loadUnreadCount();
         } catch (error) {
-            console.error('Failed to load conversation:', error);
+            // console.error('Failed to load conversation:', error);
         }
     };
 
@@ -145,7 +145,7 @@ export default function UserMessagingFloat() {
             }
             
         } catch (error) {
-            console.error('Failed to send message:', error);
+            // console.error('Failed to send message:', error);
             setAlertConfig({
                 title: 'Error',
                 message: 'Failed to send message. Please try again.',
@@ -176,7 +176,7 @@ export default function UserMessagingFloat() {
             // Reload messages list
             await loadMessages(true);
         } catch (error) {
-            console.error('Failed to send reply:', error);
+            // console.error('Failed to send reply:', error);
             setAlertConfig({
                 title: 'Error',
                 message: 'Failed to send reply. Please try again.',
@@ -220,7 +220,7 @@ export default function UserMessagingFloat() {
         try {
             await messagingService.downloadSystemAttachment(item?.attachment_url, item?.attachment_name || 'attachment');
         } catch (error) {
-            console.error('Failed to download attachment:', error);
+            // console.error('Failed to download attachment:', error);
             setAlertConfig({
                 title: 'Download Error',
                 message: 'Could not download this file. Please try again.',
