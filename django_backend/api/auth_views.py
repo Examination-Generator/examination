@@ -1,8 +1,3 @@
-"""
-Authentication Views for Examination System
-Equivalent to Node.js auth routes
-"""
-
 import logging
 from datetime import datetime, timedelta
 from django.utils import timezone
