@@ -1179,10 +1179,10 @@ export default function EditorDashboard({ onLogout }) {
     };
 
     // Fetch statistics from database
-    const fetchStatistics = async () => {
+    const fetchStatistics = async (filters = {}) => {
         setIsLoadingStats(true);
         try {
-            const stats = await questionService.getQuestionStats();
+            const stats = await questionService.getQuestionStats(filters);
             databaseQuestionTotalRef.current = Number(stats.total || 0);
             setTotalQuestionsCount(stats.total || 0);
             setQuestionStats({
@@ -1454,22 +1454,35 @@ export default function EditorDashboard({ onLogout }) {
     // Load paginated questions for stats tab when filters change
     useEffect(() => {
         if (activeTab === 'stats') {
+            // Build filter params for stats request
+            const filterParams = {
+                subject: filterSubjectId,
+                paper: filterPaperId,
+                topic: filterTopicId,
+                isActive: filterStatus === 'active' ? 'true' : filterStatus === 'inactive' ? 'false' : undefined
+            };
+            // Remove undefined values
+            Object.keys(filterParams).forEach(key => filterParams[key] === undefined && delete filterParams[key]);
+            
+            // Refetch stats for the filtered set to get accurate total
+            fetchStatistics(filterParams);
+            
             setCurrentPage(1);
             setPaginatedQuestions([]);
             setHasMoreQuestions(true);
             
             // Load first page with current filters for stats tab
-            const filterParams = {
+            const paginationParams = {
                 page: 1,
                 limit: 50
             };
-            if (filterSubjectId) filterParams.subject = filterSubjectId;
-            if (filterPaperId) filterParams.paper = filterPaperId;
-            if (filterTopicId) filterParams.topic = filterTopicId;
-            if (filterStatus === 'active') filterParams.isActive = 'true';
-            if (filterStatus === 'inactive') filterParams.isActive = 'false';
+            if (filterSubjectId) paginationParams.subject = filterSubjectId;
+            if (filterPaperId) paginationParams.paper = filterPaperId;
+            if (filterTopicId) paginationParams.topic = filterTopicId;
+            if (filterStatus === 'active') paginationParams.isActive = 'true';
+            if (filterStatus === 'inactive') paginationParams.isActive = 'false';
             
-            fetchPaginatedQuestions(1, filterParams);
+            fetchPaginatedQuestions(1, paginationParams);
         }
     }, [filterSubjectId, filterPaperId, filterTopicId, filterStatus, activeTab]);
 

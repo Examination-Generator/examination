@@ -54,10 +54,20 @@ export const getAllQuestions = async (filters = {}) => {
 };
 
 // Get question statistics (OPTIMIZED - lightweight, stats only)
-export const getQuestionStats = async () => {
+export const getQuestionStats = async (filters = {}) => {
     try {
+        // Build query string from filters
+        const queryParams = new URLSearchParams();
+        if (filters.subject) queryParams.append('subject', filters.subject);
+        if (filters.paper) queryParams.append('paper', filters.paper);
+        if (filters.topic) queryParams.append('topic', filters.topic);
+        if (filters.isActive !== undefined) queryParams.append('isActive', filters.isActive);
+        
+        const queryString = queryParams.toString();
+        const endpoint = `${API_BASE_URL}/questions/statistics-only/${queryString ? '?' + queryString : ''}`;
+        
         // Use the new statistics-only endpoint for better performance
-        const response = await fetch(`${API_BASE_URL}/questions/statistics-only/`, {
+        const response = await fetch(endpoint, {
             method: 'GET',
             headers: getHeaders()
         });
