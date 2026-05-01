@@ -628,6 +628,9 @@ export default function EditorDashboard({ onLogout }) {
     const [isLoadingMoreQuestions, setIsLoadingMoreQuestions] = useState(false);
     const [hasMoreQuestions, setHasMoreQuestions] = useState(true);
     const [totalQuestionsCount, setTotalQuestionsCount] = useState(0);
+    const paginatedQuestionsRef = useRef([]);
+    const currentPageRef = useRef(1);
+    const paginationRequestInFlightRef = useRef(false);
     const endOfQuestionsRef = useRef(null); // For intersection observer
     const [filterSubject, setFilterSubject] = useState('');
     const [filterPaper, setFilterPaper] = useState('');
@@ -636,6 +639,14 @@ export default function EditorDashboard({ onLogout }) {
     
     // OPTIMIZED: Pagination filters
     const [filterChangedFlag, setFilterChangedFlag] = useState(false); // Trigger reset when filters change
+
+    useEffect(() => {
+        paginatedQuestionsRef.current = Array.isArray(paginatedQuestions) ? paginatedQuestions : [];
+    }, [paginatedQuestions]);
+
+    useEffect(() => {
+        currentPageRef.current = currentPage;
+    }, [currentPage]);
 
     // Printable Document Modal states
     const [showPrintableModal, setShowPrintableModal] = useState(false);
@@ -1083,7 +1094,14 @@ export default function EditorDashboard({ onLogout }) {
 
     // OPTIMIZED: Fetch paginated questions for infinite scroll
     const fetchPaginatedQuestions = async (pageNum = 1, filters = {}) => {
+        if (paginationRequestInFlightRef.current) {
+            return [];
+        }
+        if (pageNum > 1 && pageNum <= currentPageRef.current) {
+            return [];
+        }
         try {
+            paginationRequestInFlightRef.current = true;
             setIsLoadingMoreQuestions(true);
             
             const filterParams = {
@@ -1107,24 +1125,34 @@ export default function EditorDashboard({ onLogout }) {
             
             console.log(`[Pagination] Loaded page ${pageNum} with ${questions.length} questions`, pagination);
             
-            if (pageNum === 1) {
-                // First page: replace all questions
-                setPaginatedQuestions(questions);
-            } else {
-                // Subsequent pages: append to existing questions
-                setPaginatedQuestions(prev => [...prev, ...questions]);
-            }
+            const mergeUniqueQuestions = (baseQuestions, incomingQuestions) => {
+                const uniqueById = new Map();
+                const upsert = (q, index, prefix) => {
+                    const rawId = q?.id || q?._id || q?.question_id;
+                    const dedupeKey = rawId ? String(rawId) : `${prefix}-${index}-${q?.question_text || ''}`;
+                    uniqueById.set(dedupeKey, q);
+                };
+
+                (Array.isArray(baseQuestions) ? baseQuestions : []).forEach((q, index) => upsert(q, index, 'base'));
+                (Array.isArray(incomingQuestions) ? incomingQuestions : []).forEach((q, index) => upsert(q, index, 'incoming'));
+                return Array.from(uniqueById.values());
+            };
+
+            const previousQuestions = pageNum === 1 ? [] : paginatedQuestionsRef.current;
+            const mergedQuestions = mergeUniqueQuestions(previousQuestions, questions);
+            setPaginatedQuestions(mergedQuestions);
             
             // Update pagination state
             const dbTotal = Number(questionStats.totalQuestions || totalQuestionsCount || pagination.total || 0);
             setTotalQuestionsCount(dbTotal);
             // Derive hasMore from the database total so mismatches keep requesting more data.
-            const prevLoaded = pageNum === 1 ? 0 : (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0);
-            const newLoaded = prevLoaded + questions.length;
+            const newLoaded = mergedQuestions.length;
             const derivedHasMore = newLoaded < dbTotal;
-            console.log('[Pagination] derivedHasMore:', derivedHasMore, 'prevLoaded:', prevLoaded, 'newLoaded:', newLoaded, 'requestedLimit:', requestedLimit, 'questions.length:', questions.length, 'dbTotal:', dbTotal, 'pagination.total:', pagination.total, 'pagination.has_next:', pagination.has_next);
+            console.log('[Pagination] derivedHasMore:', derivedHasMore, 'newLoaded:', newLoaded, 'requestedLimit:', requestedLimit, 'questions.length:', questions.length, 'dbTotal:', dbTotal, 'pagination.total:', pagination.total, 'pagination.has_next:', pagination.has_next);
             setHasMoreQuestions(derivedHasMore);
             setCurrentPage(pageNum);
+            currentPageRef.current = pageNum;
+            paginatedQuestionsRef.current = mergedQuestions;
             
             return questions;
         } catch (error) {
@@ -1136,6 +1164,7 @@ export default function EditorDashboard({ onLogout }) {
             return [];
         } finally {
             setIsLoadingMoreQuestions(false);
+            paginationRequestInFlightRef.current = false;
         }
     };
 
@@ -1490,13 +1519,14 @@ export default function EditorDashboard({ onLogout }) {
     }, [activeTab, searchQuery]);
 
     const databaseQuestionTotal = questionStats.totalQuestions || totalQuestionsCount;
+    const loadedQuestionCount = Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0;
+    const hasLoadedAllFromDatabase = databaseQuestionTotal > 0 && loadedQuestionCount === databaseQuestionTotal;
 
     // OPTIMIZED: Intersection Observer for infinite scroll (loads next page when user scrolls near bottom)
     useEffect(() => {
         const observer = new IntersectionObserver(
             entries => {
                 const lastEntry = entries[0];
-                    const loadedQuestionCount = Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0;
                     const shouldLoadMore = databaseQuestionTotal > loadedQuestionCount;
                     if (lastEntry.isIntersecting && !isLoadingMoreQuestions && shouldLoadMore) {
                         // console.log('[Infinite Scroll] Reached bottom, loading next page... (loaded:', loadedQuestionCount, 'total:', databaseQuestionTotal, ')');
@@ -10013,7 +10043,10 @@ useEffect(() => {
                                 </div>
                             ) : editUsingPagination ? (
                                 <div className="space-y-3">
-                                    <p className="text-sm text-gray-600 mb-3">Showing {paginatedQuestions.length} / {totalQuestionsCount} question(s)</p>
+                                    <p className="text-sm text-gray-600 mb-3">Showing {loadedQuestionCount} / {databaseQuestionTotal || totalQuestionsCount} question(s)</p>
+                                    <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded px-2 py-1">
+                                        Trace: page={currentPage} | loaded={loadedQuestionCount} | dbTotal={databaseQuestionTotal || 0} | shouldLoadMore={databaseQuestionTotal > loadedQuestionCount ? 'true' : 'false'} | hasMoreFlag={hasMoreQuestions ? 'true' : 'false'} | loading={isLoadingMoreQuestions ? 'true' : 'false'}
+                                    </p>
                                     <div className="max-h-96 overflow-y-auto space-y-2">
                                         {paginatedQuestions.map((question) => {
                                             const questionText = getQuestionText(question);
@@ -10071,8 +10104,8 @@ useEffect(() => {
                                                     <span className="ml-2 text-gray-600">Loading more questions...</span>
                                                 </div>
                                             )}
-                                            {!hasMoreQuestions && paginatedQuestions.length > 0 && (
-                                                <p className="text-sm text-gray-500">✓ All questions loaded ({paginatedQuestions.length} total)</p>
+                                            {hasLoadedAllFromDatabase && (
+                                                <p className="text-sm text-gray-500">✓ All questions loaded ({loadedQuestionCount} total)</p>
                                             )}
                                         </div>
                                     </div>
@@ -11708,9 +11741,12 @@ useEffect(() => {
                             {/* OPTIMIZED: Paginated Questions List with Infinite Scroll */}
                             <div className="bg-white rounded-xl shadow-lg p-6">
                                 <h3 className="text-lg font-bold mb-4">
-                                    Questions List ({paginatedQuestions.length} / {totalQuestionsCount})
+                                    Questions List ({loadedQuestionCount} / {databaseQuestionTotal || totalQuestionsCount})
                                     {isLoadingMoreQuestions && <span className="ml-2 text-sm text-gray-500">Loading...</span>}
                                 </h3>
+                                <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded px-2 py-1 mb-3">
+                                    Trace: page={currentPage} | loaded={loadedQuestionCount} | dbTotal={databaseQuestionTotal || 0} | shouldLoadMore={databaseQuestionTotal > loadedQuestionCount ? 'true' : 'false'} | hasMoreFlag={hasMoreQuestions ? 'true' : 'false'} | loading={isLoadingMoreQuestions ? 'true' : 'false'}
+                                </p>
                                 {paginatedQuestions.length === 0 && !isLoadingMoreQuestions ? (
                                     <div className="text-center py-8 text-gray-500">
                                         <p>No questions found</p>
@@ -11760,8 +11796,8 @@ useEffect(() => {
                                                     <span className="ml-2 text-gray-600">Loading more questions...</span>
                                                 </div>
                                             )}
-                                            {!hasMoreQuestions && paginatedQuestions.length > 0 && (
-                                                <p className="text-sm text-gray-500">✓ All questions loaded ({paginatedQuestions.length} total)</p>
+                                            {hasLoadedAllFromDatabase && (
+                                                <p className="text-sm text-gray-500">✓ All questions loaded ({loadedQuestionCount} total)</p>
                                             )}
                                         </div>
                                     </div>
