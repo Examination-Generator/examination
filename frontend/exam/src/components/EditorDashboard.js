@@ -631,6 +631,10 @@ export default function EditorDashboard({ onLogout }) {
     const paginatedQuestionsRef = useRef([]);
     const currentPageRef = useRef(1);
     const paginationRequestInFlightRef = useRef(false);
+    const lastPaginationHasNextRef = useRef(false);
+    const lastPageReturnedCountRef = useRef(0);
+    const requestedLimitRef = useRef(50);
+    const databaseQuestionTotalRef = useRef(0);
     const endOfQuestionsRef = useRef(null); // For intersection observer
     const [filterSubject, setFilterSubject] = useState('');
     const [filterPaper, setFilterPaper] = useState('');
@@ -1122,6 +1126,7 @@ export default function EditorDashboard({ onLogout }) {
             const questions = Array.isArray(result?.questions) ? result.questions : [];
             const pagination = result?.pagination || {};
             const requestedLimit = Number(filterParams.limit || 50);
+            requestedLimitRef.current = requestedLimit;
             
             console.log(`[Pagination] Loaded page ${pageNum} with ${questions.length} questions`, pagination);
             
@@ -1140,11 +1145,16 @@ export default function EditorDashboard({ onLogout }) {
 
             const previousQuestions = pageNum === 1 ? [] : paginatedQuestionsRef.current;
             const mergedQuestions = mergeUniqueQuestions(previousQuestions, questions);
+            // store pagination metadata for observer fallback
+            lastPaginationHasNextRef.current = !!pagination.has_next;
+            lastPageReturnedCountRef.current = Array.isArray(questions) ? questions.length : 0;
             setPaginatedQuestions(mergedQuestions);
             
             // Update pagination state
-            const dbTotal = Number(questionStats.totalQuestions || totalQuestionsCount || pagination.total || 0);
-            setTotalQuestionsCount(dbTotal);
+            const dbTotal = Number(databaseQuestionTotalRef.current || questionStats.totalQuestions || totalQuestionsCount || 0);
+            if (dbTotal > 0) {
+                setTotalQuestionsCount(dbTotal);
+            }
             // Derive hasMore from the database total so mismatches keep requesting more data.
             const newLoaded = mergedQuestions.length;
             const derivedHasMore = newLoaded < dbTotal;
@@ -1173,6 +1183,7 @@ export default function EditorDashboard({ onLogout }) {
         setIsLoadingStats(true);
         try {
             const stats = await questionService.getQuestionStats();
+            databaseQuestionTotalRef.current = Number(stats.total || 0);
             setTotalQuestionsCount(stats.total || 0);
             setQuestionStats({
                 totalQuestions: stats.total || 0,
@@ -1213,6 +1224,7 @@ export default function EditorDashboard({ onLogout }) {
                 try {
                     const stats = await questionService.getQuestionStats();
                     if (stats) {
+                        databaseQuestionTotalRef.current = Number(stats.total || 0);
                         setTotalQuestionsCount(stats.total || 0);
                         setQuestionStats({
                             totalQuestions: stats.total || 0,
@@ -1518,7 +1530,7 @@ export default function EditorDashboard({ onLogout }) {
         }
     }, [activeTab, searchQuery]);
 
-    const databaseQuestionTotal = questionStats.totalQuestions || totalQuestionsCount;
+    const databaseQuestionTotal = databaseQuestionTotalRef.current || questionStats.totalQuestions || totalQuestionsCount;
     const loadedQuestionCount = Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0;
     const hasLoadedAllFromDatabase = databaseQuestionTotal > 0 && loadedQuestionCount === databaseQuestionTotal;
 
@@ -1527,9 +1539,10 @@ export default function EditorDashboard({ onLogout }) {
         const observer = new IntersectionObserver(
             entries => {
                 const lastEntry = entries[0];
-                    const shouldLoadMore = databaseQuestionTotal > loadedQuestionCount;
+                    const serverIndicatesMore = !!lastPaginationHasNextRef.current || (lastPageReturnedCountRef.current >= (requestedLimitRef.current || 50));
+                    const shouldLoadMore = (databaseQuestionTotal > loadedQuestionCount) || serverIndicatesMore;
                     if (lastEntry.isIntersecting && !isLoadingMoreQuestions && shouldLoadMore) {
-                        // console.log('[Infinite Scroll] Reached bottom, loading next page... (loaded:', loadedQuestionCount, 'total:', databaseQuestionTotal, ')');
+                        // console.log('[Infinite Scroll] Reached bottom, loading next page... (loaded:', loadedQuestionCount, 'total:', databaseQuestionTotal, 'serverIndicatesMore:', serverIndicatesMore, ')');
                         const nextPage = currentPage + 1;
 
                     // Choose appropriate filters depending on which tab is active
