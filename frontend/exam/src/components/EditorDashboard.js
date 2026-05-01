@@ -1562,6 +1562,13 @@ export default function EditorDashboard({ onLogout }) {
                             topic: filterTopicId,
                             status: filterStatus
                         });
+                    } else if (activeTab === 'stats') {
+                        fetchPaginatedQuestions(nextPage, {
+                            subject: filterSubjectId,
+                            paper: filterPaperId,
+                            topic: filterTopicId,
+                            status: filterStatus
+                        });
                     }
                 }
             },
