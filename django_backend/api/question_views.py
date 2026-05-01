@@ -1581,8 +1581,6 @@ def questions_paginated(request):
     - search: search in question text
     """
     try:
-        user = request.user
-        
         # Get pagination parameters
         page = int(request.GET.get('page', 1))
         limit = min(int(request.GET.get('limit', 50)), 100)  # Cap at 100
@@ -1591,8 +1589,8 @@ def questions_paginated(request):
         if page < 1:
             page = 1
         
-        # Start with base queryset - scoped to current user's questions only
-        queryset = Question.objects.filter(created_by=user)
+        # Base queryset - all questions regardless of creator
+        queryset = Question.objects.all()
         
         # Apply filters
         subject = request.GET.get('subject')
@@ -1633,7 +1631,6 @@ def questions_paginated(request):
             'subject', 'paper', 'topic', 'section', 'created_by'
         ).order_by('-created_at')[offset:offset + limit]
 
-        # Return the full question payload so the edit list can render question/answer text reliably.
         serializer = QuestionDetailSerializer(questions, many=True)
         questions_data = serializer.data
         
