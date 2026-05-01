@@ -1125,6 +1125,12 @@ export default function EditorDashboard({ onLogout }) {
             console.log('Received paginated questions response:', result);
             const questions = Array.isArray(result?.questions) ? result.questions : [];
             const pagination = result?.pagination || {};
+            console.log('[Pagination debug] page:', pageNum, 
+                '| returned:', questions.length,
+                '| pagination.total:', pagination.total,
+                '| pagination.has_next:', pagination.has_next
+            );
+
             const requestedLimit = Number(filterParams.limit || 50);
             requestedLimitRef.current = requestedLimit;
             
@@ -1151,15 +1157,30 @@ export default function EditorDashboard({ onLogout }) {
             setPaginatedQuestions(mergedQuestions);
             
             // Update pagination state
-            const dbTotal = Number(databaseQuestionTotalRef.current || questionStats.totalQuestions || totalQuestionsCount || 0);
-            if (dbTotal > 0) {
-                setTotalQuestionsCount(dbTotal);
+            // const dbTotal = Number(databaseQuestionTotalRef.current || questionStats.totalQuestions || totalQuestionsCount || 0);
+            // if (dbTotal > 0) {
+            //     setTotalQuestionsCount(dbTotal);
+            // }
+            // // Derive hasMore from the database total so mismatches keep requesting more data.
+            // const newLoaded = mergedQuestions.length;
+            // const derivedHasMore = newLoaded < dbTotal;
+            // console.log('[Pagination] derivedHasMore:', derivedHasMore, 'newLoaded:', newLoaded, 'requestedLimit:', requestedLimit, 'questions.length:', questions.length, 'dbTotal:', dbTotal, 'pagination.total:', pagination.total, 'pagination.has_next:', pagination.has_next);
+            // setHasMoreQuestions(derivedHasMore);
+
+            
+            const serverTotal = Number(pagination.total || 0);
+            if (serverTotal > 0) {
+                databaseQuestionTotalRef.current = serverTotal;
+                setTotalQuestionsCount(serverTotal);
+            } else if (databaseQuestionTotalRef.current === 0) {
+            // fallback only if we have nothing from server yet
+                const fallback = Number(questionStats.totalQuestions || totalQuestionsCount || 0);
+                if (fallback > 0) databaseQuestionTotalRef.current = fallback;
             }
-            // Derive hasMore from the database total so mismatches keep requesting more data.
             const newLoaded = mergedQuestions.length;
-            const derivedHasMore = newLoaded < dbTotal;
-            console.log('[Pagination] derivedHasMore:', derivedHasMore, 'newLoaded:', newLoaded, 'requestedLimit:', requestedLimit, 'questions.length:', questions.length, 'dbTotal:', dbTotal, 'pagination.total:', pagination.total, 'pagination.has_next:', pagination.has_next);
+            const derivedHasMore = pagination.has_next === true || (serverTotal > 0 && newLoaded < serverTotal);
             setHasMoreQuestions(derivedHasMore);
+
             setCurrentPage(pageNum);
             currentPageRef.current = pageNum;
             paginatedQuestionsRef.current = mergedQuestions;
@@ -1492,6 +1513,8 @@ export default function EditorDashboard({ onLogout }) {
             setCurrentPage(1);
             setPaginatedQuestions([]);
             setHasMoreQuestions(true);
+            currentPageRef.current = 0;
+            paginationRequestInFlightRef.current = false;
             
             // Load first page with current filters for stats tab
             const filterParams = {
@@ -1508,14 +1531,16 @@ export default function EditorDashboard({ onLogout }) {
         }
     }, [activeTab, filterSubjectId, filterPaperId, filterTopicId, filterStatus]);
 
-    // OPTIMIZED: Reset pagination and load first page when filters change
+   
+    // REPLACE WITH:
     useEffect(() => {
         if (activeTab === 'questions') {
             setCurrentPage(1);
             setPaginatedQuestions([]);
             setHasMoreQuestions(true);
+            currentPageRef.current = 0;
+            paginationRequestInFlightRef.current = false;
             
-            // Load first page with current filters
             fetchPaginatedQuestions(1, {
                 subject: filterSubjectId,
                 paper: filterPaperId,
@@ -1531,6 +1556,8 @@ export default function EditorDashboard({ onLogout }) {
             setCurrentPage(1);
             setPaginatedQuestions([]);
             setHasMoreQuestions(true);
+            currentPageRef.current = 0;
+            paginationRequestInFlightRef.current = false;
             setEditUsingPagination(true);
             
             // Load first page with current edit filters
@@ -1552,8 +1579,13 @@ export default function EditorDashboard({ onLogout }) {
         const observer = new IntersectionObserver(
             entries => {
                 const lastEntry = entries[0];
-                    const serverIndicatesMore = !!lastPaginationHasNextRef.current || (lastPageReturnedCountRef.current >= (requestedLimitRef.current || 50));
-                    const shouldLoadMore = (databaseQuestionTotal > loadedQuestionCount) || serverIndicatesMore;
+                   // REPLACE WITH:
+                const serverIndicatesMore = !!lastPaginationHasNextRef.current ||
+                    (lastPageReturnedCountRef.current >= (requestedLimitRef.current || 50));
+                const countIndicatesMore = databaseQuestionTotalRef.current > 0
+                    ? loadedQuestionCount < databaseQuestionTotalRef.current
+                    : false;
+                const shouldLoadMore = countIndicatesMore || serverIndicatesMore;
                     if (lastEntry.isIntersecting && !isLoadingMoreQuestions && shouldLoadMore) {
                         // console.log('[Infinite Scroll] Reached bottom, loading next page... (loaded:', loadedQuestionCount, 'total:', databaseQuestionTotal, 'serverIndicatesMore:', serverIndicatesMore, ')');
                         const nextPage = currentPage + 1;
