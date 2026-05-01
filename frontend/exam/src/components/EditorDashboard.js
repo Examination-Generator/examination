@@ -1116,14 +1116,13 @@ export default function EditorDashboard({ onLogout }) {
             }
             
             // Update pagination state
-            setTotalQuestionsCount(pagination.total || 0);
-            // Derive hasMore: prefer server flag but fall back to comparing total vs loaded
+            const dbTotal = Number(questionStats.totalQuestions || totalQuestionsCount || pagination.total || 0);
+            setTotalQuestionsCount(dbTotal);
+            // Derive hasMore from the database total so mismatches keep requesting more data.
             const prevLoaded = pageNum === 1 ? 0 : (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0);
             const newLoaded = prevLoaded + questions.length;
-            const derivedHasMore = (pagination.has_next === true)
-                || questions.length >= requestedLimit
-                || ((pagination.total || 0) > newLoaded);
-            console.log('[Pagination] derivedHasMore:', derivedHasMore, 'prevLoaded:', prevLoaded, 'newLoaded:', newLoaded, 'requestedLimit:', requestedLimit, 'questions.length:', questions.length, 'pagination.total:', pagination.total, 'pagination.has_next:', pagination.has_next);
+            const derivedHasMore = newLoaded < dbTotal;
+            console.log('[Pagination] derivedHasMore:', derivedHasMore, 'prevLoaded:', prevLoaded, 'newLoaded:', newLoaded, 'requestedLimit:', requestedLimit, 'questions.length:', questions.length, 'dbTotal:', dbTotal, 'pagination.total:', pagination.total, 'pagination.has_next:', pagination.has_next);
             setHasMoreQuestions(derivedHasMore);
             setCurrentPage(pageNum);
             
@@ -1497,8 +1496,10 @@ export default function EditorDashboard({ onLogout }) {
         const observer = new IntersectionObserver(
             entries => {
                 const lastEntry = entries[0];
-                    if (lastEntry.isIntersecting && !isLoadingMoreQuestions && (hasMoreQuestions || (databaseQuestionTotal > (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0)))) {
-                        // console.log('[Infinite Scroll] Reached bottom, loading next page... (hasMore:', hasMoreQuestions, 'fallbackAllowed:', (databaseQuestionTotal > (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0)), ')');
+                    const loadedQuestionCount = Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0;
+                    const shouldLoadMore = databaseQuestionTotal > loadedQuestionCount;
+                    if (lastEntry.isIntersecting && !isLoadingMoreQuestions && shouldLoadMore) {
+                        // console.log('[Infinite Scroll] Reached bottom, loading next page... (loaded:', loadedQuestionCount, 'total:', databaseQuestionTotal, ')');
                         const nextPage = currentPage + 1;
 
                     // Choose appropriate filters depending on which tab is active
@@ -1534,7 +1535,7 @@ export default function EditorDashboard({ onLogout }) {
                 observer.unobserve(currentRef);
             }
         };
-    }, [hasMoreQuestions, isLoadingMoreQuestions, currentPage, filterSubjectId, filterPaperId, filterTopicId, filterStatus, activeTab, editUsingPagination, editFilterType, searchQuery, databaseQuestionTotal, paginatedQuestions]);
+    }, [isLoadingMoreQuestions, currentPage, filterSubjectId, filterPaperId, filterTopicId, filterStatus, activeTab, editUsingPagination, editFilterType, searchQuery, databaseQuestionTotal, paginatedQuestions]);
 
     // Load subjects when component mounts or when subjects tab is active
     useEffect(() => {
