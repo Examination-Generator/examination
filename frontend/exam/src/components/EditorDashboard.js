@@ -1145,6 +1145,7 @@ export default function EditorDashboard({ onLogout }) {
         setIsLoadingStats(true);
         try {
             const stats = await questionService.getQuestionStats();
+            setTotalQuestionsCount(stats.total || 0);
             setQuestionStats({
                 totalQuestions: stats.total || 0,
                 activeQuestions: stats.active || 0,
@@ -1184,6 +1185,7 @@ export default function EditorDashboard({ onLogout }) {
                 try {
                     const stats = await questionService.getQuestionStats();
                     if (stats) {
+                        setTotalQuestionsCount(stats.total || 0);
                         setQuestionStats({
                             totalQuestions: stats.total || 0,
                             activeQuestions: stats.active || 0,
@@ -1488,13 +1490,15 @@ export default function EditorDashboard({ onLogout }) {
         }
     }, [activeTab, searchQuery]);
 
+    const databaseQuestionTotal = questionStats.totalQuestions || totalQuestionsCount;
+
     // OPTIMIZED: Intersection Observer for infinite scroll (loads next page when user scrolls near bottom)
     useEffect(() => {
         const observer = new IntersectionObserver(
             entries => {
                 const lastEntry = entries[0];
-                    if (lastEntry.isIntersecting && !isLoadingMoreQuestions && (hasMoreQuestions || (totalQuestionsCount > (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0)))) {
-                        // console.log('[Infinite Scroll] Reached bottom, loading next page... (hasMore:', hasMoreQuestions, 'fallbackAllowed:', (totalQuestionsCount > (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0)), ')');
+                    if (lastEntry.isIntersecting && !isLoadingMoreQuestions && (hasMoreQuestions || (databaseQuestionTotal > (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0)))) {
+                        // console.log('[Infinite Scroll] Reached bottom, loading next page... (hasMore:', hasMoreQuestions, 'fallbackAllowed:', (databaseQuestionTotal > (Array.isArray(paginatedQuestions) ? paginatedQuestions.length : 0)), ')');
                         const nextPage = currentPage + 1;
 
                     // Choose appropriate filters depending on which tab is active
@@ -1530,7 +1534,7 @@ export default function EditorDashboard({ onLogout }) {
                 observer.unobserve(currentRef);
             }
         };
-    }, [hasMoreQuestions, isLoadingMoreQuestions, currentPage, filterSubjectId, filterPaperId, filterTopicId, filterStatus, activeTab, editUsingPagination, editFilterType, searchQuery]);
+    }, [hasMoreQuestions, isLoadingMoreQuestions, currentPage, filterSubjectId, filterPaperId, filterTopicId, filterStatus, activeTab, editUsingPagination, editFilterType, searchQuery, databaseQuestionTotal, paginatedQuestions]);
 
     // Load subjects when component mounts or when subjects tab is active
     useEffect(() => {
