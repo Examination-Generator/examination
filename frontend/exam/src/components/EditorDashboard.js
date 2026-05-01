@@ -689,58 +689,38 @@ export default function EditorDashboard({ onLogout }) {
             return out;
         };
 
-        // Prefer the full cached dataset if available for instant filtering
-        const source = Array.isArray(allQuestions) && allQuestions.length > 0 ? allQuestions : savedQuestions;
-
-        // Edit tab should always use paginated loading so infinite scroll can continue past the first page.
-        const hasEditFilters = !!(editFilterSubject || editFilterPaper || editFilterTopic || (editFilterStatus && editFilterStatus !== 'all') || (editFilterType && editFilterType !== 'all'));
-        const usePagination = activeTab === 'edit' || hasEditFilters || (searchQuery && searchQuery.trim().length >= 2);
-
-        // If search text exists, do a fast local filter for immediate UX and also trigger server refetch
-        if (searchQuery && searchQuery.length >= 2) {
-            const local = localFilter(source, searchQuery);
-            setSearchResults(local);
-            setIsSearchingQuestions(true); // indicate loading while we refresh remote results
-            try { refetchQuestions(); } catch (e) { /* ignore */ }
-
-            // If using pagination for server-side search, load paginated results
-            if (usePagination) {
-                setEditUsingPagination(true);
-                setCurrentPage(1);
-                setPaginatedQuestions([]);
-                setHasMoreQuestions(true);
+        // Always use pagination for the edit tab; no local caching fallback
+        if (activeTab === 'edit') {
+            // For edit tab, always use paginated server-side loading
+            setEditUsingPagination(true);
+            setCurrentPage(1);
+            setPaginatedQuestions([]);
+            setHasMoreQuestions(true);
+            
+            if (searchQuery && searchQuery.length >= 2) {
+                // Search query: fetch paginated results from server
+                setIsSearchingQuestions(true);
                 const apiParams = resolveEditFiltersToApi();
                 apiParams.search = searchQuery.trim();
                 fetchPaginatedQuestions(1, apiParams);
             } else {
-                setEditUsingPagination(false);
-            }
-
-        } else {
-            // No text search: apply advanced filters locally and show results immediately
-            const local = localFilter(source, null);
-            setSearchResults(local);
-            setIsSearchingQuestions(false);
-
-            // If there are edit filters but no local cache, use server-side pagination
-            if (usePagination) {
-                setEditUsingPagination(true);
-                setCurrentPage(1);
-                setPaginatedQuestions([]);
-                setHasMoreQuestions(true);
+                // No search: fetch paginated results with filters
+                setIsSearchingQuestions(false);
                 const apiParams = resolveEditFiltersToApi();
+                if (editFilterType && editFilterType !== 'all') {
+                    if (editFilterType === 'nested') apiParams.isNested = 'true';
+                    if (editFilterType === 'standalone') apiParams.isNested = 'false';
+                }
                 fetchPaginatedQuestions(1, apiParams);
-            } else {
-                // Keep edit mode on the paginated source; this branch is only for non-edit tabs.
-                setEditUsingPagination(true);
             }
+        } else {
+            // Non-edit tabs: clear pagination
+            setEditUsingPagination(false);
+            setSearchResults([]);
         }
     }, [
         activeTab,
         searchQuery,
-        savedQuestions,
-        allQuestions,
-        refetchQuestions,
         editFilterSubject,
         editFilterPaper,
         editFilterTopic,
@@ -1196,20 +1176,7 @@ export default function EditorDashboard({ onLogout }) {
                 if (pollingRef.current) return; // avoid overlapping runs
                 pollingRef.current = true;
 
-                // Fetch fresh questions in the background and update the
-                // `allQuestions` cache only. We deliberately DO NOT call
-                // `fetchQuestions()` here because that function updates
-                // `savedQuestions` which may be reflecting the user's
-                // current filtered view — overwriting it would be disruptive.
-                try {
-                    const fresh = await questionService.getAllQuestions({ limit: 10000 });
-                    if (Array.isArray(fresh)) {
-                        setAllQuestions(fresh);
-                        console.debug('[poll] updated allQuestions (background)', { count: fresh.length });
-                    }
-                } catch (err) {
-                    console.warn('[poll] failed to fetch questions in background:', err);
-                }
+                // Polling no longer fetches the full question list; pagination handles on-demand loading.
 
                 // Fetch stats in background without toggling the visible
                 // loading flag so cards don't show a spinner or otherwise
@@ -1418,70 +1385,51 @@ export default function EditorDashboard({ onLogout }) {
         }
     };
 
-    // Fetch statistics and questions when statistics tab is active or when refresh triggered
+    // Fetch statistics when statistics tab is active or when refresh triggered
     useEffect(() => {
         if (activeTab === 'stats') {
             fetchStatistics();
-            // If questions haven't been loaded yet, fetch them once and share across tabs
-            if (!Array.isArray(allQuestions) || allQuestions.length === 0) {
-                fetchQuestions({ limit: 10000 }).then(questions => {
-                    setAllQuestions(questions || []);
-                    setSavedQuestions(questions || []);
-                });
-            } else {
-                // reuse already-loaded questions
-                setSavedQuestions(allQuestions);
-            }
-
             // Load subjects only if not already present
             fetchSubjects();
         }
     }, [activeTab, statsRefreshTrigger]);
 
-    // Initial load: fetch questions and subjects once and share across Edit and Stats tabs
+    // Initial load: only load subjects; questions are fetched on-demand via pagination
     useEffect(() => {
         let mounted = true;
         const initialLoad = async () => {
             try {
                 // Load subjects (for dropdowns)
                 await loadDynamicSubjects();
-
-                // Load all questions once (used by stats and edit lists)
-                const questions = await fetchQuestions({ limit: 10000 });
-                if (!mounted) return;
-                setAllQuestions(questions || []);
-                // Only set savedQuestions if none set yet (avoid overwriting user filters)
-                setSavedQuestions(prev => (Array.isArray(prev) && prev.length > 0 ? prev : (questions || [])));
             } catch (err) {
-                // console.error('Initial load failed:', err);
+                console.warn('Initial subject load failed:', err);
             }
         };
         initialLoad();
         return () => { mounted = false; };
     }, []);
 
-    // Refetch questions when filters change in statistics tab (only affects question list, not cards)
+    // Load paginated questions for stats tab when filters change
     useEffect(() => {
         if (activeTab === 'stats') {
-            const filters = {};
-            // Use IDs instead of names for API calls
-            if (filterSubjectId) filters.subject = filterSubjectId;
-            if (filterPaperId) filters.paper = filterPaperId;
-            if (filterTopicId) filters.topic = filterTopicId;
-            if (filterStatus === 'active') filters.isActive = 'true';
-            if (filterStatus === 'inactive') filters.isActive = 'false';
+            setCurrentPage(1);
+            setPaginatedQuestions([]);
+            setHasMoreQuestions(true);
             
-            // Only fetch if filters are applied
-            if (Object.keys(filters).length > 0) {
-                fetchQuestions(filters).then(questions => {
-                    setSavedQuestions(questions || []);
-                });
-            } else {
-                // No filters - show all questions
-                setSavedQuestions(allQuestions);
-            }
+            // Load first page with current filters for stats tab
+            const filterParams = {
+                page: 1,
+                limit: 50
+            };
+            if (filterSubjectId) filterParams.subject = filterSubjectId;
+            if (filterPaperId) filterParams.paper = filterPaperId;
+            if (filterTopicId) filterParams.topic = filterTopicId;
+            if (filterStatus === 'active') filterParams.isActive = 'true';
+            if (filterStatus === 'inactive') filterParams.isActive = 'false';
+            
+            fetchPaginatedQuestions(1, filterParams);
         }
-    }, [filterSubjectId, filterPaperId, filterTopicId, filterStatus, activeTab, allQuestions]);
+    }, [filterSubjectId, filterPaperId, filterTopicId, filterStatus, activeTab]);
 
     // // OPTIMIZED: Initialize pagination for statistics tab when it loads
     useEffect(() => {
