@@ -131,6 +131,11 @@ export default function EditorDashboard({ onLogout }) {
     const answerCanvasRef = useRef(null);
     const [isAnswerDrawing, setIsAnswerDrawing] = useState(false);
     const [answerDrawingTool, setAnswerDrawingTool] = useState('pen');
+    const [isAnswerLassoErasing, setIsAnswerLassoErasing] = useState(false);
+    const [answerLassoRect, setAnswerLassoRect] = useState(null);
+    const [answerContentBounds, setAnswerContentBounds] = useState(null);
+    const [showAnswerBoundsOverlay, setShowAnswerBoundsOverlay] = useState(false);
+    const extractAnswerImageInputRef = useRef(null);
     const [answerDrawingColor, setAnswerDrawingColor] = useState('#000000');
     const [answerDrawingWidth, setAnswerDrawingWidth] = useState(2);
     const [answerGraphBoxesX, setAnswerGraphBoxesX] = useState(MAX_GRAPH_BOXES_X);
@@ -2680,15 +2685,27 @@ export default function EditorDashboard({ onLogout }) {
     }, [showEditQuestionDrawing, showEditQuestionGraphPaper, editQuestionGraphBoxesX, editQuestionGraphBoxesY]);
 
     const startEditQuestionDrawing = (e) => {
-        setIsEditQuestionDrawing(true);
         const canvas = editQuestionCanvasRef.current;
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+
+        if (editQuestionDrawingTool === 'select') {
+            setSelectedStrokeIdx(null);
+            setIsDraggingStroke(false);
+            setIsEditQuestionDrawing(false);
+            return;
+        }
+
+        if (editQuestionDrawingTool === 'lasso-erase') {
+            setIsLassoErasing(true);
+            setLassoRect({ x1: x, y1: y, x2: x, y2: y });
+            return;
+        }
+
+        setIsEditQuestionDrawing(true);
         setEditQuestionStartPos({ x, y });
-        
         const ctx = canvas.getContext('2d');
-        
         if (editQuestionDrawingTool === 'pen' || editQuestionDrawingTool === 'eraser') {
             ctx.beginPath();
             ctx.moveTo(x, y);
@@ -2699,64 +2716,59 @@ export default function EditorDashboard({ onLogout }) {
     };
 
     const drawEditQuestion = (e) => {
-        if (!isEditQuestionDrawing) return;
         const canvas = editQuestionCanvasRef.current;
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+
+        if (isLassoErasing) {
+            setLassoRect(prev => prev ? { ...prev, x2: x, y2: y } : null);
+            return;
+        }
+        if (!isEditQuestionDrawing) return;
         const ctx = canvas.getContext('2d');
-        
         if (editQuestionDrawingTool === 'pen') {
             ctx.strokeStyle = editQuestionDrawingColor;
-            ctx.lineWidth = editQuestionDrawingWidth;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.lineTo(x, y);
-            ctx.stroke();
+            ctx.lineWidth   = editQuestionDrawingWidth;
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.lineTo(x, y); ctx.stroke();
         } else if (editQuestionDrawingTool === 'eraser') {
             ctx.strokeStyle = 'white';
-            ctx.lineWidth = 20;
-            ctx.lineCap = 'round';
-            ctx.lineTo(x, y);
-            ctx.stroke();
+            ctx.lineWidth   = 20;
+            ctx.lineCap     = 'round';
+            ctx.lineTo(x, y); ctx.stroke();
         }
     };
 
     const stopEditQuestionDrawing = (e) => {
+        const canvas = editQuestionCanvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        if (isLassoErasing) {
+            setIsLassoErasing(false);
+            if (lassoRect) { applyLassoErase(canvas, lassoRect); setLassoRect(null); }
+            return;
+        }
         if (!isEditQuestionDrawing) return;
         setIsEditQuestionDrawing(false);
-        
-        if (editQuestionDrawingTool === 'line' || editQuestionDrawingTool === 'rectangle' || editQuestionDrawingTool === 'circle') {
-            const canvas = editQuestionCanvasRef.current;
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+
+        if (['line','rectangle','circle'].includes(editQuestionDrawingTool)) {
             const ctx = canvas.getContext('2d');
-            
             ctx.strokeStyle = editQuestionDrawingColor;
-            ctx.lineWidth = editQuestionDrawingWidth;
-            ctx.lineCap = 'round';
-            
+            ctx.lineWidth   = editQuestionDrawingWidth;
+            ctx.lineCap     = 'round';
             if (editQuestionDrawingTool === 'line') {
-                ctx.beginPath();
-                ctx.moveTo(editQuestionStartPos.x, editQuestionStartPos.y);
-                ctx.lineTo(x, y);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(editQuestionStartPos.x, editQuestionStartPos.y); ctx.lineTo(x, y); ctx.stroke();
             } else if (editQuestionDrawingTool === 'rectangle') {
-                ctx.beginPath();
-                const width = x - editQuestionStartPos.x;
-                const height = y - editQuestionStartPos.y;
-                ctx.strokeRect(editQuestionStartPos.x, editQuestionStartPos.y, width, height);
+                ctx.beginPath(); ctx.strokeRect(editQuestionStartPos.x, editQuestionStartPos.y, x - editQuestionStartPos.x, y - editQuestionStartPos.y);
             } else if (editQuestionDrawingTool === 'circle') {
-                ctx.beginPath();
-                const radiusX = Math.abs(x - editQuestionStartPos.x) / 2;
-                const radiusY = Math.abs(y - editQuestionStartPos.y) / 2;
-                const centerX = editQuestionStartPos.x + (x - editQuestionStartPos.x) / 2;
-                const centerY = editQuestionStartPos.y + (y - editQuestionStartPos.y) / 2;
-                ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-                ctx.stroke();
+                const rx = Math.abs(x - editQuestionStartPos.x) / 2, ry = Math.abs(y - editQuestionStartPos.y) / 2;
+                ctx.beginPath(); ctx.ellipse(editQuestionStartPos.x + (x-editQuestionStartPos.x)/2, editQuestionStartPos.y + (y-editQuestionStartPos.y)/2, rx, ry, 0, 0, 2*Math.PI); ctx.stroke();
             }
         }
+        if (showBoundsOverlay) setContentBounds(getContentBounds(canvas));
     };
 
     const clearEditQuestionCanvas = () => {
@@ -2865,82 +2877,90 @@ export default function EditorDashboard({ onLogout }) {
     }, [showEditAnswerDrawing, showEditAnswerGraphPaper, editAnswerGraphBoxesX, editAnswerGraphBoxesY]);
 
     const startEditAnswerDrawing = (e) => {
-        setIsEditAnswerDrawing(true);
         const canvas = editAnswerCanvasRef.current;
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+
+        if (editAnswerDrawingTool === 'select') {
+            setSelectedStrokeIdx(null);
+            setIsDraggingStroke(false);
+            setIsEditAnswerDrawing(false);
+            return;
+        }
+
+        if (editAnswerDrawingTool === 'lasso-erase') {
+            setIsAnswerLassoErasing(true);
+            setAnswerLassoRect({ x1: x, y1: y, x2: x, y2: y });
+            return;
+        }
+
+        setIsEditAnswerDrawing(true);
         setEditAnswerStartPos({ x, y });
-        
         const ctx = canvas.getContext('2d');
-        ctx.strokeStyle = editAnswerDrawingColor;
-        ctx.lineWidth = editAnswerDrawingWidth;
-        ctx.lineCap = 'round';
-        
         if (editAnswerDrawingTool === 'pen' || editAnswerDrawingTool === 'eraser') {
             ctx.beginPath();
             ctx.moveTo(x, y);
+            ctx.strokeStyle = editAnswerDrawingTool === 'eraser' ? 'white' : editAnswerDrawingColor;
+            ctx.lineWidth = editAnswerDrawingTool === 'eraser' ? 20 : editAnswerDrawingWidth;
+            ctx.lineCap = 'round';
         }
     };
 
     const drawEditAnswer = (e) => {
-        if (!isEditAnswerDrawing) return;
-        
         const canvas = editAnswerCanvasRef.current;
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+
+        if (isAnswerLassoErasing) {
+            setAnswerLassoRect(prev => prev ? { ...prev, x2: x, y2: y } : null);
+            return;
+        }
+        if (!isEditAnswerDrawing) return;
         const ctx = canvas.getContext('2d');
-        
         if (editAnswerDrawingTool === 'pen') {
             ctx.strokeStyle = editAnswerDrawingColor;
-            ctx.lineWidth = editAnswerDrawingWidth;
-            ctx.lineTo(x, y);
-            ctx.stroke();
+            ctx.lineWidth   = editAnswerDrawingWidth;
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.lineTo(x, y); ctx.stroke();
         } else if (editAnswerDrawingTool === 'eraser') {
-            ctx.globalCompositeOperation = 'destination-out';
-            ctx.lineWidth = editAnswerDrawingWidth * 2;
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth   = 20;
+            ctx.lineCap     = 'round';
+            ctx.lineTo(x, y); ctx.stroke();
         }
     };
 
     const stopEditAnswerDrawing = (e) => {
+        const canvas = editAnswerCanvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        if (isAnswerLassoErasing) {
+            setIsAnswerLassoErasing(false);
+            if (answerLassoRect) { applyLassoErase(canvas, answerLassoRect); setAnswerLassoRect(null); }
+            return;
+        }
         if (!isEditAnswerDrawing) return;
         setIsEditAnswerDrawing(false);
-        
-        if (editAnswerDrawingTool === 'line' || editAnswerDrawingTool === 'rectangle' || editAnswerDrawingTool === 'circle') {
-            const canvas = editAnswerCanvasRef.current;
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+
+        if (['line','rectangle','circle'].includes(editAnswerDrawingTool)) {
             const ctx = canvas.getContext('2d');
-            
             ctx.strokeStyle = editAnswerDrawingColor;
-            ctx.lineWidth = editAnswerDrawingWidth;
-            ctx.lineCap = 'round';
-            
+            ctx.lineWidth   = editAnswerDrawingWidth;
+            ctx.lineCap     = 'round';
             if (editAnswerDrawingTool === 'line') {
-                ctx.beginPath();
-                ctx.moveTo(editAnswerStartPos.x, editAnswerStartPos.y);
-                ctx.lineTo(x, y);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(editAnswerStartPos.x, editAnswerStartPos.y); ctx.lineTo(x, y); ctx.stroke();
             } else if (editAnswerDrawingTool === 'rectangle') {
-                ctx.beginPath();
-                const width = x - editAnswerStartPos.x;
-                const height = y - editAnswerStartPos.y;
-                ctx.strokeRect(editAnswerStartPos.x, editAnswerStartPos.y, width, height);
+                ctx.beginPath(); ctx.strokeRect(editAnswerStartPos.x, editAnswerStartPos.y, x - editAnswerStartPos.x, y - editAnswerStartPos.y);
             } else if (editAnswerDrawingTool === 'circle') {
-                ctx.beginPath();
-                const radiusX = Math.abs(x - editAnswerStartPos.x) / 2;
-                const radiusY = Math.abs(y - editAnswerStartPos.y) / 2;
-                const centerX = editAnswerStartPos.x + (x - editAnswerStartPos.x) / 2;
-                const centerY = editAnswerStartPos.y + (y - editAnswerStartPos.y) / 2;
-                ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-                ctx.stroke();
+                const rx = Math.abs(x - editAnswerStartPos.x) / 2, ry = Math.abs(y - editAnswerStartPos.y) / 2;
+                ctx.beginPath(); ctx.ellipse(editAnswerStartPos.x + (x-editAnswerStartPos.x)/2, editAnswerStartPos.y + (y-editAnswerStartPos.y)/2, rx, ry, 0, 0, 2*Math.PI); ctx.stroke();
             }
         }
+        if (showAnswerBoundsOverlay) setAnswerContentBounds(getContentBounds(canvas));
     };
 
     const clearEditAnswerCanvas = () => {
@@ -3737,82 +3757,90 @@ useEffect(() => {
     }, [showAnswerDrawingTool, showAnswerGraphPaper, answerGraphBoxesX, answerGraphBoxesY]);
     
     const startAnswerDrawing = (e) => {
-        setIsAnswerDrawing(true);
         const canvas = answerCanvasRef.current;
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+
+        if (answerDrawingTool === 'select') {
+            setSelectedStrokeIdx(null);
+            setIsDraggingStroke(false);
+            setIsAnswerDrawing(false);
+            return;
+        }
+
+        if (answerDrawingTool === 'lasso-erase') {
+            setIsAnswerLassoErasing(true);
+            setAnswerLassoRect({ x1: x, y1: y, x2: x, y2: y });
+            return;
+        }
+
+        setIsAnswerDrawing(true);
         setStartPos({ x, y });
-        
         const ctx = canvas.getContext('2d');
-        ctx.strokeStyle = answerDrawingColor;
-        ctx.lineWidth = answerDrawingWidth;
-        ctx.lineCap = 'round';
-        
         if (answerDrawingTool === 'pen' || answerDrawingTool === 'eraser') {
             ctx.beginPath();
             ctx.moveTo(x, y);
+            ctx.strokeStyle = answerDrawingTool === 'eraser' ? 'white' : answerDrawingColor;
+            ctx.lineWidth   = answerDrawingTool === 'eraser' ? 20 : answerDrawingWidth;
+            ctx.lineCap     = 'round';
         }
     };
     
     const drawAnswer = (e) => {
-        if (!isAnswerDrawing) return;
-        
         const canvas = answerCanvasRef.current;
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
+
+        if (isAnswerLassoErasing) {
+            setAnswerLassoRect(prev => prev ? { ...prev, x2: x, y2: y } : null);
+            return;
+        }
+        if (!isAnswerDrawing) return;
         const ctx = canvas.getContext('2d');
-        
         if (answerDrawingTool === 'pen') {
             ctx.strokeStyle = answerDrawingColor;
-            ctx.lineWidth = answerDrawingWidth;
-            ctx.lineTo(x, y);
-            ctx.stroke();
+            ctx.lineWidth   = answerDrawingWidth;
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.lineTo(x, y); ctx.stroke();
         } else if (answerDrawingTool === 'eraser') {
-            ctx.globalCompositeOperation = 'destination-out';
-            ctx.lineWidth = answerDrawingWidth * 2;
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth   = 20;
+            ctx.lineCap     = 'round';
+            ctx.lineTo(x, y); ctx.stroke();
         }
     };
     
     const stopAnswerDrawing = (e) => {
+        const canvas = answerCanvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        if (isAnswerLassoErasing) {
+            setIsAnswerLassoErasing(false);
+            if (answerLassoRect) { applyLassoErase(canvas, answerLassoRect); setAnswerLassoRect(null); }
+            return;
+        }
         if (!isAnswerDrawing) return;
         setIsAnswerDrawing(false);
-        
-        if (answerDrawingTool === 'line' || answerDrawingTool === 'rectangle' || answerDrawingTool === 'circle') {
-            const canvas = answerCanvasRef.current;
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+
+        if (['line','rectangle','circle'].includes(answerDrawingTool)) {
             const ctx = canvas.getContext('2d');
-            
             ctx.strokeStyle = answerDrawingColor;
-            ctx.lineWidth = answerDrawingWidth;
-            ctx.lineCap = 'round';
-            
+            ctx.lineWidth   = answerDrawingWidth;
+            ctx.lineCap     = 'round';
             if (answerDrawingTool === 'line') {
-                ctx.beginPath();
-                ctx.moveTo(startPos.x, startPos.y);
-                ctx.lineTo(x, y);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(startPos.x, startPos.y); ctx.lineTo(x, y); ctx.stroke();
             } else if (answerDrawingTool === 'rectangle') {
-                ctx.beginPath();
-                const width = x - startPos.x;
-                const height = y - startPos.y;
-                ctx.strokeRect(startPos.x, startPos.y, width, height);
+                ctx.beginPath(); ctx.strokeRect(startPos.x, startPos.y, x - startPos.x, y - startPos.y);
             } else if (answerDrawingTool === 'circle') {
-                ctx.beginPath();
-                const radiusX = Math.abs(x - startPos.x) / 2;
-                const radiusY = Math.abs(y - startPos.y) / 2;
-                const centerX = startPos.x + (x - startPos.x) / 2;
-                const centerY = startPos.y + (y - startPos.y) / 2;
-                ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-                ctx.stroke();
+                const rx = Math.abs(x - startPos.x) / 2, ry = Math.abs(y - startPos.y) / 2;
+                ctx.beginPath(); ctx.ellipse(startPos.x + (x-startPos.x)/2, startPos.y + (y-startPos.y)/2, rx, ry, 0, 0, 2*Math.PI); ctx.stroke();
             }
         }
+        if (showAnswerBoundsOverlay) setAnswerContentBounds(getContentBounds(canvas));
     };
     
     const clearAnswerCanvas = () => {
