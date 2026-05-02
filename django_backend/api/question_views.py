@@ -1504,7 +1504,7 @@ def question_statistics_only(request):
         ]
 
         # Breakdown by paper (groups under subject->paper)
-        by_paper_qs = queryset.values('subject__name', 'paper__id', 'paper__name').annotate(
+        by_paper_qs = queryset.values('subject__id', 'subject__name', 'paper__id', 'paper__name').annotate(
             total=Count('id'),
             active=Count('id', filter=Q(is_active=True)),
             inactive=Count('id', filter=Q(is_active=False))
@@ -1512,6 +1512,7 @@ def question_statistics_only(request):
 
         by_paper = [
             {
+                'subjectId': str(item['subject__id']) if item['subject__id'] is not None else None,
                 'subject': item['subject__name'] or 'Unknown',
                 'paperId': str(item['paper__id']) if item['paper__id'] is not None else None,
                 'paper': item['paper__name'] or 'Unknown',
@@ -1522,7 +1523,7 @@ def question_statistics_only(request):
         ]
 
         # Breakdown by topic (total, active, inactive); include marks distribution optionally
-        by_topic_qs = queryset.values('subject__name', 'paper__name', 'topic__id', 'topic__name').annotate(
+        by_topic_qs = queryset.values('subject__id', 'subject__name', 'paper__id', 'paper__name', 'topic__id', 'topic__name').annotate(
             total=Count('id'),
             active=Count('id', filter=Q(is_active=True)),
             inactive=Count('id', filter=Q(is_active=False))
@@ -1530,7 +1531,9 @@ def question_statistics_only(request):
 
         by_topic = [
             {
+                'subjectId': str(item['subject__id']) if item['subject__id'] is not None else None,
                 'subject': item['subject__name'] or 'Unknown',
+                'paperId': str(item['paper__id']) if item['paper__id'] is not None else None,
                 'paper': item['paper__name'] or 'Unknown',
                 'topicId': str(item['topic__id']) if item['topic__id'] is not None else None,
                 'topicName': item['topic__name'] or 'Unknown',
