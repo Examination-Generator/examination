@@ -10109,9 +10109,6 @@ useEffect(() => {
                             ) : editUsingPagination ? (
                                 <div className="space-y-3">
                                     <p className="text-sm text-gray-600 mb-3">Showing {loadedQuestionCount} / {databaseQuestionTotal || totalQuestionsCount} question(s)</p>
-                                    <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded px-2 py-1">
-                                        Trace: page={currentPage} | loaded={loadedQuestionCount} | dbTotal={databaseQuestionTotal || 0} | shouldLoadMore={databaseQuestionTotal > loadedQuestionCount ? 'true' : 'false'} | hasMoreFlag={hasMoreQuestions ? 'true' : 'false'} | loading={isLoadingMoreQuestions ? 'true' : 'false'}
-                                    </p>
                                     <div className="max-h-96 overflow-y-auto space-y-2">
                                         {paginatedQuestions.map((question) => {
                                             const questionText = getQuestionText(question);
@@ -11809,9 +11806,6 @@ useEffect(() => {
                                     Questions List ({loadedQuestionCount} / {databaseQuestionTotal || totalQuestionsCount})
                                     {isLoadingMoreQuestions && <span className="ml-2 text-sm text-gray-500">Loading...</span>}
                                 </h3>
-                                <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded px-2 py-1 mb-3">
-                                    Trace: page={currentPage} | loaded={loadedQuestionCount} | dbTotal={databaseQuestionTotal || 0} | shouldLoadMore={databaseQuestionTotal > loadedQuestionCount ? 'true' : 'false'} | hasMoreFlag={hasMoreQuestions ? 'true' : 'false'} | loading={isLoadingMoreQuestions ? 'true' : 'false'}
-                                </p>
                                 {paginatedQuestions.length === 0 && !isLoadingMoreQuestions ? (
                                     <div className="text-center py-8 text-gray-500">
                                         <p>No questions found</p>
