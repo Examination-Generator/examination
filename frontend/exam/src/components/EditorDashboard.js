@@ -77,10 +77,24 @@ export default function EditorDashboard({ onLogout }) {
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [startPos, setStartPos] = useState({ x: 0, y: 0 }); // For shape drawing
+
+    // Enhanced drawing state 
+    const [strokeHistory, setStrokeHistory] = useState([]);       // array of {type, points, color, width, tool}
+    const [redoStack, setRedoStack] = useState([]);
+    const [selectedStrokeIdx, setSelectedStrokeIdx] = useState(null);
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const [isDraggingStroke, setIsDraggingStroke] = useState(false);
+    const [contentBounds, setContentBounds] = useState(null);     // { x, y, w, h } tight crop
+    const [showBoundsOverlay, setShowBoundsOverlay] = useState(false);
+    const [extractedImageData, setExtractedImageData] = useState(null); // from image upload
+    const [isLassoErasing, setIsLassoErasing] = useState(false);
+    const [lassoRect, setLassoRect] = useState(null);             // { x1, y1, x2, y2 }
+    const extractImageInputRef = useRef(null);
     
     // Inline images for question
     const [questionInlineImages, setQuestionInlineImages] = useState([]);
     const [questionImagePositions, setQuestionImagePositions] = useState({}); // { imageId: { x, y } }
+
     
     // Answer section states
     const [uploadedAnswerImages, setUploadedAnswerImages] = useState([]);
@@ -3431,94 +3445,216 @@ useEffect(() => {
         ctx.restore();
     };
 
+    //  TIGHT BOUNDS 
+    const getContentBounds = (canvas, padding = 8) => {
+        const ctx = canvas.getContext('2d');
+        const { width, height } = canvas;
+        const data = ctx.getImageData(0, 0, width, height).data;
+        let minX = width, minY = height, maxX = 0, maxY = 0, found = false;
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const alpha = data[(y * width + x) * 4 + 3];
+                const r = data[(y * width + x) * 4];
+                const g = data[(y * width + x) * 4 + 1];
+                const b = data[(y * width + x) * 4 + 2];
+                // skip white/near-white background pixels
+                const isBackground = r > 240 && g > 240 && b > 240;
+                if (alpha > 20 && !isBackground) {
+                    minX = Math.min(minX, x); minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+                    found = true;
+                }
+            }
+        }
+        if (!found) return null;
+        return {
+            x: Math.max(0, minX - padding),
+            y: Math.max(0, minY - padding),
+            w: Math.min(width, maxX - minX + padding * 2),
+            h: Math.min(height, maxY - minY + padding * 2)
+        };
+    };
+
+    const cropToContent = (canvas) => {
+        const bounds = getContentBounds(canvas);
+        if (!bounds) return null;
+        const scale = A4_CANVAS_SCALE;
+        const cropped = document.createElement('canvas');
+        cropped.width  = bounds.w;
+        cropped.height = bounds.h;
+        const ctx = cropped.getContext('2d');
+        ctx.drawImage(canvas,
+            bounds.x, bounds.y, bounds.w, bounds.h,
+            0, 0, bounds.w, bounds.h
+        );
+        // Return pixel dimensions for the placeholder (divided by scale so they're CSS px)
+        return {
+            dataUrl: cropped.toDataURL('image/png', 1.0),
+            width:   Math.round(bounds.w / scale),
+            height:  Math.round(bounds.h / scale)
+        };
+    };
+
+    // ─────────── IMAGE → DRAWING EXTRACTION ───────────
+    const handleExtractImageUpload = (e, section = 'question') => {
+        const file = e.target.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const img = new window.Image();
+            img.onload = () => {
+                // Determine canvas to draw into
+                const canvas = section === 'question' ? canvasRef.current : answerCanvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                // Fill white first so extraction diff works
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, A4_DISPLAY_WIDTH_PX, A4_DISPLAY_HEIGHT_PX);
+                // Draw image scaled to canvas, preserve aspect
+                const scale = Math.min(
+                    A4_DISPLAY_WIDTH_PX / img.width,
+                    A4_DISPLAY_HEIGHT_PX / img.height
+                );
+                const dw = img.width * scale;
+                const dh = img.height * scale;
+                const dx = (A4_DISPLAY_WIDTH_PX - dw) / 2;
+                const dy = (A4_DISPLAY_HEIGHT_PX - dh) / 2;
+                ctx.drawImage(img, dx, dy, dw, dh);
+
+                // ── Extract non-white pixels onto transparent background ──
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const d = imgData.data;
+                for (let i = 0; i < d.length; i += 4) {
+                    const r = d[i], g = d[i+1], b = d[i+2];
+                    if (r > 235 && g > 235 && b > 235) {
+                        d[i+3] = 0; // make white transparent
+                    }
+                }
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.putImageData(imgData, 0, 0);
+
+                setExtractedImageData({ section, bounds: getContentBounds(canvas) });
+                showSuccess('Image loaded! Drawing extracted. Use "Reframe" to crop tight, or draw over it.');
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    };
+
+    // LASSO-ERASE 
+    const applyLassoErase = (canvas, rect) => {
+        if (!rect) return;
+        const ctx = canvas.getContext('2d');
+        const x = Math.min(rect.x1, rect.x2);
+        const y = Math.min(rect.y1, rect.y2);
+        const w = Math.abs(rect.x2 - rect.x1);
+        const h = Math.abs(rect.y2 - rect.y1);
+        ctx.clearRect(x, y, w, h);
+        ctx.fillStyle = 'white';
+        ctx.fillRect(x, y, w, h);
+    };
+
+    // REFRAME (shows tight bounds overlay)
+    const handleReframe = (canvas) => {
+        const bounds = getContentBounds(canvas);
+        if (!bounds) { showError('Nothing to reframe — canvas appears empty.'); return; }
+        setContentBounds(bounds);
+        setShowBoundsOverlay(true);
+        showSuccess(`Content found: ${bounds.w}×${bounds.h}px. Click "Crop to Frame" to save with tight bounds.`);
+    };
+
     const startDrawing = (e) => {
-        setIsDrawing(true);
         const canvas = canvasRef.current;
-        const rect = canvas.getBoundingClientRect();
+        const rect   = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        
-        // Store starting position for shapes
+
+        if (drawingTool === 'select') {
+            // Hit-test: find if click is inside existing stroke bounding-box
+            // (simple approach: find last stroke whose bounds contain x,y)
+            setSelectedStrokeIdx(null);
+            setIsDraggingStroke(false);
+            setIsDrawing(false);
+            return;
+        }
+
+        if (drawingTool === 'lasso-erase') {
+            setIsLassoErasing(true);
+            setLassoRect({ x1: x, y1: y, x2: x, y2: y });
+            return;
+        }
+
+        setIsDrawing(true);
         setStartPos({ x, y });
-        
         const ctx = canvas.getContext('2d');
-        
-        // For freehand pen and eraser, start path immediately
         if (drawingTool === 'pen' || drawingTool === 'eraser') {
             ctx.beginPath();
             ctx.moveTo(x, y);
             ctx.strokeStyle = drawingTool === 'eraser' ? 'white' : drawingColor;
-            ctx.lineWidth = drawingTool === 'eraser' ? 20 : drawingWidth;
-            ctx.lineCap = 'round';
+            ctx.lineWidth   = drawingTool === 'eraser' ? 20 : drawingWidth;
+            ctx.lineCap     = 'round';
         }
     };
 
     const draw = (e) => {
-        if (!isDrawing) return;
         const canvas = canvasRef.current;
-        const rect = canvas.getBoundingClientRect();
+        const rect   = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        const ctx = canvas.getContext('2d');
-        
-        if (drawingTool === 'pen') {
-            // Freehand drawing with smoothing
-            ctx.strokeStyle = drawingColor;
-            ctx.lineWidth = drawingWidth;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.lineTo(x, y);
-            ctx.stroke();
-        } else if (drawingTool === 'eraser') {
-            // Eraser (white pen)
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 20;
-            ctx.lineCap = 'round';
-            ctx.lineTo(x, y);
-            ctx.stroke();
+
+        if (isLassoErasing) {
+            setLassoRect(prev => prev ? { ...prev, x2: x, y2: y } : null);
+            return;
         }
-        // For shapes (line, rectangle, circle), drawing happens on mouseup
+        if (!isDrawing) return;
+        const ctx = canvas.getContext('2d');
+        if (drawingTool === 'pen') {
+            ctx.strokeStyle = drawingColor;
+            ctx.lineWidth   = drawingWidth;
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.lineTo(x, y); ctx.stroke();
+        } else if (drawingTool === 'eraser') {
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth   = 20;
+            ctx.lineCap     = 'round';
+            ctx.lineTo(x, y); ctx.stroke();
+        }
     };
 
     const stopDrawing = (e) => {
+        const canvas = canvasRef.current;
+        const rect   = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        if (isLassoErasing) {
+            setIsLassoErasing(false);
+            if (lassoRect) { applyLassoErase(canvas, lassoRect); setLassoRect(null); }
+            return;
+        }
         if (!isDrawing) return;
         setIsDrawing(false);
-        
-        // For shapes, draw them when mouse is released
-        if (drawingTool === 'line' || drawingTool === 'rectangle' || drawingTool === 'circle') {
-            const canvas = canvasRef.current;
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+
+        if (['line','rectangle','circle'].includes(drawingTool)) {
             const ctx = canvas.getContext('2d');
-            
             ctx.strokeStyle = drawingColor;
-            ctx.lineWidth = drawingWidth;
-            ctx.lineCap = 'round';
-            
+            ctx.lineWidth   = drawingWidth;
+            ctx.lineCap     = 'round';
             if (drawingTool === 'line') {
-                // Draw straight line from start to end
-                ctx.beginPath();
-                ctx.moveTo(startPos.x, startPos.y);
-                ctx.lineTo(x, y);
-                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(startPos.x, startPos.y); ctx.lineTo(x, y); ctx.stroke();
             } else if (drawingTool === 'rectangle') {
-                // Draw rectangle
-                ctx.beginPath();
-                const width = x - startPos.x;
-                const height = y - startPos.y;
-                ctx.strokeRect(startPos.x, startPos.y, width, height);
+                ctx.beginPath(); ctx.strokeRect(startPos.x, startPos.y, x - startPos.x, y - startPos.y);
             } else if (drawingTool === 'circle') {
-                // Draw circle/ellipse
-                ctx.beginPath();
-                const radiusX = Math.abs(x - startPos.x) / 2;
-                const radiusY = Math.abs(y - startPos.y) / 2;
-                const centerX = startPos.x + (x - startPos.x) / 2;
-                const centerY = startPos.y + (y - startPos.y) / 2;
-                ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-                ctx.stroke();
+                const rx = Math.abs(x - startPos.x) / 2, ry = Math.abs(y - startPos.y) / 2;
+                ctx.beginPath(); ctx.ellipse(startPos.x + (x-startPos.x)/2, startPos.y + (y-startPos.y)/2, rx, ry, 0, 0, 2*Math.PI); ctx.stroke();
             }
         }
+        // Auto-update bounds overlay if open
+        if (showBoundsOverlay) setContentBounds(getContentBounds(canvas));
     };
 
     const clearCanvas = () => {
@@ -3532,38 +3668,44 @@ useEffect(() => {
         }
     };
 
-    const saveDrawing = () => {
+    const saveDrawing = (useTightBounds = false) => {
         const canvas = canvasRef.current;
         if (showGraphPaper) {
             const graphId = Date.now() + Math.random();
-            const graphPlaceholder = `\n[GRAPH:${graphId}:${graphBoxesX}x${graphBoxesY}cm]\n`;
-            setQuestionText(prev => prev + graphPlaceholder);
+            setQuestionText(prev => prev + `\n[GRAPH:${graphId}:${graphBoxesX}x${graphBoxesY}cm]\n`);
             setShowDrawingTool(false);
-            showSuccess('✅ Graph inserted at exact cm size!');
+            showSuccess('Graph inserted at exact cm size!');
             return;
         }
 
-        const { width, height } = getCanvasExportDimensions(showGraphPaper, graphBoxesX, graphBoxesY);
-        const imageUrl = exportCanvasImage(canvas, width, height);
+        let imageUrl, finalWidth, finalHeight;
+        if (useTightBounds) {
+            const cropped = cropToContent(canvas);
+            if (!cropped) { showError('Canvas appears empty — nothing to save.'); return; }
+            imageUrl    = cropped.dataUrl;
+            finalWidth  = cropped.width;
+            finalHeight = cropped.height;
+        } else {
+            const { width, height } = getCanvasExportDimensions(showGraphPaper, graphBoxesX, graphBoxesY);
+            imageUrl    = exportCanvasImage(canvas, width, height);
+            finalWidth  = width;
+            finalHeight = height;
+        }
+
         const newImage = {
             id: Date.now(),
             url: imageUrl,
-            name: 'Drawing_' + new Date().getTime() + '.png',
-            width,
-            height,
+            name: 'Drawing_' + Date.now() + '.png',
+            width: finalWidth, height: finalHeight,
             position: questionText.length
         };
-        
-        // Add to inline images and insert placeholder immediately
         setQuestionInlineImages(prev => [...prev, newImage]);
         setUploadedImages(prev => [...prev, newImage]);
-        
-        // Insert image placeholder immediately
-        const imagePlaceholder = `\n[IMAGE:${newImage.id}:${newImage.width}x${newImage.height}px]\n`;
-        setQuestionText(prev => prev + imagePlaceholder);
-        
+        setQuestionText(prev => prev + `\n[IMAGE:${newImage.id}:${newImage.width}x${newImage.height}px]\n`);
         setShowDrawingTool(false);
-        showSuccess('✅ Drawing inserted!');
+        setShowBoundsOverlay(false);
+        setContentBounds(null);
+        showSuccess(useTightBounds ? 'Drawing cropped to content and inserted!' : 'Drawing inserted!');
     };
 
     // ====== ANSWER DRAWING FUNCTIONS ======
@@ -6789,6 +6931,14 @@ useEffect(() => {
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                             </svg>
                                         </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setDrawingTool('lasso-erase')} 
+                                            className={`flex-1 px-3 py-2 rounded text-sm font-medium transition ${drawingTool === 'lasso-erase' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-300'}`}
+                                            title="Draw a rectangle to erase that region"
+                                        >
+                                            ⬚ Erase Region
+                                        </button>
                                     </div>
                                     
                                     {/* Enhanced Drawing Controls */}
@@ -6917,6 +7067,31 @@ useEffect(() => {
                                             <p className="text-[11px] text-gray-500 mt-1">1 cm major boxes, 1 mm minor subdivisions</p>
                                         </div>
                                     </div>
+
+                                    {/* ── Image extraction upload ── */}
+                                    <div className="flex gap-2 mb-2">
+                                        <label className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold text-sm cursor-pointer transition">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                            Upload Image to Extract Drawing
+                                            <input
+                                                ref={extractImageInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => handleExtractImageUpload(e, 'question')}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleReframe(canvasRef.current)}
+                                            className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-semibold text-sm transition flex items-center gap-2"
+                                            title="Detect tight bounding box around drawn content"
+                                        >
+                                            ⊞ Reframe
+                                        </button>
+                                    </div>
                                     
                                     {/* Action Buttons */}
                                     <div className="flex gap-2 mb-3">
@@ -6932,18 +7107,56 @@ useEffect(() => {
                                         </button>
                                         <button 
                                             type="button" 
-                                            onClick={saveDrawing} 
-                                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition text-sm flex items-center gap-2"
+                                            onClick={() => saveDrawing(false)} 
+                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold transition text-sm flex items-center gap-2"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                             </svg>
-                                            Save & Insert Drawing
+                                            Save Full Page
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => saveDrawing(true)} 
+                                            className="flex-1 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-semibold transition text-sm flex items-center gap-2"
+                                        >
+                                            ⊞ Save Tight Crop
                                         </button>
                                     </div>
+
+
+                                    {/* ── Lasso erase overlay ── */}
+                                    {isLassoErasing && lassoRect && (
+                                        <div className="mb-2 text-xs text-purple-700 bg-purple-50 border border-purple-200 rounded px-3 py-2">
+                                            Drag to select region to erase. Release mouse to apply.
+                                        </div>
+                                    )}
+
+                                    {/* ── Bounds overlay info + crop button ── */}
+                                    {showBoundsOverlay && contentBounds && (
+                                        <div className="mb-2 flex items-center gap-3 bg-teal-50 border border-teal-300 rounded-lg px-3 py-2 text-sm">
+                                            <span className="text-teal-800 font-semibold">
+                                                Content bounds: {contentBounds.w}×{contentBounds.h}px
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => saveDrawing(true)}
+                                                className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded font-semibold transition text-xs"
+                                            >
+                                                Crop to Frame &amp; Insert
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setShowBoundsOverlay(false); setContentBounds(null); }}
+                                                className="text-teal-600 hover:text-teal-800 px-2 py-1 text-xs"
+                                            >
+                                                Dismiss
+                                            </button>
+                                        </div>
+                                    )}
                                     
                                     {/* Drawing Canvas */}
-                                    <div className="relative bg-white rounded-lg border-2 border-gray-300 overflow-auto">
+                                    {/* <div className="relative bg-white rounded-lg border-2 border-gray-300 overflow-auto">
                                         <canvas
                                             ref={canvasRef}
                                             onMouseDown={startDrawing}
@@ -6953,7 +7166,52 @@ useEffect(() => {
                                             className="mx-auto cursor-crosshair"
                                                 style={{ width: `${A4_DISPLAY_WIDTH_PX}px`, height: `${A4_DISPLAY_HEIGHT_PX}px` }}
                                         />
+                                    </div> */}
+
+                                    <div className="relative">
+                                        <canvas
+                                            ref={canvasRef}
+                                            onMouseDown={startDrawing}
+                                            onMouseMove={draw}
+                                            onMouseUp={stopDrawing}
+                                            onMouseLeave={stopDrawing}
+                                            className="mx-auto cursor-crosshair"
+                                            style={{ width: `${A4_DISPLAY_WIDTH_PX}px`, height: `${A4_DISPLAY_HEIGHT_PX}px` }}
+                                        />
+                                        {/* Lasso erase preview overlay */}
+                                        {isLassoErasing && lassoRect && (() => {
+                                            const x = Math.min(lassoRect.x1, lassoRect.x2);
+                                            const y = Math.min(lassoRect.y1, lassoRect.y2);
+                                            const w = Math.abs(lassoRect.x2 - lassoRect.x1);
+                                            const h = Math.abs(lassoRect.y2 - lassoRect.y1);
+                                            return (
+                                                <div
+                                                    className="absolute pointer-events-none border-2 border-dashed border-red-500 bg-red-200 bg-opacity-20"
+                                                    style={{ left: x, top: y, width: w, height: h }}
+                                                />
+                                            );
+                                        })()}
+                                        {/* Tight bounds overlay */}
+                                        {showBoundsOverlay && contentBounds && (() => {
+                                            const s = 1; // display is 1:1 with CSS px
+                                            return (
+                                                <div
+                                                    className="absolute pointer-events-none border-2 border-teal-500 border-dashed"
+                                                    style={{
+                                                        left: contentBounds.x / A4_CANVAS_SCALE,
+                                                        top:  contentBounds.y / A4_CANVAS_SCALE,
+                                                        width:  contentBounds.w / A4_CANVAS_SCALE,
+                                                        height: contentBounds.h / A4_CANVAS_SCALE
+                                                    }}
+                                                >
+                                                    <div className="absolute -top-5 left-0 text-xs text-teal-700 bg-white px-1 rounded border border-teal-400 whitespace-nowrap">
+                                                        Content frame
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
+
                                 </div>
                             )}
 
