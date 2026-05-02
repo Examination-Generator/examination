@@ -7,6 +7,7 @@ import SimilarQuestions from './SimilarQuestions';
 import StatsCards from './StatsCards';
 import QuestionListItem from './QuestionListItem';
 import MessagingTab from './MessagingTab';
+import QuestionForm from './QuestionForm';
 import * as subjectService from '../services/subjectService';
 import * as authService from '../services/authService';
 
@@ -181,12 +182,20 @@ export default function EditorDashboard({ onLogout }) {
                                 />
                             </div>
 
-                            {/* 
-                              Question form goes here.
-                              Import and render <QuestionForm> with formState spread.
-                              Each section (question editor, answer editor, etc.)
-                              is its own component.
-                            */}
+                            <QuestionForm
+                                selectedSubject={selectedSubject}
+                                selectedPaper={selectedPaper}
+                                selectedTopic={selectedTopic}
+                                selectedSection={selectedSection}
+                                selectedSubjectId={selectedSubjectId}
+                                selectedPaperId={selectedPaperId}
+                                selectedTopicId={selectedTopicId}
+                                selectedSectionId={selectedSectionId}
+                                formState={formState}
+                                onSubmitSuccess={(savedQuestion) => {
+                                    console.log('Question saved:', savedQuestion);
+                                }}
+                            />
                         </div>
 
                         {/* Similar Questions Sidebar */}
