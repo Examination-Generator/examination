@@ -17,7 +17,7 @@ jobs:
         run: |
           echo "⏳ Waiting 10 minutes to verify Vercel staging deployment..."
           echo "If you need to rollback, cancel this workflow now!"
-          sleep 600
+          sleep 100
       
       - name: Staging verification period complete
         run: echo "✅ 10-minute staging verification complete. Proceeding to production deployment..."
