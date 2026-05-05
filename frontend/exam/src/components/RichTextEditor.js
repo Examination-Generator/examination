@@ -1,6 +1,6 @@
 import React, { useRef, memo } from 'react';
 import EditorToolbar from './EditorToolbar';
-import DrawingTool from './DrawingTool';
+import DrawingModal from './DrawingModal';
 
 const RichTextEditor = memo(function RichTextEditor({
     // Content
@@ -80,15 +80,14 @@ const RichTextEditor = memo(function RichTextEditor({
                 </div>
             </div>
 
-            {/* Drawing panel — only mounted when needed */}
+            {/* Drawing modal — only mounted when needed */}
             {showDraw && (
-                <div className="mt-4">
-                    <DrawingTool
-                        onSave={onDrawSave}
-                        onClose={onDrawClose}
-                        section={section}
-                    />
-                </div>
+                <DrawingModal
+                    isOpen={showDraw}
+                    onSave={onDrawSave}
+                    onClose={onDrawClose}
+                    section={section}
+                />
             )}
         </div>
     );
