@@ -5,9 +5,11 @@ import QuestionFlags from './QuestionFlags';
 import SymbolPicker from './SymbolPicker';
 import FractionModal from './FractionModal';
 import TableMatrixModal from './TableMatrixModal';
+import GraphModal from './GraphModal';
 import { renderTextWithImages } from '../utils/renderTextWithImages';
 import { useError } from '../contexts/ErrorContext';
 import { useVoiceInput } from '../hooks/useVoiceInput';
+import { MAX_GRAPH_BOXES_X, MAX_GRAPH_BOXES_Y } from '../hooks/useDrawing';
 import * as questionService from '../services/questionService';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
@@ -23,6 +25,10 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
     const [showTableModal, setShowTableModal] = useState(false);
     const [tableTarget, setTableTarget] = useState(null);
     const [tableType, setTableType] = useState('table');
+    const [showGraphModal, setShowGraphModal] = useState(false);
+    const [graphTarget, setGraphTarget] = useState('question');
+    const [graphBoxesX, setGraphBoxesX] = useState(MAX_GRAPH_BOXES_X);
+    const [graphBoxesY, setGraphBoxesY] = useState(MAX_GRAPH_BOXES_Y);
     const [isSaving, setIsSaving] = useState(false);
 
     const editQuestionVoiceInput = useVoiceInput(
@@ -102,9 +108,12 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
                 });
             },
             onToggleDraw: () => target === 'question' ? setShowQuestionDraw(v => !v) : setShowAnswerDraw(v => !v),
-            onToggleGraph: () => target === 'question' ? setShowQuestionDraw(v => !v) : setShowAnswerDraw(v => !v),
+            onToggleGraph: () => {
+                setGraphTarget(target);
+                setShowGraphModal(true);
+            },
             isDrawing: target === 'question' ? showQuestionDraw : showAnswerDraw,
-            isGraph: false,
+            isGraph: showGraphModal && graphTarget === target,
             onBold: () => applyFormat('bold', ref, setText),
             onItalic: () => applyFormat('italic', ref, setText),
             onUnderline: () => applyFormat('underline', ref, setText),
@@ -133,6 +142,7 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
         setEditQuestionText, setEditAnswerText,
         setEditQuestionInlineImages, setEditAnswerInlineImages,
         showQuestionDraw, showAnswerDraw,
+        showGraphModal, graphTarget,
         applyFormat,
         setEditQuestionAnswerLines, setEditAnswerAnswerLines,
         editQuestionVoiceInput, editAnswerVoiceInput,
@@ -238,6 +248,23 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
                     } else { tableTarget.setText(p => p + token); }
                     setShowTableModal(false);
                 }} />
+
+            <GraphModal
+                open={showGraphModal}
+                onClose={() => setShowGraphModal(false)}
+                onSave={({ graphBoxesX, graphBoxesY }) => {
+                    const setText = graphTarget === 'question' ? setEditQuestionText : setEditAnswerText;
+                    const graphId = Date.now() + Math.random();
+                    setText(p => p + `\n[GRAPH:${graphId}:${graphBoxesX}x${graphBoxesY}cm]\n`);
+                    setShowGraphModal(false);
+                    showSuccess('Graph inserted!');
+                }}
+                section={graphTarget}
+                graphBoxesX={graphBoxesX}
+                setGraphBoxesX={setGraphBoxesX}
+                graphBoxesY={graphBoxesY}
+                setGraphBoxesY={setGraphBoxesY}
+            />
 
             {showSymbolPicker && (
                 <SymbolPicker

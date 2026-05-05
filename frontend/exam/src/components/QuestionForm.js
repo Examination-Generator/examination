@@ -8,6 +8,7 @@ import GraphModal from './GraphModal';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import { useError } from '../contexts/ErrorContext';
 import { renderTextWithImages } from '../utils/renderTextWithImages';
+import { MAX_GRAPH_BOXES_X, MAX_GRAPH_BOXES_Y } from '../hooks/useDrawing';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
@@ -66,6 +67,8 @@ export default function QuestionForm({
     const [tableType, setTableType] = useState('table');
     const [showGraphModal, setShowGraphModal] = useState(false);
     const [graphTarget, setGraphTarget] = useState('question');
+    const [graphBoxesX, setGraphBoxesX] = useState(MAX_GRAPH_BOXES_X);
+    const [graphBoxesY, setGraphBoxesY] = useState(MAX_GRAPH_BOXES_Y);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const questionVoiceInput = useVoiceInput(
@@ -374,10 +377,14 @@ export default function QuestionForm({
                 type={tableType}
             />
             <GraphModal
-                isOpen={showGraphModal}
+                open={showGraphModal}
                 onClose={() => setShowGraphModal(false)}
-                onInsert={handleGraphInsert}
+                onSave={({ graphBoxesX, graphBoxesY }) => handleGraphInsert({ widthCm: graphBoxesX, heightCm: graphBoxesY })}
                 section={graphTarget}
+                graphBoxesX={graphBoxesX}
+                setGraphBoxesX={setGraphBoxesX}
+                graphBoxesY={graphBoxesY}
+                setGraphBoxesY={setGraphBoxesY}
             />
             {showSymbolPicker && (
                 <SymbolPicker
