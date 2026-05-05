@@ -4,6 +4,7 @@ import QuestionFlags from './QuestionFlags';
 import SymbolPicker from './SymbolPicker';
 import FractionModal from './FractionModal';
 import TableMatrixModal from './TableMatrixModal';
+import { useVoiceInput } from '../hooks/useVoiceInput';
 import { useError } from '../contexts/ErrorContext';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
@@ -62,6 +63,15 @@ export default function QuestionForm({
     const [tableTarget, setTableTarget] = useState(null);
     const [tableType, setTableType] = useState('table');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const questionVoiceInput = useVoiceInput(
+        transcript => setQuestionText(prev => prev + transcript),
+        showError,
+    );
+    const answerVoiceInput = useVoiceInput(
+        transcript => setAnswerText(prev => prev + transcript),
+        showError,
+    );
 
     // ── Formatting helpers ──────────────────────────────────────────────
     const applyFormatting = useCallback((format, textareaRef, setText) => {
@@ -246,8 +256,12 @@ export default function QuestionForm({
                 const token = `\n[SPACE:${Date.now()}]\n`;
                 setText(prev => prev + token);
             },
-            onMic: () => {}, // voice recording handled separately if needed
-            isListening: false,
+            onMic: target === 'question'
+                ? questionVoiceInput.toggle
+                : answerVoiceInput.toggle,
+            isListening: target === 'question'
+                ? questionVoiceInput.isListening
+                : answerVoiceInput.isListening,
         };
     }, [
         questionTextareaRef, answerTextareaRef,
@@ -255,6 +269,7 @@ export default function QuestionForm({
         showQuestionDraw, showAnswerDraw,
         applyFormatting, openFraction, openTable,
         handleImageUpload, insertLines,
+        questionVoiceInput, answerVoiceInput,
     ]);
 
     // ── Submit ──────────────────────────────────────────────────────────

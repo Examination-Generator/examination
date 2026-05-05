@@ -7,6 +7,7 @@ import FractionModal from './FractionModal';
 import TableMatrixModal from './TableMatrixModal';
 import { renderTextWithImages } from '../utils/renderTextWithImages';
 import { useError } from '../contexts/ErrorContext';
+import { useVoiceInput } from '../hooks/useVoiceInput';
 import * as questionService from '../services/questionService';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
@@ -23,6 +24,15 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
     const [tableTarget, setTableTarget] = useState(null);
     const [tableType, setTableType] = useState('table');
     const [isSaving, setIsSaving] = useState(false);
+
+    const editQuestionVoiceInput = useVoiceInput(
+        transcript => setEditQuestionText(prev => prev + transcript),
+        showError,
+    );
+    const editAnswerVoiceInput = useVoiceInput(
+        transcript => setEditAnswerText(prev => prev + transcript),
+        showError,
+    );
 
     const {
         selectedQuestion,
@@ -111,8 +121,12 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
                 setText(p => p + `\n[LINES:${block.id}]\n`);
             },
             onSpace: () => setText(p => p + `\n[SPACE:${Date.now()}]\n`),
-            onMic: () => {},
-            isListening: false,
+            onMic: target === 'question'
+                ? editQuestionVoiceInput.toggle
+                : editAnswerVoiceInput.toggle,
+            isListening: target === 'question'
+                ? editQuestionVoiceInput.isListening
+                : editAnswerVoiceInput.isListening,
         };
     }, [
         editQuestionTextareaRef, editAnswerTextareaRef,
@@ -121,6 +135,7 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
         showQuestionDraw, showAnswerDraw,
         applyFormat,
         setEditQuestionAnswerLines, setEditAnswerAnswerLines,
+        editQuestionVoiceInput, editAnswerVoiceInput,
     ]);
 
     const handleDrawSave = useCallback(({ type, imageUrl, width, height, graphBoxesX, graphBoxesY }, target) => {
