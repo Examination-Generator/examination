@@ -6,6 +6,7 @@ import FractionModal from './FractionModal';
 import TableMatrixModal from './TableMatrixModal';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import { useError } from '../contexts/ErrorContext';
+import { renderTextWithImages } from '../utils/renderTextWithImages';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
@@ -99,7 +100,7 @@ export default function QuestionForm({
         }, 0);
     }, [showError]);
 
-    // ── Symbol insertion ────────────────────────────────────────────────
+    // ── Symbol insertion
     const insertSymbol = useCallback((symbol, target) => {
         const ref = target === 'question' ? questionTextareaRef : answerTextareaRef;
         const setText = target === 'question' ? setQuestionText : setAnswerText;
@@ -115,7 +116,7 @@ export default function QuestionForm({
         }, 0);
     }, [questionTextareaRef, answerTextareaRef, setQuestionText, setAnswerText]);
 
-    // ── Fraction insert ─────────────────────────────────────────────────
+    // ── Fraction insert 
     const openFraction = useCallback((target) => {
         const ref = target === 'question' ? questionTextareaRef : answerTextareaRef;
         const setText = target === 'question' ? setQuestionText : setAnswerText;
@@ -143,7 +144,7 @@ export default function QuestionForm({
         setShowFractionModal(false);
     }, [fractionTarget]);
 
-    // ── Table insert ────────────────────────────────────────────────────
+    // ── Table insert
     const openTable = useCallback((target, type) => {
         const ref = target === 'question' ? questionTextareaRef : answerTextareaRef;
         const setText = target === 'question' ? setQuestionText : setAnswerText;
@@ -168,7 +169,7 @@ export default function QuestionForm({
         setShowTableModal(false);
     }, [tableTarget, tableType]);
 
-    // ── Image upload ────────────────────────────────────────────────────
+    // ── Image upload 
     const handleImageUpload = useCallback((e, target) => {
         const setImages = target === 'question' ? setQuestionInlineImages : setAnswerInlineImages;
         const setText = target === 'question' ? setQuestionText : setAnswerText;
@@ -190,7 +191,7 @@ export default function QuestionForm({
         });
     }, [setQuestionInlineImages, setAnswerInlineImages, setQuestionText, setAnswerText]);
 
-    // ── Drawing save ────────────────────────────────────────────────────
+    // ── Drawing save
     const handleDrawSave = useCallback(({ type, imageUrl, width, height, graphBoxesX, graphBoxesY }, target) => {
         const setText = target === 'question' ? setQuestionText : setAnswerText;
         const setImages = target === 'question' ? setQuestionInlineImages : setAnswerInlineImages;
@@ -209,7 +210,7 @@ export default function QuestionForm({
         showSuccess('Inserted!');
     }, [setQuestionText, setAnswerText, setQuestionInlineImages, setAnswerInlineImages, showSuccess]);
 
-    // ── Answer lines insert ─────────────────────────────────────────────
+    // ── Answer lines insert 
     const insertLines = useCallback((config, target) => {
         const lineBlock = { id: Date.now() + Math.random(), ...config };
         const setLines = target === 'question' ? setQuestionAnswerLines : setAnswerAnswerLines;
@@ -226,7 +227,7 @@ export default function QuestionForm({
         }
     }, [questionTextareaRef, answerTextareaRef, setQuestionText, setAnswerText, setQuestionAnswerLines, setAnswerAnswerLines]);
 
-    // ── Build toolbar props ─────────────────────────────────────────────
+    // ── Build toolbar props 
     const buildToolbarProps = useCallback((target) => {
         const textareaRef = target === 'question' ? questionTextareaRef : answerTextareaRef;
         const setText = target === 'question' ? setQuestionText : setAnswerText;
@@ -272,7 +273,7 @@ export default function QuestionForm({
         questionVoiceInput, answerVoiceInput,
     ]);
 
-    // ── Submit ──────────────────────────────────────────────────────────
+    // ── Submit 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!selectedSubject || !selectedPaper) { showError('Please select subject and paper'); return; }
@@ -335,11 +336,9 @@ export default function QuestionForm({
     };
 
     // ── Render content function (passed to RichTextEditor) ──────────────
-    // Import your existing renderTextWithImages here or pass it as a prop
-    const renderContent = useCallback((text, images, positions, lines, onRemoveImg, onRemoveLines) => {
-        // Use your existing renderTextWithImages logic here
-        // For brevity pointing to the original function
-        return text; // replace with actual render call
+    // Use the shared renderer so the add form interprets markup the same as edit
+    const renderContent = useCallback((text, images, positions, lines, onRemoveImg, onRemoveLines, section) => {
+        return renderTextWithImages(text, images, positions, lines, onRemoveImg, onRemoveLines, 'edit');
     }, []);
 
     return (
