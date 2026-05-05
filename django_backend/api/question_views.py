@@ -1463,10 +1463,13 @@ def generate_topic_printable_document(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def question_statistics_only(request):
     """
     GET /api/questions/statistics-only/
     Returns aggregated statistics across ALL questions in the DB (no question objects).
+    Includes marks distribution per topic and paper.
     """
     try:
         queryset = Question.objects.all()
@@ -1475,18 +1478,27 @@ def question_statistics_only(request):
         total_questions = queryset.count()
         active_questions = queryset.filter(is_active=True).count()
         inactive_questions = queryset.filter(is_active=False).count()
-        # Avoid comparing FK directly to an empty string (causes UUID validation errors).
-        # Check for null topic or topics with an empty name instead.
         unknown_topics = queryset.filter(Q(topic__isnull=True) | Q(topic__name='')).count()
 
-        # Overview aggregates (active questions example)
+        # Overview aggregates
         overview = queryset.aggregate(
             total_marks=Sum('marks'),
             avg_marks=Avg('marks'),
             total_usage=Sum('times_used')
         )
 
-        # Breakdown by subject (total, active, inactive)
+        # ── Global marks distribution ──────────────────────────────────────────
+        # e.g. { "2": 120, "5": 45, "10": 30 }
+        global_marks_qs = queryset.values('marks').annotate(
+            count=Count('id')
+        ).order_by('marks')
+
+        global_marks_distribution = [
+            {'marks': item['marks'], 'count': item['count']}
+            for item in global_marks_qs
+        ]
+
+        # ── Breakdown by subject ───────────────────────────────────────────────
         by_subject_qs = queryset.values('subject__id', 'subject__name').annotate(
             total=Count('id'),
             active=Count('id', filter=Q(is_active=True)),
@@ -1495,52 +1507,107 @@ def question_statistics_only(request):
 
         by_subject = [
             {
-                'subjectId': str(item['subject__id']) if item['subject__id'] is not None else None,
+                'subjectId': str(item['subject__id']) if item['subject__id'] else None,
                 'subjectName': item['subject__name'] or 'Unknown',
                 'total': item['total'] or 0,
                 'active': item['active'] or 0,
-                'inactive': item['inactive'] or 0
-            } for item in by_subject_qs
+                'inactive': item['inactive'] or 0,
+            }
+            for item in by_subject_qs
         ]
 
-        # Breakdown by paper (groups under subject->paper)
-        by_paper_qs = queryset.values('subject__id', 'subject__name', 'paper__id', 'paper__name').annotate(
+        # ── Breakdown by paper WITH marks distribution ─────────────────────────
+        # Step 1: core paper stats
+        by_paper_qs = queryset.values(
+            'subject__id', 'subject__name', 'paper__id', 'paper__name'
+        ).annotate(
             total=Count('id'),
             active=Count('id', filter=Q(is_active=True)),
-            inactive=Count('id', filter=Q(is_active=False))
+            inactive=Count('id', filter=Q(is_active=False)),
+            total_marks_sum=Sum('marks'),
+            avg_marks_val=Avg('marks'),
         ).order_by('subject__name', '-total')
+
+        # Step 2: marks distribution per paper
+        paper_marks_qs = queryset.values('paper__id', 'marks').annotate(
+            count=Count('id')
+        ).order_by('paper__id', 'marks')
+
+        # Build a lookup: { paper_id: [ {marks, count}, ... ] }
+        paper_marks_lookup = {}
+        for row in paper_marks_qs:
+            pid = str(row['paper__id']) if row['paper__id'] else None
+            paper_marks_lookup.setdefault(pid, []).append({
+                'marks': row['marks'],
+                'count': row['count']
+            })
 
         by_paper = [
             {
-                'subjectId': str(item['subject__id']) if item['subject__id'] is not None else None,
+                'subjectId': str(item['subject__id']) if item['subject__id'] else None,
                 'subject': item['subject__name'] or 'Unknown',
-                'paperId': str(item['paper__id']) if item['paper__id'] is not None else None,
+                'paperId': str(item['paper__id']) if item['paper__id'] else None,
                 'paper': item['paper__name'] or 'Unknown',
                 'total': item['total'] or 0,
                 'active': item['active'] or 0,
-                'inactive': item['inactive'] or 0
-            } for item in by_paper_qs
+                'inactive': item['inactive'] or 0,
+                'totalMarksSum': item['total_marks_sum'] or 0,
+                'avgMarks': float(round(item['avg_marks_val'], 2)) if item['avg_marks_val'] else 0,
+                # e.g. [{"marks": 2, "count": 30}, {"marks": 5, "count": 12}]
+                'marksDistribution': paper_marks_lookup.get(
+                    str(item['paper__id']) if item['paper__id'] else None, []
+                ),
+            }
+            for item in by_paper_qs
         ]
 
-        # Breakdown by topic (total, active, inactive); include marks distribution optionally
-        by_topic_qs = queryset.values('subject__id', 'subject__name', 'paper__id', 'paper__name', 'topic__id', 'topic__name').annotate(
+        # ── Breakdown by topic WITH marks distribution ─────────────────────────
+        # Step 1: core topic stats
+        by_topic_qs = queryset.values(
+            'subject__id', 'subject__name',
+            'paper__id', 'paper__name',
+            'topic__id', 'topic__name'
+        ).annotate(
             total=Count('id'),
             active=Count('id', filter=Q(is_active=True)),
-            inactive=Count('id', filter=Q(is_active=False))
+            inactive=Count('id', filter=Q(is_active=False)),
+            total_marks_sum=Sum('marks'),
+            avg_marks_val=Avg('marks'),
         ).order_by('-total')
+
+        # Step 2: marks distribution per topic
+        topic_marks_qs = queryset.values('topic__id', 'marks').annotate(
+            count=Count('id')
+        ).order_by('topic__id', 'marks')
+
+        # Build a lookup: { topic_id: [ {marks, count}, ... ] }
+        topic_marks_lookup = {}
+        for row in topic_marks_qs:
+            tid = str(row['topic__id']) if row['topic__id'] else None
+            topic_marks_lookup.setdefault(tid, []).append({
+                'marks': row['marks'],
+                'count': row['count']
+            })
 
         by_topic = [
             {
-                'subjectId': str(item['subject__id']) if item['subject__id'] is not None else None,
+                'subjectId': str(item['subject__id']) if item['subject__id'] else None,
                 'subject': item['subject__name'] or 'Unknown',
-                'paperId': str(item['paper__id']) if item['paper__id'] is not None else None,
+                'paperId': str(item['paper__id']) if item['paper__id'] else None,
                 'paper': item['paper__name'] or 'Unknown',
-                'topicId': str(item['topic__id']) if item['topic__id'] is not None else None,
+                'topicId': str(item['topic__id']) if item['topic__id'] else None,
                 'topicName': item['topic__name'] or 'Unknown',
                 'total': item['total'] or 0,
                 'active': item['active'] or 0,
-                'inactive': item['inactive'] or 0
-            } for item in by_topic_qs
+                'inactive': item['inactive'] or 0,
+                'totalMarksSum': item['total_marks_sum'] or 0,
+                'avgMarks': float(round(item['avg_marks_val'], 2)) if item['avg_marks_val'] else 0,
+                # e.g. [{"marks": 2, "count": 8}, {"marks": 10, "count": 3}]
+                'marksDistribution': topic_marks_lookup.get(
+                    str(item['topic__id']) if item['topic__id'] else None, []
+                ),
+            }
+            for item in by_topic_qs
         ]
 
         return Response({
@@ -1555,16 +1622,119 @@ def question_statistics_only(request):
                     'activeQuestions': active_questions,
                     'inactiveQuestions': inactive_questions,
                     'totalMarks': overview['total_marks'] or 0,
-                    'avgMarks': float(round(overview['avg_marks'],2)) if overview['avg_marks'] else 0,
-                    'totalUsage': overview['total_usage'] or 0
+                    'avgMarks': float(round(overview['avg_marks'], 2)) if overview['avg_marks'] else 0,
+                    'totalUsage': overview['total_usage'] or 0,
+                    'marksDistribution': global_marks_distribution,
                 },
                 'bySubject': by_subject,
                 'byPaper': by_paper,
-                'byTopic': by_topic
+                'byTopic': by_topic,
             }
         })
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
+# def question_statistics_only(request):
+#     """
+#     GET /api/questions/statistics-only/
+#     Returns aggregated statistics across ALL questions in the DB (no question objects).
+#     """
+#     try:
+#         queryset = Question.objects.all()
+
+#         # Core counts
+#         total_questions = queryset.count()
+#         active_questions = queryset.filter(is_active=True).count()
+#         inactive_questions = queryset.filter(is_active=False).count()
+#         # Avoid comparing FK directly to an empty string (causes UUID validation errors).
+#         # Check for null topic or topics with an empty name instead.
+#         unknown_topics = queryset.filter(Q(topic__isnull=True) | Q(topic__name='')).count()
+
+#         # Overview aggregates (active questions example)
+#         overview = queryset.aggregate(
+#             total_marks=Sum('marks'),
+#             avg_marks=Avg('marks'),
+#             total_usage=Sum('times_used')
+#         )
+
+#         # Breakdown by subject (total, active, inactive)
+#         by_subject_qs = queryset.values('subject__id', 'subject__name').annotate(
+#             total=Count('id'),
+#             active=Count('id', filter=Q(is_active=True)),
+#             inactive=Count('id', filter=Q(is_active=False))
+#         ).order_by('-total')
+
+#         by_subject = [
+#             {
+#                 'subjectId': str(item['subject__id']) if item['subject__id'] is not None else None,
+#                 'subjectName': item['subject__name'] or 'Unknown',
+#                 'total': item['total'] or 0,
+#                 'active': item['active'] or 0,
+#                 'inactive': item['inactive'] or 0
+#             } for item in by_subject_qs
+#         ]
+
+#         # Breakdown by paper (groups under subject->paper)
+#         by_paper_qs = queryset.values('subject__id', 'subject__name', 'paper__id', 'paper__name').annotate(
+#             total=Count('id'),
+#             active=Count('id', filter=Q(is_active=True)),
+#             inactive=Count('id', filter=Q(is_active=False))
+#         ).order_by('subject__name', '-total')
+
+#         by_paper = [
+#             {
+#                 'subjectId': str(item['subject__id']) if item['subject__id'] is not None else None,
+#                 'subject': item['subject__name'] or 'Unknown',
+#                 'paperId': str(item['paper__id']) if item['paper__id'] is not None else None,
+#                 'paper': item['paper__name'] or 'Unknown',
+#                 'total': item['total'] or 0,
+#                 'active': item['active'] or 0,
+#                 'inactive': item['inactive'] or 0
+#             } for item in by_paper_qs
+#         ]
+
+#         # Breakdown by topic (total, active, inactive); include marks distribution optionally
+#         by_topic_qs = queryset.values('subject__id', 'subject__name', 'paper__id', 'paper__name', 'topic__id', 'topic__name').annotate(
+#             total=Count('id'),
+#             active=Count('id', filter=Q(is_active=True)),
+#             inactive=Count('id', filter=Q(is_active=False))
+#         ).order_by('-total')
+
+#         by_topic = [
+#             {
+#                 'subjectId': str(item['subject__id']) if item['subject__id'] is not None else None,
+#                 'subject': item['subject__name'] or 'Unknown',
+#                 'paperId': str(item['paper__id']) if item['paper__id'] is not None else None,
+#                 'paper': item['paper__name'] or 'Unknown',
+#                 'topicId': str(item['topic__id']) if item['topic__id'] is not None else None,
+#                 'topicName': item['topic__name'] or 'Unknown',
+#                 'total': item['total'] or 0,
+#                 'active': item['active'] or 0,
+#                 'inactive': item['inactive'] or 0
+#             } for item in by_topic_qs
+#         ]
+
+#         return Response({
+#             'success': True,
+#             'data': {
+#                 'total': total_questions,
+#                 'active': active_questions,
+#                 'inactive': inactive_questions,
+#                 'unknownTopics': unknown_topics,
+#                 'overview': {
+#                     'totalQuestions': total_questions,
+#                     'activeQuestions': active_questions,
+#                     'inactiveQuestions': inactive_questions,
+#                     'totalMarks': overview['total_marks'] or 0,
+#                     'avgMarks': float(round(overview['avg_marks'],2)) if overview['avg_marks'] else 0,
+#                     'totalUsage': overview['total_usage'] or 0
+#                 },
+#                 'bySubject': by_subject,
+#                 'byPaper': by_paper,
+#                 'byTopic': by_topic
+#             }
+#         })
+#     except Exception as e:
+#         return Response({'success': False, 'error': str(e)}, status=500)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
