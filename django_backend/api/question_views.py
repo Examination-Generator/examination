@@ -1463,8 +1463,6 @@ def generate_topic_printable_document(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def question_statistics_only(request):
     """
     GET /api/questions/statistics-only/
@@ -1487,7 +1485,7 @@ def question_statistics_only(request):
             total_usage=Sum('times_used')
         )
 
-        # ── Global marks distribution ──────────────────────────────────────────
+        # ── Global marks distribution 
         # e.g. { "2": 120, "5": 45, "10": 30 }
         global_marks_qs = queryset.values('marks').annotate(
             count=Count('id')
@@ -1498,7 +1496,7 @@ def question_statistics_only(request):
             for item in global_marks_qs
         ]
 
-        # ── Breakdown by subject ───────────────────────────────────────────────
+        # ── Breakdown by subject
         by_subject_qs = queryset.values('subject__id', 'subject__name').annotate(
             total=Count('id'),
             active=Count('id', filter=Q(is_active=True)),
@@ -1516,7 +1514,7 @@ def question_statistics_only(request):
             for item in by_subject_qs
         ]
 
-        # ── Breakdown by paper WITH marks distribution ─────────────────────────
+        # ── Breakdown by paper WITH marks distribution ─
         # Step 1: core paper stats
         by_paper_qs = queryset.values(
             'subject__id', 'subject__name', 'paper__id', 'paper__name'
@@ -1561,7 +1559,7 @@ def question_statistics_only(request):
             for item in by_paper_qs
         ]
 
-        # ── Breakdown by topic WITH marks distribution ─────────────────────────
+        # ── Breakdown by topic WITH marks distribution 
         # Step 1: core topic stats
         by_topic_qs = queryset.values(
             'subject__id', 'subject__name',
