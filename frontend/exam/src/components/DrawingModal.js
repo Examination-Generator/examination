@@ -14,19 +14,23 @@ export default function DrawingModal({ isOpen, onClose, onSave, section = 'quest
 
     try {
       // Export as data URL (PNG format)
-      const imageUrl = drawingAppRef.current.exportImage();
+      const exported = drawingAppRef.current.exportImage();
+      const imageUrl = typeof exported === 'string' ? exported : exported?.dataUrl;
       
       if (!imageUrl) {
         console.error('Failed to export image from DrawingApp');
         return;
       }
+
+      const width = typeof exported === 'object' && exported?.width ? exported.width : 794;
+      const height = typeof exported === 'object' && exported?.height ? exported.height : 1123;
       
       // Return drawing data to form
       onSave({
         type: 'image',
         imageUrl,
-        width: 794, 
-        height: 1123, 
+        width,
+        height,
         section: section,
       });
 

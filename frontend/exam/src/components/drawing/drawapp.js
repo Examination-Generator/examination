@@ -63,6 +63,40 @@ function getGroupBBox(objs) {
   return { x, y, w: r - x, h: bot - y };
 }
 
+function getExportBounds(obj) {
+  const base = getBBox(obj);
+  const strokePad = Math.max(8, (obj.lineWidth || 2) * 4);
+
+  if (!obj.rotation) {
+    return {
+      x: base.x - strokePad,
+      y: base.y - strokePad,
+      w: base.w + strokePad * 2,
+      h: base.h + strokePad * 2,
+    };
+  }
+
+  const { cx, cy } = getBBoxCenter(obj);
+  const corners = [
+    { x: base.x, y: base.y },
+    { x: base.x + base.w, y: base.y },
+    { x: base.x + base.w, y: base.y + base.h },
+    { x: base.x, y: base.y + base.h },
+  ].map(p => rotatePoint(p.x, p.y, cx, cy, obj.rotation));
+
+  const minX = Math.min(...corners.map(p => p.x)) - strokePad;
+  const minY = Math.min(...corners.map(p => p.y)) - strokePad;
+  const maxX = Math.max(...corners.map(p => p.x)) + strokePad;
+  const maxY = Math.max(...corners.map(p => p.y)) + strokePad;
+
+  return {
+    x: minX,
+    y: minY,
+    w: maxX - minX,
+    h: maxY - minY,
+  };
+}
+
 // ─── Rotate a point around a center ───────────────────────────────────────────
 function rotatePoint(px, py, cx, cy, angle) {
   const cos = Math.cos(angle), sin = Math.sin(angle);
@@ -292,10 +326,63 @@ const DrawingApp = forwardRef(function DrawingAppImpl(props, ref) {
   // ── Expose export method via imperative handle ──
   useImperativeHandle(ref, () => ({
     exportImage: () => {
-      if (mainRef.current) {
-        return mainRef.current.toDataURL('image/png');
+      if (!mainRef.current) {
+        return null;
       }
-      return null;
+
+      if (!objects.length) {
+        return {
+          dataUrl: mainRef.current.toDataURL('image/png'),
+          width: A4_W,
+          height: A4_H,
+        };
+      }
+
+      const exportPadding = 12;
+      const bounds = objects
+        .map(getExportBounds)
+        .reduce((acc, box) => {
+          if (!acc) return box;
+          return {
+            x: Math.min(acc.x, box.x),
+            y: Math.min(acc.y, box.y),
+            w: Math.max(acc.x + acc.w, box.x + box.w) - Math.min(acc.x, box.x),
+            h: Math.max(acc.y + acc.h, box.y + box.h) - Math.min(acc.y, box.y),
+          };
+        }, null);
+
+      if (!bounds) {
+        return {
+          dataUrl: mainRef.current.toDataURL('image/png'),
+          width: A4_W,
+          height: A4_H,
+        };
+      }
+
+      const x = Math.max(0, Math.floor(bounds.x - exportPadding));
+      const y = Math.max(0, Math.floor(bounds.y - exportPadding));
+      const w = Math.min(A4_W - x, Math.ceil(bounds.w + exportPadding * 2));
+      const h = Math.min(A4_H - y, Math.ceil(bounds.h + exportPadding * 2));
+
+      const cropCanvas = document.createElement('canvas');
+      cropCanvas.width = Math.max(1, Math.round(w * SCALE));
+      cropCanvas.height = Math.max(1, Math.round(h * SCALE));
+
+      const ctx = cropCanvas.getContext('2d');
+      ctx.scale(SCALE, SCALE);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.translate(-x, -y);
+
+      [...objects]
+        .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
+        .forEach(obj => drawObject(ctx, obj));
+
+      return {
+        dataUrl: cropCanvas.toDataURL('image/png'),
+        width: Math.max(1, Math.round(w)),
+        height: Math.max(1, Math.round(h)),
+      };
     },
     getCanvasData: () => ({
       width: A4_W,
