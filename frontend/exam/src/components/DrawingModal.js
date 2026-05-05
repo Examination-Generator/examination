@@ -1,10 +1,7 @@
 import React, { useRef, useCallback } from 'react';
 import DrawingApp from './drawing/drawapp';
 
-/**
- * DrawingModal: Full-featured drawing component in a modal with save/cancel callbacks
- * Wraps DrawingApp to provide modal UI, save/cancel buttons, and integration with form
- */
+
 export default function DrawingModal({ isOpen, onClose, onSave, section = 'question' }) {
   const drawingAppRef = useRef(null);
 
@@ -28,8 +25,8 @@ export default function DrawingModal({ isOpen, onClose, onSave, section = 'quest
       onSave({
         type: 'image',
         imageUrl,
-        width: 794, // A4 width in pixels
-        height: 1123, // A4 height in pixels
+        width: 794, 
+        height: 1123, 
         section: section,
       });
 
