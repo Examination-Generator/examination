@@ -37,20 +37,17 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
             ctx.moveTo(x, 0);
             ctx.lineTo(x, graphHeight);
 
-            // Every 10mm: black and thick
             if (mmX % MM_PER_CM === 0) {
                 ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = 1.8;
             }
-            // Every 5mm: black and thin
             else if (mmX % 5 === 0) {
                 ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 0.6;
+                ctx.lineWidth = 0.8;
             }
-            // Every 1mm: green and thin
             else {
-                ctx.strokeStyle = '#22c55e';
-                ctx.lineWidth = 0.3;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 0.35;
             }
 
             ctx.stroke();
@@ -63,20 +60,17 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
             ctx.moveTo(0, y);
             ctx.lineTo(graphWidth, y);
 
-            // Every 10mm: black and thick
             if (mmY % MM_PER_CM === 0) {
                 ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = 1.8;
             }
-            // Every 5mm: black and thin
             else if (mmY % 5 === 0) {
                 ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 0.6;
+                ctx.lineWidth = 0.8;
             }
-            // Every 1mm: green and thin
             else {
-                ctx.strokeStyle = '#22c55e';
-                ctx.lineWidth = 0.3;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 0.35;
             }
 
             ctx.stroke();

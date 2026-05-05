@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import FractionModal from './FractionModal';
 import TableMatrixModal from './TableMatrixModal';
+import GraphModal from './GraphModal';
 import PrintableDocumentModal from './PrintableDocumentModal';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -68,6 +69,7 @@ export default function EditorDashboard({ onLogout }) {
     const [isMapQuestion, setIsMapQuestion] = useState(false); // Track if question requires a map
     const [uploadedImages, setUploadedImages] = useState([]);
     const [showDrawingTool, setShowDrawingTool] = useState(false);
+    const [showGraphModal, setShowGraphModal] = useState(false);
     const [showGraphPaper, setShowGraphPaper] = useState(false);
     const [drawingTool, setDrawingTool] = useState('pen'); // 'pen', 'eraser', 'line', 'rectangle', 'circle'
     const [drawingColor, setDrawingColor] = useState('#000000');
@@ -1803,15 +1805,17 @@ export default function EditorDashboard({ onLogout }) {
                         width: `${widthCm}cm`,
                         height: `${heightCm}cm`,
                         display: 'block',
-                        border: '2px solid #0f766e',
-                        borderRadius: '4px',
+                        border: '2px solid #000',
+                        borderRadius: '0',
                         boxSizing: 'border-box',
                         backgroundColor: 'white',
                         backgroundImage: [
-                            'repeating-linear-gradient(to right, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm)',
-                            'repeating-linear-gradient(to bottom, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm)',
-                            'repeating-linear-gradient(to right, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm)',
-                            'repeating-linear-gradient(to bottom, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm)'
+                            'repeating-linear-gradient(to right, rgba(0, 0, 0, 0.16) 0, rgba(0, 0, 0, 0.16) 1px, transparent 1px, transparent 1mm)',
+                            'repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.16) 0, rgba(0, 0, 0, 0.16) 1px, transparent 1px, transparent 1mm)',
+                            'repeating-linear-gradient(to right, rgba(0, 0, 0, 0.48) 0, rgba(0, 0, 0, 0.48) 1px, transparent 1px, transparent 5mm)',
+                            'repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.48) 0, rgba(0, 0, 0, 0.48) 1px, transparent 1px, transparent 5mm)',
+                            'repeating-linear-gradient(to right, rgba(0, 0, 0, 0.95) 0, rgba(0, 0, 0, 0.95) 2px, transparent 2px, transparent 10mm)',
+                            'repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.95) 0, rgba(0, 0, 0, 0.95) 2px, transparent 2px, transparent 10mm)'
                         ].join(', ')
                     }}
                     title={`${widthCm}cm × ${heightCm}cm graph`}
@@ -3687,6 +3691,14 @@ useEffect(() => {
             drawGraphPaper(ctx, A4_DISPLAY_WIDTH_PX, A4_DISPLAY_HEIGHT_PX, graphBoxesX, graphBoxesY);
         }
     };
+
+    const handleGraphSave = useCallback(({ graphBoxesX: widthBoxes, graphBoxesY: heightBoxes }, target = 'question') => {
+        const graphId = Date.now() + Math.random();
+        const setText = target === 'answer' ? setAnswerText : setQuestionText;
+        setText(prev => prev + `\n[GRAPH:${graphId}:${widthBoxes}x${heightBoxes}cm]\n`);
+        setShowGraphModal(false);
+        showSuccess('Graph inserted!');
+    }, [setAnswerText, setQuestionText, showSuccess]);
 
     const saveDrawing = (useTightBounds = false) => {
         const canvas = canvasRef.current;
@@ -5867,6 +5879,16 @@ useEffect(() => {
                 type={tableMatrixType}
                 initialData={tableMatrixInitialData}
             />
+            <GraphModal
+                open={showGraphModal}
+                onClose={() => setShowGraphModal(false)}
+                onSave={handleGraphSave}
+                section="question"
+                graphBoxesX={graphBoxesX}
+                setGraphBoxesX={setGraphBoxesX}
+                graphBoxesY={graphBoxesY}
+                setGraphBoxesY={setGraphBoxesY}
+            />
             {/* Header */}
             <header className="bg-white shadow-md">
                 <div className="max-w-8xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
@@ -6267,10 +6289,10 @@ useEffect(() => {
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                setShowGraphPaper(!showGraphPaper);
-                                                if (!showDrawingTool) setShowDrawingTool(true);
+                                                setShowDrawingTool(false);
+                                                setShowGraphModal(true);
                                             }}
-                                            className={`${showGraphPaper ? 'bg-green-600' : 'bg-gray-500'} hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5`}
+                                            className={`${showGraphModal ? 'bg-green-600' : 'bg-gray-500'} hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1.5` }
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />

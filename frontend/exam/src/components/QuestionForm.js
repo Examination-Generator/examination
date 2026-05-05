@@ -4,6 +4,7 @@ import QuestionFlags from './QuestionFlags';
 import SymbolPicker from './SymbolPicker';
 import FractionModal from './FractionModal';
 import TableMatrixModal from './TableMatrixModal';
+import GraphModal from './GraphModal';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import { useError } from '../contexts/ErrorContext';
 import { renderTextWithImages } from '../utils/renderTextWithImages';
@@ -63,6 +64,8 @@ export default function QuestionForm({
     const [showTableModal, setShowTableModal] = useState(false);
     const [tableTarget, setTableTarget] = useState(null);
     const [tableType, setTableType] = useState('table');
+    const [showGraphModal, setShowGraphModal] = useState(false);
+    const [graphTarget, setGraphTarget] = useState('question');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const questionVoiceInput = useVoiceInput(
@@ -191,6 +194,19 @@ export default function QuestionForm({
         });
     }, [setQuestionInlineImages, setAnswerInlineImages, setQuestionText, setAnswerText]);
 
+    // ── Graph insert
+    const handleGraphInsert = useCallback(({ widthCm, heightCm }) => {
+        const graphId = Date.now() + Math.random();
+        const graphToken = `\n[GRAPH:${graphId}:${widthCm}x${heightCm}cm]\n`;
+        if (graphTarget === 'question') {
+            setQuestionText(prev => prev + graphToken);
+        } else {
+            setAnswerText(prev => prev + graphToken);
+        }
+        setShowGraphModal(false);
+        showSuccess('Graph inserted!');
+    }, [graphTarget, showSuccess]);
+
     // ── Drawing save
     const handleDrawSave = useCallback(({ type, imageUrl, width, height, graphBoxesX, graphBoxesY }, target) => {
         const setText = target === 'question' ? setQuestionText : setAnswerText;
@@ -236,11 +252,12 @@ export default function QuestionForm({
             onToggleDraw: () => target === 'question'
                 ? setShowQuestionDraw(v => !v)
                 : setShowAnswerDraw(v => !v),
-            onToggleGraph: () => target === 'question'
-                ? setShowQuestionDraw(v => !v)
-                : setShowAnswerDraw(v => !v),
+            onToggleGraph: () => { 
+                setGraphTarget(target);
+                setShowGraphModal(true);
+            },
             isDrawing: target === 'question' ? showQuestionDraw : showAnswerDraw,
-            isGraph: false,
+            isGraph: showGraphModal && graphTarget === target,
             onBold: () => applyFormatting('bold', textareaRef, setText),
             onItalic: () => applyFormatting('italic', textareaRef, setText),
             onUnderline: () => applyFormatting('underline', textareaRef, setText),
@@ -355,6 +372,12 @@ export default function QuestionForm({
                 onClose={() => setShowTableModal(false)}
                 onInsert={handleTableInsert}
                 type={tableType}
+            />
+            <GraphModal
+                isOpen={showGraphModal}
+                onClose={() => setShowGraphModal(false)}
+                onInsert={handleGraphInsert}
+                section={graphTarget}
             />
             {showSymbolPicker && (
                 <SymbolPicker

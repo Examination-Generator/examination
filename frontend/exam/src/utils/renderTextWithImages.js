@@ -20,15 +20,17 @@ export function renderGraphBlock(graphId, widthCm, heightCm, key, onRemove) {
                         width: `${widthCm}cm`,
                         height: `${heightCm}cm`,
                         display: 'block',
-                        border: '2px solid #0f766e',
-                        borderRadius: 4,
+                        border: '2px solid #000',
+                        borderRadius: 0,
                         boxSizing: 'border-box',
                         backgroundColor: 'white',
                         backgroundImage: [
-                            'repeating-linear-gradient(to right,rgba(15,118,110,.18) 0,rgba(15,118,110,.18) 1px,transparent 1px,transparent 1mm)',
-                            'repeating-linear-gradient(to bottom,rgba(15,118,110,.18) 0,rgba(15,118,110,.18) 1px,transparent 1px,transparent 1mm)',
-                            'repeating-linear-gradient(to right,rgba(15,23,42,.42) 0,rgba(15,23,42,.42) 1px,transparent 1px,transparent 1cm)',
-                            'repeating-linear-gradient(to bottom,rgba(15,23,42,.42) 0,rgba(15,23,42,.42) 1px,transparent 1px,transparent 1cm)',
+                            'repeating-linear-gradient(to right, rgba(0,0,0,0.16) 0, rgba(0,0,0,0.16) 1px, transparent 1px, transparent 1mm)',
+                            'repeating-linear-gradient(to bottom, rgba(0,0,0,0.16) 0, rgba(0,0,0,0.16) 1px, transparent 1px, transparent 1mm)',
+                            'repeating-linear-gradient(to right, rgba(0,0,0,0.48) 0, rgba(0,0,0,0.48) 1px, transparent 1px, transparent 5mm)',
+                            'repeating-linear-gradient(to bottom, rgba(0,0,0,0.48) 0, rgba(0,0,0,0.48) 1px, transparent 1px, transparent 5mm)',
+                            'repeating-linear-gradient(to right, rgba(0,0,0,0.95) 0, rgba(0,0,0,0.95) 2px, transparent 2px, transparent 10mm)',
+                            'repeating-linear-gradient(to bottom, rgba(0,0,0,0.95) 0, rgba(0,0,0,0.95) 2px, transparent 2px, transparent 10mm)',
                         ].join(','),
                     }}
                 />
