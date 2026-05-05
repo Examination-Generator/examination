@@ -46,6 +46,30 @@ const MarksBreakdown = memo(function MarksBreakdown({ byMarks }) {
     );
 });
 
+const normalizeMarksDistribution = (distribution) => {
+    if (!distribution) return [];
+
+    if (Array.isArray(distribution)) {
+        return distribution
+            .map(item => ({
+                marks: item.marks ?? item.mark ?? item.value ?? '?',
+                count: item.count ?? item.total ?? 0,
+            }))
+            .filter(item => Number(item.count) > 0);
+    }
+
+    if (typeof distribution === 'object') {
+        return Object.entries(distribution)
+            .map(([marks, value]) => ({
+                marks,
+                count: typeof value === 'object' ? (value.count ?? value.total ?? 0) : value,
+            }))
+            .filter(item => Number(item.count) > 0);
+    }
+
+    return [];
+};
+
 // ── Creator Card 
 const CreatorCard = memo(function CreatorCard({ creator, subjectBreakdown }) {
     const details = subjectBreakdown?.find(
@@ -357,6 +381,9 @@ const StatsTab = memo(function StatsTab({
 
         (raw.byPaper || []).forEach(item => {
             const key = `${item.subject || 'Unknown'} - ${item.paper || 'Unknown'}`;
+            const marksDistribution = normalizeMarksDistribution(
+                item.marksDistribution || item.byMarks || item.marks_breakdown || item.markBreakdown
+            );
             transformed.byPaper[key] = {
                 total: item.total || 0,
                 active: item.active || 0,
@@ -365,28 +392,22 @@ const StatsTab = memo(function StatsTab({
                 paper: item.paper || 'Unknown',
                 subjectId: item.subjectId,
                 paperId: item.paperId,
+                marksDistribution,
+                byMarks: marksDistribution,
             };
         });
 
         (raw.byTopic || []).forEach(item => {
-            // Normalise byMarks — backend may send object, array, or nothing
-            let byMarks = item.byMarks || item.marks_breakdown || item.markBreakdown || {};
-
-            // If it arrives as an array of {marks, count} objects convert to object
-            if (Array.isArray(byMarks)) {
-                const obj = {};
-                byMarks.forEach(entry => {
-                    const key = entry.marks ?? entry.mark ?? entry.value ?? '?';
-                    obj[key] = entry.count ?? entry.total ?? 0;
-                });
-                byMarks = obj;
-            }
+            const marksDistribution = normalizeMarksDistribution(
+                item.marksDistribution || item.byMarks || item.marks_breakdown || item.markBreakdown
+            );
 
             transformed.byTopic[item.topicName || 'Unknown'] = {
                 total: item.total || 0,
                 active: item.active || 0,
                 inactive: item.inactive || 0,
-                byMarks,
+                marksDistribution,
+                byMarks: marksDistribution,
                 topicId: item.topicId,
                 subjectId: item.subjectId,
                 subject: item.subject || 'Unknown',
@@ -598,6 +619,8 @@ const StatsTab = memo(function StatsTab({
                                         Inactive: <strong>{counts.inactive}</strong>
                                     </span>
                                 </div>
+
+                                <MarksBreakdown byMarks={counts.marksDistribution || counts.byMarks} />
                             </div>
                         ))
                     )}
@@ -690,7 +713,7 @@ const StatsTab = memo(function StatsTab({
                                 </div>
 
                                 {/* Marks breakdown */}
-                                <MarksBreakdown byMarks={counts.byMarks} />
+                                <MarksBreakdown byMarks={counts.marksDistribution || counts.byMarks} />
                             </div>
                         ))
                     )}
