@@ -429,7 +429,7 @@ export function renderTextWithImages(
                 <span className="relative inline-block group">
                     <img src={img.url} alt={img.name || 'image'}
                         style={{ width: w, height: h || 'auto', maxWidth: ctx === 'similar' ? 200 : '100%', display: 'block' }}
-                        className="border-2 border-blue-400 rounded shadow-sm select-none" />
+                        className="rounded shadow-sm select-none" />
                     {onRemove && (
                         <button type="button" onClick={() => onRemove(id)}
                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs z-10">

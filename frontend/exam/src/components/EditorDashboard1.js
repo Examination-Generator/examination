@@ -2453,7 +2453,7 @@ export default function EditorDashboard({ onLogout }) {
                                     maxWidth: context === 'similar' ? '200px' : (isDrawingImage ? 'none' : '100%'),
                                     display: 'block'
                                 }}
-                                className="border-2 border-blue-400 rounded shadow-sm select-none"
+                                className="rounded shadow-sm select-none"
                             />
                             
                             {onRemoveImage && (
@@ -6828,7 +6828,7 @@ useEffect(() => {
                                                                         display: 'block',
                                                                         cursor: 'move'
                                                                     }}
-                                                                    className="border-2 border-blue-400 rounded shadow-sm select-none"
+                                                                    className="rounded shadow-sm select-none"
                                                                 />
                                                                 
                                                                 {/* Remove button */}
