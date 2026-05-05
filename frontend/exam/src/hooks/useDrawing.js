@@ -29,28 +29,59 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
         const graphHeight = Math.min(height, totalMmY * PX_PER_MM);
 
         ctx.save();
-        ctx.strokeStyle = '#e6e6e6';
-        ctx.lineWidth = 0.4;
+
+        // Draw vertical lines (X axis)
         for (let mmX = 0; mmX <= totalMmX; mmX++) {
-            if (mmX % MM_PER_CM === 0) continue;
             const x = Math.min(graphWidth, mmX * PX_PER_MM);
-            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, graphHeight); ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, graphHeight);
+
+            // Every 10mm: black and thick
+            if (mmX % MM_PER_CM === 0) {
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1.5;
+            }
+            // Every 5mm: black and thin
+            else if (mmX % 5 === 0) {
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 0.6;
+            }
+            // Every 1mm: green and thin
+            else {
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 0.3;
+            }
+
+            ctx.stroke();
         }
+
+        // Draw horizontal lines (Y axis)
         for (let mmY = 0; mmY <= totalMmY; mmY++) {
-            if (mmY % MM_PER_CM === 0) continue;
             const y = Math.min(graphHeight, mmY * PX_PER_MM);
-            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(graphWidth, y); ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(graphWidth, y);
+
+            // Every 10mm: black and thick
+            if (mmY % MM_PER_CM === 0) {
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1.5;
+            }
+            // Every 5mm: black and thin
+            else if (mmY % 5 === 0) {
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 0.6;
+            }
+            // Every 1mm: green and thin
+            else {
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 0.3;
+            }
+
+            ctx.stroke();
         }
-        ctx.strokeStyle = '#9ca3af';
-        ctx.lineWidth = 1;
-        for (let cmX = 0; cmX <= safeBoxesX; cmX++) {
-            const x = Math.min(graphWidth, cmX * MM_PER_CM * PX_PER_MM);
-            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, graphHeight); ctx.stroke();
-        }
-        for (let cmY = 0; cmY <= safeBoxesY; cmY++) {
-            const y = Math.min(graphHeight, cmY * MM_PER_CM * PX_PER_MM);
-            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(graphWidth, y); ctx.stroke();
-        }
+
         ctx.restore();
     };
 
