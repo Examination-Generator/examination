@@ -338,7 +338,7 @@ export default function QuestionForm({
     // ── Render content function (passed to RichTextEditor) ──────────────
     // Use the shared renderer so the add form interprets markup the same as edit
     const renderContent = useCallback((text, images, positions, lines, onRemoveImg, onRemoveLines, section) => {
-        return renderTextWithImages(text, images, positions, lines, onRemoveImg, onRemoveLines, 'edit');
+        return renderTextWithImages(text, images, positions, lines, onRemoveImg, onRemoveLines, 'preview');
     }, []);
 
     return (
