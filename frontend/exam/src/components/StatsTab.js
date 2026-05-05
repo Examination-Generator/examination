@@ -540,7 +540,7 @@ const StatsTab = memo(function StatsTab({
             {/* ── Stats cards  */}
             <StatsCards stats={stats} />
 
-            {/* ── Filters ─────────────────────────────────────────────── */}
+            {/* ── Filters 
             <div className="bg-white rounded-xl shadow-lg p-6">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-bold text-gray-800">Filters</h3>
@@ -587,7 +587,7 @@ const StatsTab = memo(function StatsTab({
                         <option value="inactive">Inactive Only</option>
                     </select>
                 </div>
-            </div>
+            </div> */}
 
             {/* ── By Subject */}
             <div className="bg-white rounded-xl shadow-lg p-6">
