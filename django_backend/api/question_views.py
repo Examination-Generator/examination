@@ -1486,7 +1486,6 @@ def question_statistics_only(request):
         )
 
         # ── Global marks distribution 
-        # e.g. { "2": 120, "5": 45, "10": 30 }
         global_marks_qs = queryset.values('marks').annotate(
             count=Count('id')
         ).order_by('marks')

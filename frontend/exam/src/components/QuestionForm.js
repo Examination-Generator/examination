@@ -323,7 +323,9 @@ export default function QuestionForm({
             const result = await response.json();
             if (response.ok && result.success) {
                 showSuccess('Question saved successfully!');
-                resetForm();
+                if (!bulkMode) {
+                    resetForm();
+                }
                 onSubmitSuccess?.(result.data);
             } else {
                 showError(`Failed to save: ${result.message || 'Unknown error'}`);
