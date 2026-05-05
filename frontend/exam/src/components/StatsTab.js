@@ -620,7 +620,7 @@ const StatsTab = memo(function StatsTab({
                                     </span>
                                 </div>
 
-                                <MarksBreakdown byMarks={counts.marksDistribution || counts.byMarks} />
+                                
                             </div>
                         ))
                     )}
@@ -663,6 +663,7 @@ const StatsTab = memo(function StatsTab({
                                         Inactive: <strong>{counts.inactive}</strong>
                                     </span>
                                 </div>
+                                <MarksBreakdown byMarks={counts.marksDistribution || counts.byMarks} />
                             </div>
                         ))
                     )}
