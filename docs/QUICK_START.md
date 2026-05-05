@@ -28,6 +28,7 @@ python -m venv venv
 venv\Scripts\Activate.ps1
 # Windows CMD:
 venv\Scripts\activate.bat
+
 # Linux/Mac:
 source venv/bin/activate
 
@@ -66,7 +67,7 @@ Frontend will be available at: http://localhost:3000
 
 Use the default credentials:
 - **Phone:** `0000000001` (Admin) or `0000000002` (Editor)
-- **Password:** `0000`
+- **Password:** `pass`
 
 ## 5. Production Deployment
 
