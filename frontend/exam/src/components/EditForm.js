@@ -6,6 +6,8 @@ import SymbolPicker from './SymbolPicker';
 import FractionModal from './FractionModal';
 import TableMatrixModal from './TableMatrixModal';
 import GraphModal from './GraphModal';
+import LinesModal from './LinesModal';
+import WorkingSpaceModal from './WorkingSpaceModal';
 import { renderTextWithImages } from '../utils/renderTextWithImages';
 import { useError } from '../contexts/ErrorContext';
 import { useVoiceInput } from '../hooks/useVoiceInput';
@@ -25,6 +27,17 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
     const [showTableModal, setShowTableModal] = useState(false);
     const [tableTarget, setTableTarget] = useState(null);
     const [tableType, setTableType] = useState('table');
+    const [showLinesModal, setShowLinesModal] = useState(false);
+    const [linesTarget, setLinesTarget] = useState('question');
+    const [linesConfig, setLinesConfig] = useState({
+        numberOfLines: 5,
+        lineHeight: 30,
+        lineStyle: 'dotted',
+        opacity: 0.5,
+    });
+    const [showWorkingSpaceModal, setShowWorkingSpaceModal] = useState(false);
+    const [workingSpaceTarget, setWorkingSpaceTarget] = useState('question');
+    const [workingSpaceHeightMm, setWorkingSpaceHeightMm] = useState(50);
     const [showGraphModal, setShowGraphModal] = useState(false);
     const [graphTarget, setGraphTarget] = useState('question');
     const [graphBoxesX, setGraphBoxesX] = useState(MAX_GRAPH_BOXES_X);
@@ -124,12 +137,20 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
             onMatrix: () => { setTableTarget({ ref, setText }); setTableType('matrix'); setShowTableModal(true); },
             onSymbols: () => { setSymbolTarget(target); setShowSymbolPicker(true); },
             onLines: () => {
-                const block = { id: Date.now() + Math.random(), numberOfLines: 5, lineHeight: 30, lineStyle: 'dotted', opacity: 0.5 };
-                if (target === 'question') setEditQuestionAnswerLines(p => [...p, block]);
-                else setEditAnswerAnswerLines(p => [...p, block]);
-                setText(p => p + `\n[LINES:${block.id}]\n`);
+                setLinesTarget(target);
+                setLinesConfig({
+                    numberOfLines: 5,
+                    lineHeight: 30,
+                    lineStyle: 'dotted',
+                    opacity: 0.5,
+                });
+                setShowLinesModal(true);
             },
-            onSpace: () => setText(p => p + `\n[SPACE:${Date.now()}]\n`),
+            onSpace: () => {
+                setWorkingSpaceTarget(target);
+                setWorkingSpaceHeightMm(50);
+                setShowWorkingSpaceModal(true);
+            },
             onMic: target === 'question'
                 ? editQuestionVoiceInput.toggle
                 : editAnswerVoiceInput.toggle,
@@ -147,6 +168,52 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
         setEditQuestionAnswerLines, setEditAnswerAnswerLines,
         editQuestionVoiceInput, editAnswerVoiceInput,
     ]);
+
+    const handleLinesSave = useCallback((config, target) => {
+        const lineBlock = { id: Date.now() + Math.random(), ...config };
+        const setLines = target === 'question' ? setEditQuestionAnswerLines : setEditAnswerAnswerLines;
+        const setText = target === 'question' ? setEditQuestionText : setEditAnswerText;
+        const ref = target === 'question' ? editQuestionTextareaRef : editAnswerTextareaRef;
+
+        setLines(prev => [...prev, lineBlock]);
+        const textarea = ref.current;
+        const token = `\n[LINES:${lineBlock.id}]\n`;
+        if (textarea) {
+            const cursorPos = textarea.selectionStart;
+            const currentText = target === 'question' ? editQuestionText : editAnswerText;
+            const textBefore = currentText.substring(0, cursorPos);
+            const textAfter = currentText.substring(cursorPos);
+            setText(textBefore + token + textAfter);
+        } else {
+            setText(prev => prev + token);
+        }
+        setShowLinesModal(false);
+    }, [editQuestionTextareaRef, editAnswerTextareaRef, editQuestionText, editAnswerText, setEditQuestionAnswerLines, setEditAnswerAnswerLines, setEditQuestionText, setEditAnswerText]);
+
+    const handleWorkingSpaceSave = useCallback(({ heightMm }, target) => {
+        const spaceBlock = {
+            id: Date.now() + Math.random(),
+            heightMm,
+            targetSection: target,
+        };
+        const setSpaces = target === 'question' ? editQuestionWorkingSpaces : editAnswerWorkingSpaces;
+        const setText = target === 'question' ? setEditQuestionText : setEditAnswerText;
+        const ref = target === 'question' ? editQuestionTextareaRef : editAnswerTextareaRef;
+
+        setSpaces(prev => [...prev, spaceBlock]);
+        const textarea = ref.current;
+        const token = `\n[SPACE:${spaceBlock.id}]\n`;
+        if (textarea) {
+            const cursorPos = textarea.selectionStart;
+            const currentText = target === 'question' ? editQuestionText : editAnswerText;
+            const textBefore = currentText.substring(0, cursorPos);
+            const textAfter = currentText.substring(cursorPos);
+            setText(textBefore + token + textAfter);
+        } else {
+            setText(prev => prev + token);
+        }
+        setShowWorkingSpaceModal(false);
+    }, [editQuestionWorkingSpaces, editAnswerWorkingSpaces, editQuestionTextareaRef, editAnswerTextareaRef, editQuestionText, editAnswerText, setEditQuestionText, setEditAnswerText]);
 
     const handleDrawSave = useCallback(({ type, imageUrl, width, height, graphBoxesX, graphBoxesY }, target) => {
         const setText = target === 'question' ? setEditQuestionText : setEditAnswerText;
@@ -264,6 +331,24 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
                 setGraphBoxesX={setGraphBoxesX}
                 graphBoxesY={graphBoxesY}
                 setGraphBoxesY={setGraphBoxesY}
+            />
+
+            <LinesModal
+                open={showLinesModal}
+                onClose={() => setShowLinesModal(false)}
+                onSave={handleLinesSave}
+                targetSection={linesTarget}
+                config={linesConfig}
+                setConfig={setLinesConfig}
+            />
+
+            <WorkingSpaceModal
+                open={showWorkingSpaceModal}
+                onClose={() => setShowWorkingSpaceModal(false)}
+                onSave={handleWorkingSpaceSave}
+                targetSection={workingSpaceTarget}
+                heightMm={workingSpaceHeightMm}
+                setHeightMm={setWorkingSpaceHeightMm}
             />
 
             {showSymbolPicker && (
