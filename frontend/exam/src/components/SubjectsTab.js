@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import * as subjectService from '../services/subjectService';
 import { useError } from '../contexts/ErrorContext';
 
-export default function SubjectsTab() {
+export default function SubjectsTab({ onEditSubject }) {
     const { showError, showSuccess } = useError();
     const [subjects, setSubjects] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -126,7 +126,8 @@ export default function SubjectsTab() {
                                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">{subject.papers?.length || 0} papers</span>
                                 </div>
                                 <div className="flex gap-1">
-                                    <button onClick={() => setEditingItem({ type: 'subject', data: { ...subject } })}
+                                    <button 
+                                        onClick={() => onEditSubject ? onEditSubject(subject, true) : setEditingItem({ type: 'subject', data: { ...subject } })}
                                         className="text-blue-600 hover:bg-blue-50 p-2 rounded transition">✏️</button>
                                     <button onClick={() => setDeletingItem({ type: 'subject', data: subject })}
                                         className="text-red-600 hover:bg-red-50 p-2 rounded transition">🗑️</button>
