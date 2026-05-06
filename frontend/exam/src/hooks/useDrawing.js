@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 
 const A4_CANVAS_SCALE = 2;
@@ -28,39 +27,71 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
         const graphWidth = Math.min(width, totalMmX * PX_PER_MM);
         const graphHeight = Math.min(height, totalMmY * PX_PER_MM);
 
-        const drawLine = (x1, y1, x2, y2, lineWidth, strokeStyle) => {
-            ctx.fillStyle = strokeStyle;
-            // use integer-aligned filled rects to avoid sub-pixel anti-alias disappearance
-            if (x1 === x2) {
-                const x = Math.round(x1 - lineWidth / 2);
-                const h = Math.max(1, Math.round(Math.abs(y2 - y1)));
-                ctx.fillRect(x, Math.round(Math.min(y1, y2)), Math.max(1, Math.round(lineWidth)), h);
-            } else {
-                const y = Math.round(y1 - lineWidth / 2);
-                const w = Math.max(1, Math.round(Math.abs(x2 - x1)));
-                ctx.fillRect(Math.round(Math.min(x1, x2)), y, w, Math.max(1, Math.round(lineWidth)));
-            }
-        };
-
         ctx.save();
         ctx.imageSmoothingEnabled = false;
 
-        // Draw vertical lines (X axis)
+        // ── Vertical lines ──────────────────────────────────────────────────
         for (let mmX = 0; mmX <= totalMmX; mmX++) {
-            const x = Math.min(graphWidth, mmX * PX_PER_MM);
-            if (mmX === 0) drawLine(x, 0, x, graphHeight, 3.2, '#000000'); // leading margin
-            else if (mmX % MM_PER_CM === 0) drawLine(x, 0, x, graphHeight, 3.0, '#000000'); // 10mm bold
-            else if (mmX % 5 === 0) drawLine(x, 0, x, graphHeight, 1.6, '#111827'); // 5mm medium (dark gray)
-            else drawLine(x, 0, x, graphHeight, 0.9, '#9CA3AF'); // 1mm thin (gray)
+            const x = Math.round(mmX * PX_PER_MM);
+            if (x > graphWidth) break;
+
+            if (mmX % MM_PER_CM === 0) {
+                // 1 cm border / major grid line — dark, bold
+                ctx.fillStyle = '#1a1a1a';
+                const lw = 1.5;
+                ctx.fillRect(
+                    Math.round(x - lw / 2), 0,
+                    Math.max(1, Math.round(lw)), Math.round(graphHeight)
+                );
+            } else if (mmX % 5 === 0) {
+                // 5 mm (centre of each cm box) — medium green
+                ctx.fillStyle = '#4CAF50';
+                const lw = 0.8;
+                ctx.fillRect(
+                    Math.round(x - lw / 2), 0,
+                    Math.max(1, Math.round(lw)), Math.round(graphHeight)
+                );
+            } else {
+                // 1 mm — thin, light green
+                ctx.fillStyle = '#A5D6A7';
+                const lw = 0.4;
+                ctx.fillRect(
+                    Math.round(x - lw / 2), 0,
+                    Math.max(1, Math.round(lw)), Math.round(graphHeight)
+                );
+            }
         }
 
-        // Draw horizontal lines (Y axis)
+        // ── Horizontal lines ────────────────────────────────────────────────
         for (let mmY = 0; mmY <= totalMmY; mmY++) {
-            const y = Math.min(graphHeight, mmY * PX_PER_MM);
-            if (mmY === 0) drawLine(0, y, graphWidth, y, 3.2, '#000000');
-            else if (mmY % MM_PER_CM === 0) drawLine(0, y, graphWidth, y, 3.0, '#000000');
-            else if (mmY % 5 === 0) drawLine(0, y, graphWidth, y, 1.6, '#111827');
-            else drawLine(0, y, graphWidth, y, 0.9, '#9CA3AF');
+            const y = Math.round(mmY * PX_PER_MM);
+            if (y > graphHeight) break;
+
+            if (mmY % MM_PER_CM === 0) {
+                // 1 cm border / major grid line — dark, bold
+                ctx.fillStyle = '#1a1a1a';
+                const lw = 1.5;
+                ctx.fillRect(
+                    0, Math.round(y - lw / 2),
+                    Math.round(graphWidth), Math.max(1, Math.round(lw))
+                );
+            } else if (mmY % 5 === 0) {
+                // 5 mm (centre of each cm box) — medium green
+                ctx.fillStyle = '#4CAF50';
+                const lw = 0.8;
+                ctx.fillRect(
+                    0, Math.round(y - lw / 2),
+                    Math.round(graphWidth), Math.max(1, Math.round(lw))
+                );
+            } else {
+                // 1 mm — thin, light green
+                ctx.fillStyle = '#A5D6A7';
+                const lw = 0.4;
+                ctx.fillRect(
+                    0, Math.round(y - lw / 2),
+                    Math.round(graphWidth), Math.max(1, Math.round(lw))
+                );
+            }
         }
 
         ctx.restore();
