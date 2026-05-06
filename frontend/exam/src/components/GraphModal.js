@@ -11,7 +11,7 @@ function GraphPreview({ widthBoxes, heightBoxes }) {
 
   return (
     <div className="overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-3" style={{ maxHeight: '52vh' }}>
-      <div
+          <div
         className="mx-auto"
         style={{
           width: `${widthPx}px`,
@@ -20,12 +20,15 @@ function GraphPreview({ widthBoxes, heightBoxes }) {
           border: '2px solid #000',
           backgroundColor: '#fff',
           backgroundImage: [
-            'repeating-linear-gradient(to right, rgba(0, 0, 0, 0.28) 0, rgba(0, 0, 0, 0.28) 1.2px, transparent 1.2px, transparent 1mm)',
-            'repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.28) 0, rgba(0, 0, 0, 0.28) 1.2px, transparent 1.2px, transparent 1mm)',
-            'repeating-linear-gradient(to right, rgba(0, 0, 0, 0.62) 0, rgba(0, 0, 0, 0.62) 1.6px, transparent 1.6px, transparent 5mm)',
-            'repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.62) 0, rgba(0, 0, 0, 0.62) 1.6px, transparent 1.6px, transparent 5mm)',
-            'repeating-linear-gradient(to right, rgba(0, 0, 0, 1) 0, rgba(0, 0, 0, 1) 2.4px, transparent 2.4px, transparent 10mm)',
-            'repeating-linear-gradient(to bottom, rgba(0, 0, 0, 1) 0, rgba(0, 0, 0, 1) 2.4px, transparent 2.4px, transparent 10mm)'
+            // 1mm thin (subtle gray)
+            'repeating-linear-gradient(to right, rgba(156,163,175,0.75) 0, rgba(156,163,175,0.75) 0.9px, transparent 0.9px, transparent 1mm)',
+            'repeating-linear-gradient(to bottom, rgba(156,163,175,0.75) 0, rgba(156,163,175,0.75) 0.9px, transparent 0.9px, transparent 1mm)',
+            // 5mm medium (dark gray)
+            'repeating-linear-gradient(to right, rgba(17,24,39,0.95) 0, rgba(17,24,39,0.95) 1.6px, transparent 1.6px, transparent 5mm)',
+            'repeating-linear-gradient(to bottom, rgba(17,24,39,0.95) 0, rgba(17,24,39,0.95) 1.6px, transparent 1.6px, transparent 5mm)',
+            // 10mm bold (black)
+            'repeating-linear-gradient(to right, rgba(0,0,0,1) 0, rgba(0,0,0,1) 3px, transparent 3px, transparent 10mm)',
+            'repeating-linear-gradient(to bottom, rgba(0,0,0,1) 0, rgba(0,0,0,1) 3px, transparent 3px, transparent 10mm)'
           ].join(', ')
         }}
       />
@@ -109,7 +112,7 @@ export default function GraphModal({
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-700">Preview</h3>
               <span className="text-xs text-gray-500">
-                {graphBoxesX} cm × {graphBoxesY} cm
+                {graphBoxesX} cm x {graphBoxesY} cm
               </span>
             </div>
             <GraphPreview widthBoxes={graphBoxesX} heightBoxes={graphBoxesY} />

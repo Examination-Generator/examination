@@ -30,12 +30,15 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
 
         const drawLine = (x1, y1, x2, y2, lineWidth, strokeStyle) => {
             ctx.fillStyle = strokeStyle;
+            // use integer-aligned filled rects to avoid sub-pixel anti-alias disappearance
             if (x1 === x2) {
                 const x = Math.round(x1 - lineWidth / 2);
-                ctx.fillRect(x, Math.round(Math.min(y1, y2)), Math.max(1, Math.round(lineWidth)), Math.max(1, Math.round(Math.abs(y2 - y1))));
+                const h = Math.max(1, Math.round(Math.abs(y2 - y1)));
+                ctx.fillRect(x, Math.round(Math.min(y1, y2)), Math.max(1, Math.round(lineWidth)), h);
             } else {
                 const y = Math.round(y1 - lineWidth / 2);
-                ctx.fillRect(Math.round(Math.min(x1, x2)), y, Math.max(1, Math.round(Math.abs(x2 - x1))), Math.max(1, Math.round(lineWidth)));
+                const w = Math.max(1, Math.round(Math.abs(x2 - x1)));
+                ctx.fillRect(Math.round(Math.min(x1, x2)), y, w, Math.max(1, Math.round(lineWidth)));
             }
         };
 
@@ -45,17 +48,19 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
         // Draw vertical lines (X axis)
         for (let mmX = 0; mmX <= totalMmX; mmX++) {
             const x = Math.min(graphWidth, mmX * PX_PER_MM);
-            if (mmX % MM_PER_CM === 0) drawLine(x, 0, x, graphHeight, 2.4, '#000000');
-            else if (mmX % 5 === 0) drawLine(x, 0, x, graphHeight, 1.6, '#000000');
-            else drawLine(x, 0, x, graphHeight, 1.0, '#000000');
+            if (mmX === 0) drawLine(x, 0, x, graphHeight, 3.2, '#000000'); // leading margin
+            else if (mmX % MM_PER_CM === 0) drawLine(x, 0, x, graphHeight, 3.0, '#000000'); // 10mm bold
+            else if (mmX % 5 === 0) drawLine(x, 0, x, graphHeight, 1.6, '#111827'); // 5mm medium (dark gray)
+            else drawLine(x, 0, x, graphHeight, 0.9, '#9CA3AF'); // 1mm thin (gray)
         }
 
         // Draw horizontal lines (Y axis)
         for (let mmY = 0; mmY <= totalMmY; mmY++) {
             const y = Math.min(graphHeight, mmY * PX_PER_MM);
-            if (mmY % MM_PER_CM === 0) drawLine(0, y, graphWidth, y, 2.4, '#000000');
-            else if (mmY % 5 === 0) drawLine(0, y, graphWidth, y, 1.6, '#000000');
-            else drawLine(0, y, graphWidth, y, 1.0, '#000000');
+            if (mmY === 0) drawLine(0, y, graphWidth, y, 3.2, '#000000');
+            else if (mmY % MM_PER_CM === 0) drawLine(0, y, graphWidth, y, 3.0, '#000000');
+            else if (mmY % 5 === 0) drawLine(0, y, graphWidth, y, 1.6, '#111827');
+            else drawLine(0, y, graphWidth, y, 0.9, '#9CA3AF');
         }
 
         ctx.restore();

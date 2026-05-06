@@ -22,11 +22,8 @@ export default function QuestionForm({
     selectedPaperId,
     selectedTopicId,
     selectedSectionId,
-    // Form state from useQuestionForm hook
     formState,
-    // Callbacks
     onSubmitSuccess,
-    // Bulk mode
     bulkMode,
     currentBulkIndex,
     totalBulkQuestions,
