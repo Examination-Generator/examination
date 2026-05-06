@@ -1062,7 +1062,7 @@ export default function EditorDashboard({ onLogout }) {
                     </div>
                 )}
             </div>
-    )}
+        )}
     </div>);
    
 }
