@@ -28,52 +28,34 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
         const graphWidth = Math.min(width, totalMmX * PX_PER_MM);
         const graphHeight = Math.min(height, totalMmY * PX_PER_MM);
 
+        const drawLine = (x1, y1, x2, y2, lineWidth, strokeStyle) => {
+            ctx.fillStyle = strokeStyle;
+            if (x1 === x2) {
+                const x = Math.round(x1 - lineWidth / 2);
+                ctx.fillRect(x, Math.round(Math.min(y1, y2)), Math.max(1, Math.round(lineWidth)), Math.max(1, Math.round(Math.abs(y2 - y1))));
+            } else {
+                const y = Math.round(y1 - lineWidth / 2);
+                ctx.fillRect(Math.round(Math.min(x1, x2)), y, Math.max(1, Math.round(Math.abs(x2 - x1))), Math.max(1, Math.round(lineWidth)));
+            }
+        };
+
         ctx.save();
+        ctx.imageSmoothingEnabled = false;
 
         // Draw vertical lines (X axis)
         for (let mmX = 0; mmX <= totalMmX; mmX++) {
             const x = Math.min(graphWidth, mmX * PX_PER_MM);
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, graphHeight);
-
-            if (mmX % MM_PER_CM === 0) {
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 1.8;
-            }
-            else if (mmX % 5 === 0) {
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 0.8;
-            }
-            else {
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 0.35;
-            }
-
-            ctx.stroke();
+            if (mmX % MM_PER_CM === 0) drawLine(x, 0, x, graphHeight, 2.4, '#000000');
+            else if (mmX % 5 === 0) drawLine(x, 0, x, graphHeight, 1.6, '#000000');
+            else drawLine(x, 0, x, graphHeight, 1.0, '#000000');
         }
 
         // Draw horizontal lines (Y axis)
         for (let mmY = 0; mmY <= totalMmY; mmY++) {
             const y = Math.min(graphHeight, mmY * PX_PER_MM);
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(graphWidth, y);
-
-            if (mmY % MM_PER_CM === 0) {
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 1.8;
-            }
-            else if (mmY % 5 === 0) {
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 0.8;
-            }
-            else {
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 0.35;
-            }
-
-            ctx.stroke();
+            if (mmY % MM_PER_CM === 0) drawLine(0, y, graphWidth, y, 2.4, '#000000');
+            else if (mmY % 5 === 0) drawLine(0, y, graphWidth, y, 1.6, '#000000');
+            else drawLine(0, y, graphWidth, y, 1.0, '#000000');
         }
 
         ctx.restore();

@@ -20,12 +20,12 @@ function GraphPreview({ widthBoxes, heightBoxes }) {
           border: '2px solid #000',
           backgroundColor: '#fff',
           backgroundImage: [
-            'repeating-linear-gradient(to right, rgba(0, 0, 0, 0.16) 0, rgba(0, 0, 0, 0.16) 1px, transparent 1px, transparent 1mm)',
-            'repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.16) 0, rgba(0, 0, 0, 0.16) 1px, transparent 1px, transparent 1mm)',
-            'repeating-linear-gradient(to right, rgba(0, 0, 0, 0.48) 0, rgba(0, 0, 0, 0.48) 1px, transparent 1px, transparent 5mm)',
-            'repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.48) 0, rgba(0, 0, 0, 0.48) 1px, transparent 1px, transparent 5mm)',
-            'repeating-linear-gradient(to right, rgba(0, 0, 0, 0.95) 0, rgba(0, 0, 0, 0.95) 2px, transparent 2px, transparent 10mm)',
-            'repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.95) 0, rgba(0, 0, 0, 0.95) 2px, transparent 2px, transparent 10mm)'
+            'repeating-linear-gradient(to right, rgba(0, 0, 0, 0.28) 0, rgba(0, 0, 0, 0.28) 1.2px, transparent 1.2px, transparent 1mm)',
+            'repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.28) 0, rgba(0, 0, 0, 0.28) 1.2px, transparent 1.2px, transparent 1mm)',
+            'repeating-linear-gradient(to right, rgba(0, 0, 0, 0.62) 0, rgba(0, 0, 0, 0.62) 1.6px, transparent 1.6px, transparent 5mm)',
+            'repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.62) 0, rgba(0, 0, 0, 0.62) 1.6px, transparent 1.6px, transparent 5mm)',
+            'repeating-linear-gradient(to right, rgba(0, 0, 0, 1) 0, rgba(0, 0, 0, 1) 2.4px, transparent 2.4px, transparent 10mm)',
+            'repeating-linear-gradient(to bottom, rgba(0, 0, 0, 1) 0, rgba(0, 0, 0, 1) 2.4px, transparent 2.4px, transparent 10mm)'
           ].join(', ')
         }}
       />
