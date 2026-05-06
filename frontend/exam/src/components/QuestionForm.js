@@ -5,6 +5,8 @@ import SymbolPicker from './SymbolPicker';
 import FractionModal from './FractionModal';
 import TableMatrixModal from './TableMatrixModal';
 import GraphModal from './GraphModal';
+import LinesModal from './LinesModal';
+import WorkingSpaceModal from './WorkingSpaceModal';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import { useError } from '../contexts/ErrorContext';
 import { renderTextWithImages } from '../utils/renderTextWithImages';
@@ -66,6 +68,17 @@ export default function QuestionForm({
     const [graphTarget, setGraphTarget] = useState('question');
     const [graphBoxesX, setGraphBoxesX] = useState(MAX_GRAPH_BOXES_X);
     const [graphBoxesY, setGraphBoxesY] = useState(MAX_GRAPH_BOXES_Y);
+    const [showLinesModal, setShowLinesModal] = useState(false);
+    const [linesTarget, setLinesTarget] = useState('question');
+    const [linesConfig, setLinesConfig] = useState({
+        numberOfLines: 5,
+        lineHeight: 30,
+        lineStyle: 'dotted',
+        opacity: 0.5,
+    });
+    const [showWorkingSpaceModal, setShowWorkingSpaceModal] = useState(false);
+    const [workingSpaceTarget, setWorkingSpaceTarget] = useState('question');
+    const [workingSpaceHeightMm, setWorkingSpaceHeightMm] = useState(50);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const questionVoiceInput = useVoiceInput(
@@ -243,6 +256,37 @@ export default function QuestionForm({
         }
     }, [questionTextareaRef, answerTextareaRef, setQuestionText, setAnswerText, setQuestionAnswerLines, setAnswerAnswerLines]);
 
+    // ── Lines modal save handler
+    const handleLinesSave = useCallback((config, target) => {
+        insertLines(config, target);
+        setShowLinesModal(false);
+    }, [insertLines]);
+
+    // ── Working space modal save handler
+    const handleWorkingSpaceSave = useCallback(({ heightMm }, target) => {
+        const spaceBlock = {
+            id: Date.now() + Math.random(),
+            heightMm,
+            targetSection: target,
+        };
+        const setSpaces = target === 'question' ? setQuestionWorkingSpaces : setAnswerWorkingSpaces;
+        const setText = target === 'question' ? setQuestionText : setAnswerText;
+        const ref = target === 'question' ? questionTextareaRef : answerTextareaRef;
+        setSpaces(prev => [...prev, spaceBlock]);
+        const textarea = ref.current;
+        const token = `\n[SPACE:${spaceBlock.id}]\n`;
+        if (textarea) {
+            const cursorPos = textarea.selectionStart;
+            const currentText = target === 'question' ? questionText : answerText;
+            const textBefore = currentText.substring(0, cursorPos);
+            const textAfter = currentText.substring(cursorPos);
+            setText(textBefore + token + textAfter);
+        } else {
+            setText(prev => prev + token);
+        }
+        setShowWorkingSpaceModal(false);
+    }, [questionTextareaRef, answerTextareaRef, questionText, answerText, setQuestionText, setAnswerText, setQuestionWorkingSpaces, setAnswerWorkingSpaces]);
+
     // ── Build toolbar props 
     const buildToolbarProps = useCallback((target) => {
         const textareaRef = target === 'question' ? questionTextareaRef : answerTextareaRef;
@@ -267,12 +311,20 @@ export default function QuestionForm({
             onTable: () => openTable(target, 'table'),
             onMatrix: () => openTable(target, 'matrix'),
             onSymbols: () => { setSymbolTarget(target); setShowSymbolPicker(true); },
-            onLines: () => insertLines({
-                numberOfLines: 5, lineHeight: 30, lineStyle: 'dotted', opacity: 0.5
-            }, target),
+            onLines: () => {
+                setLinesTarget(target);
+                setLinesConfig({
+                    numberOfLines: 5,
+                    lineHeight: 30,
+                    lineStyle: 'dotted',
+                    opacity: 0.5,
+                });
+                setShowLinesModal(true);
+            },
             onSpace: () => {
-                const token = `\n[SPACE:${Date.now()}]\n`;
-                setText(prev => prev + token);
+                setWorkingSpaceTarget(target);
+                setWorkingSpaceHeightMm(50);
+                setShowWorkingSpaceModal(true);
             },
             onMic: target === 'question'
                 ? questionVoiceInput.toggle
@@ -382,6 +434,22 @@ export default function QuestionForm({
                 setGraphBoxesX={setGraphBoxesX}
                 graphBoxesY={graphBoxesY}
                 setGraphBoxesY={setGraphBoxesY}
+            />
+            <LinesModal
+                open={showLinesModal}
+                onClose={() => setShowLinesModal(false)}
+                onSave={handleLinesSave}
+                targetSection={linesTarget}
+                config={linesConfig}
+                setConfig={setLinesConfig}
+            />
+            <WorkingSpaceModal
+                open={showWorkingSpaceModal}
+                onClose={() => setShowWorkingSpaceModal(false)}
+                onSave={handleWorkingSpaceSave}
+                targetSection={workingSpaceTarget}
+                heightMm={workingSpaceHeightMm}
+                setHeightMm={setWorkingSpaceHeightMm}
             />
             {showSymbolPicker && (
                 <SymbolPicker

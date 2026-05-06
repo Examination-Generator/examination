@@ -196,11 +196,12 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
             heightMm,
             targetSection: target,
         };
-        const setSpaces = target === 'question' ? editQuestionWorkingSpaces : editAnswerWorkingSpaces;
+        const setSpaces = target === 'question'
+            ? (prev => setEditQuestionAnswerLines(p => p))
+            : (prev => setEditAnswerAnswerLines(p => p));
         const setText = target === 'question' ? setEditQuestionText : setEditAnswerText;
         const ref = target === 'question' ? editQuestionTextareaRef : editAnswerTextareaRef;
 
-        setSpaces(prev => [...prev, spaceBlock]);
         const textarea = ref.current;
         const token = `\n[SPACE:${spaceBlock.id}]\n`;
         if (textarea) {
@@ -213,7 +214,7 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
             setText(prev => prev + token);
         }
         setShowWorkingSpaceModal(false);
-    }, [editQuestionWorkingSpaces, editAnswerWorkingSpaces, editQuestionTextareaRef, editAnswerTextareaRef, editQuestionText, editAnswerText, setEditQuestionText, setEditAnswerText]);
+    }, [editQuestionTextareaRef, editAnswerTextareaRef, editQuestionText, editAnswerText, setEditQuestionText, setEditAnswerText, setEditQuestionAnswerLines, setEditAnswerAnswerLines]);
 
     const handleDrawSave = useCallback(({ type, imageUrl, width, height, graphBoxesX, graphBoxesY }, target) => {
         const setText = target === 'question' ? setEditQuestionText : setEditAnswerText;
