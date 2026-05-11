@@ -190,7 +190,6 @@ export default function EditTab({ existingSubjects }) {
     const pendingScrollRestoreRef    = useRef(null);
     const scrollTimerRef             = useRef(null);
     const suppressScrollRef          = useRef(false);
-    const lastScrollTopRef           = useRef(0);
     const formOperationInProgressRef = useRef(false);
 
     const handleListScroll = useCallback(() => {
@@ -202,26 +201,22 @@ export default function EditTab({ existingSubjects }) {
             scrollTimerRef.current = null;
             const container = listRef.current;
             const pg = paginationRef.current;
-            if (!container || pg.isLoadingMore) return;
+            if (!container || pg.isLoadingMore || pg.inFlightRef?.current) return;
 
             const currentScrollTop = container.scrollTop;
-            const clientHeight     = container.clientHeight;
-            const scrollHeight     = container.scrollHeight;
+            const clientHeight = container.clientHeight;
+            const scrollHeight = container.scrollHeight;
 
-            const scrollingDown = currentScrollTop > lastScrollTopRef.current;
-            const scrollingUp   = currentScrollTop < lastScrollTopRef.current;
-            lastScrollTopRef.current = currentScrollTop;
-
-            const nearTop    = currentScrollTop <= 80;
+            const nearTop = currentScrollTop <= 80;
             const nearBottom = currentScrollTop + clientHeight >= scrollHeight - 80;
 
-            if (nearBottom && scrollingDown && pg.hasMore) {
+            if (nearBottom && pg.hasMore) {
                 pendingScrollRestoreRef.current = 'top';
                 pg.fetchPage(pg.currentPage + 1, getCurrentFilters());
                 return;
             }
 
-            if (nearTop && scrollingUp && pg.currentPage > 1) {
+            if (nearTop && pg.currentPage > 1) {
                 pendingScrollRestoreRef.current = 'bottom';
                 pg.fetchPage(pg.currentPage - 1, getCurrentFilters());
             }
@@ -262,7 +257,6 @@ export default function EditTab({ existingSubjects }) {
             } else if (pending === 'bottom') {
                 container.scrollTop = container.scrollHeight;
             }
-            lastScrollTopRef.current = container.scrollTop;
             pendingScrollRestoreRef.current = null;
 
             requestAnimationFrame(() => {
