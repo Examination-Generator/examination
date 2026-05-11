@@ -66,11 +66,17 @@ export function usePagination() {
                 pagination.has_next === true ||
                 (serverTotal > 0 && targetPage * 50 < serverTotal);
 
+            // Update refs first (no render)
+            currentPageRef.current = targetPage;
+            paginatedRef.current = questions;
+
+            // Batch state updates - React will batch these into single render
             setPaginatedQuestions(questions);
             setHasMore(derivedHasMore);
             setCurrentPage(targetPage);
-            currentPageRef.current = targetPage;
-            paginatedRef.current = questions;
+            if (serverTotal > 0) {
+                setTotalCount(serverTotal);
+            }
 
             return questions;
         } catch (err) {

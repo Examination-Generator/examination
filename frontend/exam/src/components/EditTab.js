@@ -126,9 +126,19 @@ export default function EditTab({ existingSubjects }) {
         fetchTopics();
         return () => controller.abort();
     }, [selectedQuestion?.paper]); 
+    // Memoized filters to prevent recalculation on every scroll
+    const memoizedFilters = useRef(buildFilters());
+    useEffect(() => {
+        memoizedFilters.current = buildFilters();
+    }, [buildFilters]);
+
+    // Guard flag: prevent scroll handler during form operations
+    const formOperationInProgressRef = useRef(false);
+
     const handleListScroll = useCallback(() => {
         if (scrollTimerRef.current) return;
         if (suppressScrollRef.current) return;
+        if (formOperationInProgressRef.current) return; // Skip scroll during form save
 
         scrollTimerRef.current = setTimeout(() => {
             scrollTimerRef.current = null;
@@ -136,26 +146,30 @@ export default function EditTab({ existingSubjects }) {
             const pg = paginationRef.current;
             if (!container || pg.isLoadingMore) return;
 
+            // Batch DOM reads to prevent layout thrashing
             const currentScrollTop = container.scrollTop;
+            const clientHeight = container.clientHeight;
+            const scrollHeight = container.scrollHeight;
+
             const scrollingDown = currentScrollTop > lastScrollTopRef.current;
             const scrollingUp = currentScrollTop < lastScrollTopRef.current;
             lastScrollTopRef.current = currentScrollTop;
 
-            const nearTop = container.scrollTop <= 80;
-            const nearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 80;
+            const nearTop = currentScrollTop <= 80;
+            const nearBottom = currentScrollTop + clientHeight >= scrollHeight - 80;
 
             if (nearBottom && scrollingDown && pg.hasMore) {
                 pendingScrollRestoreRef.current = 'top';
-                pg.fetchPage(pg.currentPage + 1, buildFilters());
+                pg.fetchPage(pg.currentPage + 1, memoizedFilters.current);
                 return;
             }
 
             if (nearTop && scrollingUp && pg.currentPage > 1) {
                 pendingScrollRestoreRef.current = 'bottom';
-                pg.fetchPage(pg.currentPage - 1, buildFilters());
+                pg.fetchPage(pg.currentPage - 1, memoizedFilters.current);
             }
         }, 150);
-    }, [buildFilters]); 
+    }, []); 
 
     
     useEffect(() => {
@@ -169,19 +183,21 @@ export default function EditTab({ existingSubjects }) {
             scrollTimerRef.current = null;
         }
 
-        if (pending === 'top') {
-            container.scrollTop = 0;
-        } else if (pending === 'bottom') {
-            container.scrollTop = container.scrollHeight;
-        }
-        lastScrollTopRef.current = container.scrollTop;
-        pendingScrollRestoreRef.current = null;
+        // Use requestAnimationFrame to defer DOM writes until next frame
+        requestAnimationFrame(() => {
+            if (pending === 'top') {
+                container.scrollTop = 0;
+            } else if (pending === 'bottom') {
+                container.scrollTop = container.scrollHeight;
+            }
+            lastScrollTopRef.current = container.scrollTop;
+            pendingScrollRestoreRef.current = null;
 
-        const release = window.requestAnimationFrame(() => {
-            suppressScrollRef.current = false;
+            // Re-enable scroll handler on next frame
+            requestAnimationFrame(() => {
+                suppressScrollRef.current = false;
+            });
         });
-
-        return () => window.cancelAnimationFrame(release);
     }, [pagination.currentPage, pagination.paginatedQuestions.length]);
 
     
@@ -193,28 +209,45 @@ export default function EditTab({ existingSubjects }) {
 
     const handleSelectQuestion = useCallback((q) => {
         loadQuestion(q);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Use instant scroll (no smooth behavior) to prevent main thread blocking
+        window.scrollTo({ top: 0, behavior: 'auto' });
     }, [loadQuestion]);
 
     
     const handleSaved = useCallback((updatedQuestion) => {
-        if (updatedQuestion?.id && paginationRef.current.replaceQuestionInPage) {
-            paginationRef.current.replaceQuestionInPage(updatedQuestion);
-            clearEdit();
-            return;
+        formOperationInProgressRef.current = true;
+        try {
+            if (updatedQuestion?.id && paginationRef.current.replaceQuestionInPage) {
+                paginationRef.current.replaceQuestionInPage(updatedQuestion);
+                clearEdit();
+                return;
+            }
+            paginationRef.current.reset(memoizedFilters.current);
+        } finally {
+            // Re-enable scroll handler after form operation completes
+            requestAnimationFrame(() => {
+                formOperationInProgressRef.current = false;
+            });
         }
-        paginationRef.current.reset(buildFilters());
-    }, [buildFilters, clearEdit]);
+    }, [clearEdit]);
 
     const handleDeleted = useCallback((deletedId) => {
-        if (deletedId && paginationRef.current.removeQuestionFromPage) {
-            paginationRef.current.removeQuestionFromPage(deletedId);
+        formOperationInProgressRef.current = true;
+        try {
+            if (deletedId && paginationRef.current.removeQuestionFromPage) {
+                paginationRef.current.removeQuestionFromPage(deletedId);
+                clearEdit();
+                return;
+            }
             clearEdit();
-            return;
+            paginationRef.current.reset(memoizedFilters.current);
+        } finally {
+            // Re-enable scroll handler after form operation completes
+            requestAnimationFrame(() => {
+                formOperationInProgressRef.current = false;
+            });
         }
-        clearEdit();
-        paginationRef.current.reset(buildFilters());
-    }, [clearEdit, buildFilters]);
+    }, [clearEdit]);
 
     return (
         <div className="space-y-6">
