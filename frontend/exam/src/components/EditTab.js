@@ -26,7 +26,8 @@ export default function EditTab({ existingSubjects }) {
     const [availableTopics, setAvailableTopics] = useState([]);
 
     const debouncedSearch = useDebounce(searchQuery, 400);
-    const endRef = useRef(null);
+    const listRef = useRef(null);
+    const pendingScrollRestoreRef = useRef(null);
 
     // Build API filters
     const buildFilters = useCallback(() => {
@@ -106,16 +107,38 @@ export default function EditTab({ existingSubjects }) {
         fetchTopics();
     }, [selectedQuestion?.paper]);
 
-    // Infinite scroll observer
+    const handleListScroll = useCallback(() => {
+        const container = listRef.current;
+        if (!container || pagination.isLoadingMore) return;
+
+        const nearTop = container.scrollTop <= 80;
+        const nearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 80;
+
+        if (nearBottom && pagination.hasMore) {
+            pendingScrollRestoreRef.current = 'top';
+            pagination.fetchPage(pagination.currentPage + 1, buildFilters());
+            return;
+        }
+
+        if (nearTop && pagination.currentPage > 1) {
+            pendingScrollRestoreRef.current = 'bottom';
+            pagination.fetchPage(pagination.currentPage - 1, buildFilters());
+        }
+    }, [buildFilters, pagination]);
+
     useEffect(() => {
-        const observer = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting && !pagination.isLoadingMore && pagination.hasMore) {
-                pagination.fetchPage(pagination.currentPage + 1, buildFilters());
-            }
-        }, { threshold: 0.1 });
-        if (endRef.current) observer.observe(endRef.current);
-        return () => { if (endRef.current) observer.unobserve(endRef.current); };
-    }, [pagination.isLoadingMore, pagination.currentPage, pagination.hasMore, buildFilters]);
+        const container = listRef.current;
+        const pending = pendingScrollRestoreRef.current;
+        if (!container || !pending) return;
+
+        if (pending === 'top') {
+            container.scrollTop = 0;
+        } else if (pending === 'bottom') {
+            container.scrollTop = container.scrollHeight;
+        }
+
+        pendingScrollRestoreRef.current = null;
+    }, [pagination.currentPage, pagination.paginatedQuestions.length]);
 
     const handleSelectQuestion = useCallback((q) => {
         loadQuestion(q);
@@ -173,7 +196,11 @@ export default function EditTab({ existingSubjects }) {
                     Showing {pagination.paginatedQuestions.length} / {pagination.totalCount} questions
                 </p>
 
-                <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                <div
+                    ref={listRef}
+                    onScroll={handleListScroll}
+                    className="space-y-3 max-h-[60vh] overflow-y-auto"
+                >
                     {pagination.paginatedQuestions.map(q => (
                         <QuestionListItem
                             key={q.id}
@@ -183,20 +210,19 @@ export default function EditTab({ existingSubjects }) {
                         />
                     ))}
 
-                    <div ref={endRef} className="py-4 text-center">
-                        {pagination.isLoadingMore && (
+                    {pagination.isLoadingMore && (
+                        <div className="py-4 text-center">
                             <div className="flex justify-center items-center gap-2">
                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
-                                <span className="text-gray-600 text-sm">Loading more...</span>
+                                <span className="text-gray-600 text-sm">Loading page...</span>
                             </div>
-                        )}
-                        {!pagination.hasMore && pagination.paginatedQuestions.length > 0 && (
-                            <p className="text-sm text-gray-500">All {pagination.paginatedQuestions.length} questions loaded</p>
-                        )}
-                        {pagination.paginatedQuestions.length === 0 && !pagination.isLoadingMore && (
+                        </div>
+                    )}
+                    {pagination.paginatedQuestions.length === 0 && !pagination.isLoadingMore && (
+                        <div className="py-4 text-center">
                             <p className="text-gray-500 text-sm">No questions found. Try adjusting filters.</p>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

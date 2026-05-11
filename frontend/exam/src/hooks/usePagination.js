@@ -1,5 +1,5 @@
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import * as questionService from '../services/questionService';
 
 export function usePagination() {
@@ -16,29 +16,24 @@ export function usePagination() {
     const lastReturnedRef = useRef(0);
     const dbTotalRef = useRef(0);
 
-    useRef(() => {
+    useEffect(() => {
         paginatedRef.current = paginatedQuestions;
     }, [paginatedQuestions]);
 
-    const mergeUnique = (base, incoming) => {
-        const map = new Map();
-        [...base, ...incoming].forEach((q, i) => {
-            const key = q?.id ? String(q.id) : `idx-${i}`;
-            map.set(key, q);
-        });
-        return Array.from(map.values());
-    };
-
     const fetchPage = useCallback(async (pageNum = 1, filters = {}) => {
+        const targetPage = Math.max(1, Number(pageNum) || 1);
+
         if (inFlightRef.current) return [];
-        if (pageNum > 1 && pageNum <= currentPageRef.current) return [];
+        if (targetPage === currentPageRef.current && paginatedRef.current.length > 0) {
+            return paginatedRef.current;
+        }
 
         try {
             inFlightRef.current = true;
             setIsLoadingMore(true);
 
             const params = {
-                page: pageNum,
+                page: targetPage,
                 limit: 50,
                 ...filters,
             };
@@ -57,23 +52,20 @@ export function usePagination() {
                 setTotalCount(serverTotal);
             }
 
-            const previous = pageNum === 1 ? [] : paginatedRef.current;
-            const merged = mergeUnique(previous, questions);
-
             const derivedHasMore =
                 pagination.has_next === true ||
-                (serverTotal > 0 && merged.length < serverTotal);
+                (serverTotal > 0 && targetPage * 50 < serverTotal);
 
-            setPaginatedQuestions(merged);
+            setPaginatedQuestions(questions);
             setHasMore(derivedHasMore);
-            setCurrentPage(pageNum);
-            currentPageRef.current = pageNum;
-            paginatedRef.current = merged;
+            setCurrentPage(targetPage);
+            currentPageRef.current = targetPage;
+            paginatedRef.current = questions;
 
             return questions;
         } catch (err) {
             console.error('Pagination error:', err);
-            if (pageNum === 1) setPaginatedQuestions([]);
+            if (targetPage === 1) setPaginatedQuestions([]);
             return [];
         } finally {
             setIsLoadingMore(false);
