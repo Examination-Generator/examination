@@ -18,16 +18,23 @@ export function usePagination() {
 
 
     const abortControllerRef = useRef(null);
+    // Track if current fetch is scroll-initiated (pagination navigation)
+    // vs filter-initiated (reset). Prevents filter resets from aborting scrolls.
+    const isScrollInitiatedRef = useRef(false);
 
     useEffect(() => {
         paginatedRef.current = paginatedQuestions;
     }, [paginatedQuestions]);
 
-    const fetchPage = useCallback(async (pageNum = 1, filters = {}) => {
+    const fetchPage = useCallback(async (pageNum = 1, filters = {}, isScrollFetch = false) => {
         const targetPage = Math.max(1, Number(pageNum) || 1);
 
-        
-        if (abortControllerRef.current) {
+        // Mark whether this is a scroll-initiated fetch
+        isScrollInitiatedRef.current = isScrollFetch;
+
+        // Only abort previous request if this is NOT a scroll fetch
+        // (scroll fetches should complete to maintain bidirectional pagination)
+        if (!isScrollFetch && abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
         const controller = new AbortController();
@@ -117,8 +124,9 @@ export function usePagination() {
     }, []);
 
     const reset = useCallback((filters = {}) => {
-        
-        if (abortControllerRef.current) {
+        // Don't abort scroll-initiated fetches - let them complete naturally
+        // This prevents filter changes from interrupting pagination navigation
+        if (!isScrollInitiatedRef.current && abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
 
@@ -130,7 +138,7 @@ export function usePagination() {
         inFlightRef.current = false;
         paginatedRef.current = [];
 
-        fetchPage(1, filters);
+        fetchPage(1, filters, false); // false = not a scroll fetch
     }, [fetchPage]);
 
     return {

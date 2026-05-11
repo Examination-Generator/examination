@@ -217,13 +217,13 @@ export default function EditTab({ existingSubjects }) {
 
             if (nearBottom && scrollingDown && pg.hasMore) {
                 pendingScrollRestoreRef.current = 'top';
-                pg.fetchPage(pg.currentPage + 1, getCurrentFilters());
+                pg.fetchPage(pg.currentPage + 1, getCurrentFilters(), true); // true = scroll-initiated
                 return;
             }
 
             if (nearTop && scrollingUp && pg.currentPage > 1) {
                 pendingScrollRestoreRef.current = 'bottom';
-                pg.fetchPage(pg.currentPage - 1, getCurrentFilters());
+                pg.fetchPage(pg.currentPage - 1, getCurrentFilters(), true); // true = scroll-initiated
             }
         }, 150);
     }, [getCurrentFilters]);
