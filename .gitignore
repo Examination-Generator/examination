@@ -68,3 +68,5 @@ django.log
 
 *.zip
 frontend.zip
+
+frontend/exam/src/hooks/physics papper.pdf

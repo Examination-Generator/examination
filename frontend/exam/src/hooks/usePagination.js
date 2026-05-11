@@ -18,9 +18,9 @@ export function usePagination() {
 
 
     const abortControllerRef = useRef(null);
-    // Track if current fetch is scroll-initiated (pagination navigation)
-    // vs filter-initiated (reset). Prevents filter resets from aborting scrolls.
-    const isScrollInitiatedRef = useRef(false);
+    // Track the last filter params to detect when filters actually change
+    // Only abort when filters change, never abort scroll-based pagination
+    const lastFiltersRef = useRef('');
 
     useEffect(() => {
         paginatedRef.current = paginatedQuestions;
@@ -29,14 +29,17 @@ export function usePagination() {
     const fetchPage = useCallback(async (pageNum = 1, filters = {}, isScrollFetch = false) => {
         const targetPage = Math.max(1, Number(pageNum) || 1);
 
-        // Mark whether this is a scroll-initiated fetch
-        isScrollInitiatedRef.current = isScrollFetch;
+        // Create a stable string key of the filters to detect changes
+        const filterKey = JSON.stringify(filters);
+        const filtersChanged = filterKey !== lastFiltersRef.current;
 
-        // Only abort previous request if this is NOT a scroll fetch
-        // (scroll fetches should complete to maintain bidirectional pagination)
-        if (!isScrollFetch && abortControllerRef.current) {
+        // Only abort previous request if filters actually changed
+        // This allows scroll pagination to work without interruption
+        if (filtersChanged && abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
+        lastFiltersRef.current = filterKey;
+
         const controller = new AbortController();
         abortControllerRef.current = controller;
         const { signal } = controller;
@@ -124,9 +127,8 @@ export function usePagination() {
     }, []);
 
     const reset = useCallback((filters = {}) => {
-        // Don't abort scroll-initiated fetches - let them complete naturally
-        // This prevents filter changes from interrupting pagination navigation
-        if (!isScrollInitiatedRef.current && abortControllerRef.current) {
+        // Abort any in-flight request since we're changing filters
+        if (abortControllerRef.current) {
             abortControllerRef.current.abort();
         }
 
@@ -138,7 +140,7 @@ export function usePagination() {
         inFlightRef.current = false;
         paginatedRef.current = [];
 
-        fetchPage(1, filters, false); // false = not a scroll fetch
+        fetchPage(1, filters, false);
     }, [fetchPage]);
 
     return {
