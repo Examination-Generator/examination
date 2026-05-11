@@ -88,6 +88,28 @@ export function usePagination() {
         }
     }, []);
 
+    const replaceQuestionInPage = useCallback((updatedQuestion) => {
+        if (!updatedQuestion?.id) return;
+
+        setPaginatedQuestions(prev => {
+            const next = prev.map(question => (
+                question?.id === updatedQuestion.id ? updatedQuestion : question
+            ));
+            paginatedRef.current = next;
+            return next;
+        });
+    }, []);
+
+    const removeQuestionFromPage = useCallback((questionId) => {
+        if (!questionId) return;
+
+        setPaginatedQuestions(prev => {
+            const next = prev.filter(question => question?.id !== questionId);
+            paginatedRef.current = next;
+            return next;
+        });
+    }, []);
+
     const reset = useCallback((filters = {}) => {
         
         if (abortControllerRef.current) {
@@ -115,6 +137,8 @@ export function usePagination() {
         hasNextRef,
         lastReturnedRef,
         fetchPage,
+        replaceQuestionInPage,
+        removeQuestionFromPage,
         reset,
         paginatedRef,
         inFlightRef,

@@ -37,6 +37,8 @@ export default function EditTab({ existingSubjects }) {
     const listRef = useRef(null);
     const pendingScrollRestoreRef = useRef(null);
     const scrollTimerRef = useRef(null); 
+    const suppressScrollRef = useRef(false);
+    const lastScrollTopRef = useRef(0);
     
     // Build API filters — stable as long as its own deps don't change
     const buildFilters = useCallback(() => {
@@ -126,6 +128,7 @@ export default function EditTab({ existingSubjects }) {
     }, [selectedQuestion?.paper]); 
     const handleListScroll = useCallback(() => {
         if (scrollTimerRef.current) return;
+        if (suppressScrollRef.current) return;
 
         scrollTimerRef.current = setTimeout(() => {
             scrollTimerRef.current = null;
@@ -133,16 +136,21 @@ export default function EditTab({ existingSubjects }) {
             const pg = paginationRef.current;
             if (!container || pg.isLoadingMore) return;
 
+            const currentScrollTop = container.scrollTop;
+            const scrollingDown = currentScrollTop > lastScrollTopRef.current;
+            const scrollingUp = currentScrollTop < lastScrollTopRef.current;
+            lastScrollTopRef.current = currentScrollTop;
+
             const nearTop = container.scrollTop <= 80;
             const nearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 80;
 
-            if (nearBottom && pg.hasMore) {
+            if (nearBottom && scrollingDown && pg.hasMore) {
                 pendingScrollRestoreRef.current = 'top';
                 pg.fetchPage(pg.currentPage + 1, buildFilters());
                 return;
             }
 
-            if (nearTop && pg.currentPage > 1) {
+            if (nearTop && scrollingUp && pg.currentPage > 1) {
                 pendingScrollRestoreRef.current = 'bottom';
                 pg.fetchPage(pg.currentPage - 1, buildFilters());
             }
@@ -155,12 +163,25 @@ export default function EditTab({ existingSubjects }) {
         const pending = pendingScrollRestoreRef.current;
         if (!container || !pending) return;
 
+        suppressScrollRef.current = true;
+        if (scrollTimerRef.current) {
+            clearTimeout(scrollTimerRef.current);
+            scrollTimerRef.current = null;
+        }
+
         if (pending === 'top') {
             container.scrollTop = 0;
         } else if (pending === 'bottom') {
             container.scrollTop = container.scrollHeight;
         }
+        lastScrollTopRef.current = container.scrollTop;
         pendingScrollRestoreRef.current = null;
+
+        const release = window.requestAnimationFrame(() => {
+            suppressScrollRef.current = false;
+        });
+
+        return () => window.cancelAnimationFrame(release);
     }, [pagination.currentPage, pagination.paginatedQuestions.length]);
 
     
@@ -176,12 +197,20 @@ export default function EditTab({ existingSubjects }) {
     }, [loadQuestion]);
 
     
-    const handleSaved = useCallback(() => {
+    const handleSaved = useCallback((updatedQuestion) => {
+        if (updatedQuestion?.id && paginationRef.current.replaceQuestionInPage) {
+            paginationRef.current.replaceQuestionInPage(updatedQuestion);
+            return;
+        }
         paginationRef.current.reset(buildFilters());
     }, [buildFilters]);
 
-    const handleDeleted = useCallback(() => {
+    const handleDeleted = useCallback((deletedId) => {
         clearEdit();
+        if (deletedId && paginationRef.current.removeQuestionFromPage) {
+            paginationRef.current.removeQuestionFromPage(deletedId);
+            return;
+        }
         paginationRef.current.reset(buildFilters());
     }, [clearEdit, buildFilters]);
 
