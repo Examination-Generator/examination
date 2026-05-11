@@ -139,7 +139,7 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
             onLines: () => {
                 setLinesTarget(target);
                 setLinesConfig({
-                    numberOfLines: 5,
+                    numberOfLines: 3,
                     lineHeight: 30,
                     lineStyle: 'dotted',
                     opacity: 0.5,
@@ -260,9 +260,10 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
                 question_working_spaces: editQuestionWorkingSpaces,
                 answer_working_spaces: editAnswerWorkingSpaces,
             };
-            await questionService.updateQuestion(selectedQuestion.id, payload);
+            // FIX: pass updated question to onSaved so EditTab patches in-place
+            const updatedQuestion = await questionService.updateQuestion(selectedQuestion.id, payload);
             showSuccess('Question updated!');
-            onSaved?.();
+            onSaved?.(updatedQuestion);
         } catch (err) {
             showError('Failed to update: ' + err.message);
         } finally {
@@ -273,9 +274,11 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
     const handleDelete = async () => {
         if (!window.confirm('Delete this question? This cannot be undone.')) return;
         try {
-            await questionService.deleteQuestion(selectedQuestion.id);
+            const deletedId = selectedQuestion.id;
+            // FIX: pass id so EditTab can removeItem() instead of reset()
+            await questionService.deleteQuestion(deletedId);
             showSuccess('Question deleted!');
-            onDeleted?.();
+            onDeleted?.(deletedId);
         } catch (err) {
             showError('Failed to delete: ' + err.message);
         }
