@@ -228,8 +228,24 @@ export default function EditTab({ existingSubjects }) {
         }, 150);
     }, [getCurrentFilters]);
 
-    // Restore scroll position after a page flip
+    // -------------------------------------------------------------------------
+    // Scroll handling: CRITICAL - only restore scroll when ACTUAL page flip occurs
+    //
+    // Previous version had dependency on [pagination.currentPage, pagination.paginatedQuestions.length]
+    // which caused the effect to fire on EVERY list update (e.g., replaceQuestionInPage).
+    // This triggered unnecessary DOM writes even when the page number didn't change,
+    // blocking the main thread and causing the freeze.
+    //
+    // Fix: Track the previous page number. Only run scroll restoration when it actually changes.
+    // -------------------------------------------------------------------------
+    const prevPageRef = useRef(pagination.currentPage);
+    
     useEffect(() => {
+        const hasPageChanged = pagination.currentPage !== prevPageRef.current;
+        prevPageRef.current = pagination.currentPage;
+
+        if (!hasPageChanged) return;
+
         const container = listRef.current;
         const pending   = pendingScrollRestoreRef.current;
         if (!container || !pending) return;
@@ -253,7 +269,7 @@ export default function EditTab({ existingSubjects }) {
                 suppressScrollRef.current = false;
             });
         });
-    }, [pagination.currentPage, pagination.paginatedQuestions.length]);
+    }, [pagination.currentPage]);
 
     useEffect(() => {
         return () => {
@@ -282,30 +298,28 @@ export default function EditTab({ existingSubjects }) {
     // -------------------------------------------------------------------------
     const handleSaved = useCallback((updatedQuestion) => {
         formOperationInProgressRef.current = true;
-        try {
+        unstable_batchedUpdates(() => {
             if (updatedQuestion?.id) {
                 paginationRef.current.replaceQuestionInPage(updatedQuestion);
             }
             clearEdit();
-        } finally {
-            requestAnimationFrame(() => {
-                formOperationInProgressRef.current = false;
-            });
-        }
+        });
+        requestAnimationFrame(() => {
+            formOperationInProgressRef.current = false;
+        });
     }, [clearEdit]);
 
     const handleDeleted = useCallback((deletedId) => {
         formOperationInProgressRef.current = true;
-        try {
+        unstable_batchedUpdates(() => {
             if (deletedId) {
                 paginationRef.current.removeQuestionFromPage(deletedId);
             }
             clearEdit();
-        } finally {
-            requestAnimationFrame(() => {
-                formOperationInProgressRef.current = false;
-            });
-        }
+        });
+        requestAnimationFrame(() => {
+            formOperationInProgressRef.current = false;
+        });
     }, [clearEdit]);
 
     const handleClearAllFilters = useCallback(() => {
