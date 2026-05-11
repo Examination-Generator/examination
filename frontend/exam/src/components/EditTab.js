@@ -6,7 +6,6 @@ import QuestionListItem from './QuestionListItem';
 import { useEditForm } from '../hooks/useEditForm';
 import { usePagination } from '../hooks/usePagination';
 import { useDebounce } from '../hooks/useDebounce';
-import * as subjectService from '../services/subjectService';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
@@ -14,6 +13,15 @@ export default function EditTab({ existingSubjects }) {
     const editState = useEditForm();
     const { selectedQuestion, loadQuestion, clearEdit } = editState;
     const pagination = usePagination();
+
+    // FIX: Keep a ref to the latest pagination object so callbacks can call
+    // pagination.reset() / pagination.fetchPage() without adding `pagination`
+    // itself to their dependency arrays. Adding the pagination object to deps
+    // caused an infinite loop because the object is recreated every render.
+    const paginationRef = useRef(pagination);
+    useEffect(() => {
+        paginationRef.current = pagination;
+    }); // no dep array — runs after every render to stay current
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
@@ -28,8 +36,9 @@ export default function EditTab({ existingSubjects }) {
     const debouncedSearch = useDebounce(searchQuery, 400);
     const listRef = useRef(null);
     const pendingScrollRestoreRef = useRef(null);
-
-    // Build API filters
+    const scrollTimerRef = useRef(null); 
+    
+    // Build API filters — stable as long as its own deps don't change
     const buildFilters = useCallback(() => {
         const params = {};
         if (filterSubject) {
@@ -51,12 +60,12 @@ export default function EditTab({ existingSubjects }) {
         return params;
     }, [filterSubject, filterPaper, filterTopic, filterStatus, filterType, debouncedSearch, existingSubjects, availablePapers, availableTopics]);
 
-    // Reload when filters change
+    
     useEffect(() => {
-        pagination.reset(buildFilters());
-    }, [debouncedSearch, filterSubject, filterPaper, filterTopic, filterStatus, filterType]);
+        paginationRef.current.reset(buildFilters());
+    }, [debouncedSearch, filterSubject, filterPaper, filterTopic, filterStatus, filterType, buildFilters]);
 
-    // Subject -> papers
+    // Subject -> papers cascade
     useEffect(() => {
         if (filterSubject && existingSubjects.length > 0) {
             const s = existingSubjects.find(s => s.name === filterSubject);
@@ -70,7 +79,7 @@ export default function EditTab({ existingSubjects }) {
         }
     }, [filterSubject, existingSubjects]);
 
-    // Paper -> topics
+    // Paper -> topics cascade
     useEffect(() => {
         if (filterPaper && availablePapers.length > 0) {
             const p = availablePapers.find(p => p.name === filterPaper);
@@ -81,15 +90,22 @@ export default function EditTab({ existingSubjects }) {
         }
     }, [filterPaper, availablePapers]);
 
-    // Fetch topics/sections when a question is selected
+    
     useEffect(() => {
         if (!selectedQuestion?.paper) return;
+
+        const controller = new AbortController();
+        const { signal } = controller;
+
         const fetchTopics = async () => {
             try {
                 const token = localStorage.getItem('token');
                 const res = await fetch(`${API_URL}/subjects`, {
                     headers: { 'Authorization': `Bearer ${token}` },
+                    signal,
                 });
+                if (signal.aborted) return;
+
                 const data = await res.json();
                 const subjects = data.data || [];
                 for (const subject of subjects) {
@@ -101,31 +117,39 @@ export default function EditTab({ existingSubjects }) {
                     }
                 }
             } catch (err) {
-                console.error('Failed to load topics:', err);
+                if (err.name !== 'AbortError') console.error('Failed to load topics:', err);
             }
         };
+
         fetchTopics();
-    }, [selectedQuestion?.paper]);
-
+        return () => controller.abort();
+    }, [selectedQuestion?.paper]); 
     const handleListScroll = useCallback(() => {
-        const container = listRef.current;
-        if (!container || pagination.isLoadingMore) return;
+        if (scrollTimerRef.current) return;
 
-        const nearTop = container.scrollTop <= 80;
-        const nearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 80;
+        scrollTimerRef.current = setTimeout(() => {
+            scrollTimerRef.current = null;
+            const container = listRef.current;
+            const pg = paginationRef.current;
+            if (!container || pg.isLoadingMore) return;
 
-        if (nearBottom && pagination.hasMore) {
-            pendingScrollRestoreRef.current = 'top';
-            pagination.fetchPage(pagination.currentPage + 1, buildFilters());
-            return;
-        }
+            const nearTop = container.scrollTop <= 80;
+            const nearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 80;
 
-        if (nearTop && pagination.currentPage > 1) {
-            pendingScrollRestoreRef.current = 'bottom';
-            pagination.fetchPage(pagination.currentPage - 1, buildFilters());
-        }
-    }, [buildFilters, pagination]);
+            if (nearBottom && pg.hasMore) {
+                pendingScrollRestoreRef.current = 'top';
+                pg.fetchPage(pg.currentPage + 1, buildFilters());
+                return;
+            }
 
+            if (nearTop && pg.currentPage > 1) {
+                pendingScrollRestoreRef.current = 'bottom';
+                pg.fetchPage(pg.currentPage - 1, buildFilters());
+            }
+        }, 150);
+    }, [buildFilters]); 
+
+    
     useEffect(() => {
         const container = listRef.current;
         const pending = pendingScrollRestoreRef.current;
@@ -136,23 +160,30 @@ export default function EditTab({ existingSubjects }) {
         } else if (pending === 'bottom') {
             container.scrollTop = container.scrollHeight;
         }
-
         pendingScrollRestoreRef.current = null;
     }, [pagination.currentPage, pagination.paginatedQuestions.length]);
+
+    
+    useEffect(() => {
+        return () => {
+            if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+        };
+    }, []);
 
     const handleSelectQuestion = useCallback((q) => {
         loadQuestion(q);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [loadQuestion]);
 
+    
     const handleSaved = useCallback(() => {
-        pagination.reset(buildFilters());
-    }, [pagination, buildFilters]);
+        paginationRef.current.reset(buildFilters());
+    }, [buildFilters]);
 
     const handleDeleted = useCallback(() => {
         clearEdit();
-        pagination.reset(buildFilters());
-    }, [clearEdit, pagination, buildFilters]);
+        paginationRef.current.reset(buildFilters());
+    }, [clearEdit, buildFilters]);
 
     return (
         <div className="space-y-6">

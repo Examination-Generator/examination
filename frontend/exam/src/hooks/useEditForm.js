@@ -1,5 +1,4 @@
-
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 
 export function useEditForm() {
     const [selectedQuestion, setSelectedQuestion] = useState(null);
@@ -28,6 +27,7 @@ export function useEditForm() {
     const editQuestionTextareaRef = useRef(null);
     const editAnswerTextareaRef = useRef(null);
 
+    
     const loadQuestion = useCallback((question) => {
         if (!question) {
             clearEdit();
@@ -52,7 +52,7 @@ export function useEditForm() {
         setEditAnswerAnswerLines(question.answer_answer_lines || []);
         setEditQuestionWorkingSpaces(question.question_working_spaces || []);
         setEditAnswerWorkingSpaces(question.answer_working_spaces || []);
-    }, []);
+    }, []); 
 
     const clearEdit = useCallback(() => {
         setSelectedQuestion(null);
@@ -76,9 +76,10 @@ export function useEditForm() {
         setEditAnswerWorkingSpaces([]);
         setEditQuestionTopics([]);
         setEditQuestionSections([]);
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    return {
+    
+    return useMemo(() => ({
         selectedQuestion,
         editQuestionText, setEditQuestionText,
         editAnswerText, setEditAnswerText,
@@ -104,5 +105,29 @@ export function useEditForm() {
         editAnswerTextareaRef,
         loadQuestion,
         clearEdit,
-    };
+    }), [
+        selectedQuestion,
+        editQuestionText,
+        editAnswerText,
+        editMarks,
+        editTopic,
+        editSection,
+        editIsActive,
+        editIsNested,
+        editIsEssayQuestion,
+        editIsGraphQuestion,
+        editIsMapQuestion,
+        editQuestionInlineImages,
+        editAnswerInlineImages,
+        editQuestionImagePositions,
+        editAnswerImagePositions,
+        editQuestionAnswerLines,
+        editAnswerAnswerLines,
+        editQuestionWorkingSpaces,
+        editAnswerWorkingSpaces,
+        editQuestionTopics,
+        editQuestionSections,
+        loadQuestion,
+        clearEdit,
+    ]);
 }

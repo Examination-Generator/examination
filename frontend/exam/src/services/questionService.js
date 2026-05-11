@@ -22,7 +22,7 @@ const getHeaders = () => {
 export const getAllQuestions = async (filters = {}) => {
     try {
         const params = new URLSearchParams();
-        
+
         if (filters.subject) params.append('subject', filters.subject);
         if (filters.paper) params.append('paper', filters.paper);
         if (filters.topic) params.append('topic', filters.topic);
@@ -30,22 +30,21 @@ export const getAllQuestions = async (filters = {}) => {
         if (filters.isActive !== undefined) params.append('isActive', filters.isActive);
         if (filters.page) params.append('page', filters.page);
         if (filters.limit) params.append('limit', filters.limit);
-        
+
         const url = `${API_BASE_URL}/questions${params.toString() ? '?' + params.toString() : ''}`;
-        
+
         const response = await fetch(url, {
             method: 'GET',
             headers: getHeaders()
         });
-        
+
         if (!response.ok) {
             const text = await response.text();
             console.error('Error fetching questions:', text);
             throw new Error(friendlyErrorMessage(text));
         }
-        
+
         const result = await response.json();
-        // Backend returns { success: true, data: { questions: [...], total: X } }
         return result.data?.questions || [];
     } catch (error) {
         console.error('Error fetching questions:', error);
@@ -56,28 +55,26 @@ export const getAllQuestions = async (filters = {}) => {
 // Get question statistics (OPTIMIZED - lightweight, stats only)
 export const getQuestionStats = async (filters = {}) => {
     try {
-        // Build query string from filters
         const queryParams = new URLSearchParams();
         if (filters.subject) queryParams.append('subject', filters.subject);
         if (filters.paper) queryParams.append('paper', filters.paper);
         if (filters.topic) queryParams.append('topic', filters.topic);
         if (filters.isActive !== undefined) queryParams.append('isActive', filters.isActive);
-        
+
         const queryString = queryParams.toString();
         const endpoint = `${API_BASE_URL}/questions/statistics-only/${queryString ? '?' + queryString : ''}`;
-        
-        // Use the new statistics-only endpoint for better performance
+
         const response = await fetch(endpoint, {
             method: 'GET',
             headers: getHeaders()
         });
-        
+
         if (!response.ok) {
             const text = await response.text();
             console.error('Error fetching question stats:', text);
             throw new Error(friendlyErrorMessage(text));
         }
-        
+
         const result = await response.json();
         return result.data || {};
     } catch (error) {
@@ -87,45 +84,48 @@ export const getQuestionStats = async (filters = {}) => {
 };
 
 // Get paginated questions (OPTIMIZED - 50 at a time with infinite scroll support)
-export const getPaginatedQuestions = async (filters = {}) => {
+// FIX: accepts an optional AbortSignal so in-flight requests can be cancelled
+export const getPaginatedQuestions = async (filters = {}, signal = null) => {
     try {
         const params = new URLSearchParams();
-        
-        // Pagination params
+
         if (filters.page) params.append('page', filters.page);
         params.append('limit', filters.limit || 50);
-        
-        // Filter params
+
         if (filters.subject) params.append('subject', filters.subject);
         if (filters.paper) params.append('paper', filters.paper);
         if (filters.topic) params.append('topic', filters.topic);
         if (filters.section) params.append('section', filters.section);
         if (filters.isActive !== undefined) params.append('isActive', filters.isActive);
         if (filters.search) params.append('search', filters.search);
-        
+
         const url = `${API_BASE_URL}/questions/paginated/${params.toString() ? '?' + params.toString() : ''}`;
-        
-        const response = await fetch(url, {
+
+        const fetchOptions = {
             method: 'GET',
-            headers: getHeaders()
-        });
-        
+            headers: getHeaders(),
+            // Pass the signal through so the browser cancels the network request
+            ...(signal ? { signal } : {}),
+        };
+
+        const response = await fetch(url, fetchOptions);
+
         if (!response.ok) {
             const text = await response.text();
             console.error('Error fetching paginated questions:', text);
             throw new Error(friendlyErrorMessage(text));
         }
-        
+
         const result = await response.json();
-        // Defensive: ensure questions array exists, extract from result.data.questions
         const questionsArray = result?.data?.questions || result?.questions || [];
         const paginationData = result?.data?.pagination || result?.pagination || {};
-        
+
         return {
             questions: Array.isArray(questionsArray) ? questionsArray : [],
             pagination: paginationData
         };
     } catch (error) {
+        // Let AbortErrors propagate so callers can distinguish them
         console.error('Error fetching paginated questions:', error);
         throw error;
     }
@@ -138,13 +138,13 @@ export const getQuestionById = async (questionId) => {
             method: 'GET',
             headers: getHeaders()
         });
-        
+
         if (!response.ok) {
             const text = await response.text();
             console.error('Error fetching question by id:', text);
             throw new Error(friendlyErrorMessage(text));
         }
-        
+
         const result = await response.json();
         return result.data || null;
     } catch (error) {
@@ -161,11 +161,10 @@ export const createQuestion = async (questionData) => {
             headers: getHeaders(),
             body: JSON.stringify(questionData)
         });
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Error creating question:', errorText);
-            // try parse JSON
             try {
                 const parsed = JSON.parse(errorText);
                 throw new Error(friendlyErrorMessage(parsed.message || parsed.error || errorText, parsed.message || errorText));
@@ -173,7 +172,7 @@ export const createQuestion = async (questionData) => {
                 throw new Error(friendlyErrorMessage(errorText));
             }
         }
-        
+
         const result = await response.json();
         return result.data;
     } catch (error) {
@@ -192,7 +191,7 @@ export const updateQuestion = async (questionId, questionData) => {
         });
 
         console.log('Updating question with data:', questionData);
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Error updating question:', errorText);
@@ -203,7 +202,7 @@ export const updateQuestion = async (questionId, questionData) => {
                 throw new Error(friendlyErrorMessage(errorText));
             }
         }
-        
+
         const result = await response.json();
         return result.data;
     } catch (error) {
@@ -217,20 +216,20 @@ export const deleteQuestion = async (questionId) => {
     try {
         console.log('🗑️ DELETE request - Question ID:', questionId);
         console.log('🗑️ DELETE URL:', `${API_BASE_URL}/questions/hard-delete/${questionId}`);
-        
+
         const response = await fetch(`${API_BASE_URL}/questions/hard-delete/${questionId}`, {
             method: 'DELETE',
             headers: getHeaders()
         });
-        
+
         console.log('🗑️ DELETE response status:', response.status, response.statusText);
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error('🗑️ DELETE failed:', errorText);
             throw new Error(friendlyErrorMessage(errorText));
         }
-        
+
         const result = await response.json();
         console.log('🗑️ DELETE result:', result);
         return result;
@@ -240,7 +239,7 @@ export const deleteQuestion = async (questionId) => {
     }
 };
 
-// Check whether a question has graph/essay content (backend may process async)
+// Check whether a question has graph/essay content
 export const checkGraphEssay = async (questionId) => {
     try {
         const response = await fetch(`${API_BASE_URL}/questions/${questionId}/check_graph_essay`, {
@@ -255,7 +254,6 @@ export const checkGraphEssay = async (questionId) => {
         }
 
         const result = await response.json();
-        // Expected response: { question_id: '...', has_graph: true|false, has_essay: true|false }
         return result || null;
     } catch (error) {
         console.error('Error checking graph/essay for question:', questionId, error);
