@@ -200,17 +200,19 @@ export default function EditTab({ existingSubjects }) {
     const handleSaved = useCallback((updatedQuestion) => {
         if (updatedQuestion?.id && paginationRef.current.replaceQuestionInPage) {
             paginationRef.current.replaceQuestionInPage(updatedQuestion);
+            clearEdit();
             return;
         }
         paginationRef.current.reset(buildFilters());
-    }, [buildFilters]);
+    }, [buildFilters, clearEdit]);
 
     const handleDeleted = useCallback((deletedId) => {
-        clearEdit();
         if (deletedId && paginationRef.current.removeQuestionFromPage) {
             paginationRef.current.removeQuestionFromPage(deletedId);
+            clearEdit();
             return;
         }
+        clearEdit();
         paginationRef.current.reset(buildFilters());
     }, [clearEdit, buildFilters]);
 
