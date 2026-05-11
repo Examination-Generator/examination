@@ -1,10 +1,5 @@
 import { useReducer, useRef, useCallback, useMemo } from 'react';
 
-// ---------------------------------------------------------------------------
-// All edit-form fields live in a single state object. This means loadQuestion
-// and clearEdit each fire exactly ONE state update (one re-render) instead of
-// the original 20 individual setState calls that could cascade into 20 renders.
-// ---------------------------------------------------------------------------
 
 const INITIAL_STATE = {
     selectedQuestion:           null,

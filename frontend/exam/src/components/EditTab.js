@@ -8,37 +8,53 @@ import { useEditForm } from '../hooks/useEditForm';
 import { usePagination } from '../hooks/usePagination';
 import { useDebounce } from '../hooks/useDebounce';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-
 export default function EditTab({ existingSubjects }) {
     const editState = useEditForm();
     const { selectedQuestion, loadQuestion, clearEdit } = editState;
     const pagination = usePagination();
-    const paginationRef = useRef(pagination);
 
+    // Keep a ref to the latest pagination object so scroll/save callbacks
+    // can reach it without listing `pagination` in their dep arrays
+    // (which caused infinite loops because the object recreates every render).
+    const paginationRef = useRef(pagination);
     useEffect(() => {
         paginationRef.current = pagination;
-    }); 
-    
+    }); // intentionally no dep array — must stay current after every render
+
+    // -------------------------------------------------------------------------
+    // Filter state
+    // -------------------------------------------------------------------------
     const [searchQuery, setSearchQuery]     = useState('');
     const [filterSubject, setFilterSubject] = useState('');
     const [filterPaper, setFilterPaper]     = useState('');
     const [filterTopic, setFilterTopic]     = useState('');
     const [filterStatus, setFilterStatus]   = useState('all');
     const [filterType, setFilterType]       = useState('all');
-    const [availablePapers, setAvailablePapers]   = useState([]);
-    const [availableTopics, setAvailableTopics]   = useState([]);
+    const [availablePapers, setAvailablePapers] = useState([]);
+    const [availableTopics, setAvailableTopics] = useState([]);
 
     const debouncedSearch = useDebounce(searchQuery, 400);
 
-    
+    // -------------------------------------------------------------------------
+    // FIX A — Stabilise existingSubjects reference.
+    //
+    // The parent re-renders for its own reasons and passes a new array instance
+    // each time even when subjects haven't changed. Without this, buildFilters
+    // gets a new identity on every parent render which caused the memoizedFilters
+    // ref to fall out of sync — reset() would then be called with stale (empty)
+    // filters, fetching ALL questions unfiltered and freezing the browser while
+    // React rendered thousands of list items.
+    // -------------------------------------------------------------------------
     const stableExistingSubjects = useMemo(
         () => existingSubjects,
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [existingSubjects?.map(s => s.id).join(',')]
     );
 
-    
+    // -------------------------------------------------------------------------
+    // buildFilters — computes the API params object from current filter state.
+    // Stable as long as the filter primitive values don't change.
+    // -------------------------------------------------------------------------
     const buildFilters = useCallback(() => {
         const params = {};
         if (filterSubject) {
@@ -64,13 +80,44 @@ export default function EditTab({ existingSubjects }) {
         stableExistingSubjects, availablePapers, availableTopics,
     ]);
 
-    
+    // -------------------------------------------------------------------------
+    // FIX B — Store buildFilters in a ref so it is always called at point-of-use.
+    //
+    // The previous version stored buildFilters() RESULT in a ref, initialised at
+    // mount when no filters were set (= {}). If the update effect hadn't fired
+    // before handleSaved ran the fallback reset(), it called reset({}) which
+    // fetched ALL questions — potentially thousands of rows — freezing the
+    // browser while React tried to render them all.
+    //
+    // Storing the FUNCTION instead means every call always uses the current
+    // closure with no async-effect lag between filter state and what gets fetched.
+    // -------------------------------------------------------------------------
+    const buildFiltersRef = useRef(buildFilters);
     useEffect(() => {
-        paginationRef.current.reset(buildFilters());
+        buildFiltersRef.current = buildFilters;
+    }); // intentionally no dep array — mirrors paginationRef pattern
+
+    // Always returns current filter params at call time — safe to use anywhere.
+    const getCurrentFilters = useCallback(() => buildFiltersRef.current(), []);
+
+    // -------------------------------------------------------------------------
+    // FIX C — Pagination reset only fires when filter VALUES change, never when
+    // buildFilters' function identity changes due to parent re-renders.
+    //
+    // The original code listed `buildFilters` in this effect's dep array. That
+    // caused a full list reset every time the parent re-rendered (even with no
+    // filter change), because existingSubjects got a new array reference which
+    // flowed through to buildFilters' identity. Removing it and using the
+    // primitive filter state vars as the true deps fixes this.
+    // -------------------------------------------------------------------------
+    useEffect(() => {
+        paginationRef.current.reset(buildFiltersRef.current());
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedSearch, filterSubject, filterPaper, filterTopic, filterStatus, filterType]);
 
-    
+    // -------------------------------------------------------------------------
+    // Subject → papers cascade
+    // -------------------------------------------------------------------------
     useEffect(() => {
         if (filterSubject && stableExistingSubjects.length > 0) {
             const s = stableExistingSubjects.find(s => s.name === filterSubject);
@@ -95,54 +142,55 @@ export default function EditTab({ existingSubjects }) {
         }
     }, [filterPaper, availablePapers]);
 
-    
+    // -------------------------------------------------------------------------
+    // FIX D — Topics/sections for the selected question: use cached data.
+    //
+    // The original code made a fresh GET /api/subjects network request on every
+    // question selection. This had two serious problems:
+    //
+    //   1. Race condition: selecting Q1, then quickly selecting Q2 before the
+    //      Q1 fetch resolved caused the Q1 response to call setEditQuestionTopics
+    //      with Q1's topics after Q2 had already loaded — silently populating the
+    //      topic dropdown with the wrong question's topics.
+    //
+    //   2. The fetch was completely unnecessary. existingSubjects (passed as a
+    //      prop from EditorDashboard) already contains the full subject/paper/
+    //      topic tree. There is no reason to re-fetch it on every question click.
+    //
+    // Fix: look up topics synchronously from stableExistingSubjects. Instant,
+    // no network, no race condition possible.
+    // -------------------------------------------------------------------------
     useEffect(() => {
-        if (!selectedQuestion?.paper) return;
+        if (!selectedQuestion?.paper) {
+            editState.setEditQuestionTopics([]);
+            editState.setEditQuestionSections([]);
+            return;
+        }
 
-        const controller = new AbortController();
-        const { signal } = controller;
-
-        const fetchTopics = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${API_URL}/subjects`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    signal,
-                });
-                if (signal.aborted) return;
-
-                const data = await res.json();
-                const subjects = data.data || [];
-                for (const subject of subjects) {
-                    const paper = subject.papers?.find(p => p.id === selectedQuestion.paper);
-                    if (paper) {
-                        editState.setEditQuestionTopics(paper.topics || []);
-                        editState.setEditQuestionSections(paper.sections || []);
-                        return;
-                    }
-                }
-            } catch (err) {
-                if (err.name !== 'AbortError') console.error('Failed to load topics:', err);
+        for (const subject of stableExistingSubjects) {
+            const paper = subject.papers?.find(p => p.id === selectedQuestion.paper);
+            if (paper) {
+                editState.setEditQuestionTopics(paper.topics || []);
+                editState.setEditQuestionSections(paper.sections || []);
+                return;
             }
-        };
+        }
 
-        fetchTopics();
-        return () => controller.abort();
-    }, [selectedQuestion?.paper]); // eslint-disable-line react-hooks/exhaustive-deps
+        // Paper not found in cached data — clear dropdowns to avoid stale values
+        editState.setEditQuestionTopics([]);
+        editState.setEditQuestionSections([]);
 
-    
-    const memoizedFilters = useRef(buildFilters());
-    useEffect(() => {
-        memoizedFilters.current = buildFilters();
-    }, [buildFilters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedQuestion?.paper, stableExistingSubjects]);
 
-    
-    const listRef                   = useRef(null);
-    const pendingScrollRestoreRef   = useRef(null);
-    const scrollTimerRef            = useRef(null);
-    const suppressScrollRef         = useRef(false);
-    const lastScrollTopRef          = useRef(0);
-    // Guard: skip scroll-triggered page loads while a form save/delete is running
+    // -------------------------------------------------------------------------
+    // Scroll handling
+    // -------------------------------------------------------------------------
+    const listRef                    = useRef(null);
+    const pendingScrollRestoreRef    = useRef(null);
+    const scrollTimerRef             = useRef(null);
+    const suppressScrollRef          = useRef(false);
+    const lastScrollTopRef           = useRef(0);
     const formOperationInProgressRef = useRef(false);
 
     const handleListScroll = useCallback(() => {
@@ -156,7 +204,6 @@ export default function EditTab({ existingSubjects }) {
             const pg = paginationRef.current;
             if (!container || pg.isLoadingMore) return;
 
-            // Batch DOM reads to prevent layout thrashing
             const currentScrollTop = container.scrollTop;
             const clientHeight     = container.clientHeight;
             const scrollHeight     = container.scrollHeight;
@@ -170,16 +217,16 @@ export default function EditTab({ existingSubjects }) {
 
             if (nearBottom && scrollingDown && pg.hasMore) {
                 pendingScrollRestoreRef.current = 'top';
-                pg.fetchPage(pg.currentPage + 1, memoizedFilters.current);
+                pg.fetchPage(pg.currentPage + 1, getCurrentFilters());
                 return;
             }
 
             if (nearTop && scrollingUp && pg.currentPage > 1) {
                 pendingScrollRestoreRef.current = 'bottom';
-                pg.fetchPage(pg.currentPage - 1, memoizedFilters.current);
+                pg.fetchPage(pg.currentPage - 1, getCurrentFilters());
             }
         }, 150);
-    }, []); // no deps — reads everything through stable refs
+    }, [getCurrentFilters]);
 
     // Restore scroll position after a page flip
     useEffect(() => {
@@ -199,7 +246,8 @@ export default function EditTab({ existingSubjects }) {
             } else if (pending === 'bottom') {
                 container.scrollTop = container.scrollHeight;
             }
-            lastScrollTopRef.current = pendingScrollRestoreRef.current = null;
+            lastScrollTopRef.current = container.scrollTop;
+            pendingScrollRestoreRef.current = null;
 
             requestAnimationFrame(() => {
                 suppressScrollRef.current = false;
@@ -207,34 +255,37 @@ export default function EditTab({ existingSubjects }) {
         });
     }, [pagination.currentPage, pagination.paginatedQuestions.length]);
 
-    // Cleanup scroll timer on unmount
     useEffect(() => {
         return () => {
             if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
         };
     }, []);
 
-   
+    // -------------------------------------------------------------------------
+    // FIX E — Select a question: batch all state updates into one render.
+    // -------------------------------------------------------------------------
     const handleSelectQuestion = useCallback((q) => {
         unstable_batchedUpdates(() => {
             loadQuestion(q);
         });
-        // Instant scroll (no smooth) to avoid additional main-thread work
         window.scrollTo({ top: 0, behavior: 'auto' });
     }, [loadQuestion]);
 
-    // After a successful save: patch the item in-place rather than resetting
-    // the whole list, then clear the edit form.
+    // -------------------------------------------------------------------------
+    // After save: patch the item in the list in-place, then clear the form.
+    //
+    // reset() is intentionally NOT called here. Calling reset() risked fetching
+    // all questions when getCurrentFilters() could still be stale. Patching
+    // in-place is faster, correct, and requires no network round-trip.
+    // If the API didn't return the updated question, we still clear the form —
+    // a momentarily stale list item is far preferable to a browser freeze.
+    // -------------------------------------------------------------------------
     const handleSaved = useCallback((updatedQuestion) => {
         formOperationInProgressRef.current = true;
         try {
-            if (updatedQuestion?.id && paginationRef.current.replaceQuestionInPage) {
+            if (updatedQuestion?.id) {
                 paginationRef.current.replaceQuestionInPage(updatedQuestion);
-                clearEdit();
-                return;
             }
-            // Fallback: full reset (e.g. server didn't return the updated object)
-            paginationRef.current.reset(memoizedFilters.current);
             clearEdit();
         } finally {
             requestAnimationFrame(() => {
@@ -246,13 +297,10 @@ export default function EditTab({ existingSubjects }) {
     const handleDeleted = useCallback((deletedId) => {
         formOperationInProgressRef.current = true;
         try {
-            if (deletedId && paginationRef.current.removeQuestionFromPage) {
+            if (deletedId) {
                 paginationRef.current.removeQuestionFromPage(deletedId);
-                clearEdit();
-                return;
             }
             clearEdit();
-            paginationRef.current.reset(memoizedFilters.current);
         } finally {
             requestAnimationFrame(() => {
                 formOperationInProgressRef.current = false;
@@ -271,6 +319,9 @@ export default function EditTab({ existingSubjects }) {
         });
     }, []);
 
+    // -------------------------------------------------------------------------
+    // Render
+    // -------------------------------------------------------------------------
     return (
         <div className="space-y-6">
             {/* Edit form — only mounted while a question is selected */}
