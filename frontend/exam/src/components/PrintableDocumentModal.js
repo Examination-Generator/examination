@@ -1,5 +1,130 @@
 import React, { useState } from 'react';
 import html2pdf from 'html2pdf.js';
+import { parseGraphToken } from '../utils/renderTextWithImages';
+
+const PX_PER_CM = 96 / 2.54;
+const GRAPH_TOKEN_RE = /\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]/g;
+
+function drawGraphPaperCanvas(canvas, widthCm, heightCm, doc) {
+    if (!canvas) return;
+
+    const widthPx = Math.max(1, Math.round(widthCm * PX_PER_CM));
+    const heightPx = Math.max(1, Math.round(heightCm * PX_PER_CM));
+    const dpr = doc?.defaultView?.devicePixelRatio || 1;
+
+    canvas.width = Math.max(1, Math.round(widthPx * dpr));
+    canvas.height = Math.max(1, Math.round(heightPx * dpr));
+    canvas.style.width = `${widthCm}cm`;
+    canvas.style.height = `${heightCm}cm`;
+    canvas.style.display = 'block';
+    canvas.style.boxSizing = 'border-box';
+    canvas.style.background = '#ffffff';
+    canvas.style.border = '2px solid #000000';
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, widthPx, heightPx);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, widthPx, heightPx);
+
+    const pxPerMm = PX_PER_CM / 10;
+
+    for (let i = 0; i <= Math.ceil(widthPx / pxPerMm); i++) {
+        const x = i * pxPerMm + 0.5;
+        if (i % 10 === 0) {
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+        } else if (i % 5 === 0) {
+            ctx.strokeStyle = 'rgba(17,24,39,0.9)';
+            ctx.lineWidth = 1;
+        } else {
+            ctx.strokeStyle = 'rgba(156,163,175,0.6)';
+            ctx.lineWidth = 1;
+        }
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, heightPx);
+        ctx.stroke();
+    }
+
+    for (let j = 0; j <= Math.ceil(heightPx / pxPerMm); j++) {
+        const y = j * pxPerMm + 0.5;
+        if (j % 10 === 0) {
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 2;
+        } else if (j % 5 === 0) {
+            ctx.strokeStyle = 'rgba(17,24,39,0.9)';
+            ctx.lineWidth = 1;
+        } else {
+            ctx.strokeStyle = 'rgba(156,163,175,0.6)';
+            ctx.lineWidth = 1;
+        }
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(widthPx, y);
+        ctx.stroke();
+    }
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#000000';
+    ctx.strokeRect(0, 0, widthPx, heightPx);
+}
+
+function preparePrintableContent(root) {
+    if (!root?.ownerDocument) return;
+
+    const doc = root.ownerDocument;
+    const nodeFilter = doc.defaultView?.NodeFilter?.SHOW_TEXT || 4;
+    const walker = doc.createTreeWalker(root, nodeFilter);
+    const textNodes = [];
+
+    let currentNode = walker.nextNode();
+    while (currentNode) {
+        textNodes.push(currentNode);
+        currentNode = walker.nextNode();
+    }
+
+    textNodes.forEach((textNode) => {
+        GRAPH_TOKEN_RE.lastIndex = 0;
+        const value = textNode.nodeValue || '';
+        if (!GRAPH_TOKEN_RE.test(value)) return;
+
+        GRAPH_TOKEN_RE.lastIndex = 0;
+        const fragment = doc.createDocumentFragment();
+        let lastIndex = 0;
+        let match;
+
+        while ((match = GRAPH_TOKEN_RE.exec(value)) !== null) {
+            if (match.index > lastIndex) {
+                fragment.appendChild(doc.createTextNode(value.slice(lastIndex, match.index)));
+            }
+
+            const graphData = parseGraphToken(match[0]);
+            if (graphData) {
+                const canvas = doc.createElement('canvas');
+                drawGraphPaperCanvas(canvas, graphData.widthCm, graphData.heightCm, doc);
+                const wrapper = doc.createElement('span');
+                wrapper.style.display = 'inline-block';
+                wrapper.style.verticalAlign = 'middle';
+                wrapper.style.margin = '8px 4px';
+                wrapper.appendChild(canvas);
+                fragment.appendChild(wrapper);
+            } else {
+                fragment.appendChild(doc.createTextNode(match[0]));
+            }
+
+            lastIndex = match.index + match[0].length;
+        }
+
+        if (lastIndex < value.length) {
+            fragment.appendChild(doc.createTextNode(value.slice(lastIndex)));
+        }
+
+        textNode.parentNode?.replaceChild(fragment, textNode);
+    });
+}
 
 export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, topicName, paperName }) {
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -10,6 +135,9 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
         const iframe = document.getElementById('printable-document-iframe');
         if (iframe && iframe.contentWindow) {
             try {
+                if (iframe.contentDocument?.body) {
+                    preparePrintableContent(iframe.contentDocument.body);
+                }
                 // Try to print the iframe
                 iframe.contentWindow.focus();
                 iframe.contentWindow.print();
@@ -49,6 +177,9 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                 </html>
             `);
             printWindow.document.close();
+            if (printWindow.document.body) {
+                preparePrintableContent(printWindow.document.body);
+            }
             printWindow.focus();
             
             // Wait for content to load before printing
@@ -78,6 +209,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             
             // Clone the content to avoid modifying the original
             const contentClone = iframeBody.cloneNode(true);
+            preparePrintableContent(contentClone);
             
             // Create a temporary container with proper styling
             const tempContainer = document.createElement('div');
@@ -227,6 +359,9 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                                     // Ensure iframe content is accessible
                                     const iframe = e.target;
                                     if (iframe.contentDocument) {
+                                        if (iframe.contentDocument.body) {
+                                            preparePrintableContent(iframe.contentDocument.body);
+                                        }
                                         iframe.contentDocument.body.style.margin = '20px';
                                         iframe.contentDocument.body.style.fontFamily = 'Arial, sans-serif';
                                     }
