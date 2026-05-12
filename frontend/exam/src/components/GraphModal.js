@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { MAX_GRAPH_BOXES_X, MAX_GRAPH_BOXES_Y } from '../hooks/useDrawing';
 
 const PX_PER_CM = 96 / 2.54;
@@ -6,32 +6,71 @@ const PX_PER_CM = 96 / 2.54;
 const clampBoxes = (value, max) => Math.max(1, Math.min(max, parseInt(value, 10) || 1));
 
 function GraphPreview({ widthBoxes, heightBoxes }) {
-  const widthPx = Math.max(220, widthBoxes * PX_PER_CM);
-  const heightPx = Math.max(220, heightBoxes * PX_PER_CM);
+  const widthPx = Math.max(220, Math.round(widthBoxes * PX_PER_CM));
+  const heightPx = Math.max(220, Math.round(heightBoxes * PX_PER_CM));
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.style.width = `${widthPx}px`;
+    canvas.style.height = `${heightPx}px`;
+    canvas.width = Math.max(1, Math.round(widthPx * dpr));
+    canvas.height = Math.max(1, Math.round(heightPx * dpr));
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Clear and fill white
+    ctx.clearRect(0, 0, widthPx, heightPx);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, widthPx, heightPx);
+
+    const pxPerMm = PX_PER_CM / 10;
+
+    // Draw vertical lines
+    for (let i = 0; i <= Math.ceil(widthPx / pxPerMm); i++) {
+      const x = i * pxPerMm + 0.5;
+      if (i % 10 === 0) {
+        ctx.strokeStyle = '#000000'; ctx.lineWidth = 2;
+      } else if (i % 5 === 0) {
+        ctx.strokeStyle = 'rgba(17,24,39,0.9)'; ctx.lineWidth = 1;
+      } else {
+        ctx.strokeStyle = 'rgba(156,163,175,0.6)'; ctx.lineWidth = 1;
+      }
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, heightPx);
+      ctx.stroke();
+    }
+
+    // Draw horizontal lines
+    for (let j = 0; j <= Math.ceil(heightPx / pxPerMm); j++) {
+      const y = j * pxPerMm + 0.5;
+      if (j % 10 === 0) {
+        ctx.strokeStyle = '#000000'; ctx.lineWidth = 2;
+      } else if (j % 5 === 0) {
+        ctx.strokeStyle = 'rgba(17,24,39,0.9)'; ctx.lineWidth = 1;
+      } else {
+        ctx.strokeStyle = 'rgba(156,163,175,0.6)'; ctx.lineWidth = 1;
+      }
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(widthPx, y);
+      ctx.stroke();
+    }
+
+    // Border
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#000000';
+    ctx.strokeRect(0, 0, widthPx, heightPx);
+  }, [widthBoxes, heightBoxes, widthPx, heightPx]);
 
   return (
     <div className="overflow-auto rounded-xl border border-gray-200 bg-gray-50 p-3" style={{ maxHeight: '52vh' }}>
-          <div
-        className="mx-auto"
-        style={{
-          width: `${widthPx}px`,
-          height: `${heightPx}px`,
-          boxSizing: 'border-box',
-          border: '2px solid #000',
-          backgroundColor: '#fff',
-          backgroundImage: [
-            // 1mm thin (subtle gray)
-            'repeating-linear-gradient(to right, rgba(156,163,175,0.75) 0, rgba(156,163,175,0.75) 0.9px, transparent 0.9px, transparent 1mm)',
-            'repeating-linear-gradient(to bottom, rgba(156,163,175,0.75) 0, rgba(156,163,175,0.75) 0.9px, transparent 0.9px, transparent 1mm)',
-            // 5mm medium (dark gray)
-            'repeating-linear-gradient(to right, rgba(17,24,39,0.95) 0, rgba(17,24,39,0.95) 1.6px, transparent 1.6px, transparent 5mm)',
-            'repeating-linear-gradient(to bottom, rgba(17,24,39,0.95) 0, rgba(17,24,39,0.95) 1.6px, transparent 1.6px, transparent 5mm)',
-            // 10mm bold (black)
-            'repeating-linear-gradient(to right, rgba(0,0,0,1) 0, rgba(0,0,0,1) 3px, transparent 3px, transparent 10mm)',
-            'repeating-linear-gradient(to bottom, rgba(0,0,0,1) 0, rgba(0,0,0,1) 3px, transparent 3px, transparent 10mm)'
-          ].join(', ')
-        }}
-      />
+      <div className="mx-auto" style={{ width: `${widthPx}px`, height: `${heightPx}px`, boxSizing: 'border-box' }}>
+        <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+      </div>
     </div>
   );
 }
