@@ -406,7 +406,6 @@ export default function PaperGenerationDashboard() {
                 }
             }
         } catch (err) {
-            // console.error('Error loading subjects:', err);
         } finally {
             setSubjectsLoading(false);
         }
@@ -435,28 +434,11 @@ export default function PaperGenerationDashboard() {
         try {
             setHistoryLoading(true);
             const user = getCurrentUser();
-            // console.log('🔍 Loading generated papers...');
-            // console.log('Current user:', user);
             
             // Remove ALL filters to get all papers from backend
             const data = await listGeneratedPapers({});
             
-            // console.log('📦 Raw API Response:', data);
-            // console.log('Response type:', typeof data);
-            // console.log('Response keys:', data ? Object.keys(data) : 'null');
-            // console.log('generated_papers field:', data?.generated_papers);
-            // console.log('generated_papers type:', typeof data?.generated_papers);
-            // console.log('generated_papers length:', data?.generated_papers?.length);
-            
             if (data?.generated_papers && Array.isArray(data.generated_papers)) {
-                // console.log('✅ Found', data.generated_papers.length, 'papers');
-                // console.log('Papers:', data.generated_papers.map(p => ({
-                //     id: p.id,
-                //     paper_name: p.paper_name,
-                //     subject_name: p.subject_name,
-                //     created_at: p.created_at,
-                //     status: p.status
-                // })));
                 setGeneratedPapers(data.generated_papers);
             } else {
                 // console.warn('⚠️ No generated_papers in response or not an array');
@@ -546,11 +528,7 @@ export default function PaperGenerationDashboard() {
             setSuccess(null);
             setGeneratedResult(null);
 
-            // console.log('========== STARTING PAPER GENERATION ==========');
-            // console.log('Selected Paper Data:', selectedPaperData);
-            // console.log(' Selected Paper ID:', selectedPaperId);
-            // console.log('Selected Topics:', selectedTopics);
-            // console.log('Number of Topics:', selectedTopics.length);
+            
 
             // Check paper type using database fields
             const paperNumber = selectedPaperData?.paper_number || selectedPaperData?.number || null;
@@ -584,23 +562,13 @@ export default function PaperGenerationDashboard() {
             // Use the same physics endpoints/validation for both paper 1 and paper 2
             const isPhysicsPaper = isPhysics && (isPaper1 || isPaper2);
             
-            // console.log('🔍 Paper Detection (using DB fields):');
-            // console.log('   Paper Number (from DB):', paperNumber);
-            // console.log('   Paper Name:', paperName);
-            // console.log('   Subject Name:', subjectName);
-            // console.log('   Is Biology?', isBiology);
-            // console.log('   Is Physics?', isPhysics);
-            // console.log('   Is Paper 1?', isPaper1);
-            // console.log('   Is Paper 2?', isPaper2);
-            // console.log('   Is Biology Paper 2?', isBiologyPaper2);
-            // console.log('   Is Physics (paper 1 or 2)?', isPhysicsPaper);
+            
             
             // Validate Biology Paper 2
             if (isBiologyPaper2) {
-                // console.log('🧬 Biology Paper 2 detected - Starting validation...');
                 try {
                     const validation = await validateBiologyPaper2Pool(selectedPaperId, selectedTopics);
-                    // console.log('Validation result:', validation);
+                    
                     
                     // Show validation info to user
                     if (validation.issues && validation.issues.length > 0) {
@@ -609,14 +577,14 @@ export default function PaperGenerationDashboard() {
                             `Biology Paper 2 Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
                         );
                         if (!proceed) {
-                            // console.log('User cancelled generation after validation warnings');
+                           
                             setLoading(false);
                             return;
                         }
-                        // console.log('User confirmed to proceed despite warnings');
+                       
                     }
                 } catch (validationErr) {
-                    // console.error('Validation failed:', validationErr);
+                    
                     setError(`Validation failed: ${validationErr.message}`);
                     setLoading(false);
                     return;
@@ -625,10 +593,10 @@ export default function PaperGenerationDashboard() {
             
             // Validate Physics (both Paper 1 and Paper 2 use the same validation endpoint)
             if (isPhysicsPaper) {
-                // console.log('⚛️ Physics detected (paper 1 or 2) - Starting validation...');
+                
                 try {
                     const validation = await validatePhysicsPaperPool(selectedPaperId, selectedTopics);
-                    // console.log('Validation result:', validation);
+                    
                     
                     // Show validation info to user
                     if (validation.issues && validation.issues.length > 0) {
@@ -637,14 +605,14 @@ export default function PaperGenerationDashboard() {
                             `Physics Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
                         );
                         if (!proceed) {
-                            // console.log('User cancelled generation after validation warnings');
+                           
                             setLoading(false);
                             return;
                         }
-                        // console.log('User confirmed to proceed despite warnings');
+                       
                     }
                 } catch (validationErr) {
-                    // console.error('Validation failed:', validationErr);
+                   
                     setError(`Validation failed: ${validationErr.message}`);
                     setLoading(false);
                     return;
@@ -653,18 +621,13 @@ export default function PaperGenerationDashboard() {
 
             // Validate Chemistry
             if (isChemistry) {
-                // console.log('🧪 Chemistry detected - Starting validation...');
+                
                 try {
                     const paperNameForValidation = selectedPaperData?.name || selectedPaperData?.paper_title || null;
                     const paperNumberForValidation = isPaper1 ? 1 : (isPaper2 ? 2 : null);
-                    // console.debug('[PaperGenerationDashboard] Chemistry validation params', {
-                    //     paperId: selectedPaperId,
-                    //     selectedTopicsCount: Array.isArray(selectedTopics) ? selectedTopics.length : 0,
-                    //     paperName: paperNameForValidation,
-                    //     paperNumber: paperNumberForValidation
-                    // });
+                    
                     const validation = await validateChemistryPaperPool(selectedPaperId, selectedTopics, paperNameForValidation, paperNumberForValidation);
-                    // console.log('Validation result:', validation);
+                    
                     if (validation.issues && validation.issues.length > 0) {
                         const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
                         const proceed = window.confirm(
@@ -676,7 +639,7 @@ export default function PaperGenerationDashboard() {
                         }
                     }
                 } catch (validationErr) {
-                    // console.error('Validation failed:', validationErr);
+                    
                     setError(`Validation failed: ${validationErr.message}`);
                     setLoading(false);
                     return;
@@ -685,10 +648,10 @@ export default function PaperGenerationDashboard() {
 
             // Validate Mathematics
             if (isMathematics) {
-                // console.log('Mathematics detected - Starting validation...');
+                
                 try {
                     const validation = await validateMathematicsPaperPool(selectedPaperId, selectedTopics);
-                    // console.log('Validation result:', validation);
+                    
                     if (validation.issues && validation.issues.length > 0) {
                         const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
                         const proceed = window.confirm(
@@ -700,7 +663,7 @@ export default function PaperGenerationDashboard() {
                         }
                     }
                 } catch (validationErr) {
-                    // console.error('Validation failed:', validationErr);
+                    
                     setError(`Validation failed: ${validationErr.message}`);
                     setLoading(false);
                     return;
@@ -708,10 +671,10 @@ export default function PaperGenerationDashboard() {
             }
             // validate Agriculture
             if (isAgriculture) {
-                // console.log('Agriculture detected - Starting validation...');
+               
                 try {
                     const validation = await validateAgriculturePaperPool(selectedPaperId, selectedTopics);
-                    // console.log('Validation result:', validation);
+                    
                     if (validation.issues && validation.issues.length > 0) {
                         const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
                         const proceed = window.confirm(
@@ -723,7 +686,7 @@ export default function PaperGenerationDashboard() {
                         }
                     }
                 } catch (validationErr) {
-                    // console.error('Validation failed:', validationErr);
+                    
                     setError(`Validation failed: ${validationErr.message}`);
                     setLoading(false);
                     return;
@@ -732,10 +695,10 @@ export default function PaperGenerationDashboard() {
 
             // Validate Geography
             if (isGeography) {
-                // console.log('🗺️ Geography detected - Starting validation...');
+                
                 try {
                     const validation = await validateGeographyPaperPool(selectedPaperId, selectedTopics);
-                    // console.log('Validation result:', validation);
+                   
                     if (validation.issues && validation.issues.length > 0) {
                         const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
                         const proceed = window.confirm(
@@ -747,7 +710,7 @@ export default function PaperGenerationDashboard() {
                         }
                     }
                 } catch (validationErr) {
-                    // console.error('Validation failed:', validationErr);
+                    
                     setError(`Validation failed: ${validationErr.message}`);
                     setLoading(false);
                     return;
@@ -756,10 +719,10 @@ export default function PaperGenerationDashboard() {
 
             // Validate English
             if (isEnglish) {
-                // console.log('📝 English detected - Starting validation...');
+                
                 try {
                     const validation = await validateEnglishPaperPool(selectedPaperId, selectedTopics);
-                    // console.log('Validation result:', validation);
+                    
                     if (validation.issues && validation.issues.length > 0) {
                         const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
                         const proceed = window.confirm(
@@ -778,15 +741,12 @@ export default function PaperGenerationDashboard() {
                 }
             }
 
-            // console.log(' Calling generatePaper with:');
-            // console.log('   paperId:', selectedPaperId);
-            // console.log('   topicIds:', selectedTopics);
-            // console.log('   paperData:', selectedPaperData);
+            
 
             // Pass paper data to determine correct endpoint
             const result = await generatePaper(selectedPaperId, selectedTopics, selectedPaperData);
             
-            // console.log('Generation successful! Result:', result);
+            
             
             setGeneratedResult(result);
             
@@ -795,8 +755,7 @@ export default function PaperGenerationDashboard() {
             const paperCode = result?.unique_code || result?.generated_paper?.unique_code || 'N/A';
             const generatedPaperId = result?.generated_paper_id || result?.paper_id || result?.generated_paper?.id || result?.id || result?.paper?.id;
             
-            // console.log('Paper Code:', paperCode);
-            // console.log('Generated Paper ID:', generatedPaperId);
+           
             
             setSuccess(`Paper generated successfully! Code: ${paperCode}`);
             
@@ -805,7 +764,7 @@ export default function PaperGenerationDashboard() {
         } catch (err) {
             const errorMessage = err?.message || 'Failed to generate paper';
             
-            // console.error('Generation Error:', err);
+            
             
             // Provide helpful error message based on error type
             if (errorMessage.includes('Failed to generate valid paper after')) {
@@ -838,14 +797,14 @@ export default function PaperGenerationDashboard() {
         // Validate paper ID
         if (!paperId) {
             setError('Invalid paper ID');
-            // console.error('Paper ID is undefined or null');
+            
             return;
         }
 
         try {
             setLoading(true);
             setError(null);
-            // console.log('Loading coverpage for paper ID:', paperId);
+            
             
             // First, get the paper details to store in selectedPaper
             const paperDetails = await viewFullPaper(paperId);
@@ -854,16 +813,16 @@ export default function PaperGenerationDashboard() {
             
             // Then, load coverpage data and go directly to coverpage editor
             setCoverpageLoading(true);
-            // console.log('Fetching coverpage data...');
+            
             const data = await getCoverpageData(paperId);
-            // console.log('Coverpage data received:', data);
+            
             setCoverpageData(data);
             
             // Go directly to coverpage editor (skip full paper view)
             setViewingCoverpage(true);
             setViewingPaper(false);
         } catch (err) {
-            // console.error('Error loading paper/coverpage:', err);
+            
             setError(err.message || 'Failed to load paper details');
         } finally {
             setLoading(false);
@@ -879,28 +838,28 @@ export default function PaperGenerationDashboard() {
     };
 
     const handleProceedToCoverpage = async () => {
-        // console.log('Proceed to Coverpage clicked!', selectedPaper);
+        
         try {
             setCoverpageLoading(true);
             setError(null);
             
             // Get the paper ID from selectedPaper
             const paperId = selectedPaper?.id || selectedPaper?.generated_paper?.id;
-            // console.log('Paper ID:', paperId);
+            
             
             if (!paperId) {
                 throw new Error('Invalid paper ID');
             }
             
             // Fetch coverpage data
-            // console.log('Fetching coverpage data...');
+            
             const data = await getCoverpageData(paperId);
-            // console.log('Coverpage data received:', data);
+            
             setCoverpageData(data);
             setViewingPaper(false);
             setViewingCoverpage(true);
         } catch (err) {
-            // console.error('Error loading coverpage:', err);
+            
             setError(err.message || 'Failed to load coverpage');
         } finally {
             setCoverpageLoading(false);
@@ -929,7 +888,7 @@ export default function PaperGenerationDashboard() {
                 
                 // Refresh coverpage data from backend
                 const updatedData = await getCoverpageData(paperId);
-                // console.log('Received updated data:', updatedData);
+                
                 setCoverpageData(updatedData);
                 
                 // Small delay to ensure backend has processed the update
@@ -941,7 +900,7 @@ export default function PaperGenerationDashboard() {
                     delete iframe.dataset.loaded;
                     // Add timestamp to prevent caching
                     const cacheBustUrl = `${coverpageHtmlUrl}&t=${Date.now()}`;
-                    // console.log('Fetching preview from:', cacheBustUrl);
+                    
                     
                     fetch(cacheBustUrl, {
                         method: 'GET',
@@ -950,7 +909,6 @@ export default function PaperGenerationDashboard() {
                         }
                     })
                     .then(response => {
-                        // console.log('Preview response status:', response.status);
                         return response.text();
                     })
                     .then(html => {
@@ -960,15 +918,15 @@ export default function PaperGenerationDashboard() {
                         doc.write(html);
                         doc.close();
                         iframe.dataset.loaded = 'true';
-                        // console.log(' Preview refreshed successfully');
+                        
                     })
                     .catch(err => {
-                        // console.error(' Error refreshing preview:', err);
+                        
                         setError('Failed to refresh preview. Please use the Refresh button.');
                     });
                 }
             } catch (err) {
-                // console.error('Error saving coverpage:', err);
+                
                 setError(err.message || 'Failed to save coverpage');
             } finally {
                 setSaving(false);
@@ -1200,7 +1158,7 @@ export default function PaperGenerationDashboard() {
                                                     iframe.dataset.loaded = 'true';
                                                 })
                                                 .catch(err => {
-                                                    // console.error('Error refreshing coverpage:', err);
+                                                    
                                                 });
                                             }
                                         }}
