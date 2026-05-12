@@ -1,6 +1,8 @@
 // src/utils/renderTextWithImages.jsx
 import React, { useEffect, useRef } from 'react';
 
+const PX_PER_CM = 96 / 2.54;
+
 export function parseGraphToken(token) {
     const match = token.match(/^\[GRAPH:([\d.]+):([\d.]+)x([\d.]+)cm\]$/);
     if (!match) return null;
