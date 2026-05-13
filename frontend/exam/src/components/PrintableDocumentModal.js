@@ -195,8 +195,6 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                 iframe.contentWindow.focus();
                 iframe.contentWindow.print();
             } catch (error) {
-                // console.error('Print error:', error);
-                // Fallback: open in new window
                 handlePrintInNewWindow();
             }
         }
@@ -270,8 +268,9 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             tempContainer.style.left = '-9999px';
             tempContainer.style.top = '0';
             tempContainer.style.width = '210mm'; // A4 width
-            tempContainer.style.padding = '20px';
+            tempContainer.style.padding = '5px';
             tempContainer.style.background = 'white';
+            tempContainer.style.border = 'none';
             tempContainer.style.fontFamily = 'Arial, sans-serif';
             tempContainer.appendChild(contentClone);
             document.body.appendChild(tempContainer);
@@ -306,7 +305,6 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             // Cleanup
             document.body.removeChild(tempContainer);
         } catch (error) {
-            // console.error('Error generating PDF:', error);
             alert(`Failed to generate PDF: ${error.message}. Please try using the Print button instead.`);
         } finally {
             setIsGeneratingPdf(false);
@@ -394,7 +392,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                                         if (iframe.contentDocument.body) {
                                             preparePrintableContent(iframe.contentDocument.body);
                                         }
-                                        iframe.contentDocument.body.style.margin = '20px';
+                                        iframe.contentDocument.body.style.margin = '5px';
                                         iframe.contentDocument.body.style.fontFamily = 'Arial, sans-serif';
                                     }
                                 }}
