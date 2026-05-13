@@ -162,7 +162,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                     <title>${topicName || paperName || 'Questions'}</title>
                     <style>
                         body { 
-                            margin: 20px; 
+                            margin:5px; 
                             font-family: Arial, sans-serif; 
                             background: white;
                         }

@@ -847,6 +847,49 @@ def _process_question_text(text, images=None, answer_lines=None):
                 space_html = f'<div style="margin: 8px 0; max-width: {max_width}px;"><div style="height: {height_px}px; width: 100%; background: white; border: none;"></div></div>'
                 result.append(space_html)
         
+        # Graphs: [GRAPH:id:WxHcm]
+        elif part.startswith('[GRAPH:') and part.endswith(']'):
+            graph_match = re.match(r'\[GRAPH:([\d.]+):([\d.]+)x([\d.]+)cm\]', part)
+            if graph_match:
+                graph_id = float(graph_match.group(1))
+                width_cm = float(graph_match.group(2))
+                height_cm = float(graph_match.group(3))
+                # Validate
+                width_cm = max(1, width_cm)
+                height_cm = max(1, height_cm)
+                # Render inline SVG for print-safe grids
+                width_mm = max(10, int(round(width_cm * 10)))
+                height_mm = max(10, int(round(height_cm * 10)))
+                svg_lines = []
+                for x in range(width_mm + 1):
+                    if x % 10 == 0:
+                        stroke = '#000000'; sw = 0.45
+                    elif x % 5 == 0:
+                        stroke = 'rgba(15, 23, 42, 0.9)'; sw = 0.28
+                    else:
+                        stroke = 'rgba(156, 163, 175, 0.65)'; sw = 0.18
+                    svg_lines.append(f'<line x1="{x}" y1="0" x2="{x}" y2="{height_mm}" stroke="{stroke}" stroke-width="{sw}" />')
+                for y in range(height_mm + 1):
+                    if y % 10 == 0:
+                        stroke = '#000000'; sw = 0.45
+                    elif y % 5 == 0:
+                        stroke = 'rgba(15, 23, 42, 0.9)'; sw = 0.28
+                    else:
+                        stroke = 'rgba(156, 163, 175, 0.65)'; sw = 0.18
+                    svg_lines.append(f'<line x1="0" y1="{y}" x2="{width_mm}" y2="{y}" stroke="{stroke}" stroke-width="{sw}" />')
+                svg_content = ''.join(svg_lines)
+                graph_html = ('<span style="display:inline-block; margin:8px 4px; vertical-align:middle;">'
+                              f'<svg xmlns="http://www.w3.org/2000/svg" width="{width_cm}cm" height="{height_cm}cm" '
+                              f'viewBox="0 0 {width_mm} {height_mm}" preserveAspectRatio="none" '
+                              f'style="display:block; background:#fff; border:2px solid #0f766e; border-radius:4px; box-sizing:border-box;">'
+                              f'<rect x="0" y="0" width="{width_mm}" height="{height_mm}" fill="#ffffff" />'
+                              f'{svg_content}'
+                              f'<rect x="0" y="0" width="{width_mm}" height="{height_mm}" fill="none" stroke="#000000" stroke-width="0.5" />'
+                              '</svg>'
+                              '</span>')
+                result.append(graph_html)
+                continue
+
         # Images: [IMAGE:id:WxH] or [IMAGE:id:Wpx]
         elif part.startswith('[IMAGE:') and part.endswith('px]'):
             image_match_new = re.match(r'\[IMAGE:([\d.]+):(\d+)x(\d+)px\]', part)
