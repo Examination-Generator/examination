@@ -1413,7 +1413,7 @@ def generate_topic_printable_document(request):
                 processed_question_text = _process_question_text(
                     question.question_text,
                     images=question_images_list,
-                    answer_lines=None
+                    answer_lines=question.question_answer_lines or []
                 )
                 
                 # Prepare images for answer text processing
@@ -1430,7 +1430,7 @@ def generate_topic_printable_document(request):
                 processed_answer_text = _process_question_text(
                     question.answer_text,
                     images=answer_images_list,
-                    answer_lines=None
+                    answer_lines=question.answer_answer_lines or []
                 )
                 
                 html_content += f"""
