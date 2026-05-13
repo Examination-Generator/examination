@@ -1314,15 +1314,10 @@ def generate_topic_printable_document(request):
         }}
         
         .answer-section {{
-            background-color: #e8f5e9;
             padding: 15px;
             margin-top: 15px;
         }}
         
-        .answer-section .section-title {{
-            background-color: #c8e6c9;
-            border-left-color: #27ae60;
-        }}
         
         .inline-image {{
             max-width: 100%;
@@ -1369,8 +1364,6 @@ def generate_topic_printable_document(request):
             color: #666;
             margin: 20px 0;
             padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
         }}
     </style>
 </head>
