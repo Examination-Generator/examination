@@ -424,7 +424,6 @@ export default function PaperGenerationDashboard() {
             setTopics(Array.isArray(data?.topics) ? data.topics : []);
         } catch (err) {
             setError(err?.message || 'Failed to load topics');
-            // console.error('Error loading topics:', err);
         } finally {
             setLoading(false);
         }
@@ -441,12 +440,10 @@ export default function PaperGenerationDashboard() {
             if (data?.generated_papers && Array.isArray(data.generated_papers)) {
                 setGeneratedPapers(data.generated_papers);
             } else {
-                // console.warn('⚠️ No generated_papers in response or not an array');
+                
                 setGeneratedPapers([]);
             }
         } catch (err) {
-            // console.error('Failed to load generated papers:', err);
-            // console.error('Error details:', err.message);
             setGeneratedPapers([]);
         } finally {
             setHistoryLoading(false);
@@ -808,7 +805,6 @@ export default function PaperGenerationDashboard() {
             
             // First, get the paper details to store in selectedPaper
             const paperDetails = await viewFullPaper(paperId);
-            // console.log('Paper details loaded:', paperDetails);
             setSelectedPaper(paperDetails);
             
             // Then, load coverpage data and go directly to coverpage editor
@@ -881,7 +877,6 @@ export default function PaperGenerationDashboard() {
                 setSaving(true);
                 setError(null);
                 
-                // console.log('Saving coverpage data:', editableData);
                 await updateCoverpageData(paperId, editableData);
                 setSuccess('Coverpage updated successfully!');
                 setShowCoverpagePreview(true); // Show preview after save

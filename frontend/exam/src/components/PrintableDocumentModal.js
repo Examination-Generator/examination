@@ -4,6 +4,8 @@ import { parseGraphToken } from '../utils/renderTextWithImages';
 
 const PX_PER_CM = 96 / 2.54;
 const GRAPH_TOKEN_RE = /\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]/g;
+const IMAGE_TOKEN_NEW_RE = /\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/g;
+const IMAGE_TOKEN_OLD_RE = /\[IMAGE:([\d.]+):(\d+)px\]/g;
 
 function drawGraphPaperCanvas(canvas, widthCm, heightCm, doc) {
     if (!canvas) return;
@@ -72,10 +74,10 @@ function drawGraphPaperCanvas(canvas, widthCm, heightCm, doc) {
     ctx.strokeRect(0, 0, widthPx, heightPx);
 }
 
-function preparePrintableContent(root) {
-    if (!root?.ownerDocument) return;
+function preparePrintableContent(root, docParam, images = [], imagePositions = {}) {
+    const doc = root?.ownerDocument || docParam || document;
+    if (!doc || !root) return;
 
-    const doc = root.ownerDocument;
     const nodeFilter = doc.defaultView?.NodeFilter?.SHOW_TEXT || 4;
     const walker = doc.createTreeWalker(root, nodeFilter);
     const textNodes = [];
@@ -87,35 +89,86 @@ function preparePrintableContent(root) {
     }
 
     textNodes.forEach((textNode) => {
-        GRAPH_TOKEN_RE.lastIndex = 0;
         const value = textNode.nodeValue || '';
-        if (!GRAPH_TOKEN_RE.test(value)) return;
+        // If no graph or image tokens present quickly continue
+        if (!GRAPH_TOKEN_RE.test(value) && !IMAGE_TOKEN_NEW_RE.test(value) && !IMAGE_TOKEN_OLD_RE.test(value)) return;
 
+        // Reset regex states
         GRAPH_TOKEN_RE.lastIndex = 0;
+        IMAGE_TOKEN_NEW_RE.lastIndex = 0;
+        IMAGE_TOKEN_OLD_RE.lastIndex = 0;
+
         const fragment = doc.createDocumentFragment();
         let lastIndex = 0;
+        // Combined regex to find either token sequentially
+        const combined = new RegExp(`${GRAPH_TOKEN_RE.source}|${IMAGE_TOKEN_NEW_RE.source}|${IMAGE_TOKEN_OLD_RE.source}`, 'g');
         let match;
 
-        while ((match = GRAPH_TOKEN_RE.exec(value)) !== null) {
+        while ((match = combined.exec(value)) !== null) {
             if (match.index > lastIndex) {
                 fragment.appendChild(doc.createTextNode(value.slice(lastIndex, match.index)));
             }
 
-            const graphData = parseGraphToken(match[0]);
-            if (graphData) {
-                const canvas = doc.createElement('canvas');
-                drawGraphPaperCanvas(canvas, graphData.widthCm, graphData.heightCm, doc);
-                const wrapper = doc.createElement('span');
-                wrapper.style.display = 'inline-block';
-                wrapper.style.verticalAlign = 'middle';
-                wrapper.style.margin = '8px 4px';
-                wrapper.appendChild(canvas);
-                fragment.appendChild(wrapper);
-            } else {
-                fragment.appendChild(doc.createTextNode(match[0]));
+            const token = match[0];
+
+            // Graph token
+            if (GRAPH_TOKEN_RE.test(token)) {
+                const graphData = parseGraphToken(token);
+                if (graphData) {
+                    const canvas = doc.createElement('canvas');
+                    drawGraphPaperCanvas(canvas, graphData.widthCm, graphData.heightCm, doc);
+                    const wrapper = doc.createElement('span');
+                    wrapper.style.display = 'inline-block';
+                    wrapper.style.verticalAlign = 'middle';
+                    wrapper.style.margin = '8px 4px';
+                    wrapper.appendChild(canvas);
+                    fragment.appendChild(wrapper);
+                } else {
+                    fragment.appendChild(doc.createTextNode(token));
+                }
             }
 
-            lastIndex = match.index + match[0].length;
+            // Image token (new format)
+            else if (IMAGE_TOKEN_NEW_RE.test(token) || IMAGE_TOKEN_OLD_RE.test(token)) {
+                // extract id and dimensions
+                let idMatch = token.match(/\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/);
+                let oldMatch = token.match(/\[IMAGE:([\d.]+):(\d+)px\]/);
+                const imageId = parseFloat(idMatch ? idMatch[1] : (oldMatch ? oldMatch[1] : NaN));
+                const w = idMatch ? parseInt(idMatch[2], 10) : (oldMatch ? parseInt(oldMatch[2], 10) : null);
+                const h = idMatch ? parseInt(idMatch[3], 10) : null;
+
+                const image = (images || []).find(i => Math.abs(i.id - imageId) < 0.001);
+                const pos = (imagePositions || {})[imageId];
+
+                if (image) {
+                    const imgEl = doc.createElement('img');
+                    imgEl.src = image.url;
+                    imgEl.alt = image.name || 'image';
+                    if (w) imgEl.style.width = `${w}px`;
+                    if (h) imgEl.style.height = `${h}px`;
+                    imgEl.style.display = 'block';
+                    imgEl.className = 'print-inline-image';
+
+                    const wrapper = doc.createElement('span');
+                    wrapper.style.display = pos ? 'block' : 'inline-block';
+                    wrapper.style.margin = '8px 4px';
+                    if (pos) {
+                        wrapper.style.position = 'absolute';
+                        wrapper.style.left = `${pos.x}px`;
+                        wrapper.style.top = `${pos.y}px`;
+                    }
+                    wrapper.appendChild(imgEl);
+                    fragment.appendChild(wrapper);
+                } else {
+                    fragment.appendChild(doc.createTextNode(token));
+                }
+            }
+
+            lastIndex = match.index + token.length;
+            // reset inner regex states for next loop
+            GRAPH_TOKEN_RE.lastIndex = 0;
+            IMAGE_TOKEN_NEW_RE.lastIndex = 0;
+            IMAGE_TOKEN_OLD_RE.lastIndex = 0;
         }
 
         if (lastIndex < value.length) {
@@ -126,7 +179,7 @@ function preparePrintableContent(root) {
     });
 }
 
-export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, topicName, paperName }) {
+export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, topicName, paperName, images = [], imagePositions = {}, answerLines = [] }) {
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     
     if (!isOpen) return null;
@@ -136,7 +189,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
         if (iframe && iframe.contentWindow) {
             try {
                 if (iframe.contentDocument?.body) {
-                    preparePrintableContent(iframe.contentDocument.body);
+                    preparePrintableContent(iframe.contentDocument.body, iframe.contentDocument, images, imagePositions);
                 }
                 // Try to print the iframe
                 iframe.contentWindow.focus();
@@ -178,7 +231,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             `);
             printWindow.document.close();
             if (printWindow.document.body) {
-                preparePrintableContent(printWindow.document.body);
+                preparePrintableContent(printWindow.document.body, printWindow.document, images, imagePositions);
             }
             printWindow.focus();
             
@@ -209,7 +262,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             
             // Clone the content to avoid modifying the original
             const contentClone = iframeBody.cloneNode(true);
-            preparePrintableContent(contentClone);
+            preparePrintableContent(contentClone, iframe.contentDocument, images, imagePositions);
             
             // Create a temporary container with proper styling
             const tempContainer = document.createElement('div');
