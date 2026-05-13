@@ -4,6 +4,7 @@ import { parseGraphToken } from '../utils/renderTextWithImages';
 
 const PX_PER_CM = 96 / 2.54;
 const GRAPH_TOKEN_RE = /\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]/g;
+const LINES_TOKEN_RE = /\[LINES:([\d.]+)\]/g;
 const IMAGE_TOKEN_NEW_RE = /\[IMAGE:([\d.]+):(\d+)x(\d+)px\]/g;
 const IMAGE_TOKEN_OLD_RE = /\[IMAGE:([\d.]+):(\d+)px\]/g;
 
@@ -74,9 +75,60 @@ function drawGraphPaperCanvas(canvas, widthCm, heightCm, doc) {
     ctx.strokeRect(0, 0, widthPx, heightPx);
 }
 
-function preparePrintableContent(root, docParam, images = [], imagePositions = {}) {
+function drawAnswerLines(doc, lineConfig, lineId) {
+    const wrapper = doc.createElement('div');
+    wrapper.className = 'print-answer-lines';
+    wrapper.style.margin = '8px 0';
+    wrapper.style.maxWidth = '700px';
+
+    const numberOfLines = Number.isFinite(Number(lineConfig?.numberOfLines)) ? Number(lineConfig.numberOfLines) : 5;
+    const lineHeight = Number.isFinite(Number(lineConfig?.lineHeight)) ? Number(lineConfig.lineHeight) : 30;
+    const lineStyle = lineConfig?.lineStyle || 'dotted';
+    const opacity = Number.isFinite(Number(lineConfig?.opacity)) ? Number(lineConfig.opacity) : 0.5;
+
+    if (!lineConfig) {
+        const fallback = doc.createElement('div');
+        fallback.textContent = `Answer Lines (ID: ${Number(lineId).toFixed(0)})`;
+        fallback.style.fontSize = '11px';
+        fallback.style.color = '#92400e';
+        fallback.style.marginBottom = '4px';
+        fallback.style.padding = '4px 0';
+        wrapper.appendChild(fallback);
+    }
+
+    const fullLines = Math.max(0, Math.floor(numberOfLines));
+    const hasHalfLine = numberOfLines % 1 !== 0;
+
+    for (let i = 0; i < fullLines; i++) {
+        const line = doc.createElement('div');
+        line.style.height = `${lineHeight}px`;
+        line.style.width = '100%';
+        line.style.margin = '0';
+        line.style.padding = '0';
+        line.style.boxSizing = 'border-box';
+        line.style.borderBottom = `2px ${lineStyle} rgba(0, 0, 0, ${opacity})`;
+        wrapper.appendChild(line);
+    }
+
+    if (hasHalfLine) {
+        const half = doc.createElement('div');
+        half.style.height = `${lineHeight / 2}px`;
+        half.style.width = '100%';
+        half.style.margin = '0';
+        half.style.padding = '0';
+        half.style.boxSizing = 'border-box';
+        half.style.borderBottom = `2px ${lineStyle} rgba(0, 0, 0, ${opacity})`;
+        wrapper.appendChild(half);
+    }
+
+    return wrapper;
+}
+
+function preparePrintableContent(root, docParam, images = [], imagePositions = {}, answerLines = []) {
     const doc = root?.ownerDocument || docParam || document;
     if (!doc || !root) return;
+
+    const answerLinesById = new Map((answerLines || []).map((line) => [Number(line?.id), line]));
 
     const nodeFilter = doc.defaultView?.NodeFilter?.SHOW_TEXT || 4;
     const walker = doc.createTreeWalker(root, nodeFilter);
@@ -91,17 +143,18 @@ function preparePrintableContent(root, docParam, images = [], imagePositions = {
     textNodes.forEach((textNode) => {
         const value = textNode.nodeValue || '';
         // If no graph or image tokens present quickly continue
-        if (!GRAPH_TOKEN_RE.test(value) && !IMAGE_TOKEN_NEW_RE.test(value) && !IMAGE_TOKEN_OLD_RE.test(value)) return;
+        if (!GRAPH_TOKEN_RE.test(value) && !IMAGE_TOKEN_NEW_RE.test(value) && !IMAGE_TOKEN_OLD_RE.test(value) && !LINES_TOKEN_RE.test(value)) return;
 
         // Reset regex states
         GRAPH_TOKEN_RE.lastIndex = 0;
         IMAGE_TOKEN_NEW_RE.lastIndex = 0;
         IMAGE_TOKEN_OLD_RE.lastIndex = 0;
+        LINES_TOKEN_RE.lastIndex = 0;
 
         const fragment = doc.createDocumentFragment();
         let lastIndex = 0;
         // Combined regex to find either token sequentially
-        const combined = new RegExp(`${GRAPH_TOKEN_RE.source}|${IMAGE_TOKEN_NEW_RE.source}|${IMAGE_TOKEN_OLD_RE.source}`, 'g');
+        const combined = new RegExp(`${GRAPH_TOKEN_RE.source}|${LINES_TOKEN_RE.source}|${IMAGE_TOKEN_NEW_RE.source}|${IMAGE_TOKEN_OLD_RE.source}`, 'g');
         let match;
 
         while ((match = combined.exec(value)) !== null) {
@@ -126,6 +179,14 @@ function preparePrintableContent(root, docParam, images = [], imagePositions = {
                 } else {
                     fragment.appendChild(doc.createTextNode(token));
                 }
+            }
+
+            // Answer lines token
+            else if (LINES_TOKEN_RE.test(token)) {
+                const lineMatch = token.match(/\[LINES:([\d.]+)\]/);
+                const lineId = lineMatch ? Number(lineMatch[1]) : NaN;
+                const lineConfig = answerLinesById.get(lineId);
+                fragment.appendChild(drawAnswerLines(doc, lineConfig, lineId));
             }
 
             // Image token (new format)
@@ -167,6 +228,7 @@ function preparePrintableContent(root, docParam, images = [], imagePositions = {
             lastIndex = match.index + token.length;
             // reset inner regex states for next loop
             GRAPH_TOKEN_RE.lastIndex = 0;
+            LINES_TOKEN_RE.lastIndex = 0;
             IMAGE_TOKEN_NEW_RE.lastIndex = 0;
             IMAGE_TOKEN_OLD_RE.lastIndex = 0;
         }
@@ -189,7 +251,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
         if (iframe && iframe.contentWindow) {
             try {
                 if (iframe.contentDocument?.body) {
-                    preparePrintableContent(iframe.contentDocument.body, iframe.contentDocument, images, imagePositions);
+                    preparePrintableContent(iframe.contentDocument.body, iframe.contentDocument, images, imagePositions, answerLines);
                 }
                 // Try to print the iframe
                 iframe.contentWindow.focus();
@@ -229,7 +291,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             `);
             printWindow.document.close();
             if (printWindow.document.body) {
-                preparePrintableContent(printWindow.document.body, printWindow.document, images, imagePositions);
+                preparePrintableContent(printWindow.document.body, printWindow.document, images, imagePositions, answerLines);
             }
             printWindow.focus();
             
@@ -260,7 +322,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             
             // Clone the content to avoid modifying the original
             const contentClone = iframeBody.cloneNode(true);
-            preparePrintableContent(contentClone, iframe.contentDocument, images, imagePositions);
+            preparePrintableContent(contentClone, iframe.contentDocument, images, imagePositions, answerLines);
             
             // Create a temporary container with proper styling
             const tempContainer = document.createElement('div');
@@ -390,7 +452,7 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                                     const iframe = e.target;
                                     if (iframe.contentDocument) {
                                         if (iframe.contentDocument.body) {
-                                            preparePrintableContent(iframe.contentDocument.body);
+                                            preparePrintableContent(iframe.contentDocument.body, iframe.contentDocument, images, imagePositions, answerLines);
                                         }
                                         iframe.contentDocument.body.style.margin = '5px';
                                         iframe.contentDocument.body.style.fontFamily = 'Arial, sans-serif';
