@@ -907,6 +907,53 @@ def _process_question_text(text, images=None, answer_lines=None):
     parts = re.split(pattern, text)
     
     result = []
+
+    def build_graph_html(graph_id, width_cm, height_cm):
+        # Browser print often omits background graphics; SVG line art prints reliably.
+        width_mm = max(10, int(round(width_cm * 10)))
+        height_mm = max(10, int(round(height_cm * 10)))
+        svg_lines = []
+
+        for x in range(width_mm + 1):
+            if x % 10 == 0:
+                stroke = '#000000'
+                stroke_width = 0.45
+            elif x % 5 == 0:
+                stroke = 'rgba(15, 23, 42, 0.9)'
+                stroke_width = 0.28
+            else:
+                stroke = 'rgba(156, 163, 175, 0.65)'
+                stroke_width = 0.18
+            svg_lines.append(
+                f'<line x1="{x}" y1="0" x2="{x}" y2="{height_mm}" stroke="{stroke}" stroke-width="{stroke_width}" />'
+            )
+
+        for y in range(height_mm + 1):
+            if y % 10 == 0:
+                stroke = '#000000'
+                stroke_width = 0.45
+            elif y % 5 == 0:
+                stroke = 'rgba(15, 23, 42, 0.9)'
+                stroke_width = 0.28
+            else:
+                stroke = 'rgba(156, 163, 175, 0.65)'
+                stroke_width = 0.18
+            svg_lines.append(
+                f'<line x1="0" y1="{y}" x2="{width_mm}" y2="{y}" stroke="{stroke}" stroke-width="{stroke_width}" />'
+            )
+
+        svg_content = ''.join(svg_lines)
+        return (
+            '<span style="display:inline-block; margin:8px 4px; vertical-align:middle;">'
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{width_cm}cm" height="{height_cm}cm" '
+            f'viewBox="0 0 {width_mm} {height_mm}" preserveAspectRatio="none" '
+            f'style="display:block; background:#fff; border:2px solid #0f766e; border-radius:4px; box-sizing:border-box;">'
+            f'<rect x="0" y="0" width="{width_mm}" height="{height_mm}" fill="#ffffff" />'
+            f'{svg_content}'
+            f'<rect x="0" y="0" width="{width_mm}" height="{height_mm}" fill="none" stroke="#000000" stroke-width="0.5" />'
+            '</svg>'
+            '</span>'
+        )
     
     for part in parts:
         if not part:
@@ -1211,30 +1258,7 @@ def _process_question_text(text, images=None, answer_lines=None):
                 # Validate dimensions
                 width_cm = max(1, width_cm)
                 height_cm = max(1, height_cm)
-                
-                # Convert cm to pixels for CSS (1cm ≈ 37.8px at 96 DPI, we use 37.8 for accuracy)
-                width_px = int(width_cm * 37.8)
-                height_px = int(height_cm * 37.8)
-                
-                # Create grid pattern background (millimeter and centimeter grids)
-                graph_html = f'''<span style="display: inline-block; margin: 8px 4px; vertical-align: middle;">
-<span style="
-    display: block;
-    width: {width_cm}cm;
-    height: {height_cm}cm;
-    border: 2px solid #0f766e;
-    border-radius: 4px;
-    box-sizing: border-box;
-    background-color: white;
-    background-image: 
-        repeating-linear-gradient(to right, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm),
-        repeating-linear-gradient(to bottom, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm),
-        repeating-linear-gradient(to right, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm),
-        repeating-linear-gradient(to bottom, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm);
-    title=\"Graph {int(graph_id)}: {width_cm}cm × {height_cm}cm\";
-">&nbsp;</span>
-</span>'''
-                result.append(graph_html)
+                result.append(build_graph_html(graph_id, width_cm, height_cm))
         
         # Images: [IMAGE:id:WxH] or [IMAGE:id:Wpx]
         elif part.startswith('[IMAGE:') and part.endswith('px]'):
