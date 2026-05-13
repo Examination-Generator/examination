@@ -1122,7 +1122,7 @@ def generate_topic_printable_document(request):
             color: #333;
             max-width: 210mm;
             margin: 0 auto;
-            padding: 20px;
+            padding: 5px;
             background-color: #fff;
         }}
         
@@ -1179,11 +1179,7 @@ def generate_topic_printable_document(request):
         }}
         
         .question-container {{
-            margin-bottom: 40px;
-            border: 1px solid #ddd;
-            padding: 20px;
-            border-radius: 5px;
-            background-color: #fafafa;
+            padding: 5px;
         }}
         
         .question-header {{
@@ -1234,7 +1230,7 @@ def generate_topic_printable_document(request):
         }}
         
         .question-section {{
-            margin-bottom: 25px;
+            margin-bottom: 5px;
         }}
         
         .section-title {{
@@ -1243,8 +1239,6 @@ def generate_topic_printable_document(request):
             color: #2c3e50;
             margin-bottom: 10px;
             padding: 8px;
-            background-color: #ecf0f1;
-            border-left: 4px solid #3498db;
         }}
         
         .question-text, .answer-text {{
@@ -1256,7 +1250,6 @@ def generate_topic_printable_document(request):
         
         .answer-section {{
             background-color: #e8f5e9;
-            border-left: 4px solid #27ae60;
             padding: 15px;
             margin-top: 15px;
         }}
@@ -1459,7 +1452,7 @@ def generate_topic_printable_document(request):
         )
 
 
-# ==================== NEW LIGHTWEIGHT ENDPOINTS ====================
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -1630,108 +1623,7 @@ def question_statistics_only(request):
         })
     except Exception as e:
         return Response({'success': False, 'error': str(e)}, status=500)
-# def question_statistics_only(request):
-#     """
-#     GET /api/questions/statistics-only/
-#     Returns aggregated statistics across ALL questions in the DB (no question objects).
-#     """
-#     try:
-#         queryset = Question.objects.all()
 
-#         # Core counts
-#         total_questions = queryset.count()
-#         active_questions = queryset.filter(is_active=True).count()
-#         inactive_questions = queryset.filter(is_active=False).count()
-#         # Avoid comparing FK directly to an empty string (causes UUID validation errors).
-#         # Check for null topic or topics with an empty name instead.
-#         unknown_topics = queryset.filter(Q(topic__isnull=True) | Q(topic__name='')).count()
-
-#         # Overview aggregates (active questions example)
-#         overview = queryset.aggregate(
-#             total_marks=Sum('marks'),
-#             avg_marks=Avg('marks'),
-#             total_usage=Sum('times_used')
-#         )
-
-#         # Breakdown by subject (total, active, inactive)
-#         by_subject_qs = queryset.values('subject__id', 'subject__name').annotate(
-#             total=Count('id'),
-#             active=Count('id', filter=Q(is_active=True)),
-#             inactive=Count('id', filter=Q(is_active=False))
-#         ).order_by('-total')
-
-#         by_subject = [
-#             {
-#                 'subjectId': str(item['subject__id']) if item['subject__id'] is not None else None,
-#                 'subjectName': item['subject__name'] or 'Unknown',
-#                 'total': item['total'] or 0,
-#                 'active': item['active'] or 0,
-#                 'inactive': item['inactive'] or 0
-#             } for item in by_subject_qs
-#         ]
-
-#         # Breakdown by paper (groups under subject->paper)
-#         by_paper_qs = queryset.values('subject__id', 'subject__name', 'paper__id', 'paper__name').annotate(
-#             total=Count('id'),
-#             active=Count('id', filter=Q(is_active=True)),
-#             inactive=Count('id', filter=Q(is_active=False))
-#         ).order_by('subject__name', '-total')
-
-#         by_paper = [
-#             {
-#                 'subjectId': str(item['subject__id']) if item['subject__id'] is not None else None,
-#                 'subject': item['subject__name'] or 'Unknown',
-#                 'paperId': str(item['paper__id']) if item['paper__id'] is not None else None,
-#                 'paper': item['paper__name'] or 'Unknown',
-#                 'total': item['total'] or 0,
-#                 'active': item['active'] or 0,
-#                 'inactive': item['inactive'] or 0
-#             } for item in by_paper_qs
-#         ]
-
-#         # Breakdown by topic (total, active, inactive); include marks distribution optionally
-#         by_topic_qs = queryset.values('subject__id', 'subject__name', 'paper__id', 'paper__name', 'topic__id', 'topic__name').annotate(
-#             total=Count('id'),
-#             active=Count('id', filter=Q(is_active=True)),
-#             inactive=Count('id', filter=Q(is_active=False))
-#         ).order_by('-total')
-
-#         by_topic = [
-#             {
-#                 'subjectId': str(item['subject__id']) if item['subject__id'] is not None else None,
-#                 'subject': item['subject__name'] or 'Unknown',
-#                 'paperId': str(item['paper__id']) if item['paper__id'] is not None else None,
-#                 'paper': item['paper__name'] or 'Unknown',
-#                 'topicId': str(item['topic__id']) if item['topic__id'] is not None else None,
-#                 'topicName': item['topic__name'] or 'Unknown',
-#                 'total': item['total'] or 0,
-#                 'active': item['active'] or 0,
-#                 'inactive': item['inactive'] or 0
-#             } for item in by_topic_qs
-#         ]
-
-#         return Response({
-#             'success': True,
-#             'data': {
-#                 'total': total_questions,
-#                 'active': active_questions,
-#                 'inactive': inactive_questions,
-#                 'unknownTopics': unknown_topics,
-#                 'overview': {
-#                     'totalQuestions': total_questions,
-#                     'activeQuestions': active_questions,
-#                     'inactiveQuestions': inactive_questions,
-#                     'totalMarks': overview['total_marks'] or 0,
-#                     'avgMarks': float(round(overview['avg_marks'],2)) if overview['avg_marks'] else 0,
-#                     'totalUsage': overview['total_usage'] or 0
-#                 },
-#                 'bySubject': by_subject,
-#                 'byPaper': by_paper,
-#                 'byTopic': by_topic
-#             }
-#         })
-#     except Exception as e:
-#         return Response({'success': False, 'error': str(e)}, status=500)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
