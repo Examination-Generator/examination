@@ -742,6 +742,71 @@ def get_question_stats(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def generate_topic_printable_document(request, topic_id):
+    """
+    Generate printable HTML fragments for all questions in a topic.
+    This view processes full question and answer text through `_process_question_text`
+    so that graph tokens, image tokens and answer-line tokens are expanded into
+    HTML suitable for printing (matching the frontend `renderTextWithImages`).
+
+    GET /api/questions/topic/<topic_id>/printable/
+
+    Returns JSON with an ordered list of processed question HTML blocks.
+    """
+    try:
+        topic = Topic.objects.get(id=topic_id)
+    except Topic.DoesNotExist:
+        return error_response('Topic not found', status=status.HTTP_404_NOT_FOUND)
+
+    # Load questions for the topic (only active ones by default)
+    questions_qs = Question.objects.filter(topic=topic, is_active=True).order_by('id')
+
+    processed = []
+    for q in questions_qs:
+        try:
+            q_images = q.question_inline_images or []
+        except Exception:
+            q_images = []
+
+        try:
+            q_lines = q.question_answer_lines or []
+        except Exception:
+            q_lines = []
+
+        try:
+            a_images = q.answer_inline_images or []
+        except Exception:
+            a_images = []
+
+        try:
+            a_lines = q.answer_answer_lines or []
+        except Exception:
+            a_lines = []
+
+        # Process question and answer text into HTML using shared template logic
+        processed_question_html = _process_question_text(q.question_text or '', images=q_images, answer_lines=q_lines)
+        processed_answer_html = _process_question_text(q.answer_text or '', images=a_images, answer_lines=a_lines)
+
+        processed.append({
+            'id': q.id,
+            'number': getattr(q, 'number', None) or None,
+            'marks': getattr(q, 'marks', None),
+            'question_html': processed_question_html,
+            'answer_html': processed_answer_html,
+            'question_inline_images': q_images,
+            'question_image_positions': getattr(q, 'question_image_positions', None) or {},
+            'question_answer_lines': q_lines,
+        })
+
+    return success_response(
+        f'Processed {len(processed)} question(s) for printable output',
+        {'topic': topic.name if hasattr(topic, 'name') else str(topic_id), 'questions': processed}
+    )
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_creator_statistics(request):
     """
     Get creator statistics ONLY - lightweight endpoint that counts and aggregates creator contributions.
