@@ -764,9 +764,9 @@ def generate_topic_printable_document(request, topic_id):
     processed = []
     for q in questions_qs:
         try:
-            q_images = q.question_inline_images or []
+            q_images_raw = q.question_inline_images or []
         except Exception:
-            q_images = []
+            q_images_raw = []
 
         try:
             q_lines = q.question_answer_lines or []
@@ -774,14 +774,29 @@ def generate_topic_printable_document(request, topic_id):
             q_lines = []
 
         try:
-            a_images = q.answer_inline_images or []
+            a_images_raw = q.answer_inline_images or []
         except Exception:
-            a_images = []
+            a_images_raw = []
 
         try:
             a_lines = q.answer_answer_lines or []
         except Exception:
             a_lines = []
+
+        # Normalize images: handle both dict objects and plain URL strings
+        q_images = []
+        for img in q_images_raw:
+            if isinstance(img, dict):
+                q_images.append(img)
+            else:
+                q_images.append({'id': len(q_images) + 1, 'url': img, 'name': f'Image {len(q_images) + 1}'})
+
+        a_images = []
+        for img in a_images_raw:
+            if isinstance(img, dict):
+                a_images.append(img)
+            else:
+                a_images.append({'id': len(a_images) + 1, 'url': img, 'name': f'Image {len(a_images) + 1}'})
 
         # Process question and answer text into HTML using shared template logic
         processed_question_html = _process_question_text(q.question_text or '', images=q_images, answer_lines=q_lines)
@@ -1402,12 +1417,18 @@ def generate_topic_printable_document(request):
                 # Prepare images for question text processing
                 question_images_list = []
                 if question.question_inline_images:
-                    for idx, img_url in enumerate(question.question_inline_images):
-                        question_images_list.append({
-                            'id': idx + 1,
-                            'url': img_url,
-                            'name': f'Question image {idx + 1}'
-                        })
+                    for img in question.question_inline_images:
+                        # Handle both dict objects and plain URL strings
+                        if isinstance(img, dict):
+                            # Already a dict with id, url, etc.
+                            question_images_list.append(img)
+                        else:
+                            # Plain URL string - create a dict
+                            question_images_list.append({
+                                'id': len(question_images_list) + 1,
+                                'url': img,
+                                'name': f'Question image {len(question_images_list) + 1}'
+                            })
                 
                 # Process question text with all formatting (images, fractions, tables, etc.)
                 processed_question_text = _process_question_text(
@@ -1419,12 +1440,18 @@ def generate_topic_printable_document(request):
                 # Prepare images for answer text processing
                 answer_images_list = []
                 if question.answer_inline_images:
-                    for idx, img_url in enumerate(question.answer_inline_images):
-                        answer_images_list.append({
-                            'id': idx + 1,
-                            'url': img_url,
-                            'name': f'Answer image {idx + 1}'
-                        })
+                    for img in question.answer_inline_images:
+                        # Handle both dict objects and plain URL strings
+                        if isinstance(img, dict):
+                            # Already a dict with id, url, etc.
+                            answer_images_list.append(img)
+                        else:
+                            # Plain URL string - create a dict
+                            answer_images_list.append({
+                                'id': len(answer_images_list) + 1,
+                                'url': img,
+                                'name': f'Answer image {len(answer_images_list) + 1}'
+                            })
                 
                 # Process answer text with all formatting
                 processed_answer_text = _process_question_text(
