@@ -324,6 +324,12 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 margin-left: auto;
                 margin-right: auto;
             }}
+            /* Center the question flow container specifically for Biology Paper 2 */
+            .question-flow.biology-paper2 {{
+                max-width: 170mm;
+                margin-left: auto;
+                margin-right: auto;
+            }}
             .answer-lines-flow .answer-line {{
                 width: 100%;
             }}
@@ -2320,7 +2326,7 @@ def _generate_biology_paper2_flow(questions, start_page, total_pages, metadata=N
     section_b_instruction = meta.get('section_b_instruction', 'Answer ANY TWO questions from this section')
 
     parts = []
-    parts.append('<div class="question-flow">')
+    parts.append('<div class="question-flow biology-paper2">')
 
     # Section A header
     parts.append(f'<div class="section-header"><h2>{section_a_title}</h2><div class="section-instruction">{section_a_instruction}</div></div>')
