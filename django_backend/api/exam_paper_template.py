@@ -2326,14 +2326,14 @@ def _generate_biology_paper2_flow(questions, start_page, total_pages, metadata=N
     section_b_questions = [q for q in questions if int(q.get('number', 0)) > section_a_count]
 
     try:
-        section_a_marks = int(meta.get('section_a_marks', 40))
+        section_a_marks = 40
     except Exception:
         section_a_marks = 40
     section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks is not None else "SECTION A"
     section_a_instruction = meta.get('section_a_instruction', 'Answer ALL questions in this section')
 
     try:
-        section_b_marks = int(meta.get('section_b_marks', 40))
+        section_b_marks = 40
     except Exception:
         section_b_marks = 40
     section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks is not None else "SECTION B"
