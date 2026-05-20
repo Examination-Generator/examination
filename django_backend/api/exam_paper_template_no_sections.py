@@ -927,36 +927,24 @@ def _generate_non_sectioned_pages(questions, start_page, total_pages):
     Generate pages WITHOUT any section headers
     This is the ONLY generation function used in this template
     """
-    pages_html = []
-    current_page = start_page
-    questions_per_page = 2
-    
-    for i in range(0, len(questions), questions_per_page):
-        page_questions = questions[i:i + questions_per_page]
-        
-        questions_html = ""
-        for q in page_questions:
-            processed_text = _process_question_text(
-                q.get('text', ''),
-                q.get('question_inline_images', []),
-                q.get('question_answer_lines', [])
-            )
-            
-            questions_html += f"""
+    questions_html = ""
+
+    for q in questions:
+        processed_text = _process_question_text(
+            q.get('text', ''),
+            q.get('question_inline_images', []),
+            q.get('question_answer_lines', [])
+        )
+
+        questions_html += f"""
         <div class="question">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
-        
-        # NO SECTION HEADERS - just questions and page number
-        page_html = f"""
-    <!-- Page {current_page} -->
-    <div class="exam-page page-break">
-        {questions_html}        
-        <div class="page-number">Page {current_page} of {total_pages}</div>
+
+    # Flow naturally across printed pages instead of forcing page-sized chunks.
+    return f"""
+    <div class="question-flow">
+        {questions_html}
     </div>
 """
-        pages_html.append(page_html)
-        current_page += 1
-    
-    return '\n'.join(pages_html)

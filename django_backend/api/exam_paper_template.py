@@ -1618,6 +1618,8 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
             else:
                 section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
                 
+            flow_answer_lines = is_biology_paper and answer_lines_pages > 0
+
             section_b_html = _generate_section_pages(
                 section_b_questions,
                 section_b_title,
@@ -1626,13 +1628,23 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
                 total_pages,
                 is_last_section=True,
                 answer_lines=0,
-                paper_name=paper_name
+                paper_name=paper_name,
+                flow_last_page=flow_answer_lines
             )
             pages_html.append(section_b_html['html'])
             current_page = section_b_html['next_page']
     # Insert pages of dotted answer lines (only if answer_lines_pages > 0)
     if answer_lines_pages > 0:
-        answer_lines_html = _generate_answer_lines_pages(answer_lines_pages, current_page, total_pages)
+        if is_biology_paper:
+            answer_lines_html = _generate_answer_lines_pages(
+                answer_lines_pages,
+                current_page,
+                total_pages,
+                show_page_numbers=False,
+                flow_after_previous=True
+            )
+        else:
+            answer_lines_html = _generate_answer_lines_pages(answer_lines_pages, current_page, total_pages)
         pages_html.append(answer_lines_html)
 
     return '\n'.join(pages_html)
@@ -1832,7 +1844,7 @@ def _generate_non_sectioned_pages(questions, start_page, total_pages):
     return {'html': '\n'.join(pages_html), 'next_page': current_page}
 
 
-def _generate_answer_lines_pages(num_pages, start_page, total_pages, show_page_numbers=True):
+def _generate_answer_lines_pages(num_pages, start_page, total_pages, show_page_numbers=True, flow_after_previous=False):
     """
     Generate continuous answer line pages
     
@@ -1844,8 +1856,19 @@ def _generate_answer_lines_pages(num_pages, start_page, total_pages, show_page_n
     Returns:
         str: HTML for answer line pages
     """
-    pages_html = []
     lines_per_page = 25
+
+    if flow_after_previous:
+        lines_html = ''
+        for _ in range(num_pages * lines_per_page):
+            lines_html += '<div class="answer-line dotted" style="height: 28px; margin: 8px 0;"></div>'
+        return f'''
+    <div class="answer-lines-flow">
+        {lines_html}
+    </div>
+'''
+
+    pages_html = []
     
     for i in range(num_pages):
         lines_html = ''
@@ -1865,7 +1888,7 @@ def _generate_answer_lines_pages(num_pages, start_page, total_pages, show_page_n
     return '\n'.join(pages_html)
 
 
-def _generate_section_pages(questions, section_title, section_instruction, start_page, total_pages, is_last_section=False, answer_lines=0, paper_name=''):
+def _generate_section_pages(questions, section_title, section_instruction, start_page, total_pages, is_last_section=False, answer_lines=0, paper_name='', flow_last_page=False):
     """
     Generate pages for a specific section
     If section_title is None, no section header will be generated
@@ -1922,16 +1945,18 @@ def _generate_section_pages(questions, section_title, section_instruction, start
             <p class="section-instruction">{section_instruction}</p>
         </div>
         """
-        
-        
+        page_class = 'exam-page'
+        if not (flow_last_page and is_last_page_of_questions):
+            page_class += ' page-break'
+
         page_html = f"""
-    <!-- Page {current_page} -->
-    <div class="exam-page page-break">
-      {section_header_html}
-        {questions_html}        
-        <div class="page-number">Page {current_page} of {total_pages}</div>
-    </div>
-"""
+        <!-- Page {current_page} -->
+        <div class="{page_class}">
+            {section_header_html}
+            {questions_html}        
+            <div class="page-number">Page {current_page} of {total_pages}</div>
+        </div>
+    """
         pages_html.append(page_html)
         current_page += 1
     

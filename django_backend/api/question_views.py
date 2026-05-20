@@ -25,7 +25,6 @@ from .exam_paper_template import _process_question_text
 logger = logging.getLogger(__name__)
 
 
-# ==================== COMBINED VIEWS FOR REST API ====================
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
