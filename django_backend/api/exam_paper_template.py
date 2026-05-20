@@ -523,6 +523,14 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             text-align: justify;
             white-space: pre-wrap;
         }}
+
+        /* Center question flow for Biology Paper 2 on screen as well */
+        .question-flow.biology-paper2 {{
+            max-width: 170mm;
+            width: 170mm;
+            margin-left: auto;
+            margin-right: auto;
+        }}
         
         .marks {{
             font-weight: bold;
