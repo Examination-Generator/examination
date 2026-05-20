@@ -77,10 +77,11 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
             }}
             
             .questions-container {{
-                width: 210mm !important;
+                max-width: 200mm !important;
                 padding: 0;
                 font-size: 16pt !important;
-                margin: auto;
+                margin-left: auto;
+                margin-right: auto;
             }}
             
             .question {{
@@ -123,11 +124,12 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
         }}
         
         .questions-container {{
-            width: 220mm;
+            max-width: 170mm;
+            width: 100%;
             padding: 0;
             background: white;
-            margin: auto;
-            /*box-shadow: 0 0 10px rgba(0,0,0,0.1);*/
+            margin-left: auto;
+            margin-right: auto;
         }}
         
         .question {{
