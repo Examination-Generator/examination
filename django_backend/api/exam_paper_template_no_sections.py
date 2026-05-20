@@ -137,7 +137,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
 
             .question-flow.business-paper1 {{
-                max-width: 170mm;
+                max-width: 205mm;
                 margin-left: auto;
                 margin-right: auto;
             }}
