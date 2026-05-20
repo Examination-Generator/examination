@@ -111,6 +111,7 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
             font-family: 'Times New Roman', Times, serif;
             background: #f0f0f0;
             font-size: 12pt;
+            margin: auto;
         }}
         
         .coverpage-container {{
