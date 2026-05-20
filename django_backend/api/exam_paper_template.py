@@ -317,6 +317,16 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             .answer-line.solid {{
                 border-bottom: 2px solid #000 !important;
             }}
+
+            /* Inline answer lines flow (used when lines should continue after last question) */
+            .answer-lines-flow {{
+                max-width: 170mm;
+                margin-left: auto;
+                margin-right: auto;
+            }}
+            .answer-lines-flow .answer-line {{
+                width: 100%;
+            }}
             
             /* Force page breaks to be respected */
             .page-break {{
@@ -1629,23 +1639,29 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
                 is_last_section=True,
                 answer_lines=0,
                 paper_name=paper_name,
-                flow_last_page=flow_answer_lines
+                flow_last_page=flow_answer_lines,
+                inline_answer_lines=(answer_lines_pages if flow_answer_lines else 0)
             )
             pages_html.append(section_b_html['html'])
             current_page = section_b_html['next_page']
     # Insert pages of dotted answer lines (only if answer_lines_pages > 0)
     if answer_lines_pages > 0:
-        if is_biology_paper:
-            answer_lines_html = _generate_answer_lines_pages(
-                answer_lines_pages,
-                current_page,
-                total_pages,
-                show_page_numbers=False,
-                flow_after_previous=True
-            )
+        # If biology had flow_last_page enabled we already inlined the answer lines into the last
+        # section page. In that case skip appending separate answer-line pages.
+        if is_biology_paper and flow_answer_lines:
+            pass
         else:
-            answer_lines_html = _generate_answer_lines_pages(answer_lines_pages, current_page, total_pages)
-        pages_html.append(answer_lines_html)
+            if is_biology_paper:
+                answer_lines_html = _generate_answer_lines_pages(
+                    answer_lines_pages,
+                    current_page,
+                    total_pages,
+                    show_page_numbers=False,
+                    flow_after_previous=True
+                )
+            else:
+                answer_lines_html = _generate_answer_lines_pages(answer_lines_pages, current_page, total_pages)
+            pages_html.append(answer_lines_html)
 
     return '\n'.join(pages_html)
 
@@ -1888,7 +1904,7 @@ def _generate_answer_lines_pages(num_pages, start_page, total_pages, show_page_n
     return '\n'.join(pages_html)
 
 
-def _generate_section_pages(questions, section_title, section_instruction, start_page, total_pages, is_last_section=False, answer_lines=0, paper_name='', flow_last_page=False):
+def _generate_section_pages(questions, section_title, section_instruction, start_page, total_pages, is_last_section=False, answer_lines=0, paper_name='', flow_last_page=False, inline_answer_lines=0):
     """
     Generate pages for a specific section
     If section_title is None, no section header will be generated
@@ -1934,6 +1950,11 @@ def _generate_section_pages(questions, section_title, section_instruction, start
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
+        # If this is the last page of questions and caller requested inline answer lines,
+        # inject the inline answer lines HTML so they appear immediately after the last question
+        if is_last_page_of_questions and inline_answer_lines and flow_last_page:
+            inline_lines_html = _generate_answer_lines_pages(inline_answer_lines, current_page, total_pages, show_page_numbers=False, flow_after_previous=True)
+            questions_html += inline_lines_html
         
         section_header_html = ""
         # ABSOLUTE CHECK: Only generate section header if section_title is provided, it's the first page,
