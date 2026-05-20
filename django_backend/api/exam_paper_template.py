@@ -1591,59 +1591,68 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
             else:
                 section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
             section_a_instruction = metadata.get('section_a_instruction', 'Answer ALL questions in this section')
-            section_a_html = _generate_section_pages(
-                section_a_questions,
-                section_a_title,
-                section_a_instruction,
-                current_page,
-                total_pages,
-                is_last_section=False,
-                answer_lines=0,
-                paper_name=paper_name
-            )
-            pages_html.append(section_a_html['html'])
-            current_page = section_a_html['next_page']
+            # If this is Biology Paper 2, render in one flowing container (no per-page splitting)
+            if is_biology_paper:
+                bio_html = _generate_biology_paper2_flow(questions, current_page, total_pages, metadata, inline_answer_pages=answer_lines_pages)
+                pages_html.append(bio_html['html'])
+                current_page = bio_html['next_page']
+                # mark that biology inlined answer lines were handled
+                flow_answer_lines = True if answer_lines_pages > 0 else False
+            else:
+                # Section A
+                section_a_html = _generate_section_pages(
+                    section_a_questions,
+                    section_a_title,
+                    section_a_instruction,
+                    current_page,
+                    total_pages,
+                    is_last_section=False,
+                    answer_lines=0,
+                    paper_name=paper_name
+                )
+                pages_html.append(section_a_html['html'])
+                current_page = section_a_html['next_page']
 
-            # Section B/II - Set default marks based on paper type
-            if is_geography_paper:
-                default_section_b_marks = 75
-            elif is_biology_paper:
-                default_section_b_marks = 40
-            else:
-                default_section_b_marks = 40
-            
-            section_b_marks = metadata.get('section_b_marks', default_section_b_marks)
-            if is_mathematics:
-                section_b_title = f"SECTION II ({section_b_marks} MARKS)" if section_b_marks else "SECTION II"
-            else:
-                section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
-            
-            # Paper-specific instructions for Section B
-            is_geography = 'GEOGRAPHY' in paper_name
-            
-            if is_geography:
-                section_b_instruction = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section')
-            elif is_mathematics:
-                section_b_instruction = metadata.get('section_b_instruction', 'Answer any FIVE questions from this section')
-            else:
-                section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
+                # Section B/II - Set default marks based on paper type
+                if is_geography_paper:
+                    default_section_b_marks = 75
+                elif is_biology_paper:
+                    default_section_b_marks = 40
+                else:
+                    default_section_b_marks = 40
                 
-            flow_answer_lines = is_biology_paper and answer_lines_pages > 0
+                section_b_marks = metadata.get('section_b_marks', default_section_b_marks)
+                if is_mathematics:
+                    section_b_title = f"SECTION II ({section_b_marks} MARKS)" if section_b_marks else "SECTION II"
+                else:
+                    section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
+                
+                # Paper-specific instructions for Section B
+                is_geography = 'GEOGRAPHY' in paper_name
+                
+                if is_geography:
+                    section_b_instruction = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section')
+                elif is_mathematics:
+                    section_b_instruction = metadata.get('section_b_instruction', 'Answer any FIVE questions from this section')
+                else:
+                    section_b_instruction = metadata.get('section_b_instruction', 'Answer ALL questions in this section')
+                    
+                flow_answer_lines = is_biology_paper and answer_lines_pages > 0
 
-            section_b_html = _generate_section_pages(
-                section_b_questions,
-                section_b_title,
-                section_b_instruction,
-                current_page,
-                total_pages,
-                is_last_section=True,
-                answer_lines=0,
-                paper_name=paper_name,
-                flow_last_page=flow_answer_lines,
-                inline_answer_lines=(answer_lines_pages if flow_answer_lines else 0)
-            )
-            pages_html.append(section_b_html['html'])
-            current_page = section_b_html['next_page']
+                section_b_html = _generate_section_pages(
+                    section_b_questions,
+                    section_b_title,
+                    section_b_instruction,
+                    current_page,
+                    total_pages,
+                    is_last_section=True,
+                    answer_lines=0,
+                    paper_name=paper_name,
+                    flow_last_page=flow_answer_lines,
+                    inline_answer_lines=(answer_lines_pages if flow_answer_lines else 0)
+                )
+                pages_html.append(section_b_html['html'])
+                current_page = section_b_html['next_page']
     # Insert pages of dotted answer lines (only if answer_lines_pages > 0)
     if answer_lines_pages > 0:
         # If biology had flow_last_page enabled we already inlined the answer lines into the last
@@ -2281,3 +2290,66 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
 """
     
     return page_html
+
+
+def _generate_biology_paper2_flow(questions, start_page, total_pages, metadata=None, inline_answer_pages=0):
+    """
+    Render Biology Paper 2 in a single flowing container (no per-page splitting).
+    Inserts inline answer lines at the end when `inline_answer_pages` > 0.
+
+    Returns: {'html': str, 'next_page': int}
+    """
+    meta = metadata or {}
+
+    # Section A count (default 5)
+    section_a_count = meta.get('section_a_questions', 5)
+    try:
+        section_a_count = int(section_a_count)
+    except Exception:
+        section_a_count = 5
+
+    section_a_questions = [q for q in questions if int(q.get('number', 0)) <= section_a_count]
+    section_b_questions = [q for q in questions if int(q.get('number', 0)) > section_a_count]
+
+    section_a_marks = meta.get('section_a_marks', None)
+    section_a_title = f"SECTION A ({section_a_marks} MARKS)" if section_a_marks else "SECTION A"
+    section_a_instruction = meta.get('section_a_instruction', 'Answer ALL questions in this section')
+
+    section_b_marks = meta.get('section_b_marks', None)
+    section_b_title = f"SECTION B ({section_b_marks} MARKS)" if section_b_marks else "SECTION B"
+    section_b_instruction = meta.get('section_b_instruction', 'Answer ANY TWO questions from this section')
+
+    parts = []
+    parts.append('<div class="question-flow">')
+
+    # Section A header
+    parts.append(f'<div class="section-header"><h2>{section_a_title}</h2><div class="section-instruction">{section_a_instruction}</div></div>')
+
+    for q in section_a_questions:
+        processed_text = _process_question_text(
+            q.get('text', ''),
+            q.get('question_inline_images', []),
+            q.get('question_answer_lines', [])
+        )
+        parts.append(f"<div class=\"question\"><div class=\"question-text\"><span class=\"question-number\">{q['number']}.</span> {processed_text}</div></div>")
+
+    # Section B header
+    parts.append(f'<div class="section-header"><h2>{section_b_title}</h2><div class="section-instruction">{section_b_instruction}</div></div>')
+
+    for q in section_b_questions:
+        processed_text = _process_question_text(
+            q.get('text', ''),
+            q.get('question_inline_images', []),
+            q.get('question_answer_lines', [])
+        )
+        parts.append(f"<div class=\"question\"><div class=\"question-text\"><span class=\"question-number\">{q['number']}.</span> {processed_text}</div></div>")
+
+    # Inline answer lines appended directly after last question
+    if inline_answer_pages and inline_answer_pages > 0:
+        inline_html = _generate_answer_lines_pages(inline_answer_pages, start_page, total_pages, show_page_numbers=False, flow_after_previous=True)
+        parts.append(inline_html)
+
+    parts.append('</div>')
+
+    html = '\n'.join(parts)
+    return {'html': html, 'next_page': start_page + 1}
