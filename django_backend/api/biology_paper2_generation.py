@@ -187,20 +187,14 @@ class KCSEBiologyPaper2Generator:
         
         selected = []
         
-        # Strategy 1: Try to get 1 graph + 2 essays (PREFERRED)
+        # Strategy: Require 1 graph + 2 essays (Q6 graph, Q7-Q8 essays)
         if len(available_graph) >= 1 and len(available_essay) >= 2:
             selected.append(available_graph[0])
             selected.extend(available_essay[:2])
             print(f"  Section B Strategy: 1 Graph (Q6) + 2 Essays (Q7, Q8)")
-        
-        # Strategy 2: Use 3 essays if no graph available (FALLBACK)
-        elif len(available_essay) >= 3:
-            selected.extend(available_essay[:3])
-            print(f"  Section B Strategy: 3 Essays (Q6, Q7, Q8) - no graph available")
-        
-        # Strategy 3: Not enough questions
         else:
-            print(f"  Section B FAILED: Need 3 questions, have {len(available_graph)} graphs + {len(available_essay)} essays")
+            # Do not fallback to 3 essays; fail selection if graph + 2 essays not available
+            print(f"  Section B FAILED: Need 1 graph + 2 essays, have {len(available_graph)} graphs + {len(available_essay)} essays")
             return False
         
         # Verify: must have exactly 3 questions, each worth 20 marks (total 60 marks)
