@@ -87,7 +87,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     total_pages = 1 + question_pages + answer_lines_page_count
     
     # Generate question pages WITHOUT sections
-    questions_html = _generate_non_sectioned_pages(questions, 2, total_pages)
+    questions_html = _generate_non_sectioned_pages(questions, 2, total_pages, paper_name)
     
     # Combine everything
     full_html = f"""
@@ -134,6 +134,10 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             .question-text {{
                 font-size: 12pt !important;
                 line-height: 1.8 !important;
+            }}
+
+            .question-flow.business-paper1 .question-text {{
+                text-align: center;
             }}
             
             .question-number {{
@@ -309,6 +313,10 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             line-height: 1.8 !important;
             text-align: justify;
             white-space: pre-wrap;
+        }}
+
+        .question-flow.business-paper1 .question-text {{
+            text-align: center;
         }}
         
         /* Image styling */
@@ -922,7 +930,7 @@ def _process_question_text(text, images=None, answer_lines=None):
     return ''.join(result)
 
 
-def _generate_non_sectioned_pages(questions, start_page, total_pages):
+def _generate_non_sectioned_pages(questions, start_page, total_pages, paper_name=''):
     """
     Generate pages WITHOUT any section headers
     This is the ONLY generation function used in this template
@@ -943,8 +951,12 @@ def _generate_non_sectioned_pages(questions, start_page, total_pages):
 """
 
     # Flow naturally across printed pages instead of forcing page-sized chunks.
+    is_business_paper1 = 'BUSINESS' in paper_name.upper() and extract_paper_number_from_name(paper_name) == 1
+
+    flow_class = 'question-flow business-paper1' if is_business_paper1 else 'question-flow'
+
     return f"""
-    <div class="question-flow">
+    <div class="{flow_class}">
         {questions_html}
     </div>
 """
