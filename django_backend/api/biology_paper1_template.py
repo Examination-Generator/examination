@@ -102,7 +102,7 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
         }}
         
         * {{
-            margin: 0;
+            margin: auto;
             padding: 0;
             box-sizing: border-box;
         }}
@@ -127,8 +127,7 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
             width: 100%;
             padding: 0;
             background: white;
-            margin-left: auto;
-            margin-right: auto;
+            margin: auto;
         }}
         
         .question {{
