@@ -136,8 +136,10 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 line-height: 1.8 !important;
             }}
 
-            .question-flow.business-paper1 .question-text {{
-                text-align: center;
+            .question-flow.business-paper1 {{
+                max-width: 170mm;
+                margin-left: auto;
+                margin-right: auto;
             }}
             
             .question-number {{
@@ -315,8 +317,10 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             white-space: pre-wrap;
         }}
 
-        .question-flow.business-paper1 .question-text {{
-            text-align: center;
+        .question-flow.business-paper1 {{
+            max-width: 170mm;
+            margin-left: auto;
+            margin-right: auto;
         }}
         
         /* Image styling */
