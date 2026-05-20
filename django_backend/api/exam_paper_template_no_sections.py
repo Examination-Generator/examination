@@ -140,6 +140,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 max-width: 205mm;
                 margin-left: auto;
                 margin-right: auto;
+                font-size: 12pt;
             }}
             
             .question-number {{
