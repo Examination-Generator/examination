@@ -54,7 +54,7 @@ def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, cov
     <style>
         @page {{
             size: A4;
-            margin: 0;
+            margin: auto;
         }}
         
         @media print {{
