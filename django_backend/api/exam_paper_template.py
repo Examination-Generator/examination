@@ -534,9 +534,16 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
 
         .question-flow.chemistry-paper1 {{
             max-width: 170mm;
-            width: 170mm;
             margin-left: auto;
             margin-right: auto;
+            display: block;
+        }}
+        
+        /* Ensure exam-page supports centering children */
+        .exam-page {{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }}
         
         .marks {{
@@ -600,6 +607,20 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             
             .answer-space {{
                 border-top: 2px dotted #000 !important;
+            }}
+            
+            /* Center Chemistry Paper 1 questions in print */
+            .question-flow.chemistry-paper1 {{
+                max-width: 170mm !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                display: block !important;
+            }}
+            
+            .exam-page {{
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
             }}
         }}
         
