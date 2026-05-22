@@ -2306,19 +2306,27 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
     # Determine if this is Chemistry Paper 1 so we can center the question flow
     paper_name_for_detection = (metadata.get('paper_name', '') or '').upper()
     is_chemistry_paper1 = False
+    # Robust detection: try helper, fall back to keyword checks
     try:
         paper_num = extract_paper_number_from_name(paper_name_for_detection)
         if 'CHEMISTRY' in paper_name_for_detection and paper_num == 1:
             is_chemistry_paper1 = True
     except Exception:
-        is_chemistry_paper1 = False
+        # Fallback: look for common "paper 1" keywords
+        if 'CHEMISTRY' in paper_name_for_detection and (
+            'PAPER 1' in paper_name_for_detection or
+            'PAPER I' in paper_name_for_detection or
+            'PAPER ONE' in paper_name_for_detection or
+            'PAPER  1' in paper_name_for_detection
+        ):
+            is_chemistry_paper1 = True
 
     # Wrap all questions in a single flowing container. If Chemistry Paper 1,
     # place the questions inside a centered `question-flow chemistry-paper1` container.
     if is_chemistry_paper1:
         page_html = f"""
     <div class="exam-page page-break">
-        <div class="question-flow chemistry-paper1">
+        <div class="question-flow chemistry-paper1 margin-auto">
             {questions_html}
         </div>
     </div>
