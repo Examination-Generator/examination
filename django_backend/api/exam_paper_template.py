@@ -329,6 +329,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 max-width: 170mm;
                 margin-left: auto;
                 margin-right: auto;
+                text-align: left !important;
             }}
             .answer-lines-flow .answer-line {{
                 width: 100%;
@@ -538,6 +539,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             margin-left: auto;
             margin-right: auto;
             padding: 0 20mm;
+            text-align: left !important;
             display: block;
         }}
         
@@ -618,6 +620,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 width: 100% !important;
                 margin-left: auto !important;
                 margin-right: auto !important;
+                text-align: left !important;
                 padding: 0 20mm !important;
                 display: block !important;
             }}

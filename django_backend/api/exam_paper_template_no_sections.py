@@ -140,6 +140,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 max-width: 205mm;
                 margin-left: auto;
                 margin-right: auto;
+                text-align: left !important;
                 font-size: 12pt;
             }}
             /* Center question flow for Chemistry Paper 1 in print */
@@ -148,6 +149,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 width: 100% !important;
                 margin-left: auto !important;
                 margin-right: auto !important;
+                text-align: left !important;
                 font-size: 12pt !important;
             }}
             
@@ -984,7 +986,7 @@ def _generate_non_sectioned_pages(questions, start_page, total_pages, paper_name
         flow_class = 'question-flow'
 
     return f"""
-    <div class="{flow_class}">
+    <div class="{flow_class} " style="text-align: left;">
         {questions_html}
     </div>
 """
