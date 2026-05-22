@@ -327,13 +327,13 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         }}
 
         .question-flow.business-paper1 {{
-            max-width: 170mm;
+            max-width: 210mm;
             margin-left: auto;
             margin-right: auto;
         }}
         /* Center question flow for Chemistry Paper 1 on screen as well */
         .question-flow.chemistry-paper1 {{
-            max-width: 170mm;
+            max-width: 210mm;
             width: 100%;
             margin-left: auto;
             margin-right: auto;
