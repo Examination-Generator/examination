@@ -534,8 +534,10 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
 
         .question-flow.chemistry-paper1 {{
             max-width: 170mm;
+            width: 100%;
             margin-left: auto;
             margin-right: auto;
+            padding: 0 20mm;
             display: block;
         }}
         
@@ -544,6 +546,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
         }}
         
         .marks {{
@@ -612,15 +615,11 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             /* Center Chemistry Paper 1 questions in print */
             .question-flow.chemistry-paper1 {{
                 max-width: 170mm !important;
+                width: 100% !important;
                 margin-left: auto !important;
                 margin-right: auto !important;
+                padding: 0 20mm !important;
                 display: block !important;
-            }}
-            
-            .exam-page {{
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: center !important;
             }}
         }}
         
