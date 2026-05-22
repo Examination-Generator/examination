@@ -142,6 +142,14 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 margin-right: auto;
                 font-size: 12pt;
             }}
+            /* Center question flow for Chemistry Paper 1 in print */
+            .question-flow.chemistry-paper1 {{
+                max-width: 170mm;
+                width: 100% !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                font-size: 12pt !important;
+            }}
             
             .question-number {{
                 font-size: 12pt !important;
@@ -322,6 +330,15 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             max-width: 170mm;
             margin-left: auto;
             margin-right: auto;
+        }}
+        /* Center question flow for Chemistry Paper 1 on screen as well */
+        .question-flow.chemistry-paper1 {{
+            max-width: 170mm;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 0 20mm;
+            display: block;
         }}
         
         /* Image styling */
@@ -957,8 +974,14 @@ def _generate_non_sectioned_pages(questions, start_page, total_pages, paper_name
 
     # Flow naturally across printed pages instead of forcing page-sized chunks.
     is_business_paper1 = 'BUSINESS' in paper_name.upper() and extract_paper_number_from_name(paper_name) == 1
+    is_chemistry_paper1 = 'CHEMISTRY' in paper_name.upper() and extract_paper_number_from_name(paper_name) == 1
 
-    flow_class = 'question-flow business-paper1' if is_business_paper1 else 'question-flow'
+    if is_business_paper1:
+        flow_class = 'question-flow business-paper1'
+    elif is_chemistry_paper1:
+        flow_class = 'question-flow chemistry-paper1'
+    else:
+        flow_class = 'question-flow'
 
     return f"""
     <div class="{flow_class}">
