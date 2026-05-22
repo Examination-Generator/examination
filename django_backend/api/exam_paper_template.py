@@ -1416,6 +1416,10 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     
     pages_html = []
     current_page = 2
+    # These flags are also read after branching; initialize defensively
+    # so non-biology flows do not hit UnboundLocalError.
+    is_biology_paper = False
+    flow_answer_lines = False
 
     # Section boundaries
     metadata = coverpage_data or {}

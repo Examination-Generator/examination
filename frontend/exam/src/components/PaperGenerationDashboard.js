@@ -9,6 +9,7 @@ import {
     validateMathematicsPaperPool,
     validateGeographyPaperPool,
     validateEnglishPaperPool,
+    validateCREPaperPool,
     validateAgriculturePaperPool,
     listGeneratedPapers, 
     viewFullPaper, 
@@ -539,6 +540,12 @@ export default function PaperGenerationDashboard() {
             const isMathematics = paperName.includes('mathematics') || paperName.includes('math') || subjectName.includes('mathematics') || subjectName.includes('math');
             const isGeography = paperName.includes('geography') || subjectName.includes('geography');
             const isEnglish = paperName.includes('english') || subjectName.includes('english');
+            const isCRE = (
+                paperName.includes('cre') ||
+                subjectName.includes('cre') ||
+                paperName.includes('christian religious education') ||
+                subjectName.includes('christian religious education')
+            );
             const isAgriculture = paperName.includes('agriculture') || subjectName.includes('agriculture');
             const isPaper2 = (
                 paperName.includes('paper 2') ||
@@ -556,6 +563,7 @@ export default function PaperGenerationDashboard() {
             );
             
             const isBiologyPaper2 = isBiology && isPaper2;
+            const isCREPaper2 = isCRE && isPaper2;
             // Use the same physics endpoints/validation for both paper 1 and paper 2
             const isPhysicsPaper = isPhysics && (isPaper1 || isPaper2);
             
@@ -732,6 +740,28 @@ export default function PaperGenerationDashboard() {
                     }
                 } catch (validationErr) {
                     console.error('Validation failed:', validationErr);
+                    setError(`Validation failed: ${validationErr.message}`);
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // Validate CRE Paper II before generation/preview flow
+            if (isCREPaper2) {
+                try {
+                    const validation = await validateCREPaperPool(selectedPaperId, selectedTopics);
+
+                    if (validation.issues && validation.issues.length > 0) {
+                        const issueMessages = validation.issues.map(issue => `• ${issue}`).join('\n');
+                        const proceed = window.confirm(
+                            `CRE Paper II Validation Warnings:\n\n${issueMessages}\n\nDo you want to continue with generation?`
+                        );
+                        if (!proceed) {
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                } catch (validationErr) {
                     setError(`Validation failed: ${validationErr.message}`);
                     setLoading(false);
                     return;
