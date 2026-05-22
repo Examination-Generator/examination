@@ -152,6 +152,10 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 text-align: left !important;
                 font-size: 12pt !important;
             }}
+
+            .question-flow.chemistry-paper1 .question-text {{
+                text-align: left !important;
+            }}
             
             .question-number {{
                 font-size: 12pt !important;
@@ -341,6 +345,10 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             margin-right: auto;
             padding: 0 20mm;
             display: block;
+        }}
+
+        .question-flow.chemistry-paper1 .question-text {{
+            text-align: left !important;
         }}
         
         /* Image styling */

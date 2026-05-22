@@ -542,6 +542,10 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             text-align: left !important;
             display: block;
         }}
+
+        .question-flow.chemistry-paper1 .question-text {{
+            text-align: left !important;
+        }}
         
         /* Ensure exam-page supports centering children */
         .exam-page {{
@@ -623,6 +627,10 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 text-align: left !important;
                 padding: 0 20mm !important;
                 display: block !important;
+            }}
+
+            .question-flow.chemistry-paper1 .question-text {{
+                text-align: left !important;
             }}
         }}
         
