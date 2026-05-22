@@ -83,6 +83,7 @@ def home_view(request):
                 'verify_otp': '/api/verify-otp',
                 'register': '/api/register',
                 'login': '/api/login',
+                'logout': '/api/logout',
                 'forgot_password': '/api/forgot-password',
                 'reset_password': '/api/reset-password',
             },

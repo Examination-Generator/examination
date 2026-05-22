@@ -1,7 +1,20 @@
+import { useState } from 'react';
 import PaperGenerationDashboard from './PaperGenerationDashboard';
 import UserMessagingFloat from './UserMessagingFloat';
 
 export default function UserDashboard({ onLogout }) {
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const handleLogout = async () => {
+        if (isLoggingOut) return;
+        setIsLoggingOut(true);
+        try {
+            await onLogout?.();
+        } finally {
+            setIsLoggingOut(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
             {/* Header */}
@@ -13,10 +26,12 @@ export default function UserDashboard({ onLogout }) {
                             <h1 className="text-2xl font-bold text-green-600">Exam Generator</h1>
                         </div>
                         <button 
-                            onClick={onLogout}
+                            type="button"
+                            onClick={handleLogout}
+                            disabled={isLoggingOut}
                             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition"
                         >
-                            Logout
+                            {isLoggingOut ? 'Logging out...' : 'Logout'}
                         </button>
                     </div>
                 </div>

@@ -24,6 +24,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 export default function EditorDashboard({ onLogout }) {
     const { showError, showSuccess } = useError();
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     // ── Tab ────────────────────────────────────────────────────────────
     const [activeTab, setActiveTab] = useState(() => {
@@ -543,6 +544,16 @@ export default function EditorDashboard({ onLogout }) {
         setEditSubjectData(prev => ({ ...prev, name: value }));
     };
 
+    const handleLogout = async () => {
+        if (isLoggingOut) return;
+        setIsLoggingOut(true);
+        try {
+            await onLogout?.();
+        } finally {
+            setIsLoggingOut(false);
+        }
+    };
+
     // ── Tabs config ────────────────────────────────────────────────────
     const tabs = [
         { id: 'questions', label: 'Add Questions' },
@@ -562,9 +573,11 @@ export default function EditorDashboard({ onLogout }) {
                         <h1 className="text-2xl font-bold text-green-600">Editor Dashboard</h1>
                     </div>
                     <button
-                        onClick={() => { authService.logout(); onLogout(); }}
+                        type="button"
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
-                        Logout
+                        {isLoggingOut ? 'Logging out...' : 'Logout'}
                     </button>
                 </div>
             </header>

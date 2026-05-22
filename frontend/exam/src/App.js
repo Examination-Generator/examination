@@ -11,6 +11,7 @@ import SessionManager from './components/SessionManager';
 import { 
   isAuthenticated, 
   getCurrentUser, 
+  getSessionRole,
   initActivityTracking, 
   isSessionValid,
   logout 
@@ -68,11 +69,12 @@ function App() {
       
       if (isAuthenticated() && isSessionValid()) {
         const user = getCurrentUser();
+        const sessionRole = getSessionRole();
         debugLog('[APP] Valid session found:', user);
 
-        setUserRole(user.role);
+        setUserRole(sessionRole || user.role);
         // Treat both 'editor' and 'admin' roles as editor view
-        if (user.role === 'editor' || user.role === 'admin') {
+        if (sessionRole === 'editor' || sessionRole === 'admin') {
           setCurrentView('editor');
         } else {
           setCurrentView('user');
@@ -121,14 +123,14 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     debugLog('[APP] Logging out');
     
     // Clear React Query cache on logout
     queryClient.clear();
     debugLog('[APP] React Query cache cleared');
     
-    logout();
+    await logout();
     setCurrentView('login');
     setUserRole('user');
   };

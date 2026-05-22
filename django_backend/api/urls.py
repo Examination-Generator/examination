@@ -14,6 +14,7 @@ def api_root(request):
         'endpoints': {
             'database': '/api/database/health',
             'auth': '/api/login',
+            'logout': '/api/logout',
             'subjects': '/api/subjects',
             'questions': '/api/questions',
             'papers': '/api/papers/generated'
@@ -43,6 +44,7 @@ urlpatterns = [
     path('verify-otp', auth_views.verify_otp, name='verify-otp'),
     path('register', auth_views.register, name='register'),
     path('login', auth_views.login, name='login'),
+    path('logout', auth_views.logout_view, name='logout'),
     path('forgot-password', auth_views.forgot_password, name='forgot-password'),
     path('reset-password', auth_views.reset_password, name='reset-password'),
     

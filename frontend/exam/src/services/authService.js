@@ -18,6 +18,45 @@ const debugLog = (message, ...args) => {
     }
 };
 
+const decodeBase64Url = (value) => {
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    return atob(padded);
+};
+
+export const getTokenPayload = (token) => {
+    if (!token || typeof token !== 'string') {
+        return null;
+    }
+
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) {
+            return null;
+        }
+
+        return JSON.parse(decodeBase64Url(parts[1]));
+    } catch (error) {
+        debugLog('[SESSION] Failed to decode token payload', error);
+        return null;
+    }
+};
+
+export const getSessionRole = () => {
+    const token = localStorage.getItem('token');
+    const payload = getTokenPayload(token);
+    return payload?.role || getCurrentUser()?.role || null;
+};
+
+export const hasRoleAccess = (allowedRoles = []) => {
+    const role = getSessionRole();
+    if (!role) {
+        return false;
+    }
+
+    return allowedRoles.includes(role);
+};
+
 // Activity tracker
 let activityTimeout = null;
 let activityCheckInterval = null;
@@ -200,6 +239,9 @@ export const register = async (phoneNumber, fullName, password, role = 'user') =
         // Store token and user data in localStorage
         if (data.token) {
             localStorage.setItem('token', data.token);
+            if (data.refresh) {
+                localStorage.setItem('refreshToken', data.refresh);
+            }
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('loginTime', Date.now().toString());
             updateActivity(); // Initialize activity tracking
@@ -235,6 +277,9 @@ export const login = async (phoneNumber, password) => {
         // Store token and user data in localStorage
         if (data.token) {
             localStorage.setItem('token', data.token);
+            if (data.refresh) {
+                localStorage.setItem('refreshToken', data.refresh);
+            }
             localStorage.setItem('user', JSON.stringify(data.user));
             localStorage.setItem('loginTime', Date.now().toString());
             updateActivity(); // Initialize activity tracking
@@ -248,9 +293,26 @@ export const login = async (phoneNumber, password) => {
 };
 
 // Logout user
-export const logout = () => {
+export const logout = async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    try {
+        await fetch(`${API_BASE_URL}/logout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                refresh: refreshToken,
+            }),
+        });
+    } catch (error) {
+        debugLog('[SESSION] Logout request failed, continuing with local cleanup', error);
+    }
+
     stopActivityCheck();
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     localStorage.removeItem('loginTime');
     localStorage.removeItem('lastActivity');
@@ -275,7 +337,18 @@ export const getCurrentUser = () => {
 export const isAuthenticated = () => {
     const token = localStorage.getItem('token');
     const user = getCurrentUser();
-    return !!(token && user && isSessionValid());
+    const sessionRole = getSessionRole();
+    const userRole = user?.role || null;
+
+    if (!token || !user || !isSessionValid()) {
+        return false;
+    }
+
+    if (!sessionRole || !userRole || sessionRole !== userRole) {
+        return false;
+    }
+
+    return true;
 };
 
 // Get authentication token

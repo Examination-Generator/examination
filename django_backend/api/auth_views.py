@@ -1,11 +1,14 @@
 import logging
 from datetime import datetime, timedelta
+from django.conf import settings
+from django.contrib.auth import logout as django_logout
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
+from django.shortcuts import redirect
 
 from .models import User, OTPLog
 from .serializers import (
@@ -20,6 +23,10 @@ logger = logging.getLogger(__name__)
 def get_tokens_for_user(user):
     """Generate JWT tokens for user"""
     refresh = RefreshToken.for_user(user)
+    refresh['role'] = user.role
+    refresh['phone_number'] = user.phone_number
+    refresh['full_name'] = user.full_name
+    refresh['user_id'] = str(user.id)
     return {
         'token': str(refresh.access_token),
         'refresh': str(refresh),
@@ -265,6 +272,61 @@ def login(request):
             }
         }
     )
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def logout_view(request):
+    """
+    Logout endpoint that clears server-side session state.
+
+    GET  /api/logout  -> clears session and redirects the browser
+    POST /api/logout  -> clears session and returns JSON for SPA clients
+    """
+    redirect_url = (
+        request.GET.get('next')
+        or request.data.get('next')
+        or '/login'
+    )
+
+    refresh_token = (
+        request.data.get('refresh')
+        or request.data.get('refreshToken')
+        or request.GET.get('refresh')
+        or request.GET.get('refreshToken')
+    )
+
+    if refresh_token:
+        try:
+            RefreshToken(refresh_token).blacklist()
+        except Exception as exc:
+            logger.info(f"[AUTH] Refresh token blacklist skipped during logout: {exc}")
+
+    try:
+        django_logout(request)
+    except Exception as exc:
+        logger.info(f"[AUTH] Django logout skipped: {exc}")
+
+    if hasattr(request, 'session'):
+        try:
+            request.session.flush()
+        except Exception as exc:
+            logger.info(f"[AUTH] Session flush skipped: {exc}")
+
+    if request.method == 'GET':
+        response = redirect(redirect_url)
+        response.delete_cookie(settings.SESSION_COOKIE_NAME)
+        return response
+
+    response = success_response(
+        'Logout successful',
+        {
+            'redirect_url': redirect_url,
+            'session_cleared': True
+        }
+    )
+    response.delete_cookie(settings.SESSION_COOKIE_NAME)
+    return response
 
 
 @api_view(['POST'])
