@@ -114,8 +114,6 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('', home_view, name='home'),  # Home endpoint
     path('admin/', admin.site.urls),
-    # For cPanel: app is served at /api/, so we don't need another /api/ prefix
-    # For local dev: use http://localhost:8000/api/
     path('api/', include('api.urls')) if settings.DEBUG else path('', include('api.urls')),
     path('api/messaging/', include('messaging.urls')) if settings.DEBUG else path('messaging/', include('messaging.urls')),
     

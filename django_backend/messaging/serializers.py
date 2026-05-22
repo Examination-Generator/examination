@@ -1,7 +1,3 @@
-"""
-Serializers for Messaging System
-"""
-
 import os
 from rest_framework import serializers
 from .models import SystemMessage, SMSMessage

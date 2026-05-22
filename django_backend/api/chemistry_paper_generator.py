@@ -1,20 +1,3 @@
-"""
-KCSE Chemistry Papers Generator Suite - FIXED VERSION
-Based on Chemistry exam structure analysis
-
-PAPER 1 (Section A) - 80 marks, 2 hours:
-- 77.8% nested questions (~62 marks) - Multi-part questions
-- 22.2% standalone questions (~18 marks) - Fill remaining to exactly 80
-- Flexible question count (typically 18-25 questions)
-
-PAPER 2 (Section B) - 80 marks, 2 hours:
-- EXACTLY 7 questions, all nested
-- Each question: 10-13 marks (flexible combinations to reach 80)
-- Common patterns: 2X10mk + 2X11mk + 2X13mk + 1X12mk = 80
-- Minimum 6 questions, Maximum 8 questions allowed
-- MUST total exactly 80 marks
-"""
-
 import random
 import time
 from collections import defaultdict
@@ -23,12 +6,7 @@ from typing import List, Dict, Optional
 from .models import Paper, Topic, Question, Subject
 
 
-class KCSEChemistryPaper1Generator:
-    """
-    KCSE Chemistry Paper 1 Generator
-    Dynamic algorithm: Nested (~62 marks, 77.8%) + Standalone (~18 marks, 22.2%) = exactly 80 marks
-    """
-    
+class KCSEChemistryPaper1Generator:    
     # Constants
     TOTAL_MARKS = 80
     TARGET_NESTED_MARKS = 62
@@ -39,13 +17,6 @@ class KCSEChemistryPaper1Generator:
     MAX_STANDALONE_MARKS = 22
     
     def __init__(self, paper_id: str, selected_topic_ids: List[str]):
-        """
-        Initialize Paper 1 generator
-        
-        Args:
-            paper_id: UUID of Chemistry Paper 1
-            selected_topic_ids: List of topic UUIDs
-        """
         self.paper_id = paper_id
         self.selected_topic_ids = selected_topic_ids
         
@@ -75,7 +46,6 @@ class KCSEChemistryPaper1Generator:
         self.use_standalone_only = False
     
     def load_data(self):
-        """Load all questions from database for selected topics"""
         # Load paper and subject
         self.paper = Paper.objects.select_related('subject').get(
             id=self.paper_id,
@@ -152,7 +122,7 @@ class KCSEChemistryPaper1Generator:
         # Check if we need standalone-only mode
         self.use_standalone_only = len(self.nested_questions) < 8
         if self.use_standalone_only:
-            print(f"\n⚠️  WARNING: Not enough nested questions ({len(self.nested_questions)} < 8)")
+            print(f"\n  WARNING: Not enough nested questions ({len(self.nested_questions)} < 8)")
             print(f"  → Using STANDALONE-ONLY mode")
     
     def _select_nested_questions(self) -> bool:
@@ -212,14 +182,7 @@ class KCSEChemistryPaper1Generator:
         return True
     
     def _select_standalone_questions(self) -> bool:
-        """
-        Fill remaining marks with standalone questions to reach exactly 80 marks
-        Target: ~18 marks (22.2% of paper)
-        Priority: 3-mark > 2-mark > 4-mark > 1-mark
         
-        Returns:
-            bool: True if exactly 80 marks achieved
-        """
         remaining_marks = self.TOTAL_MARKS - self.total_marks
         
         print(f"\n[STANDALONE SELECTION]")
@@ -316,13 +279,7 @@ class KCSEChemistryPaper1Generator:
         return False
     
     def _select_standalone_only(self) -> bool:
-        """
-        Fallback: Use only standalone questions if insufficient nested questions
-        Similar to Biology's approach
         
-        Returns:
-            bool: True if exactly 80 marks achieved
-        """
         print(f"\n[STANDALONE-ONLY MODE]")
         
         # Collect all available standalone
@@ -485,12 +442,7 @@ class KCSEChemistryPaper1Generator:
 
 
 class KCSEChemistryPaper2Generator:
-    """
-    KCSE Chemistry Paper 2 Generator - Sequential Selection Strategy
-    EXACTLY 7 questions, all nested, totaling EXACTLY 80 marks
-    Each question: 10-14 marks (Updated range)
-    Strategy: Select questions one by one, calculating remaining marks needed
-    """
+    
     
     TOTAL_MARKS = 80
     TARGET_QUESTIONS = 7
@@ -593,16 +545,7 @@ class KCSEChemistryPaper2Generator:
             raise ValueError(f"Need at least {self.TARGET_QUESTIONS} nested questions ({self.MIN_QUESTION_MARKS}-{self.MAX_QUESTION_MARKS} marks)")
     
     def _select_questions_sequentially(self) -> bool:
-        """
-        Select questions one by one using intelligent sequential selection
         
-        Strategy:
-        1. For positions 1-6: Select questions that leave valid remaining marks
-        2. For position 7: Select the exact question needed to reach 80 marks
-        
-        Returns:
-            bool: True if successful
-        """
         # Get available questions (not yet used)
         available = [q for q in self.nested_questions if q.id not in self.used_ids]
         

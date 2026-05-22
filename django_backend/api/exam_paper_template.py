@@ -531,6 +531,13 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             margin-left: auto;
             margin-right: auto;
         }}
+
+        .question-flow.chemistry-paper1 {{
+            max-width: 170mm;
+            width: 170mm;
+            margin-left: auto;
+            margin-right: auto;
+        }}
         
         .marks {{
             font-weight: bold;
@@ -2296,13 +2303,33 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
         </div>
 """
     
-    # Wrap all questions in a single flowing container
-    page_html = f"""
+    # Determine if this is Chemistry Paper 1 so we can center the question flow
+    paper_name_for_detection = (metadata.get('paper_name', '') or '').upper()
+    is_chemistry_paper1 = False
+    try:
+        paper_num = extract_paper_number_from_name(paper_name_for_detection)
+        if 'CHEMISTRY' in paper_name_for_detection and paper_num == 1:
+            is_chemistry_paper1 = True
+    except Exception:
+        is_chemistry_paper1 = False
+
+    # Wrap all questions in a single flowing container. If Chemistry Paper 1,
+    # place the questions inside a centered `question-flow chemistry-paper1` container.
+    if is_chemistry_paper1:
+        page_html = f"""
+    <div class="exam-page page-break">
+        <div class="question-flow chemistry-paper1">
+            {questions_html}
+        </div>
+    </div>
+"""
+    else:
+        page_html = f"""
     <div class="exam-page page-break">
         {questions_html}
     </div>
 """
-    
+
     return page_html
 
 
