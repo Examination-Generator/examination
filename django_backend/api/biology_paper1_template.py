@@ -1,26 +1,8 @@
-"""
-Biology Paper 1 Exam Template
-Dedicated template for KCSE Biology Paper 1 with optimized styling and print layout
-"""
-
 from .coverpage_templates import BiologyPaper1Coverpage
-from .exam_paper_template import _process_question_text
+from .process_text import _process_question_text
 
 
 def generate_biology_paper1_html(coverpage_data, questions, paper_data=None, coverpage_class=None):
-    """
-    Generate Biology Paper 1 specific HTML with optimized styling
-    This template fixes the print alignment and content flow issues specific to Biology Paper 1
-    
-    Args:
-        coverpage_data (dict): Coverpage information
-        questions (list): List of question dictionaries
-        paper_data (dict): Paper metadata (optional)
-        coverpage_class: Coverpage class to use (optional, defaults to BiologyPaper1Coverpage)
-    
-    Returns:
-        str: Complete HTML document for Biology Paper 1
-    """
     # Use Biology Paper 1 coverpage if not specified
     if coverpage_class is None:
         coverpage_class = BiologyPaper1Coverpage

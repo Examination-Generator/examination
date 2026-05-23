@@ -1,9 +1,3 @@
-"""
-Full Exam Paper Template Generator
-Generates complete exam papers with coverpage and paginated questions
-Updated to dynamically select the correct coverpage class based on paper type
-"""
-
 from .coverpage_templates import (
     BiologyPaper1Coverpage, 
     BiologyPaper2Coverpage, 
@@ -892,11 +886,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
 
 
 def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None):
-    """
-    Generate paginated question pages for Business Paper 2
-    12 questions displayed as 6 questions with parts a and b
-    Q1(a) = Question 1, Q1(b) = Question 2, etc.
-    """
+    
     pages_html = []
     current_page = 2
     
@@ -951,17 +941,11 @@ def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None)
 
 
 def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None, answer_lines_pages=2):
-    """
-    Generate paginated question pages for Paper 2
-    Biology and Geography Paper 2 have sections, others don't
-    After the last question, insert answer lines if needed
-    """
+    
     from .page_number_extrctor import extract_paper_number_from_name
     
     pages_html = []
     current_page = 2
-    # These flags are also read after branching; initialize defensively
-    # so non-biology flows do not hit UnboundLocalError.
     is_biology_paper = False
     flow_answer_lines = False
 
@@ -969,7 +953,6 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     metadata = coverpage_data or {}
     paper_name = metadata.get('paper_name', '').upper()
     
-    # Extract paper number to identify specific papers
     try:
         paper_number = extract_paper_number_from_name(paper_name)
     except ValueError:
@@ -998,17 +981,12 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
 
         return '\n'.join(pages_html)
     
-    # ================================================================================================
-    # ABSOLUTE PRIORITY: Route Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1 immediately
-    # These papers use their own unique template with ZERO section logic
-    # ================================================================================================
+    
     is_kiswahili_paper2 = 'KISWAHILI' in paper_name and paper_number == 2
     is_business_paper1 = 'BUSINESS' in paper_name and paper_number == 1
     is_chemistry_paper1 = 'CHEMISTRY' in paper_name and paper_number == 1
     
     if is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1:
-        # UNIQUE TEMPLATE: These papers go straight to non-sectioned generation
-        # Bypasses ALL section logic, checks, and metadata
         all_questions_html = _generate_non_sectioned_pages(
             questions,
             current_page,
@@ -1025,8 +1003,6 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
         return '\n'.join(pages_html)
     # ================================================================================================
     
-    # For other papers, continue with normal section logic
-    never_has_sections = False  # Not needed anymore since excluded papers return early
     
     # Papers that should have sections (explicitly allowed list) - ONLY if paper number is 2
     is_biology = 'BIOLOGY' in paper_name and paper_number == 2
@@ -1065,8 +1041,6 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
         pages_html.append(all_questions_html['html'])
         current_page = all_questions_html['next_page']
     elif has_sections:
-        # Papers with sections (Biology Paper 2, Geography Paper 2, Mathematics, Agriculture)
-        # Check if this is Agriculture paper (3 sections: A, B, C)
         is_agriculture = 'AGRICULTURE' in paper_name
         
         if is_agriculture:
@@ -1232,8 +1206,6 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
                 current_page = section_b_html['next_page']
     # Insert pages of dotted answer lines (only if answer_lines_pages > 0)
     if answer_lines_pages > 0:
-        # If biology had flow_last_page enabled we already inlined the answer lines into the last
-        # section page. In that case skip appending separate answer-line pages.
         if is_biology_paper and flow_answer_lines:
             pass
         else:
@@ -1253,17 +1225,6 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
 
 
 def _generate_cre_question_page(questions, page_number, total_pages, inline_answer_lines=0):
-    """
-    Generate CRE questions in one continuous flow.
-    
-    Args:
-        questions: List of question dictionaries
-        page_number: Kept for compatibility with older callers
-        total_pages: Kept for compatibility with older callers
-    
-    Returns:
-        str: HTML for the flowing question container
-    """
     questions_html = ""
     for q in questions:
         processed_text = _process_question_text(
@@ -1300,22 +1261,6 @@ def _generate_cre_question_page(questions, page_number, total_pages, inline_answ
 
 
 def _generate_english_paper1_pages(questions, start_page, total_pages):
-    """
-    Generate pages for English Paper 1 with three titled sections:
-    - Functional Skills (Question 1)
-    - Cloze Test (Question 2)
-    - Oral Skills (Question 3)
-    
-    Section titles are bold and left-aligned, not centered headers.
-    
-    Args:
-        questions: List of question dictionaries
-        start_page: Starting page number
-        total_pages: Total pages in the paper
-    
-    Returns:
-        dict: {'html': html_string, 'next_page': next_page_number}
-    """
     # Define section titles for each question
     section_titles = {
         1: "Functional Skills",
@@ -1361,21 +1306,10 @@ def _generate_english_paper1_pages(questions, start_page, total_pages):
 
 
 def _generate_physics_paper2_continuous_pages(questions, start_page, total_pages):
-    """
-    Generate Physics Paper 2 questions in continuous flow.
-    This avoids splitting questions into fixed pages and reduces wasted space
-    during preview and print.
-    """
     questions_html = ""
     for q in questions:
         q_number = int(q.get('number', 0))
-
-        # Physics Paper 2 section headers:
-        # - Section A starts before Question 1 (25 marks)
-        # - Section B starts after Question 13, i.e., before Question 14 (55 marks)
         if q_number == 1:
-            # Open a full-width left-aligned container for Section A questions,
-            # but keep the title and instruction centered within it.
             questions_html += """
         <div class="physics-section-a" style="width:100%; max-width:210mm; margin-left:auto; margin-right:auto; text-align:left;">
             <div class="simple-section-title" style="text-align: center;">SECTION A (25 MARKS)</div>
@@ -1417,19 +1351,6 @@ def _generate_physics_paper2_continuous_pages(questions, start_page, total_pages
 
 
 def _generate_non_sectioned_pages(questions, start_page, total_pages):
-    """
-    Generate pages for papers WITHOUT sections
-    Used for: Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1, and other non-sectioned papers
-    This function has NO section header logic at all
-    
-    Args:
-        questions: List of question dictionaries
-        start_page: Starting page number
-        total_pages: Total pages in the paper
-    
-    Returns:
-        dict: {'html': str, 'next_page': int}
-    """
     pages_html = []
     current_page = start_page
     questions_per_page = 2
@@ -1465,17 +1386,6 @@ def _generate_non_sectioned_pages(questions, start_page, total_pages):
 
 
 def _generate_answer_lines_pages(num_pages, start_page, total_pages, show_page_numbers=True, flow_after_previous=False):
-    """
-    Generate continuous answer line pages
-    
-    Args:
-        num_pages: Number of answer line pages to generate
-        start_page: Starting page number
-        total_pages: Total pages in the paper
-    
-    Returns:
-        str: HTML for answer line pages
-    """
     lines_per_page = 25
 
     if flow_after_previous:
@@ -1509,11 +1419,6 @@ def _generate_answer_lines_pages(num_pages, start_page, total_pages, show_page_n
 
 
 def _generate_section_pages(questions, section_title, section_instruction, start_page, total_pages, is_last_section=False, answer_lines=0, paper_name='', flow_last_page=False, inline_answer_lines=0):
-    """
-    Generate pages for a specific section
-    If section_title is None, no section header will be generated
-    Papers without sections (Chemistry Paper 1, Business Paper 1, Kiswahili Paper 2) will never show section headers
-    """
     pages_html = []
     current_page = start_page
     questions_per_page = 2
@@ -1526,12 +1431,11 @@ def _generate_section_pages(questions, section_title, section_instruction, start
         except ValueError:
             paper_number = 1
     
-    # Explicitly check if this paper should NEVER have section headers
+   
     is_kiswahili_paper2 = 'KISWAHILI' in paper_name.upper() and paper_number == 2
     is_business_paper1 = 'BUSINESS' in paper_name.upper() and paper_number == 1
     is_chemistry_paper1 = 'CHEMISTRY' in paper_name.upper() and paper_number == 1
     
-    # Force section_title to None for papers that should not have sections
     if is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1:
         section_title = None
         section_instruction = None
@@ -1554,15 +1458,12 @@ def _generate_section_pages(questions, section_title, section_instruction, start
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
-        # If this is the last page of questions and caller requested inline answer lines,
-        # inject the inline answer lines HTML so they appear immediately after the last question
+        
         if is_last_page_of_questions and inline_answer_lines and flow_last_page:
             inline_lines_html = _generate_answer_lines_pages(inline_answer_lines, current_page, total_pages, show_page_numbers=False, flow_after_previous=True)
             questions_html += inline_lines_html
         
         section_header_html = ""
-        # ABSOLUTE CHECK: Only generate section header if section_title is provided, it's the first page,
-        # AND the paper is not in the excluded list (Kiswahili Paper 2, Business Paper 1, Chemistry Paper 1)
         if is_first_page and section_title is not None and not (is_kiswahili_paper2 or is_business_paper1 or is_chemistry_paper1):
             section_header_html = f"""
         <div class="section-header">
@@ -1592,40 +1493,6 @@ def _generate_section_pages(questions, section_title, section_instruction, start
         # pages_html.append(answer_lines_html)
     
     return {'html': '\n'.join(pages_html), 'next_page': current_page}
-
-
-def _generate_answer_lines_continuation(num_lines, start_page, total_pages):
-    """
-    Generate continuation pages with answer lines
-    (Same implementation as before)
-    """
-    lines_per_page = 25
-    total_answer_pages = (num_lines + lines_per_page - 1) // lines_per_page
-    pages_html = []
-    current_page = start_page
-
-    for page_num in range(total_answer_pages):
-        lines_on_this_page = min(lines_per_page, num_lines - (page_num * lines_per_page))
-        
-        lines_html = ""
-        for i in range(lines_on_this_page):
-            lines_html += '            <div class="answer-line"></div>\n'
-        
-        is_last_page = current_page >= total_pages
-        
-        page_html = f"""
-    <div class="exam-page {'page-break' if not is_last_page else ''}">
-        <div class="answer-lines-container">
-            {lines_html}
-        </div>
-        
-        <div class="page-number">Page {current_page} of {total_pages}</div>
-    </div>
-"""
-        pages_html.append(page_html)
-        current_page += 1
-    
-    return '\n'.join(pages_html)
 
 
 def _generate_cre_paper1_pages(questions, total_pages, coverpage_data=None, inline_answer_lines=0):
