@@ -977,7 +977,7 @@ def _generate_non_sectioned_pages(questions, start_page, total_pages, paper_name
         )
 
         questions_html += f"""
-        <div class="question">
+        <div class="question" style="text-align: left !important;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
@@ -994,7 +994,7 @@ def _generate_non_sectioned_pages(questions, start_page, total_pages, paper_name
         flow_class = 'question-flow'
 
     return f"""
-    <div class="{flow_class} " style="text-align: left;">
+    <div class="{flow_class} " style="text-align: left !important;">
         {questions_html}
     </div>
 """
