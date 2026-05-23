@@ -2275,7 +2275,7 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
     paper_name_for_sections = metadata.get('paper_name', '').upper()
     is_mathematics_paper = 'MATHEMATICS' in paper_name_for_sections or 'MATHS' in paper_name_for_sections
     is_agriculture_paper = 'AGRICULTURE' in paper_name_for_sections
-    # Detect Physics Paper 1 to apply Section A question container adjustments
+    # Detect Physics Paper 1 so Section A questions can be left-aligned without changing headers
     is_physics_paper1 = False
     try:
         pn = extract_paper_number_from_name(paper_name_for_sections)
@@ -2303,51 +2303,42 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
 
         # If section changed (or starting), insert section header
         if last_section != current_section:
-            # If switching away from Section A in Physics Paper 1, close the left-aligned container
-            if is_physics_paper1 and last_section == 'A':
-                questions_html += "\n        </div>\n"
-                # Get marks for section from coverpage_data if present
-                if current_section in ['A', 'I']:
-                    s_marks = metadata.get('section_a_marks', None)
-                elif current_section in ['B', 'II']:
-                    s_marks = metadata.get('section_b_marks', None)
-                elif current_section == 'C':
-                    s_marks = metadata.get('section_c_marks', None)
+            # Get marks for section from coverpage_data if present
+            if current_section in ['A', 'I']:
+                s_marks = metadata.get('section_a_marks', None)
+            elif current_section in ['B', 'II']:
+                s_marks = metadata.get('section_b_marks', None)
+            elif current_section == 'C':
+                s_marks = metadata.get('section_c_marks', None)
+            else:
+                s_marks = None
+
+            s_marks_text = f" ({s_marks} MARKS)" if s_marks else ''
+            # Instruction text: depends on section and paper type
+            paper_name = metadata.get('paper_name', '').upper()
+            is_geography = 'GEOGRAPHY' in paper_name
+            is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
+            
+            if current_section in ['A', 'I']:
+                instruction_text = metadata.get('section_a_instruction', 'Answer ALL questions in this section.')
+            elif current_section in ['B', 'II']:
+                # Section B/II special instructions for different papers
+                if is_geography:
+                    instruction_text = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section.')
+                elif is_mathematics:
+                    instruction_text = metadata.get('section_b_instruction', 'Answer any FIVE questions from this section.')
                 else:
-                    s_marks = None
+                    instruction_text = metadata.get('section_b_instruction', 'Answer ALL questions in this section.')
+            elif current_section == 'C':
+                # Section C (Agriculture only)
+                instruction_text = metadata.get('section_c_instruction', 'Answer ALL questions in this section.')
 
-                s_marks_text = f" ({s_marks} MARKS)" if s_marks else ''
-                # Instruction text: depends on section and paper type
-                paper_name = metadata.get('paper_name', '').upper()
-                is_geography = 'GEOGRAPHY' in paper_name
-                is_mathematics = 'MATHEMATICS' in paper_name or 'MATHS' in paper_name
-                is_agriculture_instr = 'AGRICULTURE' in paper_name
-                
-                if current_section in ['A', 'I']:
-                    instruction_text = metadata.get('section_a_instruction', 'Answer ALL questions in this section.')
-                elif current_section in ['B', 'II']:
-                    # Section B/II special instructions for different papers
-                    if is_geography:
-                        instruction_text = metadata.get('section_b_instruction', 'Answer question 6 and any other TWO questions from this section.')
-                    elif is_mathematics:
-                        instruction_text = metadata.get('section_b_instruction', 'Answer any FIVE questions from this section.')
-                    else:
-                        instruction_text = metadata.get('section_b_instruction', 'Answer ALL questions in this section.')
-                elif current_section == 'C':
-                    # Section C (Agriculture only)
-                    instruction_text = metadata.get('section_c_instruction', 'Answer ALL questions in this section.')
-
-                questions_html += f"""
-            <div class="section-header"> 
-                <h2>SECTION {current_section}{s_marks_text}</h2>
-                <div class="section-instruction" style="font-style: italic;">{instruction_text}</div>
-            </div>
-        """
-                # If starting Section A in Physics Paper 1, open a left-aligned full-width container
-                if is_physics_paper1 and current_section == 'A':
-                    questions_html += """
-            <div class="physics-section-a" style="width:100%; max-width:170mm; margin-left:auto; margin-right:auto; text-align:left;">
-        """
+            questions_html += f"""
+        <div class="section-header"> 
+            <h2>SECTION {current_section}{s_marks_text}</h2>
+            <div class="section-instruction" style="font-style: italic;">{instruction_text}</div>
+        </div>
+"""
         last_section = current_section
         
         # Process and add the question
@@ -2356,9 +2347,11 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
             q.get('question_inline_images', []),
             q.get('question_answer_lines', [])
         )
+
+        question_wrapper_style = 'text-align: left !important; width: 100%;' if is_physics_paper1 and current_section == 'A' else 'text-align: left !important;'
         
         questions_html += f"""
-        <div class="question" style="text-align: left !important;">
+        <div class="question" style="{question_wrapper_style}">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
@@ -2383,10 +2376,6 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
 
     # Wrap all questions in a single flowing container. If Chemistry Paper 1,
     # place the questions inside a centered `question-flow chemistry-paper1` container.
-    # Close any open physics section container before finishing
-    if is_physics_paper1 and last_section == 'A':
-        questions_html += "\n        </div>\n"
-
     if is_chemistry_paper1:
         page_html = f"""
     <div class="exam-page page-break">
