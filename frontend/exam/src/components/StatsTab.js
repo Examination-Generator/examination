@@ -1,5 +1,5 @@
 // src/components/StatsTab.jsx
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import StatsCards from './StatsCards';
 import * as questionService from '../services/questionService';
 import * as authService from '../services/authService';
@@ -332,7 +332,6 @@ const CreatorsModal = memo(function CreatorsModal({
 
 // ── Main StatsTab 
 const StatsTab = memo(function StatsTab({
-    existingSubjects,
     onOpenPrintableByPaper,
     onOpenPrintableByTopic,
 }) {
@@ -350,8 +349,68 @@ const StatsTab = memo(function StatsTab({
     // Filters
     const [filterSubject, setFilterSubject] = useState('');
     const [filterPaper, setFilterPaper] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
-    const [availablePapers, setAvailablePapers] = useState([]);
+    const [filterTopic, setFilterTopic] = useState('');
+
+    const subjectCards = useMemo(() => (
+        Object.entries(stats.bySubject)
+            .map(([subjectName, counts]) => ({ subjectName, ...counts }))
+            .sort((a, b) => a.subjectName.localeCompare(b.subjectName, undefined, { numeric: true, sensitivity: 'base' }))
+    ), [stats.bySubject]);
+
+    const paperCards = useMemo(() => (
+        Object.entries(stats.byPaper)
+            .map(([key, counts]) => ({ key, ...counts }))
+            .sort((a, b) => (
+                a.subject === b.subject
+                    ? a.paper.localeCompare(b.paper, undefined, { numeric: true, sensitivity: 'base' })
+                    : a.subject.localeCompare(b.subject, undefined, { numeric: true, sensitivity: 'base' })
+            ))
+    ), [stats.byPaper]);
+
+    const topicCards = useMemo(() => (
+        Object.entries(stats.byTopic)
+            .map(([key, counts]) => ({ key, ...counts }))
+            .sort((a, b) => (
+                a.subject === b.subject
+                    ? (a.paper === b.paper
+                        ? a.topicName.localeCompare(b.topicName, undefined, { numeric: true, sensitivity: 'base' })
+                        : a.paper.localeCompare(b.paper, undefined, { numeric: true, sensitivity: 'base' }))
+                    : a.subject.localeCompare(b.subject, undefined, { numeric: true, sensitivity: 'base' })
+            ))
+    ), [stats.byTopic]);
+
+    const selectedSubjectCard = useMemo(() => (
+        filterSubject ? subjectCards.find(card => card.subjectName === filterSubject) || null : null
+    ), [filterSubject, subjectCards]);
+
+    const selectedPaperCard = useMemo(() => (
+        filterPaper
+            ? paperCards.find(card => card.subject === filterSubject && card.paper === filterPaper) || null
+            : null
+    ), [filterSubject, filterPaper, paperCards]);
+
+    const selectedTopicCard = useMemo(() => (
+        filterTopic
+            ? topicCards.find(card => card.subject === filterSubject && card.paper === filterPaper && card.topicName === filterTopic) || null
+            : null
+    ), [filterSubject, filterPaper, filterTopic, topicCards]);
+
+    const filteredPaperCards = useMemo(() => (
+        paperCards.filter(card => (
+            (!filterSubject || card.subject === filterSubject) &&
+            (!filterPaper || card.paper === filterPaper)
+        ))
+    ), [filterSubject, filterPaper, paperCards]);
+
+    const filteredTopicCards = useMemo(() => (
+        topicCards.filter(card => (
+            (!filterSubject || card.subject === filterSubject) &&
+            (!filterPaper || card.paper === filterPaper) &&
+            (!filterTopic || card.topicName === filterTopic)
+        ))
+    ), [filterSubject, filterPaper, filterTopic, topicCards]);
+
+    const summaryStats = selectedTopicCard || selectedPaperCard || selectedSubjectCard || stats;
 
     // Creators
     const [showCreators, setShowCreators] = useState(false);
@@ -402,7 +461,9 @@ const StatsTab = memo(function StatsTab({
                 item.marksDistribution || item.byMarks || item.marks_breakdown || item.markBreakdown
             );
 
-            transformed.byTopic[item.topicName || 'Unknown'] = {
+            const topicKey = `${item.subject || 'Unknown'} - ${item.paper || 'Unknown'} - ${item.topicName || 'Unknown'}`;
+
+            transformed.byTopic[topicKey] = {
                 total: item.total || 0,
                 active: item.active || 0,
                 inactive: item.inactive || 0,
@@ -457,35 +518,6 @@ const StatsTab = memo(function StatsTab({
         fetchStats();
     }, [fetchStats]);
 
-    // Re-fetch when filters change
-    useEffect(() => {
-        const params = {};
-        if (filterSubject) {
-            const s = existingSubjects.find(s => s.name === filterSubject);
-            if (s?.id) params.subject = s.id;
-        }
-        if (filterPaper) {
-            const p = availablePapers.find(p => p.name === filterPaper);
-            if (p?.id) params.paper = p.id;
-        }
-        if (filterStatus !== 'all') {
-            params.isActive = filterStatus === 'active' ? 'true' : 'false';
-        }
-        fetchStats(params);
-    }, [filterSubject, filterPaper, filterStatus, fetchStats, existingSubjects, availablePapers]);
-
-    // Subject → papers cascade
-    useEffect(() => {
-        if (filterSubject) {
-            const s = existingSubjects.find(s => s.name === filterSubject);
-            setAvailablePapers(s?.papers || []);
-            setFilterPaper('');
-        } else {
-            setAvailablePapers([]);
-            setFilterPaper('');
-        }
-    }, [filterSubject, existingSubjects]);
-
     const handleOpenCreators = useCallback(() => {
         setShowCreators(true);
         fetchCreatorStats();
@@ -494,14 +526,89 @@ const StatsTab = memo(function StatsTab({
     const clearFilters = useCallback(() => {
         setFilterSubject('');
         setFilterPaper('');
-        setFilterStatus('all');
+        setFilterTopic('');
     }, []);
 
-    const hasFilters = filterSubject || filterPaper || filterStatus !== 'all';
+    const hasFilters = filterSubject || filterPaper || filterTopic;
+
+    const filterSummaryStats = {
+        totalQuestions: summaryStats.total ?? summaryStats.totalQuestions ?? 0,
+        activeQuestions: summaryStats.active ?? summaryStats.activeQuestions ?? 0,
+        inactiveQuestions: summaryStats.inactive ?? summaryStats.inactiveQuestions ?? 0,
+        unknownTopics: filterSubject || filterPaper || filterTopic ? 0 : (summaryStats.unknownTopics ?? 0),
+    };
 
     // ── Render 
     return (
         <div className="space-y-6">
+
+            {/* ── Filters */}
+            <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-800">Filters</h3>
+                        <p className="text-sm text-gray-500">Filter by subject, paper, then topic using the loaded statistics.</p>
+                    </div>
+                    {hasFilters && (
+                        <button
+                            onClick={clearFilters}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
+                        >
+                            Clear Filters
+                        </button>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <select
+                        value={filterSubject}
+                        onChange={e => {
+                            setFilterSubject(e.target.value);
+                            setFilterPaper('');
+                            setFilterTopic('');
+                        }}
+                        className="px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">All Subjects</option>
+                        {subjectCards.map(subject => (
+                            <option key={subject.subjectId || subject.subjectName} value={subject.subjectName}>
+                                {subject.subjectName}
+                            </option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={filterPaper}
+                        onChange={e => {
+                            setFilterPaper(e.target.value);
+                            setFilterTopic('');
+                        }}
+                        disabled={!filterSubject}
+                        className="px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                    >
+                        <option value="">All Papers</option>
+                        {filteredPaperCards.map(paper => (
+                            <option key={paper.paperId || paper.key} value={paper.paper}>
+                                {paper.paper}
+                            </option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={filterTopic}
+                        onChange={e => setFilterTopic(e.target.value)}
+                        disabled={!filterSubject || !filterPaper}
+                        className="px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                    >
+                        <option value="">All Topics</option>
+                        {filteredTopicCards.map(topic => (
+                            <option key={topic.topicId || topic.key} value={topic.topicName}>
+                                {topic.topicName}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
 
             {/* ── Header  */}
             <div className="flex flex-wrap justify-between items-center gap-3">
@@ -538,85 +645,38 @@ const StatsTab = memo(function StatsTab({
             </div>
 
             {/* ── Stats cards  */}
-            <StatsCards stats={stats} />
-
-            {/* ── Filters 
-            <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-gray-800">Filters</h3>
-                    {hasFilters && (
-                        <button
-                            onClick={clearFilters}
-                            className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
-                        >
-                            Clear Filters
-                        </button>
-                    )}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <select
-                        value={filterSubject}
-                        onChange={e => setFilterSubject(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">All Subjects</option>
-                        {existingSubjects.map(s => (
-                            <option key={s.id} value={s.name}>{s.name}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        value={filterPaper}
-                        onChange={e => setFilterPaper(e.target.value)}
-                        disabled={!filterSubject}
-                        className="px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-                    >
-                        <option value="">All Papers</option>
-                        {availablePapers.map(p => (
-                            <option key={p.id} value={p.name}>{p.name}</option>
-                        ))}
-                    </select>
-
-                    <select
-                        value={filterStatus}
-                        onChange={e => setFilterStatus(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="active">Active Only</option>
-                        <option value="inactive">Inactive Only</option>
-                    </select>
-                </div>
-            </div> */}
+            <StatsCards stats={filterSummaryStats} />
 
             {/* ── By Subject */}
             <div className="bg-white rounded-xl shadow-lg p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4">Questions by Subject</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-80 overflow-y-auto pr-1">
-                    {Object.entries(stats.bySubject).length === 0 ? (
+                    {subjectCards.length === 0 ? (
                         <p className="col-span-3 text-center text-gray-500 py-8">No subjects found</p>
                     ) : (
-                        Object.entries(stats.bySubject).map(([subject, counts]) => (
+                        subjectCards
+                            .filter(subject => !filterSubject || subject.subjectName === filterSubject)
+                            .map(subject => (
                             <div
-                                key={subject}
+                                key={subject.subjectId || subject.subjectName}
                                 className="border-2 border-gray-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-white hover:border-blue-400 transition"
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <h4 className="text-sm font-bold text-gray-700 truncate flex-1">
-                                        {subject}
+                                        {subject.subjectName}
                                     </h4>
                                     <span className="text-2xl font-bold text-blue-600 ml-2">
-                                        {counts.total}
+                                        {subject.total}
                                     </span>
                                 </div>
                                 <div className="flex gap-4 text-xs">
                                     <span className="flex items-center gap-1">
                                         <span className="w-2 h-2 bg-green-500 rounded-full inline-block" />
-                                        Active: <strong>{counts.active}</strong>
+                                        Active: <strong>{subject.active}</strong>
                                     </span>
                                     <span className="flex items-center gap-1">
                                         <span className="w-2 h-2 bg-red-500 rounded-full inline-block" />
-                                        Inactive: <strong>{counts.inactive}</strong>
+                                        Inactive: <strong>{subject.inactive}</strong>
                                     </span>
                                 </div>
 
@@ -632,12 +692,12 @@ const StatsTab = memo(function StatsTab({
                 <h3 className="text-lg font-bold text-gray-800 mb-1">Questions by Paper</h3>
                 <p className="text-xs text-gray-500 mb-4">Click a card to generate a printable document</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-80 overflow-y-auto pr-1">
-                    {Object.entries(stats.byPaper).length === 0 ? (
+                    {filteredPaperCards.length === 0 ? (
                         <p className="col-span-3 text-center text-gray-500 py-8">No papers found</p>
                     ) : (
-                        Object.entries(stats.byPaper).map(([key, counts]) => (
+                        filteredPaperCards.map(counts => (
                             <div
-                                key={key}
+                                key={counts.paperId || counts.key}
                                 onClick={() => onOpenPrintableByPaper?.(counts)}
                                 className="border-2 border-gray-200 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-white cursor-pointer hover:border-purple-400 hover:shadow-md transition"
                             >
@@ -675,15 +735,15 @@ const StatsTab = memo(function StatsTab({
                 <h3 className="text-lg font-bold text-gray-800 mb-1">Questions by Topic</h3>
                 <p className="text-xs text-gray-500 mb-4">Click a card to generate a printable document</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[520px] overflow-y-auto pr-1">
-                    {Object.entries(stats.byTopic).length === 0 ? (
+                    {filteredTopicCards.length === 0 ? (
                         <p className="col-span-3 text-center text-gray-500 py-8">No topics found</p>
                     ) : (
-                        Object.entries(stats.byTopic).map(([topic, counts]) => (
+                        filteredTopicCards.map(counts => (
                             <div
-                                key={topic}
+                                key={counts.topicId || counts.key}
                                 onClick={() =>
                                     counts.topicId &&
-                                    onOpenPrintableByTopic?.({ ...counts, topic })
+                                    onOpenPrintableByTopic?.({ ...counts, topic: counts.topicName })
                                 }
                                 className={`border-2 border-gray-200 rounded-lg p-4 bg-gradient-to-br from-green-50 to-white transition
                                     ${counts.topicId
@@ -692,7 +752,7 @@ const StatsTab = memo(function StatsTab({
                                     }`}
                             >
                                 <h4 className="text-sm font-bold text-gray-700 truncate mb-2">
-                                    {topic}
+                                    {counts.topicName}
                                 </h4>
 
                                 <div className="flex items-center justify-between mb-2">
