@@ -1753,7 +1753,7 @@ def _generate_cre_question_page(questions, page_number, total_pages):
         )
         
         questions_html += f"""
-        <div class="question">
+        <div class="question" style="text-align: left !important;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
@@ -1810,7 +1810,7 @@ def _generate_english_paper1_pages(questions, start_page, total_pages):
         )
         
         questions_html += f"""
-        <div class="question">
+        <div class="question" style="text-align: left !important;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
@@ -1860,7 +1860,7 @@ def _generate_physics_paper2_continuous_pages(questions, start_page, total_pages
         )
 
         questions_html += f"""
-        <div class="question">
+        <div class="question" style="text-align: left !important;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
@@ -1907,7 +1907,7 @@ def _generate_non_sectioned_pages(questions, start_page, total_pages):
             )
             
             questions_html += f"""
-        <div class="question">
+        <div class="question" style="text-align: left !important;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
@@ -2011,7 +2011,7 @@ def _generate_section_pages(questions, section_title, section_instruction, start
             )
             
             questions_html += f"""
-        <div class="question">
+        <div class="question" style="text-align: left !important;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
@@ -2120,7 +2120,7 @@ def _generate_cre_paper1_pages(questions, total_pages, coverpage_data=None):
             )
             
             questions_html += f"""
-        <div class="question">
+        <div class="question" style="text-align: left !important;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
@@ -2146,7 +2146,7 @@ def _generate_cre_paper1_pages(questions, total_pages, coverpage_data=None):
             )
             
             questions_html += f"""
-        <div class="question">
+        <div class="question" style="text-align: left !important;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
@@ -2195,7 +2195,7 @@ def _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data=None)
         )
         
         questions_html += f"""
-        <div class="question">
+        <div class="question" style="text-align: left !important;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
@@ -2333,7 +2333,7 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
         )
         
         questions_html += f"""
-        <div class="question">
+        <div class="question" style="text-align: left !important;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
