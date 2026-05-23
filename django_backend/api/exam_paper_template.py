@@ -2275,6 +2275,15 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
     paper_name_for_sections = metadata.get('paper_name', '').upper()
     is_mathematics_paper = 'MATHEMATICS' in paper_name_for_sections or 'MATHS' in paper_name_for_sections
     is_agriculture_paper = 'AGRICULTURE' in paper_name_for_sections
+    # Detect Physics Paper 1 to apply Section A question container adjustments
+    is_physics_paper1 = False
+    try:
+        pn = extract_paper_number_from_name(paper_name_for_sections)
+        if 'PHYSICS' in paper_name_for_sections and pn == 1:
+            is_physics_paper1 = True
+    except Exception:
+        if 'PHYSICS' in paper_name_for_sections and ('PAPER 1' in paper_name_for_sections or 'PAPER I' in paper_name_for_sections):
+            is_physics_paper1 = True
     
     # Generate all questions in flowing order
     for q in questions:
@@ -2294,6 +2303,9 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
 
         # If section changed (or starting), insert section header
         if last_section != current_section:
+            # If switching away from Section A in Physics Paper 1, close the left-aligned container
+            if is_physics_paper1 and last_section == 'A':
+                questions_html += "\n        </div>\n"
                 # Get marks for section from coverpage_data if present
                 if current_section in ['A', 'I']:
                     s_marks = metadata.get('section_a_marks', None)
@@ -2326,11 +2338,16 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
                     instruction_text = metadata.get('section_c_instruction', 'Answer ALL questions in this section.')
 
                 questions_html += f"""
-        <div class=\"section-header\"> 
-            <h2>SECTION {current_section}{s_marks_text}</h2>
-            <div class=\"section-instruction\" style=\"font-style: italic;\">{instruction_text}</div>
-        </div>
-"""
+            <div class="section-header"> 
+                <h2>SECTION {current_section}{s_marks_text}</h2>
+                <div class="section-instruction" style="font-style: italic;">{instruction_text}</div>
+            </div>
+        """
+                # If starting Section A in Physics Paper 1, open a left-aligned full-width container
+                if is_physics_paper1 and current_section == 'A':
+                    questions_html += """
+            <div class="physics-section-a" style="width:100%; max-width:170mm; margin-left:auto; margin-right:auto; text-align:left;">
+        """
         last_section = current_section
         
         # Process and add the question
@@ -2366,6 +2383,10 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
 
     # Wrap all questions in a single flowing container. If Chemistry Paper 1,
     # place the questions inside a centered `question-flow chemistry-paper1` container.
+    # Close any open physics section container before finishing
+    if is_physics_paper1 and last_section == 'A':
+        questions_html += "\n        </div>\n"
+
     if is_chemistry_paper1:
         page_html = f"""
     <div class="exam-page page-break">
