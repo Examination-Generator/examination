@@ -217,7 +217,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         if is_cre_paper:
             question_pages = 2  # Always 2 pages for CRE Paper 1 (5 questions + 1 question)
             total_pages = 1 + question_pages + answer_lines_pages
-            questions_html = _generate_cre_paper1_pages(questions, total_pages, coverpage_data)
+            questions_html = _generate_cre_paper1_pages(questions, total_pages, coverpage_data, inline_answer_lines=answer_lines_pages)
         # Kiswahili Paper 1: All 4 questions on one page
         elif is_kiswahili_paper_1:
             question_pages = 1  # All 4 questions on one page
@@ -1040,7 +1040,7 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     # Check if this is Agriculture paper (has 3 sections)
     is_agriculture = 'AGRICULTURE' in paper_name
     
-    # Check if this is CRE paper (special pagination: 5 questions on page 1, question 6 on page 2)
+    # Check if this is CRE paper (continuous flow, no fixed page split)
     is_cre_paper = ('CRE' in paper_name or 'CHRISTIAN RELIGIOUS EDUCATION' in paper_name)
     
     # Check if this is English Paper 1 (special handling with titled sections)
@@ -1052,21 +1052,9 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
         pages_html.append(english_pages_html['html'])
         current_page = english_pages_html['next_page']
     elif is_cre_paper:
-        # CRE papers: 5 questions on first page, 6th question on second page
-        first_page_questions = questions[:5] if len(questions) >= 5 else questions
-        second_page_questions = questions[5:] if len(questions) > 5 else []
-        
-        # Generate first page with 5 questions
-        if first_page_questions:
-            page_1_html = _generate_cre_question_page(first_page_questions, current_page, total_pages)
-            pages_html.append(page_1_html)
-            current_page += 1
-        
-        # Generate second page with 6th question
-        if second_page_questions:
-            page_2_html = _generate_cre_question_page(second_page_questions, current_page, total_pages)
-            pages_html.append(page_2_html)
-            current_page += 1
+        cre_html = _generate_cre_question_page(questions, current_page, total_pages, inline_answer_lines=answer_lines_pages)
+        pages_html.append(cre_html)
+        current_page += 1
     elif not has_sections:
         # Papers without sections (other non-sectioned papers)
         all_questions_html = _generate_non_sectioned_pages(
@@ -1264,18 +1252,17 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
     return '\n'.join(pages_html)
 
 
-def _generate_cre_question_page(questions, page_number, total_pages):
+def _generate_cre_question_page(questions, page_number, total_pages, inline_answer_lines=0):
     """
-    Generate a single page for CRE papers with multiple questions
-    Designed to fit 5 questions on first page, then 6th question on second page
+    Generate CRE questions in one continuous flow.
     
     Args:
         questions: List of question dictionaries
-        page_number: Current page number
-        total_pages: Total pages in the paper
+        page_number: Kept for compatibility with older callers
+        total_pages: Kept for compatibility with older callers
     
     Returns:
-        str: HTML for the page
+        str: HTML for the flowing question container
     """
     questions_html = ""
     for q in questions:
@@ -1286,16 +1273,27 @@ def _generate_cre_question_page(questions, page_number, total_pages):
         )
         
         questions_html += f"""
-        <div class="question" style="text-align: left !important;">
+        <div class="question" style="text-align: left !important; width: 100%;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
     
+    inline_answer_html = ""
+    if inline_answer_lines and inline_answer_lines > 0:
+        inline_answer_html = _generate_answer_lines_pages(
+            inline_answer_lines,
+            page_number,
+            total_pages,
+            show_page_numbers=False,
+            flow_after_previous=True
+        )
+
     page_html = f"""
-    <!-- Page {page_number} -->
-    <div class="exam-page page-break">
-        {questions_html}        
-        <div class="page-number">Page {page_number} of {total_pages}</div>
+    <div class="exam-page">
+        <div class="question-flow cre-paper" style="width: 100%; max-width: 210mm; margin-left: auto; margin-right: auto; text-align: left;">
+            {questions_html}
+            {inline_answer_html}
+        </div>
     </div>
 """
     return page_html
@@ -1630,10 +1628,9 @@ def _generate_answer_lines_continuation(num_lines, start_page, total_pages):
     return '\n'.join(pages_html)
 
 
-def _generate_cre_paper1_pages(questions, total_pages, coverpage_data=None):
+def _generate_cre_paper1_pages(questions, total_pages, coverpage_data=None, inline_answer_lines=0):
     """
-    Generate paginated question pages for CRE Paper 1
-    5 questions on first page, 6th question on second page
+    Generate CRE Paper 1 questions in one continuous flow.
     
     Args:
         questions: List of question dictionaries
@@ -1641,67 +1638,9 @@ def _generate_cre_paper1_pages(questions, total_pages, coverpage_data=None):
         coverpage_data: Metadata from coverpage
     
     Returns:
-        str: HTML for all question pages
+        str: HTML for the flowing CRE Paper 1 content
     """
-    pages_html = []
-    current_page = 2
-    
-    # Split questions: first 5 on page 1, rest on page 2
-    first_page_questions = questions[:5] if len(questions) >= 5 else questions
-    second_page_questions = questions[5:] if len(questions) > 5 else []
-    
-    # Generate first page with 5 questions
-    if first_page_questions:
-        questions_html = ""
-        for q in first_page_questions:
-            processed_text = _process_question_text(
-                q.get('text', ''),
-                q.get('question_inline_images', []),
-                q.get('question_answer_lines', [])
-            )
-            
-            questions_html += f"""
-        <div class="question" style="text-align: left !important;">
-            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
-        </div>
-"""
-        
-        page_html = f"""
-    <!-- Page {current_page} -->
-    <div class="exam-page page-break">
-        {questions_html}        
-        <div class="page-number">Page {current_page} of {total_pages}</div>
-    </div>
-"""
-        pages_html.append(page_html)
-        current_page += 1
-    
-    # Generate second page with remaining questions (typically just question 6)
-    if second_page_questions:
-        questions_html = ""
-        for q in second_page_questions:
-            processed_text = _process_question_text(
-                q.get('text', ''),
-                q.get('question_inline_images', []),
-                q.get('question_answer_lines', [])
-            )
-            
-            questions_html += f"""
-        <div class="question" style="text-align: left !important;">
-            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
-        </div>
-"""
-        
-        page_html = f"""
-    <!-- Page {current_page} -->
-    <div class="exam-page page-break">
-        {questions_html}        
-        <div class="page-number">Page {current_page} of {total_pages}</div>
-    </div>
-"""
-        pages_html.append(page_html)
-    
-    return '\n'.join(pages_html)
+    return _generate_cre_question_page(questions, 2, total_pages, inline_answer_lines=inline_answer_lines)
 
 
 def _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data=None):

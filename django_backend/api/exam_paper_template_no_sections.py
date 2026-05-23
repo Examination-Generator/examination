@@ -145,7 +145,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
             /* Center question flow for Chemistry Paper 1 in print */
             .question-flow.chemistry-paper1 {{
-                max-width: 170mm;
+                max-width: 210mm;
                 width: 100% !important;
                 margin-left: auto !important;
                 margin-right: auto !important;
