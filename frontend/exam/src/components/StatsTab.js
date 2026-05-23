@@ -373,9 +373,9 @@ const StatsTab = memo(function StatsTab({
             .sort((a, b) => (
                 a.subject === b.subject
                     ? (a.paper === b.paper
-                        ? a.topicName.localeCompare(b.topicName, undefined, { numeric: true, sensitivity: 'base' })
-                        : a.paper.localeCompare(b.paper, undefined, { numeric: true, sensitivity: 'base' }))
-                    : a.subject.localeCompare(b.subject, undefined, { numeric: true, sensitivity: 'base' })
+                        ? (a.topicName || '').localeCompare(b.topicName || '', undefined, { numeric: true, sensitivity: 'base' })
+                        : (a.paper || '').localeCompare(b.paper || '', undefined, { numeric: true, sensitivity: 'base' }))
+                    : (a.subject || '').localeCompare(b.subject || '', undefined, { numeric: true, sensitivity: 'base' })
             ))
     ), [stats.byTopic]);
 
@@ -470,6 +470,7 @@ const StatsTab = memo(function StatsTab({
                 marksDistribution,
                 byMarks: marksDistribution,
                 topicId: item.topicId,
+                topicName: item.topicName || item.topic || 'Unknown',
                 subjectId: item.subjectId,
                 subject: item.subject || 'Unknown',
                 paper: item.paper || 'Unknown',
