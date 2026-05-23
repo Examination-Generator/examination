@@ -30,8 +30,6 @@ from .page_number_extrctor import extract_paper_number_from_name
 
 
 def get_coverpage_class(paper_data, is_marking_scheme=False):
-    # Extract paper type information
-    # paper_type = paper_data.get('paper_type', '').upper()
     paper_name = paper_data.get('paper_name', '').upper()
     subject_name = paper_data.get('subject_name', '').upper()
     paper_number = extract_paper_number_from_name(paper_name)
@@ -70,20 +68,7 @@ def get_coverpage_class(paper_data, is_marking_scheme=False):
 
 
 def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpage_class=None):
-    """
-    Generate complete exam paper HTML with coverpage and all questions
-    
-    Args:
-        coverpage_data (dict): Coverpage information
-        questions (list): List of question dictionaries with 'number', 'text', 'marks', 
-                         'question_inline_images', 'question_answer_lines'
-        paper_data (dict): Paper metadata (subject, paper_type, etc.) - used to auto-detect coverpage
-        coverpage_class: Coverpage class to use (overrides auto-detection)
-    
-    Returns:
-        str: Complete HTML document
-    """
-    
+       
     # Auto-detect coverpage class if not provided
     if coverpage_class is None:
         if paper_data is None:
@@ -158,8 +143,6 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
     # Add Geography section data if not present
     is_geography = 'GEOGRAPHY' in paper_name
     if is_geography and (paper_number == 1 or is_paper1):
-        # Geography Paper 1 has Section A (Questions 1-5, 25 marks) and Section B (Questions 6-10, 75 marks, answer Q6 and any 2)
-        # Force correct values to override any incorrect defaults
         coverpage_data['section_a_marks'] = 25
         coverpage_data['section_b_marks'] = 75
         if 'section_a_instruction' not in coverpage_data:
@@ -167,8 +150,6 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
         if 'section_b_instruction' not in coverpage_data:
             coverpage_data['section_b_instruction'] = 'Answer question 6 and any other TWO questions from this section'
     elif is_geography and (paper_number == 2 or is_paper2):
-        # Geography Paper 2 also has similar structure
-        # Force correct values to override any incorrect defaults
         coverpage_data['section_a_marks'] = 25
         coverpage_data['section_b_marks'] = 75
         if 'section_a_instruction' not in coverpage_data:
@@ -1913,7 +1894,7 @@ def _generate_non_sectioned_pages(questions, start_page, total_pages):
                 q.get('question_inline_images', []),
                 q.get('question_answer_lines', [])
             )
-            
+
             questions_html += f"""
         <div class="question" style="text-align: left !important;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
@@ -2348,7 +2329,7 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
             q.get('question_answer_lines', [])
         )
 
-        question_wrapper_style = 'text-align: left !important; width: 100%;' if is_physics_paper1 and current_section == 'A' else 'text-align: left !important;'
+        question_wrapper_style = 'text-align: left !important; width: 100%; align-self: stretch;' if is_mathematics_paper else 'text-align: left !important;'
         
         questions_html += f"""
         <div class="question" style="{question_wrapper_style}">
@@ -2395,12 +2376,7 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
 
 
 def _generate_biology_paper2_flow(questions, start_page, total_pages, metadata=None, inline_answer_pages=0):
-    """
-    Render Biology Paper 2 in a single flowing container (no per-page splitting).
-    Inserts inline answer lines at the end when `inline_answer_pages` > 0.
-
-    Returns: {'html': str, 'next_page': int}
-    """
+    
     meta = metadata or {}
 
     # Section A count (default 5)
