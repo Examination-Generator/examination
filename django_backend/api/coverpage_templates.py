@@ -2524,31 +2524,31 @@ class PhysicsPaper1Coverpage:
                     
                     <!-- Section B -->
                     <tr>
-                        <td class="section-label">B</td>
+                        <td class="section-label" style="border-bottom: none;">B</td>
                         <td>14</td>
                         <td>{normalized_marks[0]}</td>
                         <td></td>
                     </tr>
                     <tr>
-                        <td class="section-label"></td>
+                        <td class="section-label" style="border-top:none; border-bottom:none;"></td>
                         <td>15</td>
                         <td>{normalized_marks[1]}</td>
                         <td></td>
                     </tr>
                     <tr>
-                        <td class="section-label"></td>
+                        <td class="section-label" style="border-top:none; border-bottom:none;"></td>
                         <td>16</td>
                         <td>{normalized_marks[2]}</td>
                         <td></td>
                     </tr>
                     <tr>
-                        <td class="section-label"></td>
+                        <td class="section-label" style="border-top:none; border-bottom:none;"></td>
                         <td>17</td>
                         <td>{normalized_marks[3]}</td>
                         <td></td>
                     </tr>
                     <tr>
-                        <td class="section-label"></td>
+                        <td class="section-label" style="border-top:none; border-bottom:none;"></td>
                         <td>18</td>
                         <td>{normalized_marks[4]}</td>
                         <td></td>
