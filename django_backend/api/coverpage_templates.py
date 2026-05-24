@@ -2530,21 +2530,25 @@ class PhysicsPaper1Coverpage:
                         <td></td>
                     </tr>
                     <tr>
+                        <td class="section-label"></td>
                         <td>15</td>
                         <td>{normalized_marks[1]}</td>
                         <td></td>
                     </tr>
                     <tr>
+                        <td class="section-label"></td>
                         <td>16</td>
                         <td>{normalized_marks[2]}</td>
                         <td></td>
                     </tr>
                     <tr>
+                        <td class="section-label"></td>
                         <td>17</td>
                         <td>{normalized_marks[3]}</td>
                         <td></td>
                     </tr>
                     <tr>
+                        <td class="section-label"></td>
                         <td>18</td>
                         <td>{normalized_marks[4]}</td>
                         <td></td>
