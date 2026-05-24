@@ -2516,18 +2516,15 @@ class PhysicsPaper1Coverpage:
                 <tbody>
                     <!-- Section A -->
                     <tr>
-                        <td class="section-label" rowspan="2">A</td>
+                        <td class="section-label">A</td>
                         <td>1-{section_a_questions}</td>
                         <td>{section_a_marks}</td>
                         <td></td>
                     </tr>
-                    <tr>
-                        <td colspan="3" style="border-top: none; border-right: 1px solid black; "></td>
-                    </tr>
                     
                     <!-- Section B -->
                     <tr>
-                        <td class="section-label" rowspan="7">B</td>
+                        <td class="section-label">B</td>
                         <td>14</td>
                         <td>{normalized_marks[0]}</td>
                         <td></td>
@@ -2551,9 +2548,6 @@ class PhysicsPaper1Coverpage:
                         <td>18</td>
                         <td>{normalized_marks[4]}</td>
                         <td></td>
-                    </tr>
-                    <tr>
-                        <td colspan="3"></td>
                     </tr>
                     
                     <!-- Total -->
