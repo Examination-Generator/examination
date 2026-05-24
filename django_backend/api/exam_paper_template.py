@@ -307,6 +307,13 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 margin-right: auto;
                 text-align: left !important;
             }}
+            .question-flow.physics-paper2 {{
+                max-width: 210mm;
+                margin-left: auto;
+                margin-right: auto;
+                text-align: left !important;
+                align-self: stretch;
+            }}
             .answer-lines-flow .answer-line {{
                 width: 100%;
             }}
@@ -507,6 +514,15 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             width: 210mm;
             margin-left: auto;
             margin-right: auto;
+        }}
+
+        .question-flow.physics-paper2 {{
+            max-width: 210mm;
+            width: 210mm;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left !important;
+            align-self: stretch;
         }}
 
         .question-flow.chemistry-paper1 {{
@@ -1001,8 +1017,6 @@ def _generate_paper2_question_pages(questions, total_pages, coverpage_data=None,
             pages_html.append(answer_lines_html)
         
         return '\n'.join(pages_html)
-    # ================================================================================================
-    
     
     # Papers that should have sections (explicitly allowed list) - ONLY if paper number is 2
     is_biology = 'BIOLOGY' in paper_name and paper_number == 2
@@ -1311,15 +1325,16 @@ def _generate_physics_paper2_continuous_pages(questions, start_page, total_pages
         q_number = int(q.get('number', 0))
         if q_number == 1:
             questions_html += """
-        <div class="physics-section-a" style="width:100%; max-width:210mm; margin-left:auto; margin-right:auto; text-align:left;">
+        <div class="question-flow physics-paper2" style="width:100%; max-width:210mm; margin-left:auto; margin-right:auto; text-align:left;">
+            <div class="physics-section-a" style="width:100%; text-align:left;">
             <div class="simple-section-title" style="text-align: center;">SECTION A (25 MARKS)</div>
             <div class="section-instruction" style="text-align: center; font-style: italic;">Answer all questions in this section</div>
 """
         elif q_number == 14:
             # Close Section A container before starting Section B
             questions_html += """
-        </div>
-        <div class="physics-section-b" style="width:100%; max-width:210mm; margin-left:auto; margin-right:auto; text-align:left;">
+            </div>
+            <div class="physics-section-b" style="width:100%; text-align:left;">
             <div class="simple-section-title" style="text-align: center;">SECTION B (55 MARKS)</div>
             <div class="section-instruction" style="text-align: center; font-style: italic;">Answer all questions in this section</div>
 """
