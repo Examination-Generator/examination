@@ -11,8 +11,8 @@ A full-stack web application for managing examination questions, subjects, paper
 ## 🔑 Quick Access
 
 **Default Login Credentials:**
-- **Admin:** Phone: `0000000001`, Password: `0000`
-- **Editor:** Phone: `0000000002`, Password: `0000`
+- **Admin:** Phone: `0712345678`, Password: `1234`
+- **Editor:** Phone: `0712345678`, Password: `1234`
 
 ## � Documentation
 
