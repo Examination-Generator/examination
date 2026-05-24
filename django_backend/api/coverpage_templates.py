@@ -2292,11 +2292,126 @@ class PhysicsPaper1Coverpage:
         @media print {{
             body {{
                 margin: 0;
-                padding: 20mm;
+                padding: 0;
+                overflow: hidden;
             }}
             
             .coverpage {{
                 page-break-after: always;
+                break-after: page;
+                width: 100%;
+                min-height: 0;
+                height: auto;
+                overflow: hidden;
+                padding: 6mm 8mm 4mm 8mm;
+                transform: scale(0.9);
+                transform-origin: top center;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }}
+
+            .header {{
+                margin-bottom: 8px;
+            }}
+
+            .logo-container {{
+                margin-bottom: 6px;
+            }}
+
+            .school-logo {{
+                max-width: 66px;
+                max-height: 66px;
+            }}
+
+            .school-name {{
+                font-size: 14pt;
+                margin-bottom: 2px;
+            }}
+
+            .class-name {{
+                font-size: 10pt;
+                margin-bottom: 4px;
+            }}
+
+            .exam-title {{
+                font-size: 12pt;
+                margin-bottom: 6px;
+            }}
+
+            .paper-name {{
+                font-size: 12pt;
+            }}
+
+            .paper-details {{
+                margin-bottom: 6px;
+            }}
+
+            .time-allocation {{
+                font-size: 10pt;
+                margin-top: 0;
+            }}
+
+            .candidate-info {{
+                margin: 8px 0;
+                padding: 6px;
+            }}
+
+            .candidate-info-grid {{
+                gap: 8px 10px;
+            }}
+
+            .info-row-full,
+            .info-row-grid {{
+                margin-bottom: 6px;
+            }}
+
+            .info-label {{
+                font-size: 9px;
+                min-width: 32px;
+            }}
+
+            .info-field {{
+                min-height: 16px;
+            }}
+
+            .instructions {{
+                margin-bottom: 8px;
+            }}
+
+            .instructions-title {{
+                font-size: 10pt;
+                margin-bottom: 4px;
+            }}
+
+            .instructions ol {{
+                margin-left: 14px;
+                font-size: 9pt;
+                line-height: 1.25;
+            }}
+
+            .instructions li {{
+                margin-bottom: 2px;
+            }}
+
+            .marking-grid-container {{
+                margin-top: 6px;
+                padding-top: 6px;
+            }}
+
+            .grid-title {{
+                font-size: 9pt;
+                margin-bottom: 4px;
+            }}
+
+            .marking-grid {{
+                width: 100%;
+            }}
+
+            .marking-grid th,
+            .marking-grid td {{
+                font-size: 8pt;
+                padding: 4px 3px;
             }}
         }}
     </style>
