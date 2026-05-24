@@ -1808,6 +1808,11 @@ class MarkingSchemeCoverpage:
         
         /* Print Styles */
         @media print {{
+            @page {{
+                size: A4;
+                margin: 8mm;
+            }}
+
             body {{
                 margin: 0;
                 padding: 0;
@@ -2303,8 +2308,8 @@ class PhysicsPaper1Coverpage:
                 min-height: 0;
                 height: auto;
                 overflow: hidden;
-                padding: 6mm 8mm 4mm 8mm;
-                transform: scale(0.9);
+                padding: 4mm 5mm 3mm 5mm;
+                transform: scale(0.8);
                 transform-origin: top center;
                 display: flex;
                 flex-direction: column;
@@ -2312,106 +2317,106 @@ class PhysicsPaper1Coverpage:
             }}
 
             .header {{
-                margin-bottom: 8px;
+                margin-bottom: 5px;
             }}
 
             .logo-container {{
-                margin-bottom: 6px;
+                margin-bottom: 4px;
             }}
 
             .school-logo {{
-                max-width: 66px;
-                max-height: 66px;
+                max-width: 58px;
+                max-height: 58px;
             }}
 
             .school-name {{
-                font-size: 14pt;
+                font-size: 12pt;
                 margin-bottom: 2px;
             }}
 
             .class-name {{
-                font-size: 10pt;
+                font-size: 9pt;
                 margin-bottom: 4px;
             }}
 
             .exam-title {{
-                font-size: 12pt;
+                font-size: 10.5pt;
                 margin-bottom: 6px;
             }}
 
             .paper-name {{
-                font-size: 12pt;
+                font-size: 10.5pt;
             }}
 
             .paper-details {{
-                margin-bottom: 6px;
+                margin-bottom: 4px;
             }}
 
             .time-allocation {{
-                font-size: 10pt;
+                font-size: 9pt;
                 margin-top: 0;
             }}
 
             .candidate-info {{
-                margin: 8px 0;
-                padding: 6px;
+                margin: 5px 0;
+                padding: 4px;
             }}
 
             .candidate-info-grid {{
-                gap: 8px 10px;
+                gap: 6px 8px;
             }}
 
             .info-row-full,
             .info-row-grid {{
-                margin-bottom: 6px;
+                margin-bottom: 4px;
             }}
 
             .info-label {{
-                font-size: 9px;
-                min-width: 32px;
+                font-size: 8px;
+                min-width: 30px;
             }}
 
             .info-field {{
-                min-height: 16px;
+                min-height: 14px;
             }}
 
             .instructions {{
-                margin-bottom: 8px;
+                margin-bottom: 5px;
             }}
 
             .instructions-title {{
-                font-size: 10pt;
+                font-size: 9pt;
                 margin-bottom: 4px;
             }}
 
             .instructions ol {{
-                margin-left: 14px;
-                font-size: 9pt;
-                line-height: 1.25;
+                margin-left: 12px;
+                font-size: 8pt;
+                line-height: 1.15;
             }}
 
             .instructions li {{
-                margin-bottom: 2px;
+                margin-bottom: 1px;
             }}
 
             .marking-grid-container {{
-                margin-top: 6px;
-                padding-top: 6px;
+                margin-top: 4px;
+                padding-top: 4px;
             }}
 
             .grid-title {{
-                font-size: 9pt;
-                margin-bottom: 4px;
+                font-size: 8pt;
+                margin-bottom: 3px;
             }}
 
             .marking-grid {{
-                width: 100%;
+                width: 92%;
             }}
 
             .marking-grid th,
             .marking-grid td {{
-                font-size: 8pt;
-                padding: 4px 3px;
+                font-size: 7pt;
+                padding: 2px 2px;
             }}
         }}
     </style>
@@ -2479,7 +2484,6 @@ class PhysicsPaper1Coverpage:
     
     @staticmethod
     def _generate_marking_grid(section_a_questions, section_a_marks, 
-                               section_b_questions, section_b_marks,
                                section_b_question_marks, total_marks):
         """
         Generate marking grid HTML for Physics Paper 1
