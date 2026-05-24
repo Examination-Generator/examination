@@ -314,6 +314,16 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 text-align: left !important;
                 align-self: stretch;
             }}
+            .question-flow.physics-paper1 {{
+                max-width: 210mm;
+                margin-left: auto;
+                margin-right: auto;
+                text-align: left !important;
+                align-self: stretch;
+            }}
+            .question-flow.physics-paper1 .question-text {{
+                text-align: left !important;
+            }}
             .answer-lines-flow .answer-line {{
                 width: 100%;
             }}
@@ -523,6 +533,20 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             margin-right: auto;
             text-align: left !important;
             align-self: stretch;
+        }}
+
+        .question-flow.physics-paper1 {{
+            max-width: 210mm;
+            width: 210mm;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left !important;
+            align-self: stretch;
+            display: block;
+        }}
+
+        .question-flow.physics-paper1 .question-text {{
+            text-align: left !important;
         }}
 
         .question-flow.chemistry-paper1 {{
@@ -1730,7 +1754,15 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
 
     # Wrap all questions in a single flowing container. If Chemistry Paper 1,
     # place the questions inside a centered `question-flow chemistry-paper1` container.
-    if is_chemistry_paper1:
+    if is_physics_paper1:
+        page_html = f"""
+    <div class="exam-page page-break">
+        <div class="question-flow physics-paper1">
+            {questions_html}
+        </div>
+    </div>
+"""
+    elif is_chemistry_paper1:
         page_html = f"""
     <div class="exam-page page-break">
         <div class="question-flow chemistry-paper1 margin-auto">
