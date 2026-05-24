@@ -1810,7 +1810,7 @@ class MarkingSchemeCoverpage:
         @media print {{
             @page {{
                 size: A4;
-                margin: 8mm;
+                margin: 4mm;
             }}
 
             body {{
@@ -2307,8 +2307,8 @@ class PhysicsPaper1Coverpage:
                 min-height: 0;
                 height: auto;
                 overflow: hidden;
-                padding: 4mm 5mm 3mm 5mm;
-                transform: scale(0.8);
+                padding: 2mm 3mm 2mm 3mm;
+                transform: scale(0.72);
                 transform-origin: top center;
                 display: flex;
                 flex-direction: column;
@@ -2324,74 +2324,74 @@ class PhysicsPaper1Coverpage:
             }}
 
             .school-logo {{
-                max-width: 58px;
-                max-height: 58px;
+                max-width: 50px;
+                max-height: 50px;
             }}
 
             .school-name {{
-                font-size: 12pt;
-                margin-bottom: 2px;
+                font-size: 11pt;
+                margin-bottom: 1px;
             }}
 
             .class-name {{
-                font-size: 9pt;
-                margin-bottom: 4px;
+                font-size: 8pt;
+                margin-bottom: 2px;
             }}
 
             .exam-title {{
-                font-size: 10.5pt;
-                margin-bottom: 6px;
+                font-size: 9.5pt;
+                margin-bottom: 3px;
             }}
 
             .paper-name {{
-                font-size: 10.5pt;
+                font-size: 9.5pt;
             }}
 
             .paper-details {{
-                margin-bottom: 4px;
+                margin-bottom: 2px;
             }}
 
             .time-allocation {{
-                font-size: 9pt;
+                font-size: 8pt;
                 margin-top: 0;
             }}
 
             .candidate-info {{
-                margin: 5px 0;
-                padding: 4px;
+                margin: 3px 0;
+                padding: 2px;
             }}
 
             .candidate-info-grid {{
-                gap: 6px 8px;
+                gap: 4px 6px;
             }}
 
             .info-row-full,
             .info-row-grid {{
-                margin-bottom: 4px;
+                margin-bottom: 2px;
             }}
 
             .info-label {{
-                font-size: 8px;
-                min-width: 30px;
+                font-size: 7px;
+                min-width: 28px;
             }}
 
             .info-field {{
-                min-height: 14px;
+                min-height: 12px;
             }}
 
             .instructions {{
-                margin-bottom: 5px;
+                margin-bottom: 3px;
             }}
 
             .instructions-title {{
-                font-size: 9pt;
-                margin-bottom: 4px;
+                font-size: 8pt;
+                margin-bottom: 2px;
             }}
 
             .instructions ol {{
-                margin-left: 12px;
-                font-size: 8pt;
-                line-height: 1.15;
+                margin-left: 10px;
+                font-size: 7pt;
+                line-height: 1.05;
             }}
 
             .instructions li {{
@@ -2399,23 +2399,26 @@ class PhysicsPaper1Coverpage:
             }}
 
             .marking-grid-container {{
-                margin-top: 4px;
-                padding-top: 4px;
+                margin-top: 2px;
+                padding-top: 2px;
             }}
 
             .grid-title {{
-                font-size: 8pt;
-                margin-bottom: 3px;
+                font-size: 7pt;
+                margin-bottom: 2px;
             }}
 
             .marking-grid {{
-                width: 92%;
+                width: 84%;
+                table-layout: fixed;
             }}
 
             .marking-grid th,
             .marking-grid td {{
-                font-size: 7pt;
-                padding: 2px 2px;
+                font-size: 6pt;
+                padding: 1px 1px;
+                line-height: 1;
+                height: 10px;
             }}
         }}
     </style>
