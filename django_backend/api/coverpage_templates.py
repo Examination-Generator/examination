@@ -2056,7 +2056,6 @@ class PhysicsPaper1Coverpage:
         # Generate marking grid for Physics Paper 1
         marking_grid_html = PhysicsPaper1Coverpage._generate_marking_grid(
             section_a_questions, section_a_marks,
-            section_b_questions, section_b_marks,
             section_b_question_marks,
             total_marks
         )
