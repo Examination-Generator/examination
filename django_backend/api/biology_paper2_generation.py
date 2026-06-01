@@ -186,12 +186,36 @@ class KCSEBiologyPaper2Generator:
         available_essay = [q for q in self.section_b_20mark_essay if q.id not in self.used_ids]
         
         selected = []
-        
+
+        # Guesser helper: choose random indices from available pools
+        def _guesser(graph_len: int, essay_len: int):
+            """Return (graph_index, essay_indices).
+
+            - graph_index: int or None
+            - essay_indices: list of two distinct ints (or empty list if not possible)
+            """
+            graph_index = None
+            essay_indices = []
+            if graph_len and graph_len > 0:
+                graph_index = random.randrange(0, graph_len)
+            if essay_len and essay_len >= 2:
+                # pick two distinct indices to reduce bias
+                essay_indices = random.sample(range(essay_len), 2)
+            return graph_index, essay_indices
+
         # Strategy: Require 1 graph + 2 essays (Q6 graph, Q7-Q8 essays)
         if len(available_graph) >= 1 and len(available_essay) >= 2:
-            selected.append(available_graph[0])
-            selected.extend(available_essay[:2])
-            print(f"  Section B Strategy: 1 Graph (Q6) + 2 Essays (Q7, Q8)")
+            g_idx, e_idxs = _guesser(len(available_graph), len(available_essay))
+            # safety fallbacks
+            if g_idx is None:
+                g_idx = 0
+            if not e_idxs:
+                e_idxs = [0, 1]
+
+            selected.append(available_graph[g_idx])
+            selected.append(available_essay[e_idxs[0]])
+            selected.append(available_essay[e_idxs[1]])
+            print(f"  Section B Strategy: 1 Graph (Q6) + 2 Essays (Q7, Q8) using indices graph={g_idx} essays={e_idxs}")
         else:
             # Do not fallback to 3 essays; fail selection if graph + 2 essays not available
             print(f"  Section B FAILED: Need 1 graph + 2 essays, have {len(available_graph)} graphs + {len(available_essay)} essays")
