@@ -83,8 +83,8 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         /* Answer page header */
         .answer-page-header {{
             text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            margin-bottom: 5px;
+            padding-bottom: 5px;
             /* border-bottom: 2px solid black;  */
         }}
         
@@ -99,7 +99,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         }}
 
         .answers-flow {{
-            margin-top: 4px;
+            margin-top: 2px;
         }}
         
         /* Answer item styling */
@@ -114,7 +114,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         
         .answer-text {{
             font-size: 12pt;
-            line-height: 1.8;
+            line-height: 1.5;
             text-align: left;
             white-space: pre-wrap;
             background: yellow;
