@@ -1540,9 +1540,7 @@ class BiologyPaper2MarkingSchemeCoverpage:
                 padding: 20mm;
             }}
             
-            .coverpage {{
-                page-break-after: always;
-            }}
+            
         }}
     </style>
 </head>
