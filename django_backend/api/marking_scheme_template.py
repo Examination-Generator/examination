@@ -108,8 +108,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         }}
         
         .answer-content {{
-            padding: 1px 0;
-            background: #ffffff;
+            background: green;
         }}
         
         .answer-text {{
