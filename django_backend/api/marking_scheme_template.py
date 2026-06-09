@@ -104,12 +104,12 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         
         /* Answer item styling */
         .answer-item {{
-            margin-bottom: 30px;
+            margin-bottom: 5px;
             page-break-inside: avoid;
         }}
         
         .answer-content {{
-            padding: 12px 0;
+            padding: 4px 0;
             background: #ffffff;
         }}
         
@@ -121,7 +121,6 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         }}
         
         .question-number {{
-            font-weight: bold;
             font-size: 13pt;
             color: black;
         }}
