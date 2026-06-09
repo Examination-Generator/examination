@@ -99,7 +99,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         }}
 
         .answers-flow {{
-            margin-top: 12px;
+            margin-top: 4px;
         }}
         
         /* Answer item styling */

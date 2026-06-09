@@ -1820,8 +1820,6 @@ class MarkingSchemeCoverpage:
             }}
             
             .coverpage {{
-                page-break-after: always;
-                break-after: page;
                 width: 100%;
                 min-height: 0;
                 height: auto;
