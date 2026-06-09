@@ -104,12 +104,12 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         
         /* Answer item styling */
         .answer-item {{
-            margin-bottom: 5px;
+            margin-bottom: 2px;
             page-break-inside: avoid;
         }}
         
         .answer-content {{
-            padding: 4px 0;
+            padding: 1px 0;
             background: #ffffff;
         }}
         
@@ -127,8 +127,8 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         
         /* Marking points styling */
         .marking-points {{
-            margin-top: 12px;
-            padding: 12px;
+            margin-top: 2px;
+            padding: 2px;
             background: #fef3c7;
             border-left: 3px solid #f59e0b;
         }}
@@ -136,7 +136,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         .marking-points-title {{
             font-weight: bold;
             color: #92400e;
-            margin-bottom: 8px;
+            margin-bottom: 2px;
             font-size: 11pt;
         }}
         
@@ -298,19 +298,7 @@ def _generate_single_answer_html(item):
     answer_images = item.get('answer_inline_images', [])
     answer_lines = item.get('answer_answer_lines', [])
     
-    # Build marking points HTML
-    marking_points_html = ''
-    if marking_points and isinstance(marking_points, list):
-        points_list = ''.join([
-            f'<div class="marking-point">• Part {chr(97 + i)}: {point.get("marks", 0)} mark(s) - {point.get("text", "N/A")}</div>'
-            for i, point in enumerate(marking_points)
-        ])
-        marking_points_html = f"""
-        <div class="marking-points">
-            <div class="marking-points-title">Marking Points:</div>
-            {points_list}
-        </div>
-        """
+    
     
     # Process answer text with images and lines - USE SAME FUNCTION AS EXAM PAPER
     processed_answer = _process_answer_text(answer, answer_images, answer_lines)
@@ -321,7 +309,6 @@ def _generate_single_answer_html(item):
                 <div class="answer-text">
 <span class="question-number">{number}.</span>  {processed_answer}
                 </div>
-                {marking_points_html}
             </div>
         </div>
 """

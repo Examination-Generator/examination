@@ -1649,7 +1649,6 @@ class MarkingSchemeCoverpage:
             'Do not distribute to candidates before or during examination.',
             'Award marks strictly according to the marking points provided.',
             'Accept any valid alternative answers that demonstrate understanding.',
-            f'This marking scheme consists of {total_pages} printed pages.',
             'Check that all pages are printed and no answers are missing.'
         ]
         
