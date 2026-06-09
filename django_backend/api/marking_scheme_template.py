@@ -108,7 +108,7 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
         }}
         
         .answer-content {{
-            background: green;
+            background: #ffffff;
         }}
         
         .answer-text {{
@@ -116,7 +116,6 @@ def generate_marking_scheme_html(coverpage_data, marking_scheme_items, coverpage
             line-height: 1.5;
             text-align: left;
             white-space: pre-wrap;
-            background: yellow;
         }}
         
         .question-number {{
