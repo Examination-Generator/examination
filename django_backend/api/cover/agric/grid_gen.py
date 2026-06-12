@@ -7,7 +7,7 @@ def generate_examiner_grid_html() -> str:
     ]
 
     s_body      = "font-family:Arial,sans-serif;display:flex;justify-content:center;padding:30px;"
-    s_container = "width:480px;"
+    s_container = "width:480px; margin: 0 auto;"
     s_heading   = "text-align:center;color:#cc0000;font-size:1.1rem;margin-bottom:10px;"
     s_table     = "border-collapse:collapse;width:100%;"
     s_th        = "border:1px solid #333;padding:8px 12px;text-align:center;font-size:0.9rem;background-color:#f0f0f0;font-weight:bold;"
@@ -18,7 +18,6 @@ def generate_examiner_grid_html() -> str:
 
     html = f"""
   <div style="{s_container}">
-    <h2 style="{s_heading}">For Examiner's Use Only</h2>
     <table style="{s_table}">
       <thead>
         <tr>
