@@ -688,12 +688,11 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             }}
             
             .question{{
-                margin-top:0 !important;
                 background-color: blue;
                 font-size: 12pt !important;
             }}
             .question-part{{
-                width: 100% !important;
+                width: 90% !important;
                 font-size: 12pt !important; 
             }}
         }}
