@@ -11,6 +11,7 @@ from api.cover.cre.cre_coverpage import CREPaper1Coverpage, CREPaper2Coverpage
 from api.cover.geo.geo_coverpage import GeographyPaper1Coverpage, GeographyPaper2Coverpage
 from api.cover.bus.bus_coverpage import BusinessPaper1Coverpage, BusinessPaper2Coverpage
 from api.cover.phy.phy_coverpage import PhysicsPaper1Coverpage
+from api.cover.agric.agric_coverpage import AgricultureCoverpage
 import re
 from .page_number_extrctor import extract_paper_number_from_name
 from .process_text import _process_question_text
@@ -31,6 +32,7 @@ def get_coverpage_class(paper_data, is_marking_scheme=False):
         'CRE': CREPaper1Coverpage,
         'GEOGRAPHY': GeographyPaper1Coverpage,
         'BUSINESS': BusinessPaper1Coverpage,
+        'AGRICULTURE': AgricultureCoverpage,
     }
 
     PAPER_2_COVERS = {
@@ -41,6 +43,7 @@ def get_coverpage_class(paper_data, is_marking_scheme=False):
         'CRE': CREPaper2Coverpage,
         'GEOGRAPHY': GeographyPaper2Coverpage,
         'BUSINESS': BusinessPaper2Coverpage,
+        'AGRICULTURE': AgricultureCoverpage,
     }
 
     # Then your function becomes:
