@@ -31,6 +31,8 @@ from .cover.bus.bus_coverpage import BusinessPaper1Coverpage, BusinessPaper2Cove
 from .cover.cre.cre_coverpage import CREPaper1Coverpage, CREPaper2Coverpage
 from .cover.eng.eng_coverpage import EnglishPaper1Coverpage, EnglishPaper2Coverpage, EnglishPaper3Coverpage
 from .cover.format_time import format_time_allocation
+from .cover.agric.agric_coverpage import AgricultureCoverpage
+
 
 from .page_number_extrctor import extract_paper_number_from_name
 
@@ -162,6 +164,9 @@ def _select_coverpage_class_and_default(generated_paper, paper, is_marking_schem
             elif is_paper3():
                 return EnglishPaper3Coverpage, EnglishPaper3Coverpage.generate_default_coverpage_data(generated_paper, paper)
             return EnglishPaper2Coverpage, EnglishPaper2Coverpage.generate_default_coverpage_data(generated_paper, paper)
+        
+        if subject_name == 'AGRICULTURE':
+            return AgricultureCoverpage, AgricultureCoverpage.generate_default_coverpage_data(generated_paper, paper)
 
     except Exception:
         # If any class doesn't expose expected helper, fallback to a safe default
