@@ -1,24 +1,3 @@
-"""
-Views for KCSE Paper Generation
-
-This module contains all API endpoints for:
-- Generating KCSE Biology Paper 1 
-- Retrieving generated papers
-- Listing generated papers
-- Managing paper configurations
-- Getting topic statistics
-
-The actual paper generation logic is in kcse_biology_paper1_generator.py (KCSEBiologyPaper1Generator class)
-which uses an intelligent dynamic algorithm:
-- Nested questions: 10-18 questions (55-65 marks, flexible count)
-  * All questions have equal chance of selection
-  * Counts marks dynamically while selecting
-- Standalone questions: Fill remaining marks to reach exactly 80 marks
-  * Priority: 2-mark > 3-mark > 1-mark (for exact gaps)
-- Total: 18-27 questions, exactly 80 marks
-"""
-
-
 from collections import defaultdict
 import logging
 import time
@@ -40,28 +19,19 @@ from .mathematics_generator import KCSEMathematicsPaper1Generator, KCSEMathemati
 from .georaphy_paper_generator import KCSEGeographyPaper1Generator, KCSEGeographyPaper2Generator, Paper, Topic, Question
 from .kcse_biology_paper1_generator import KCSEBiologyPaper1Generator
 from .coverpage_templates import (
-    BiologyPaper1Coverpage, 
-    BiologyPaper2Coverpage, 
     BiologyPaper2MarkingSchemeCoverpage,
-    BiologyPaper3Coverpage,
-    GeographyPaper1Coverpage,
-    GeographyPaper2Coverpage,
-    PhysicsPaper1Coverpage,
-    PhysicsPaper2Coverpage,
-    ChemistryPaper1Coverpage,
-    ChemistryPaper2Coverpage,
-    CREPaper1Coverpage,
-    CREPaper2Coverpage,
-    KiswahiliPaper1Coverpage,
-    KiswahiliPaper2Coverpage,
-    BusinessPaper1Coverpage,
-    BusinessPaper2Coverpage,
-    EnglishPaper1Coverpage,
-    EnglishPaper2Coverpage,
-    EnglishPaper3Coverpage,
-    MarkingSchemeCoverpage, 
-    format_time_allocation
+    MarkingSchemeCoverpage
 )
+from .cover.phy.phy_coverpage import PhysicsPaper1Coverpage, PhysicsPaper2Coverpage
+from .cover.chem.chem_coverpage import ChemistryPaper1Coverpage, ChemistryPaper2Coverpage
+from .cover.bio.bio_coverpage import BiologyPaper1Coverpage, BiologyPaper3Coverpage, BiologyPaper2Coverpage 
+from .cover.geo.geo_coverpage import GeographyPaper1Coverpage, GeographyPaper2Coverpage
+from .cover.kis.kis_coverpage import KiswahiliPaper1Coverpage, KiswahiliPaper2Coverpage
+from .cover.bus.bus_coverpage import BusinessPaper1Coverpage, BusinessPaper2Coverpage
+from .cover.cre.cre_coverpage import CREPaper1Coverpage, CREPaper2Coverpage
+from .cover.eng.eng_coverpage import EnglishPaper1Coverpage, EnglishPaper2Coverpage, EnglishPaper3Coverpage
+from .cover.format_time import format_time_allocation
+
 from .page_number_extrctor import extract_paper_number_from_name
 
 logger = logging.getLogger(__name__)

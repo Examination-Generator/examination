@@ -1,24 +1,16 @@
 from .coverpage_templates import (
-    BiologyPaper1Coverpage, 
-    BiologyPaper2Coverpage, 
     BiologyPaper2MarkingSchemeCoverpage,
-    BusinessPaper1Coverpage,
-    BusinessPaper2Coverpage,
-    PhysicsPaper1Coverpage,
-    PhysicsPaper2Coverpage,
-    ChemistryPaper1Coverpage,
-    ChemistryPaper2Coverpage,
-    MathematicsPaper1Coverpage,
-    MathematicsPaper2Coverpage,
-    CREPaper1Coverpage,
-    CREPaper2Coverpage,
-    GeographyPaper1Coverpage,
-    GeographyPaper2Coverpage,
-    KiswahiliPaper1Coverpage,
-    KiswahiliPaper2Coverpage,
     MarkingSchemeCoverpage,
     BiologyPaper2MarkingSchemeCoverpage
 )
+from api.cover.math.math_coverpage import MathematicsPaper1Coverpage, MathematicsPaper2Coverpage
+from api.cover.chem.chem_coverpage import ChemistryPaper1Coverpage, ChemistryPaper2Coverpage
+from api.cover.bio.bio_coverpage import BiologyPaper1Coverpage, BiologyPaper2Coverpage
+from api.cover.kis.kis_coverpage import KiswahiliPaper1Coverpage, KiswahiliPaper2Coverpage
+from api.cover.cre.cre_coverpage import CREPaper1Coverpage, CREPaper2Coverpage
+from api.cover.geo.geo_coverpage import GeographyPaper1Coverpage, GeographyPaper2Coverpage
+from api.cover.bus.bus_coverpage import BusinessPaper1Coverpage, BusinessPaper2Coverpage
+from api.cover.phy.phy_coverpage import PhysicsPaper1Coverpage
 import re
 from .page_number_extrctor import extract_paper_number_from_name
 from .process_text import _process_question_text
