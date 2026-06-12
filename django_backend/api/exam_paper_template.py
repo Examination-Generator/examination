@@ -957,7 +957,7 @@ def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None)
             
             # Generate page HTML with combined question
             page_html = f"""
-    <div style="margin-top:0;">
+    <div style="margin-top:0 auto; font-size:14pt; line-height:1.8;" >
         <div class="question" style="margin:0;">                
             <div class="question-part">
                 <div style="text-align: left;">
@@ -971,8 +971,6 @@ def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None)
                 </div>
             </div>
         </div>
-        
-        <div class="page-number">Page {current_page} of {total_pages}</div>
     </div>
 """
             pages_html.append(page_html)
