@@ -309,6 +309,13 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 text-align: left !important;
                 align-self: stretch;
             }}
+            
+            .questio-flow.business-paper2{{
+                max-width: 210mm;
+                margin-left: auto;
+                margin-right: auto;
+                text-align: left !important;
+            }}
             .question-flow.physics-paper1 {{
                 max-width: 210mm;
                 margin-left: auto;
@@ -957,7 +964,7 @@ def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None)
             
             # Generate page HTML with combined question
             page_html = f"""
-    <div style="margin-top:0 auto; font-size:14pt; line-height:1.8;" >
+    <div style="margin-top:0 auto; font-size:14pt; line-height:1.8;"  class="question-flow business-paper2">
         <div class="question" style="margin:0;">                
             <div class="question-part">
                 <div style="text-align: left;">
