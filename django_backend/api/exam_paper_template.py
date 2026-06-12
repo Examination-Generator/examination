@@ -1767,8 +1767,10 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
 """
     else:
         page_html = f"""
-    <div class="exam-page page-break">
-        {questions_html}
+    <div class="exam-page page-break ">
+        <div class="question-flow chemistry-paper1 margin-auto">
+            {questions_html}
+        </div>
     </div>
 """
 
