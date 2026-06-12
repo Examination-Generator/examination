@@ -45,7 +45,6 @@ class GeographyPaper1Coverpage:
         # Generate marking grid for Geography Paper 1
         marking_grid_html = GeographyPaper1Coverpage._generate_marking_grid(
             section_a_questions, section_a_marks,
-            section_b_question, section_b_marks,
             total_marks
         )
         
@@ -504,7 +503,6 @@ class GeographyPaper2Coverpage:
         # Generate marking grid for Geography Paper 2
         marking_grid_html = GeographyPaper2Coverpage._generate_marking_grid(
             section_a_questions, section_a_marks,
-            section_b_question, section_b_marks,
             total_marks
         )
         
