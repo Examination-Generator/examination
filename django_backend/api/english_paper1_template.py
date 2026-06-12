@@ -1,14 +1,8 @@
-"""
-English Paper 1 Template Generator
-Specific template for KCSE English Paper 1 (Functional Skills)
-With simple bold titles before each question (no section headers)
-"""
-
 from .coverpage_templates import (
-    EnglishPaper1Coverpage,
-    BiologyPaper1Coverpage, 
     MarkingSchemeCoverpage
 )
+from .cover.eng.eng_coverpage import EnglishPaper1Coverpage
+from .cover.bio.bio_coverpage import BiologyPaper1Coverpage
 import re
 
 
