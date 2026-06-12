@@ -317,6 +317,15 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 text-align: left !important;
                 font-size: 14pt !important;
             }}
+            .question{{
+                background-color: blue;
+                font-size: 12pt !important;
+            }}
+            .question-part{{
+                width: 90% !important;
+                font-size: 12pt !important; 
+            }}
+            
             .question-flow.physics-paper1 {{
                 max-width: 210mm;
                 margin-left: auto;
