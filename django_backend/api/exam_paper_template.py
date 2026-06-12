@@ -590,12 +590,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
             justify-content: center;
         }}
         
-        .question-con {{
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }}
+        
         
         .marks {{
             font-weight: bold;
@@ -991,7 +986,7 @@ def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None)
             
             # Generate page HTML with combined question
             page_html = f"""
-    <div style="margin-top: auto; font-size:14pt; line-height:1.8;"  class="question-con question-flow business-paper2">
+    <div style="font-size:14pt; line-height:1.8;"  class="exam-pagequestion-con question-flow business-paper2">
         <div class="question">                
             <div class="question-part">
                 <div style="text-align: left;">
