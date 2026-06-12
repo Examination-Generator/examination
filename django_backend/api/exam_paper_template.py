@@ -310,7 +310,7 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 align-self: stretch;
             }}
             
-            .questio-flow.business-paper2{{
+            .question-flow.business-paper2{{
                 max-width: 210mm;
                 margin-left: auto;
                 margin-right: auto;
