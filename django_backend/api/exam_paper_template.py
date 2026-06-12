@@ -952,7 +952,7 @@ def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None)
             # Generate page HTML with combined question
             page_html = f"""
     <div class="exam-page {'page-break' if current_page < total_pages else ''}">
-        <div class="question">                
+        <div class="question" style="margin:0;">                
             <div class="question-part">
                 <div style="text-align: left;">
                    {question_number}.(a){q_a_text}
@@ -1768,7 +1768,7 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
     else:
         page_html = f"""
     <div class="exam-page page-break ">
-        <div class="question-flow chemistry-paper1 margin-auto">
+        <div class="question-flow chemistry-paper1 margin-auto" >
             {questions_html}
         </div>
     </div>
