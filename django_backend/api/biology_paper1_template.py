@@ -1,4 +1,4 @@
-from .coverpage_templates import BiologyPaper1Coverpage
+from .cover.bio.bio_coverpage import BiologyPaper1Coverpage
 from .process_text import _process_question_text
 
 

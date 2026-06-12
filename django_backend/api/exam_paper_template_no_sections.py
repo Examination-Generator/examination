@@ -1,12 +1,6 @@
-from .coverpage_templates import (
-    BiologyPaper1Coverpage, 
-    BiologyPaper2Coverpage,
-    BusinessPaper1Coverpage,
-    BusinessPaper2Coverpage,
-    ChemistryPaper1Coverpage,
-    ChemistryPaper2Coverpage,
-    KiswahiliPaper2Coverpage,
-)
+from .cover.bus.bus_coverpage import BusinessPaper1Coverpage
+from .cover.chem.chem_coverpage import ChemistryPaper1Coverpage
+from .cover.kis.kis_coverpage import KiswahiliPaper2Coverpage
 import re
 from .page_number_extrctor import extract_paper_number_from_name
 from .process_text import _process_question_text

@@ -5,9 +5,9 @@ With bold titles and marks before each question
 """
 
 from .coverpage_templates import (
-    KiswahiliPaper2Coverpage,
     MarkingSchemeCoverpage
 )
+from .cover.kis.kis_coverpage import KiswahiliPaper2Coverpage
 import re
 
 
