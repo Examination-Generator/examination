@@ -383,7 +383,6 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 box-shadow: none;
                 padding: 5mm !important;
                 min-height: 297mm;
-                page-break-after: always !important;
                 font-size: 12pt !important;
                 width: 210mm;
             }}
