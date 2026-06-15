@@ -1,3 +1,6 @@
+from api.process_text import _process_question_text
+
+
 def _generate_physics_paper2_continuous_pages(questions, start_page, total_pages):
     questions_html = ""
     for q in questions:
