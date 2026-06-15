@@ -1,18 +1,3 @@
-"""
-KCSE Geography Paper 1 & 2 Generator
-Both papers follow similar structure with key differences in Section B
-
-PAPER 1:
-- Section A: 5-6 questions totaling 25 marks (ALL COMPULSORY)
-- Section B: 5 questions x 25 marks = 125 marks (Question 6 MUST be MAP if available)
-- Paper Total: 10-11 questions, 150 marks
-
-PAPER 2:
-- Section A: 5-6 questions totaling 25 marks (ALL COMPULSORY)
-- Section B: 5 questions x 25 marks = 125 marks (No map priority for Question 6)
-- Paper Total: 10-11 questions, 150 marks
-"""
-
 import random
 import time
 from collections import defaultdict
@@ -27,14 +12,10 @@ from .page_number_extrctor import extract_paper_number_from_name
 
 
 class KCSEGeographyPaperGenerator:
-    """
-    Base class for Geography Paper generation
-    Handles common logic for both Paper 1 and Paper 2
-    """
     
     # Section A Requirements (ALL COMPULSORY)
     SECTION_A_MIN_QUESTIONS = 5
-    SECTION_A_MAX_QUESTIONS = 6
+    SECTION_A_MAX_QUESTIONS = 5
     SECTION_A_TOTAL_MARKS = 25
     
     # Section B Requirements (ALL COMPULSORY)
@@ -58,9 +39,9 @@ class KCSEGeographyPaperGenerator:
         self.all_questions = []
         
         # Question pools
-        self.section_a_questions = []  # Mixed marks questions for Section A
-        self.section_b_25mark_map = []  # Map questions (25 marks)
-        self.section_b_25mark_regular = []  # Regular 25-mark questions
+        self.section_a_questions = []  
+        self.section_b_25mark_map = []  
+        self.section_b_25mark_regular = []  
         
         # Selection tracking
         self.selected_section_a = []
@@ -73,7 +54,6 @@ class KCSEGeographyPaperGenerator:
         self.generation_start_time = None
     
     def load_data(self):
-        """Load all questions from database for selected topics"""
         # Load paper and subject
         self.paper = Paper.objects.select_related('subject').get(
             id=self.paper_id,
@@ -146,17 +126,13 @@ class KCSEGeographyPaperGenerator:
             )
     
     def _select_section_a(self) -> bool:
-        """
-        Select Section A questions: 5-6 questions totaling exactly 25 marks
-        Uses a combination approach to reach exactly 25 marks
-        """
         available = [q for q in self.section_a_questions if q.id not in self.used_ids]
         
         if len(available) < self.SECTION_A_MIN_QUESTIONS:
             return False
         
         # Try to find a combination that sums to exactly 25 marks
-        # with 5-6 questions
+       
         for num_questions in range(self.SECTION_A_MIN_QUESTIONS, self.SECTION_A_MAX_QUESTIONS + 1):
             if len(available) < num_questions:
                 continue

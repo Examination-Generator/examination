@@ -39,7 +39,6 @@ urlpatterns = [
     path('questions/set-mode/<uuid:question_id>/', question_views.set_question_mode),
     
     # AUTHENTICATION ROUTES 
-    # Auth endpoints without 'auth/' prefix to match frontend expectations
     path('send-otp', auth_views.send_otp, name='send-otp'),
     path('verify-otp', auth_views.verify_otp, name='verify-otp'),
     path('register', auth_views.register, name='register'),
@@ -86,7 +85,6 @@ urlpatterns = [
     path('topics/printable-document', question_views.generate_topic_printable_document, name='topic-printable-document'),
     
     # PAPER GENERATION ROUTES 
-    # KCSE Biology Paper 1 generation endpoints
     path('papers/generate', paper_generation_views.generate_paper, name='generate-paper'),
     path('papers/generated', paper_generation_views.list_generated_papers, name='list-generated-papers'),
     path('papers/generated/<uuid:paper_id>', paper_generation_views.get_generated_paper, name='get-generated-paper'),
@@ -100,49 +98,41 @@ urlpatterns = [
     path('papers/<uuid:paper_id>/topics/statistics', paper_generation_views.get_topic_statistics, name='topic-statistics'),
     path('questions/<uuid:question_id>/check_graph_essay', paper_generation_views.check_question_graph_essay_status, name='check-graph-essay'),
     
-    # BIOLOGY PAPER 2 GENERATION ROUTES 
-    # KCSE Biology Paper 2 specific generation endpoints
+    # GENERATION ROUTES 
     path('papers/biology-paper2/validate', biology_paper2_generation.validate_paper2_pool, name='validate-paper2-pool'),
     path('papers/biology-paper2/generate', biology_paper2_generation.generate_biology_paper2, name='generate-biology-paper2'),
     
-    # PHYSICS GENERATION ROUTES 
     path('papers/physics-paper/validate', physics_paper_generation.validate_physics_paper_pool, name='validate-physics-paper'),
     path('papers/physics-paper/generate', physics_paper_generation.generate_physics_paper, name='generate-physics-paper'),
 
 
-    # CHEMISTRY GENERATION ROUTES 
     path('papers/chemistry/validate', paper_generation_views.validate_chemistry_paper_pool, name='validate-chemistry-paper'),
     path('papers/chemistry/generate', paper_generation_views.generate_chemistry_paper, name='generate-chemistry-paper'),
 
 
-    # MATHEMATICS GENERATION ROUTES 
     path('papers/mathematics-paper/validate', paper_generation_views.validate_mathematics_paper_pool, name='validate-mathematics-paper'),
     path('papers/mathematics-paper/generate', paper_generation_views.generate_mathematics_paper, name='generate-mathematics-paper'),
-    # GEOGRAPHY GENERATION ROUTES 
+ 
     path('papers/geography-paper/validate', georaphy_paper_generator.validate_geography_paper_pool, name='validate-geography-paper'),
     path('papers/geography-paper/generate', georaphy_paper_generator.generate_geography_paper, name='generate-geography-paper'),
 
-    # ENGLISH GENERATION ROUTES 
+   
     path('papers/english-paper/validate', paper_generation_views.validate_english_paper_pool, name='validate-english-paper'),
     path('papers/english-paper/generate', paper_generation_views.generate_english_paper, name='generate-english-paper'),
     
-    # KISWAHILI GENERATION ROUTES 
+  
     path('papers/kiswahili-paper/validate', kiswahili_paper_generator.validate_kiswahili_paper_pool, name='validate-kiswahili-paper'),
     path('papers/kiswahili-paper/generate', kiswahili_paper_generator.generate_kiswahili_paper, name='generate-kiswahili-paper'),
     
-    # BUSINESS STUDIES GENERATION ROUTES 
+  
     path('papers/business-paper/validate', business_paper_generator.validate_business_paper_pool, name='validate-business-paper'),
     path('papers/business-paper/generate', business_paper_generator.generate_business_paper, name='generate-business-paper'),
     
-    # CHRISTIAN RELIGIOUS EDUCATION GENERATION ROUTES 
     path('papers/cre-paper/validate', cre_paper_generator.validate_cre_paper_pool, name='validate-cre-paper'),
     path('papers/cre-paper/generate', cre_paper_generator.generate_cre_paper, name='generate-cre-paper'),
     
-    # AGRICULTURE GENERATION ROUTES 
+  
     path('papers/agriculture-paper/validate', agriculture_paper_generator.validate_agriculture_paper_pool, name='validate-agriculture-paper'),
     path('papers/agriculture-paper/generate', agriculture_paper_generator.generate_agriculture_paper, name='generate-agriculture-paper'),
 ]
 
-
-    
-        
