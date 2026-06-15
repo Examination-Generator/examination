@@ -1,5 +1,5 @@
 def _generate_answer_lines_pages(num_pages, start_page, total_pages, show_page_numbers=True, flow_after_previous=False):
-    lines_per_page = 25
+    lines_per_page = 24
 
     if flow_after_previous:
         lines_html = ''
