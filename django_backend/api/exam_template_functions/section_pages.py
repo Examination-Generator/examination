@@ -31,7 +31,7 @@ def _generate_section_pages(questions, section_title, section_instruction, start
         )
 
         questions_html += f"""
-        <div class="question" style="text-align: left !important; background-color:red;">
+        <div class="question" style="text-align: left !important;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
