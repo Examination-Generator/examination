@@ -1588,23 +1588,11 @@ def _generate_cre_paper1_pages(questions, total_pages, coverpage_data=None, inli
 
 
 def _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data=None):
-    """
-    Generate single question page for Kiswahili Paper 1
-    All 4 questions on one page, no answer spaces within questions
-    
-    Args:
-        questions: List of question dictionaries (should be 4 questions)
-        total_pages: Total pages in paper
-        coverpage_data: Metadata from coverpage
-    
-    Returns:
-        str: HTML for the single question page
-    """
     current_page = 2
     
     # Add instruction before questions
     instruction_html = """
-        <div style="font-weight: bold; margin-bottom: 10px; font-size: 12pt;">
+        <div style="font-weight: bold; margin-bottom: 10px; margin-top: 0; font-size: 12pt;">
             Swali la kwanza ni lazima kisha uchague lingine moja kwa zilizo salia
         </div>
 """
@@ -1619,8 +1607,8 @@ def _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data=None)
         )
         
         questions_html += f"""
-        <div class="question" style="text-align: left !important;">
-            <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
+        <div class="question" style="text-align: left !important; margin-top:0; background-color: blue;">
+            <div class="question-text" style="background-color:grey;margin: 0;"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
     
@@ -1628,8 +1616,7 @@ def _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data=None)
     <!-- Page {current_page} -->
     <div class="exam-page page-break">
         {instruction_html}
-        {questions_html}        
-        <div class="page-number">Page {current_page} of {total_pages}</div>
+        {questions_html}
     </div>
 """
     
@@ -1637,10 +1624,6 @@ def _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data=None)
 
 
 def _generate_question_pages(questions, total_pages, coverpage_data=None):
-    """
-    Generate paginated question pages for standard papers
-    Handles sections for Geography Paper 1, Mathematics Paper 1, and Agriculture Paper 1
-    """
     # Generate all questions in a flowing container without fixed pages
     questions_html = ""
     
@@ -1767,7 +1750,7 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
         question_wrapper_style = 'text-align: left !important; width: 100%; align-self: stretch;' if is_mathematics_paper else 'text-align: left !important;'
         
         questions_html += f"""
-        <div class="question" style="{question_wrapper_style} background-color: red;">
+        <div class="question" style="{question_wrapper_style} ">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
