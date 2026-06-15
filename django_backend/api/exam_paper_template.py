@@ -990,13 +990,13 @@ def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None)
     <div style="font-size:14pt; line-height:1.8; background-color: blue;"  class="question-flow business-paper2">
         <div class="question" style="margin:auto; width:70%;">                
             <div class="question-part" style="background-color:green;">
-                <div style="text-align: left; background-color:orange;">
+                <div style="text-align: left; background-color:orange; font-size:15pt;">
                    {question_number}.(a){q_a_text}
                 </div>
             </div>
             
             <div class="question-part" >
-                <div style="text-align: left;">
+                <div style="text-align: left; font-size:15pt;">
                     (b){q_b_text}
                 </div>
             </div>
