@@ -51,7 +51,8 @@ def _generate_section_pages(questions, section_title, section_instruction, start
 
     page_class = 'exam-page'
     if not flow_last_page:
-        page_class += ' page-break'
+        # page_class += ' page-break'
+        pass
 
     page_html = f"""
         <!-- Page {current_page} -->
