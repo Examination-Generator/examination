@@ -251,6 +251,10 @@ def generate_full_exam_html(coverpage_data, questions, paper_data=None, coverpag
                 page-break-after: always;
             }}
             
+            .bus-con{{
+                width:100% !important;
+            }}
+            
             /* Ensure consistent font sizes in print */
             body {{
                 font-size: 12pt !important;
@@ -994,7 +998,7 @@ def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None)
             page_html = f"""
     <div style="font-size:14pt; line-height:1.8; background-color: blue;"  class="question-flow business-paper2">
         <div class="question bus-con" >                
-            <div class="question-part" style="background-color:green;">
+            <div class="question-part" >
                 <div style="text-align: left; font-size:15pt;">
                    {question_number}.(a){q_a_text}
                 </div>
