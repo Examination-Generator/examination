@@ -6,7 +6,7 @@ def _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data=None)
     
     # Add instruction before questions
     instruction_html = """
-        <div style="font-weight: bold; margin-bottom: 10px; margin-top: 0; font-size: 12pt;">
+        <div style="font-weight: bold; margin-top:0; margin-bottom: 10px; margin-top: 0; font-size: 12pt;">
             Swali la kwanza ni lazima kisha uchague lingine moja kwa zilizo salia
         </div>
 """
