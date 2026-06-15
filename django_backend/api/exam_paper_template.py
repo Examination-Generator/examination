@@ -996,7 +996,7 @@ def _generate_business_paper2_pages(questions, total_pages, coverpage_data=None)
             
             # Generate page HTML with combined question
             page_html = f"""
-    <div style="font-size:14pt; line-height:1.8; background-color: blue;"  class="question-flow business-paper2">
+    <div style="font-size:15pt; line-height:1.8;"  class="question-flow business-paper2">
         <div class="question bus-con" >                
             <div class="question-part" >
                 <div style="text-align: left; font-size:15pt;">
