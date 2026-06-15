@@ -28,7 +28,7 @@ def _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data=None)
     
     page_html = f"""
     <!-- Page {current_page} -->
-    <div class="exam-page page-break">
+    <div class="exam-page page-break" style="background-color: red;">
         {instruction_html}
         <div class="question-flow chemistry-paper1" style="width: 100%; max-width: 210mm; margin-left: auto; margin-right: auto; text-align: left;">
          {questions_html}
