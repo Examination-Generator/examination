@@ -20,7 +20,7 @@ from .serializers import (
     QuestionListLightweightSerializer
 )
 from .utils import success_response, error_response
-from .exam_paper_template import _process_question_text
+from api.process_text import _process_question_text
 
 logger = logging.getLogger(__name__)
 
