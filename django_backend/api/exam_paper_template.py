@@ -1767,7 +1767,7 @@ def _generate_question_pages(questions, total_pages, coverpage_data=None):
         question_wrapper_style = 'text-align: left !important; width: 100%; align-self: stretch;' if is_mathematics_paper else 'text-align: left !important;'
         
         questions_html += f"""
-        <div class="question" style="{question_wrapper_style}">
+        <div class="question" style="{question_wrapper_style} background-color: red;">
             <div class="question-text"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
