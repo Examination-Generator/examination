@@ -21,14 +21,14 @@ def _generate_kiswahili_paper1_page(questions, total_pages, coverpage_data=None)
         )
         
         questions_html += f"""
-        <div class="question" style="text-align: left !important; width: 100%; margin-top:0; background-color: blue;">
-            <div class="question-text" style="background-color:grey;margin: 0; text-align: left !important;"><span class="question-number">{q['number']}.</span> {processed_text}</div>
+        <div class="question" style="text-align: left !important; width: 100%; margin-top:0; ">
+            <div class="question-text" style="margin: 0; text-align: left !important;"><span class="question-number">{q['number']}.</span> {processed_text}</div>
         </div>
 """
     
     page_html = f"""
     <!-- Page {current_page} -->
-    <div class="exam-page question-flow chemistry-paper1"" style="background-color: red;">
+    <div class="exam-page question-flow chemistry-paper1"" >
         {instruction_html}
         <div style="width: 100%; max-width: 210mm; margin-left: auto; margin-right: auto; text-align: left;">
          {questions_html}
