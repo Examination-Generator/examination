@@ -61,7 +61,7 @@ def _generate_section_pages(questions, section_title, section_instruction, start
 
         page_html = f"""
         <!-- Page {current_page} -->
-        <div class="{page_class}">
+        <div class="{page_class} question-flow chemistry-paper1">
             {section_header_html}
             {questions_html}
         </div>
