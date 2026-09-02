@@ -33,7 +33,6 @@ jobs:
           python setup_database.py --token $VERCEL_TOKEN --project examination
       
 
-      
       - name: Deployment complete
         run: |
           echo "✅ Database setup and deployment completed!"
