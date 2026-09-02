@@ -35,6 +35,7 @@ django_backend/media/
 .env
 .env.local
 .env.locl
+.env.deploy
 .env.production.local
 django_backend/.env
 
