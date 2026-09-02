@@ -36,7 +36,7 @@ rclone copy "$LOCAL_PATH" "$REMOTE" >> "$LOG_FILE" 2>&1
 # --- Step 3: Enforce retention — keep only the 3 most recent backups on Drive ---
 echo "Checking retention policy..." >> "$LOG_FILE"
 
-FILES=$(rclone lsf "$REMOTE" --format "tp" | sort | awk '{print $2}')
+FILES=$(rclone lsf "$REMOTE" --format "tp" --separator "|" | sort | awk -F'|' '{print $2}')
 COUNT=$(echo "$FILES" | wc -l)
 
 if [ "$COUNT" -gt 3 ]; then
