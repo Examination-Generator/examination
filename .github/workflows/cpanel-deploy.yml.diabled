@@ -1,4 +1,4 @@
-name: Deploy to cPanel Production
+name: Deploy to cPanel Production - not used
 
 on:
   # Automatic deployment: 10 minutes after push to main
