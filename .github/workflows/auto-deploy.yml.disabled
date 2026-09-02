@@ -1,4 +1,4 @@
-name: Auto-Deploy with Database Setup
+name: Auto-Deploy with Database Setup 
 
 on:
   push:
