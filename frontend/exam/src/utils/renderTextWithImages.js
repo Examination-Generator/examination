@@ -177,9 +177,9 @@ export function renderTextWithImages(
                     const formula = parseFormulaToken(rem.slice(0, end + 1));
                     if (formula) {
                         const renderSide = (superscript, subscript, key) => (
-                            <span key={key} style={{ display: 'inline-flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', lineHeight: 1, fontSize: '0.8em', verticalAlign: 'middle' }}>
+                            <span key={key} style={{ display: 'inline-flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', lineHeight: 1, rowGap: '0.15em', fontSize: '0.8em', verticalAlign: 'middle' }}>
                                 <sup>{parseText(superscript, key * 1000)}</sup>
-                                <sub>{parseText(subscript, key * 1000 + 1)}</sub>
+                                <sub style={{ transform: 'translateY(0.1em)' }}>{parseText(subscript, key * 1000 + 1)}</sub>
                             </span>
                         );
                         results.push(

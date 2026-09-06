@@ -108,9 +108,9 @@ export default function PaperGenerationDashboard() {
             const formula = parseFormulaToken(part);
             if (formula) {
                 const renderSide = (superscript, subscript) => (
-                    <span style={{ display: 'inline-flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', lineHeight: 1, fontSize: '0.8em', verticalAlign: 'middle' }}>
+                    <span style={{ display: 'inline-flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', lineHeight: 1, rowGap: '0.15em', fontSize: '0.8em', verticalAlign: 'middle' }}>
                         <sup>{superscript}</sup>
-                        <sub>{subscript}</sub>
+                        <sub style={{ transform: 'translateY(0.1em)' }}>{subscript}</sub>
                     </span>
                 );
                 return (
