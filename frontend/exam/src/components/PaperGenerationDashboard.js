@@ -1,5 +1,6 @@
 import React from 'react';
 import { useState, useEffect, useRef } from 'react';
+import { parseFormulaToken } from '../utils/formula';
 import { 
     getTopicStatistics, 
     generatePaper, 
@@ -103,7 +104,24 @@ export default function PaperGenerationDashboard() {
     const renderTextWithImages = (text, images = [], imagePositions = {}, context = 'preview') => {
         if (!text) return [];
         
-        return text.split(/(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
+        return text.split(/(\[FORMULA:[^\]]+\]|\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[\/SUP\]|\[SUB\].*?\[\/SUB\]|\[FRAC:[^\]]+\]|\[MIX:[^\]]+\]|\[TABLE:[^\]]+\]|\[MATRIX:[^\]]+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])/g).map((part, index) => {
+            const formula = parseFormulaToken(part);
+            if (formula) {
+                const renderSide = (superscript, subscript) => (
+                    <span style={{ display: 'inline-flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', lineHeight: 1, fontSize: '0.8em', verticalAlign: 'middle' }}>
+                        <sup>{superscript}</sup>
+                        <sub>{subscript}</sub>
+                    </span>
+                );
+                return (
+                    <span key={index} style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}>
+                        {renderSide(formula.superscriptBefore, formula.subscriptBefore)}
+                        <span>{formula.mainText}</span>
+                        {renderSide(formula.superscriptAfter, formula.subscriptAfter)}
+                    </span>
+                );
+            }
+
             // Fraction formatting
             if (part.startsWith('[FRAC:') && part.endsWith(']')) {
                 try {

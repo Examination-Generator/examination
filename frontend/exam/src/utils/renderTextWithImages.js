@@ -1,5 +1,6 @@
 // src/utils/renderTextWithImages.jsx
 import React, { useEffect, useRef } from 'react';
+import { parseFormulaToken } from './formula';
 
 const PX_PER_CM = 96 / 2.54;
 
@@ -164,10 +165,35 @@ export function renderTextWithImages(
         let kc = base;
 
         const startsPattern = (s) =>
-            /^(\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[GRAPH:|\[IMAGE:)/.test(s);
+            /^(\[FORMULA:|\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[GRAPH:|\[IMAGE:)/.test(s);
 
         while (idx < str.length) {
             const rem = str.slice(idx);
+
+            // Stacked formula: scripts sit above and below the main text.
+            if (rem.startsWith('[FORMULA:')) {
+                const end = rem.indexOf(']');
+                if (end !== -1) {
+                    const formula = parseFormulaToken(rem.slice(0, end + 1));
+                    if (formula) {
+                        const renderSide = (superscript, subscript, key) => (
+                            <span key={key} style={{ display: 'inline-flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'center', lineHeight: 1, fontSize: '0.8em', verticalAlign: 'middle' }}>
+                                <sup>{parseText(superscript, key * 1000)}</sup>
+                                <sub>{parseText(subscript, key * 1000 + 1)}</sub>
+                            </span>
+                        );
+                        results.push(
+                            <span key={kc++} style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}>
+                                {renderSide(formula.superscriptBefore, formula.subscriptBefore, kc * 10)}
+                                <span>{parseText(formula.mainText, kc * 10 + 2)}</span>
+                                {renderSide(formula.superscriptAfter, formula.subscriptAfter, kc * 10 + 4)}
+                            </span>
+                        );
+                        idx += end + 1;
+                        continue;
+                    }
+                }
+            }
 
             // TABLE
             if (rem.startsWith('[TABLE:')) {

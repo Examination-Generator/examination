@@ -11,6 +11,7 @@ import WorkingSpaceModal from './WorkingSpaceModal';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import { useError } from '../contexts/ErrorContext';
 import { renderTextWithImages } from '../utils/renderTextWithImages';
+import { createFormulaToken } from '../utils/formula';
 import { MAX_GRAPH_BOXES_X, MAX_GRAPH_BOXES_Y } from '../hooks/useDrawing';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
@@ -166,7 +167,7 @@ export default function QuestionForm({
     const handleFormulaInsert = useCallback(({ superscriptBefore, subscriptBefore, mainText, superscriptAfter, subscriptAfter }) => {
         const ref = formulaTarget === 'question' ? questionTextareaRef : answerTextareaRef;
         const setText = formulaTarget === 'question' ? setQuestionText : setAnswerText;
-        const token = `${superscriptBefore.trim() ? `[SUP]${superscriptBefore.trim()}[/SUP]` : ''}${subscriptBefore.trim() ? `[SUB]${subscriptBefore.trim()}[/SUB]` : ''}${mainText.trim()}${superscriptAfter.trim() ? `[SUP]${superscriptAfter.trim()}[/SUP]` : ''}${subscriptAfter.trim() ? `[SUB]${subscriptAfter.trim()}[/SUB]` : ''}`;
+        const token = createFormulaToken({ superscriptBefore, subscriptBefore, mainText, superscriptAfter, subscriptAfter });
         const textarea = ref.current;
         if (!textarea) setText(previous => previous + token);
         else {

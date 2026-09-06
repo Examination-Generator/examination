@@ -71,7 +71,17 @@ export default function FormulaModal({ open, onClose, onInsert }) {
 
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-700">
                     <span className="font-semibold">Preview: </span>
-                    <sup>{form.superscriptBefore}</sup><sub>{form.subscriptBefore}</sub>{form.mainText || 'X'}<sup>{form.superscriptAfter}</sup><sub>{form.subscriptAfter}</sub>
+                    <span className="inline-flex items-center align-middle">
+                        <span className="inline-flex flex-col justify-center text-center leading-none mr-1">
+                            <sup>{form.superscriptBefore}</sup>
+                            <sub>{form.subscriptBefore}</sub>
+                        </span>
+                        <span>{form.mainText || 'X'}</span>
+                        <span className="inline-flex flex-col justify-center text-center leading-none ml-1">
+                            <sup>{form.superscriptAfter}</sup>
+                            <sub>{form.subscriptAfter}</sub>
+                        </span>
+                    </span>
                 </div>
 
                 <div className="flex justify-end gap-3 mt-6">

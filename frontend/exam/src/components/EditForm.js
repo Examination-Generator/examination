@@ -10,6 +10,7 @@ import GraphModal from './GraphModal';
 import LinesModal from './LinesModal';
 import WorkingSpaceModal from './WorkingSpaceModal';
 import { renderTextWithImages } from '../utils/renderTextWithImages';
+import { createFormulaToken } from '../utils/formula';
 import { useError } from '../contexts/ErrorContext';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import { MAX_GRAPH_BOXES_X, MAX_GRAPH_BOXES_Y } from '../hooks/useDrawing';
@@ -108,7 +109,7 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
     const handleFormulaInsert = useCallback(({ superscriptBefore, subscriptBefore, mainText, superscriptAfter, subscriptAfter }) => {
         const ref = formulaTarget === 'question' ? editQuestionTextareaRef : editAnswerTextareaRef;
         const setText = formulaTarget === 'question' ? setEditQuestionText : setEditAnswerText;
-        const token = `${superscriptBefore.trim() ? `[SUP]${superscriptBefore.trim()}[/SUP]` : ''}${subscriptBefore.trim() ? `[SUB]${subscriptBefore.trim()}[/SUB]` : ''}${mainText.trim()}${superscriptAfter.trim() ? `[SUP]${superscriptAfter.trim()}[/SUP]` : ''}${subscriptAfter.trim() ? `[SUB]${subscriptAfter.trim()}[/SUB]` : ''}`;
+        const token = createFormulaToken({ superscriptBefore, subscriptBefore, mainText, superscriptAfter, subscriptAfter });
         const textarea = ref.current;
         if (!textarea) setText(previous => previous + token);
         else {
