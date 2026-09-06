@@ -4,6 +4,7 @@ import QuestionFlags from './QuestionFlags';
 import SymbolPicker from './SymbolPicker';
 import FractionModal from './FractionModal';
 import TableMatrixModal from './TableMatrixModal';
+import FormulaModal from './FormulaModal';
 import GraphModal from './GraphModal';
 import LinesModal from './LinesModal';
 import WorkingSpaceModal from './WorkingSpaceModal';
@@ -61,6 +62,8 @@ export default function QuestionForm({
     const [symbolTarget, setSymbolTarget] = useState('question');
     const [showFractionModal, setShowFractionModal] = useState(false);
     const [fractionTarget, setFractionTarget] = useState(null);
+    const [showFormulaModal, setShowFormulaModal] = useState(false);
+    const [formulaTarget, setFormulaTarget] = useState('question');
     const [showTableModal, setShowTableModal] = useState(false);
     const [tableTarget, setTableTarget] = useState(null);
     const [tableType, setTableType] = useState('table');
@@ -159,6 +162,24 @@ export default function QuestionForm({
         }
         setShowFractionModal(false);
     }, [fractionTarget]);
+
+    const handleFormulaInsert = useCallback(({ superscriptBefore, subscriptBefore, mainText, superscriptAfter, subscriptAfter }) => {
+        const ref = formulaTarget === 'question' ? questionTextareaRef : answerTextareaRef;
+        const setText = formulaTarget === 'question' ? setQuestionText : setAnswerText;
+        const token = `${superscriptBefore.trim() ? `[SUP]${superscriptBefore.trim()}[/SUP]` : ''}${subscriptBefore.trim() ? `[SUB]${subscriptBefore.trim()}[/SUB]` : ''}${mainText.trim()}${superscriptAfter.trim() ? `[SUP]${superscriptAfter.trim()}[/SUP]` : ''}${subscriptAfter.trim() ? `[SUB]${subscriptAfter.trim()}[/SUB]` : ''}`;
+        const textarea = ref.current;
+        if (!textarea) setText(previous => previous + token);
+        else {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            setText(textarea.value.substring(0, start) + token + textarea.value.substring(end));
+            setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(start + token.length, start + token.length);
+            }, 0);
+        }
+        setShowFormulaModal(false);
+    }, [formulaTarget, questionTextareaRef, answerTextareaRef, setQuestionText, setAnswerText]);
 
     // ── Table insert
     const openTable = useCallback((target, type) => {
@@ -307,6 +328,10 @@ export default function QuestionForm({
             onUnderline: () => applyFormatting('underline', textareaRef, setText),
             onSuperscript: () => applyFormatting('superscript', textareaRef, setText),
             onSubscript: () => applyFormatting('subscript', textareaRef, setText),
+            onFormula: () => {
+                setFormulaTarget(target);
+                setShowFormulaModal(true);
+            },
             onFraction: () => openFraction(target),
             onTable: () => openTable(target, 'table'),
             onMatrix: () => openTable(target, 'matrix'),
@@ -414,6 +439,11 @@ export default function QuestionForm({
     return (
         <>
             {/* Modals */}
+            <FormulaModal
+                open={showFormulaModal}
+                onClose={() => setShowFormulaModal(false)}
+                onInsert={handleFormulaInsert}
+            />
             <FractionModal
                 open={showFractionModal}
                 onClose={() => setShowFractionModal(false)}

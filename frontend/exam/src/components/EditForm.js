@@ -5,6 +5,7 @@ import QuestionFlags from './QuestionFlags';
 import SymbolPicker from './SymbolPicker';
 import FractionModal from './FractionModal';
 import TableMatrixModal from './TableMatrixModal';
+import FormulaModal from './FormulaModal';
 import GraphModal from './GraphModal';
 import LinesModal from './LinesModal';
 import WorkingSpaceModal from './WorkingSpaceModal';
@@ -14,7 +15,7 @@ import { useVoiceInput } from '../hooks/useVoiceInput';
 import { MAX_GRAPH_BOXES_X, MAX_GRAPH_BOXES_Y } from '../hooks/useDrawing';
 import * as questionService from '../services/questionService';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+// const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
     const { showError, showSuccess } = useError();
@@ -24,6 +25,8 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
     const [symbolTarget, setSymbolTarget] = useState('question');
     const [showFractionModal, setShowFractionModal] = useState(false);
     const [fractionTarget, setFractionTarget] = useState(null);
+    const [showFormulaModal, setShowFormulaModal] = useState(false);
+    const [formulaTarget, setFormulaTarget] = useState('question');
     const [showTableModal, setShowTableModal] = useState(false);
     const [tableTarget, setTableTarget] = useState(null);
     const [tableType, setTableType] = useState('table');
@@ -102,6 +105,24 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
         setTimeout(() => { ta.focus(); ta.setSelectionRange(s + sym.length, s + sym.length); }, 0);
     }, [editQuestionTextareaRef, editAnswerTextareaRef, setEditQuestionText, setEditAnswerText]);
 
+    const handleFormulaInsert = useCallback(({ superscriptBefore, subscriptBefore, mainText, superscriptAfter, subscriptAfter }) => {
+        const ref = formulaTarget === 'question' ? editQuestionTextareaRef : editAnswerTextareaRef;
+        const setText = formulaTarget === 'question' ? setEditQuestionText : setEditAnswerText;
+        const token = `${superscriptBefore.trim() ? `[SUP]${superscriptBefore.trim()}[/SUP]` : ''}${subscriptBefore.trim() ? `[SUB]${subscriptBefore.trim()}[/SUB]` : ''}${mainText.trim()}${superscriptAfter.trim() ? `[SUP]${superscriptAfter.trim()}[/SUP]` : ''}${subscriptAfter.trim() ? `[SUB]${subscriptAfter.trim()}[/SUB]` : ''}`;
+        const textarea = ref.current;
+        if (!textarea) setText(previous => previous + token);
+        else {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            setText(textarea.value.substring(0, start) + token + textarea.value.substring(end));
+            setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(start + token.length, start + token.length);
+            }, 0);
+        }
+        setShowFormulaModal(false);
+    }, [formulaTarget, editQuestionTextareaRef, editAnswerTextareaRef, setEditQuestionText, setEditAnswerText]);
+
     const buildToolbar = useCallback((target) => {
         const ref = target === 'question' ? editQuestionTextareaRef : editAnswerTextareaRef;
         const setText = target === 'question' ? setEditQuestionText : setEditAnswerText;
@@ -132,6 +153,10 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
             onUnderline: () => applyFormat('underline', ref, setText),
             onSuperscript: () => applyFormat('superscript', ref, setText),
             onSubscript: () => applyFormat('subscript', ref, setText),
+            onFormula: () => {
+                setFormulaTarget(target);
+                setShowFormulaModal(true);
+            },
             onFraction: () => { setFractionTarget({ ref, setText }); setShowFractionModal(true); },
             onTable: () => { setTableTarget({ ref, setText }); setTableType('table'); setShowTableModal(true); },
             onMatrix: () => { setTableTarget({ ref, setText }); setTableType('matrix'); setShowTableModal(true); },
@@ -292,6 +317,11 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
 
     return (
         <>
+            <FormulaModal
+                open={showFormulaModal}
+                onClose={() => setShowFormulaModal(false)}
+                onInsert={handleFormulaInsert}
+            />
             <FractionModal open={showFractionModal} onClose={() => setShowFractionModal(false)}
                 onInsert={({ whole, numerator, denominator }) => {
                     if (!fractionTarget) return;

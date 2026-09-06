@@ -22,15 +22,15 @@ const getEnvironment = () => {
 // Environment-specific configuration
 const environments = {
   local: {
-    API_URL: process.env.REACT_APP_API_URL || 'https://speedstarexams.co.ke/api',
+    API_URL: process.env.REACT_APP_API_URL || 'https://quantumexams.network/api',
     ENVIRONMENT: 'development'
   },
   staging: {
-    API_URL: process.env.REACT_APP_API_URL || 'https://speedstarexams.co.ke/api',
+    API_URL: process.env.REACT_APP_API_URL || 'https://quantumexams.network/api',
     ENVIRONMENT: 'staging'
   },
   production: {
-    API_URL: process.env.REACT_APP_API_URL || 'https://speedstarexams.co.ke/api',
+    API_URL: process.env.REACT_APP_API_URL || 'https://quantumexams.network/api',
     ENVIRONMENT: 'production'
   }
 };

@@ -8,6 +8,7 @@ export default function EditorToolbar({
     isGraph,
     onBold, onItalic, onUnderline,
     onSuperscript, onSubscript,
+    onFormula,
     onFraction, onTable, onMatrix,
     onSymbols, onLines, onSpace,
     onMic, isListening,
@@ -62,6 +63,9 @@ export default function EditorToolbar({
                 <button type="button" onClick={onSubscript}
                     className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
                     title="Subscript">H<sub className="text-[8px]">2</sub></button>
+                <button type="button" onClick={onFormula}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1.5 rounded transition text-xs"
+                    title="Formula builder">x<sup className="text-[8px]">a</sup><sub className="text-[8px]">b</sub></button>
                 <button type="button" onClick={onFraction}
                     className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
                     title="Fraction">a⁄b</button>
