@@ -147,6 +147,10 @@ class Subject(models.Model):
     description = models.TextField(blank=True, null=True)
     
     is_active = models.BooleanField(default=True)
+    is_rollout_enabled = models.BooleanField(
+        default=True,
+        help_text='Whether this subject is visible to paper-generation users'
+    )
     created_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -197,6 +201,10 @@ class Paper(models.Model):
     )
     
     is_active = models.BooleanField(default=True)
+    is_rollout_enabled = models.BooleanField(
+        default=True,
+        help_text='Whether this paper is visible to paper-generation users'
+    )
     created_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -243,6 +251,10 @@ class Topic(models.Model):
     )
     
     is_active = models.BooleanField(default=True)
+    is_rollout_enabled = models.BooleanField(
+        default=True,
+        help_text='Whether this topic is visible to paper-generation users'
+    )
     created_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,

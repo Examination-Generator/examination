@@ -39,6 +39,16 @@ from .page_number_extrctor import extract_paper_number_from_name
 logger = logging.getLogger(__name__)
 
 
+def _rollout_visible_to_user(request, paper):
+    return (
+        getattr(request.user, 'role', 'user') in ('admin', 'editor')
+        or (
+            paper.subject.is_rollout_enabled
+            and paper.is_rollout_enabled
+        )
+    )
+
+
 class PaperGenerationException(Exception):
     """Exception raised when paper generation fails"""
     pass
@@ -206,13 +216,21 @@ def generate_paper(request):
             )
         
         # Validate paper exists
-        paper = get_object_or_404(Paper, id=paper_id, is_active=True)
+        paper = get_object_or_404(
+            Paper.objects.select_related('subject'),
+            id=paper_id,
+            is_active=True,
+        )
+        if not _rollout_visible_to_user(request, paper):
+            return Response({'error': 'This paper is not available for generation'},
+                            status=status.HTTP_404_NOT_FOUND)
         
         # Validate topics exist
         valid_topics = Topic.objects.filter(
             id__in=selected_topic_ids,
             paper=paper,
-            is_active=True
+            is_active=True,
+            is_rollout_enabled=True,
         )
         
         if valid_topics.count() != len(selected_topic_ids):
@@ -656,8 +674,18 @@ def get_topic_statistics(request, paper_id):
     GET /api/papers/{paper_id}/topics/statistics
     """
     try:
-        paper = get_object_or_404(Paper, id=paper_id)
-        topics = Topic.objects.filter(paper=paper, is_active=True)
+        paper = get_object_or_404(
+            Paper.objects.select_related('subject'),
+            id=paper_id,
+        )
+        if not _rollout_visible_to_user(request, paper):
+            return Response({'error': 'This paper is not available for generation'},
+                            status=status.HTTP_404_NOT_FOUND)
+        topics = Topic.objects.filter(
+            paper=paper,
+            is_active=True,
+            is_rollout_enabled=True,
+        )
         
         topic_stats = []
         

@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
+from django.db.models import Prefetch
 
 from .models import Subject, Paper, Section, Topic
 from .serializers import (
@@ -17,6 +18,80 @@ from .serializers import (
 from .utils import success_response, error_response
 
 logger = logging.getLogger(__name__)
+
+
+def _subject_queryset_for_user(request):
+    """Return the full hierarchy for staff and rollout-visible content for users."""
+    is_staff_user = getattr(request.user, 'role', 'user') in ('admin', 'editor')
+    topic_queryset = Topic.objects.all()
+    paper_queryset = Paper.objects.all().prefetch_related(
+        'sections',
+        Prefetch('topics', queryset=topic_queryset),
+    )
+    queryset = Subject.objects.all()
+
+    if not is_staff_user:
+        topic_queryset = Topic.objects.filter(is_active=True, is_rollout_enabled=True)
+        paper_queryset = Paper.objects.filter(
+            is_active=True,
+            is_rollout_enabled=True,
+        ).prefetch_related(
+            'sections',
+            Prefetch('topics', queryset=topic_queryset),
+        )
+        queryset = queryset.filter(is_active=True, is_rollout_enabled=True)
+
+    return queryset.prefetch_related(Prefetch('papers', queryset=paper_queryset))
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def subject_rollout(request):
+    """Update rollout visibility for a subject and its papers/topics."""
+    if getattr(request.user, 'role', 'user') not in ('admin', 'editor'):
+        return error_response('Only admin users can update rollout visibility',
+                              status=status.HTTP_403_FORBIDDEN)
+
+    subject_id = request.data.get('subject_id')
+    if not subject_id:
+        return error_response('subject_id is required', status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        with transaction.atomic():
+            subject = Subject.objects.get(id=subject_id)
+            subject_visible = bool(request.data.get('is_rollout_enabled', True))
+            subject.is_rollout_enabled = subject_visible
+            subject.save(update_fields=['is_rollout_enabled', 'updated_at'])
+
+            for paper_state in request.data.get('papers', []):
+                paper = Paper.objects.get(id=paper_state.get('id'), subject=subject)
+                paper_visible = bool(paper_state.get('is_rollout_enabled', True))
+                paper.is_rollout_enabled = paper_visible
+                paper.save(update_fields=['is_rollout_enabled', 'updated_at'])
+
+                if not paper_visible or not subject_visible:
+                    paper.topics.update(is_rollout_enabled=False)
+                else:
+                    topic_states = paper_state.get('topics', [])
+                    for topic_state in topic_states:
+                        Topic.objects.filter(
+                            id=topic_state.get('id'),
+                            paper=paper,
+                        ).update(
+                            is_rollout_enabled=bool(
+                                topic_state.get('is_rollout_enabled', True)
+                            )
+                        )
+    except Subject.DoesNotExist:
+        return error_response('Subject not found', status=status.HTTP_404_NOT_FOUND)
+    except (Paper.DoesNotExist, Topic.DoesNotExist, TypeError, ValueError):
+        return error_response('Invalid rollout hierarchy', status=status.HTTP_400_BAD_REQUEST)
+
+    updated_subject = _subject_queryset_for_user(request).get(id=subject.id)
+    return success_response(
+        'Rollout visibility updated successfully',
+        SubjectSerializer(updated_subject).data,
+    )
 
 
 # ==================== COMBINED VIEWS FOR REST API ====================
@@ -34,14 +109,11 @@ def subjects_list_create(request):
         active = request.query_params.get('active')
         logger.info(f"[SUBJECT] Fetching all subjects, active filter: {active}")
         
-        queryset = Subject.objects.all()
+        queryset = _subject_queryset_for_user(request)
         if active is not None:
             queryset = queryset.filter(is_active=(active.lower() == 'true'))
         
-        subjects = queryset.prefetch_related(
-            'papers__sections',
-            'papers__topics'
-        ).order_by('name')
+        subjects = queryset.order_by('name')
         
         logger.info(f"[SUBJECT] Found {subjects.count()} subjects")
         serializer = SubjectSerializer(subjects, many=True)
@@ -73,10 +145,7 @@ def subjects_list_create(request):
         with transaction.atomic():
             subject = serializer.save()
         
-        complete_subject = Subject.objects.prefetch_related(
-            'papers__sections',
-            'papers__topics'
-        ).get(id=subject.id)
+        complete_subject = _subject_queryset_for_user(request).get(id=subject.id)
         
         logger.info(f"[SUBJECT] Subject created successfully: {subject.name}")
         
@@ -98,10 +167,7 @@ def subject_detail(request, subject_id):
     DELETE /api/subjects/<id>
     """
     try:
-        subject = Subject.objects.prefetch_related(
-            'papers__sections',
-            'papers__topics'
-        ).get(id=subject_id)
+        subject = _subject_queryset_for_user(request).get(id=subject_id)
     except Subject.DoesNotExist:
         return error_response(
             'Subject not found',

@@ -17,6 +17,9 @@ export default function SubjectsTab({ onEditSubject }) {
     // Edit modal
     const [editingItem, setEditingItem] = useState(null);
     const [deletingItem, setDeletingItem] = useState(null);
+    const [rolloutSubject, setRolloutSubject] = useState(null);
+    const [rolloutDraft, setRolloutDraft] = useState(null);
+    const [isSavingRollout, setIsSavingRollout] = useState(false);
 
     const load = useCallback(async () => {
         setIsLoading(true);
@@ -89,6 +92,94 @@ export default function SubjectsTab({ onEditSubject }) {
         }
     };
 
+    const createRolloutDraft = (subject) => ({
+            id: subject.id,
+            name: subject.name,
+            is_rollout_enabled: subject.is_rollout_enabled !== false,
+            papers: (subject.papers || []).map(paper => ({
+                id: paper.id,
+                name: paper.name,
+                is_rollout_enabled: paper.is_rollout_enabled !== false,
+                topics: (paper.topics || []).map(topic => ({
+                    id: topic.id,
+                    name: topic.name,
+                    is_rollout_enabled: topic.is_rollout_enabled !== false,
+                })),
+            })),
+        });
+
+    const openRollout = (subject) => {
+        setRolloutSubject(subject || { name: 'All subjects' });
+        setRolloutDraft((subject ? [subject] : subjects).map(createRolloutDraft));
+    };
+
+    const toggleSubjectRollout = (subjectId, enabled) => {
+        setRolloutDraft(prev => prev.map(subject => subject.id !== subjectId ? subject : ({
+            ...subject,
+            is_rollout_enabled: enabled,
+            papers: subject.papers.map(paper => ({
+                ...paper,
+                ...(enabled ? {} : { is_rollout_enabled: false }),
+                topics: paper.topics.map(topic => ({
+                    ...topic,
+                    ...(enabled ? {} : { is_rollout_enabled: false }),
+                })),
+            })),
+        })));
+    };
+
+    const togglePaperRollout = (subjectId, paperId, enabled) => {
+        setRolloutDraft(prev => prev.map(subject => subject.id !== subjectId ? subject : ({
+            ...subject,
+            papers: subject.papers.map(paper => paper.id !== paperId ? paper : {
+                ...paper,
+                is_rollout_enabled: enabled,
+                topics: enabled ? paper.topics : paper.topics.map(topic => ({
+                    ...topic,
+                    is_rollout_enabled: false,
+                })),
+            }),
+        })));
+    };
+
+    const toggleTopicRollout = (subjectId, paperId, topicId, enabled) => {
+        setRolloutDraft(prev => prev.map(subject => subject.id !== subjectId ? subject : ({
+            ...subject,
+            papers: subject.papers.map(paper => paper.id !== paperId ? paper : {
+                ...paper,
+                topics: paper.topics.map(topic => topic.id === topicId
+                    ? { ...topic, is_rollout_enabled: enabled }
+                    : topic),
+            }),
+        })));
+    };
+
+    const handleSaveRollout = async () => {
+        setIsSavingRollout(true);
+        try {
+            await Promise.all(rolloutDraft.map(subject => subjectService.updateRollout({
+                subject_id: subject.id,
+                is_rollout_enabled: subject.is_rollout_enabled,
+                papers: subject.papers.map(paper => ({
+                    id: paper.id,
+                    is_rollout_enabled: paper.is_rollout_enabled,
+                    topics: paper.topics.map(topic => ({
+                        id: topic.id,
+                        is_rollout_enabled: topic.is_rollout_enabled,
+                    })),
+                })),
+            })));
+            showSuccess('Rollout visibility updated!');
+            setRolloutSubject(null);
+            setRolloutDraft(null);
+            load();
+        } catch (err) {
+            showError(err.message || 'Failed to update rollout visibility');
+        } finally {
+            setIsSavingRollout(false);
+        }
+    };
+
     // Paper form helpers
     const addPaper = () => setPapers(p => [...p, { name: '', durationHours: 2, durationMinutes: 0, topics: [''], sections: [''] }]);
     const removePaper = (i) => setPapers(p => p.filter((_, idx) => idx !== i));
@@ -106,10 +197,19 @@ export default function SubjectsTab({ onEditSubject }) {
             <div className="bg-white rounded-xl shadow-lg p-6">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-gray-800">Manage Subjects</h2>
-                    <button onClick={load} disabled={isLoading}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition disabled:opacity-50">
-                        {isLoading ? 'Loading...' : 'Refresh'}
-                    </button>
+                    <div className="flex gap-2">
+                        <button onClick={load} disabled={isLoading}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition disabled:opacity-50">
+                            {isLoading ? 'Loading...' : 'Refresh'}
+                        </button>
+                        <button
+                            onClick={() => subjects.length > 0 && openRollout()}
+                            disabled={subjects.length === 0}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm transition disabled:opacity-50"
+                        >
+                            Rollout
+                        </button>
+                    </div>
                 </div>
 
                 <div className="max-h-96 overflow-y-auto space-y-3">
@@ -126,6 +226,11 @@ export default function SubjectsTab({ onEditSubject }) {
                                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">{subject.papers?.length || 0} papers</span>
                                 </div>
                                 <div className="flex gap-1">
+                                    <button
+                                        onClick={() => openRollout(subject)}
+                                        className="text-indigo-600 hover:bg-indigo-50 p-2 rounded transition"
+                                        title="Manage rollout visibility"
+                                    >🚀</button>
                                     <button 
                                         onClick={() => onEditSubject ? onEditSubject(subject, true) : setEditingItem({ type: 'subject', data: { ...subject } })}
                                         className="text-blue-600 hover:bg-blue-50 p-2 rounded transition">✏️</button>
@@ -333,6 +438,67 @@ export default function SubjectsTab({ onEditSubject }) {
                         <div className="flex gap-3">
                             <button onClick={handleConfirmDelete} className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold">Delete</button>
                             <button onClick={() => setDeletingItem(null)} className="flex-1 bg-gray-300 text-gray-800 py-3 rounded-lg font-semibold">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {rolloutSubject && rolloutDraft && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+                        <div className="p-6 border-b flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-800">Rollout Visibility</h3>
+                                <p className="text-sm text-gray-500 mt-1">Choose what paper-generation users can see.</p>
+                            </div>
+                            <button onClick={() => setRolloutSubject(null)} className="text-gray-500 hover:text-gray-800 text-2xl">×</button>
+                        </div>
+                        <div className="p-6 overflow-y-auto space-y-3">
+                            {rolloutDraft.map(subject => (
+                                <div key={subject.id} className="border rounded-lg p-3">
+                                    <label className="flex items-center justify-between p-3 rounded-lg bg-green-50 border border-green-200">
+                                        <span className="font-bold text-gray-800">{subject.name}</span>
+                                        <input
+                                            type="checkbox"
+                                            checked={subject.is_rollout_enabled}
+                                            onChange={e => toggleSubjectRollout(subject.id, e.target.checked)}
+                                            className="h-5 w-5 accent-green-600"
+                                        />
+                                    </label>
+                                    {subject.papers.map(paper => (
+                                        <div key={paper.id} className="ml-4 mt-2 border rounded-lg p-3">
+                                            <label className="flex items-center justify-between font-semibold text-gray-700">
+                                                <span>📄 {paper.name}</span>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={paper.is_rollout_enabled}
+                                                    onChange={e => togglePaperRollout(subject.id, paper.id, e.target.checked)}
+                                                    className="h-5 w-5 accent-blue-600"
+                                                />
+                                            </label>
+                                            <div className="mt-2 ml-5 space-y-1">
+                                                {paper.topics.map(topic => (
+                                                    <label key={topic.id} className="flex items-center justify-between text-sm text-gray-600">
+                                                        <span>• {topic.name}</span>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={topic.is_rollout_enabled}
+                                                            onChange={e => toggleTopicRollout(subject.id, paper.id, topic.id, e.target.checked)}
+                                                            className="h-4 w-4 accent-blue-600"
+                                                        />
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="p-6 border-t flex gap-3">
+                            <button onClick={handleSaveRollout} disabled={isSavingRollout} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold disabled:opacity-50">
+                                {isSavingRollout ? 'Saving...' : 'Save rollout'}
+                            </button>
+                            <button onClick={() => setRolloutSubject(null)} className="flex-1 bg-gray-300 text-gray-800 py-3 rounded-lg font-semibold">Cancel</button>
                         </div>
                     </div>
                 </div>

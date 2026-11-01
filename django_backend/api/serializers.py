@@ -184,7 +184,7 @@ class TopicSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Topic
-        fields = ['id', 'name', 'description', 'is_active', 'paper', 'created_at']
+        fields = ['id', 'name', 'description', 'is_active', 'is_rollout_enabled', 'paper', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 
@@ -197,6 +197,7 @@ class PaperSerializer(serializers.ModelSerializer):
         model = Paper
         fields = ['id', 'name', 'description', 'is_active', 'subject', 
                   'sections', 'topics', 'time_allocation', 'total_marks',
+                  'is_rollout_enabled',
                   'duration_hours', 'duration_minutes', 'created_at']
         read_only_fields = ['id', 'created_at']
 
@@ -207,7 +208,7 @@ class SubjectSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Subject
-        fields = ['id', 'name', 'description', 'is_active', 'papers', 'created_at']
+        fields = ['id', 'name', 'description', 'is_active', 'is_rollout_enabled', 'papers', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 

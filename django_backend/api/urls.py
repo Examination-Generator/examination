@@ -49,6 +49,7 @@ urlpatterns = [
     
     # SUBJECT ROUTES 
     path('subjects', subject_views.subjects_list_create, name='subjects-list-create'),
+    path('subjects/rollout', subject_views.subject_rollout, name='subject-rollout'),
     path('subjects/<uuid:subject_id>', subject_views.subject_detail, name='subject-detail'),
     
     # Paper routes
@@ -135,4 +136,3 @@ urlpatterns = [
     path('papers/agriculture-paper/validate', agriculture_paper_generator.validate_agriculture_paper_pool, name='validate-agriculture-paper'),
     path('papers/agriculture-paper/generate', agriculture_paper_generator.generate_agriculture_paper, name='generate-agriculture-paper'),
 ]
-

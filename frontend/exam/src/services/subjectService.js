@@ -42,6 +42,23 @@ export const getAllSubjects = async () => {
     }
 };
 
+// Update the subject, paper, and topic rollout visibility tree
+export const updateRollout = async (rolloutData) => {
+    const response = await fetch(`${API_BASE_URL}/subjects/rollout`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify(rolloutData),
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(friendlyErrorMessage(text || `HTTP error! status: ${response.status}`));
+    }
+
+    const result = await response.json();
+    return result.data;
+};
+
 // Get single subject by ID
 export const getSubjectById = async (subjectId) => {
     try {
