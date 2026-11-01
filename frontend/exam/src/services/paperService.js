@@ -744,9 +744,10 @@ export const updatePaperConfiguration = async (paperId, configData) => {
  * Get all subjects with their papers
  * @returns {Promise} List of subjects with papers
  */
-export const getAllSubjects = async () => {
+export const getAllSubjects = async ({ visibleOnly = false } = {}) => {
     try {
-        const response = await fetch(`${API_BASE_URL}/subjects`, {
+        const query = visibleOnly ? '?visible_only=true' : '';
+        const response = await fetch(`${API_BASE_URL}/subjects${query}`, {
             method: 'GET',
             headers: getAuthHeaders(),
         });

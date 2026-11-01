@@ -20,6 +20,8 @@ export default function SubjectsTab({ onEditSubject }) {
     const [rolloutSubject, setRolloutSubject] = useState(null);
     const [rolloutDraft, setRolloutDraft] = useState(null);
     const [isSavingRollout, setIsSavingRollout] = useState(false);
+    const [rolloutSubjectSearch, setRolloutSubjectSearch] = useState('');
+    const [rolloutTopicSearch, setRolloutTopicSearch] = useState('');
 
     const load = useCallback(async () => {
         setIsLoading(true);
@@ -111,6 +113,8 @@ export default function SubjectsTab({ onEditSubject }) {
     const openRollout = (subject) => {
         setRolloutSubject(subject || { name: 'All subjects' });
         setRolloutDraft((subject ? [subject] : subjects).map(createRolloutDraft));
+        setRolloutSubjectSearch('');
+        setRolloutTopicSearch('');
     };
 
     const toggleSubjectRollout = (subjectId, enabled) => {
@@ -179,6 +183,26 @@ export default function SubjectsTab({ onEditSubject }) {
             setIsSavingRollout(false);
         }
     };
+
+    const normalizedSubjectSearch = rolloutSubjectSearch.trim().toLowerCase();
+    const normalizedTopicSearch = rolloutTopicSearch.trim().toLowerCase();
+    const visibleRolloutSubjects = (rolloutDraft || []).reduce((result, subject) => {
+        if (normalizedSubjectSearch && !subject.name.toLowerCase().includes(normalizedSubjectSearch)) {
+            return result;
+        }
+
+        const papers = subject.papers.map(paper => ({
+            ...paper,
+            topics: normalizedTopicSearch
+                ? paper.topics.filter(topic => topic.name.toLowerCase().includes(normalizedTopicSearch))
+                : paper.topics,
+        })).filter(paper => !normalizedTopicSearch || paper.topics.length > 0);
+
+        if (!normalizedTopicSearch || papers.length > 0) {
+            result.push({ ...subject, papers });
+        }
+        return result;
+    }, []);
 
     // Paper form helpers
     const addPaper = () => setPapers(p => [...p, { name: '', durationHours: 2, durationMinutes: 0, topics: [''], sections: [''] }]);
@@ -454,7 +478,23 @@ export default function SubjectsTab({ onEditSubject }) {
                             <button onClick={() => setRolloutSubject(null)} className="text-gray-500 hover:text-gray-800 text-2xl">×</button>
                         </div>
                         <div className="p-6 overflow-y-auto space-y-3">
-                            {rolloutDraft.map(subject => (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <input
+                                    type="search"
+                                    value={rolloutSubjectSearch}
+                                    onChange={e => setRolloutSubjectSearch(e.target.value)}
+                                    placeholder="Search subjects..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                                <input
+                                    type="search"
+                                    value={rolloutTopicSearch}
+                                    onChange={e => setRolloutTopicSearch(e.target.value)}
+                                    placeholder="Search topics..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                            {visibleRolloutSubjects.map(subject => (
                                 <div key={subject.id} className="border rounded-lg p-3">
                                     <label className="flex items-center justify-between p-3 rounded-lg bg-green-50 border border-green-200">
                                         <span className="font-bold text-gray-800">{subject.name}</span>
@@ -491,6 +531,9 @@ export default function SubjectsTab({ onEditSubject }) {
                                             </div>
                                         </div>
                                     ))}
+                                    {visibleRolloutSubjects.length === 0 && (
+                                        <p className="text-center text-gray-500 py-6">No subjects or topics match your search.</p>
+                                    )}
                                 </div>
                             ))}
                         </div>

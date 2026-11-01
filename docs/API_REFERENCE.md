@@ -162,6 +162,7 @@ GET /api/subjects
 
 **Query Parameters:**
 - `is_active` (optional): Filter by active status (true/false)
+- `visible_only` (optional): Return only rollout-enabled subjects, papers, and topics (true/false)
 
 **Response:**
 ```json

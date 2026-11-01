@@ -408,8 +408,23 @@ export default function PaperGenerationDashboard() {
     const loadSubjects = async () => {
         try {
             setSubjectsLoading(true);
-            const response = await getAllSubjects();
-            const subjectsData = response?.data || [];
+            const response = await getAllSubjects({ visibleOnly: true });
+            const subjectsData = (response?.data || []).filter(
+                subject => subject.is_active !== false &&
+                    subject.is_rollout_enabled !== false
+            ).map(subject => ({
+                ...subject,
+                papers: (subject.papers || []).filter(
+                    paper => paper.is_active !== false &&
+                        paper.is_rollout_enabled !== false
+                ).map(paper => ({
+                    ...paper,
+                    topics: (paper.topics || []).filter(
+                        topic => topic.is_active !== false &&
+                            topic.is_rollout_enabled !== false
+                    ),
+                })),
+            }));
             setSubjects(subjectsData);
             
             // Auto-select first available subject and paper

@@ -21,9 +21,12 @@ from .utils import success_response, error_response
 logger = logging.getLogger(__name__)
 
 
-def _subject_queryset_for_user(request):
+def _subject_queryset_for_user(request, visible_only=False):
     """Return the full hierarchy for staff and rollout-visible content for users."""
-    is_staff_user = getattr(request.user, 'role', 'user') in ('admin', 'editor')
+    is_staff_user = (
+        not visible_only
+        and getattr(request.user, 'role', 'user') in ('admin', 'editor')
+    )
     topic_queryset = Topic.objects.all()
     paper_queryset = Paper.objects.all().prefetch_related(
         'sections',
@@ -112,9 +115,10 @@ def subjects_list_create(request):
     if request.method == 'GET':
         # List subjects
         active = request.query_params.get('active')
+        visible_only = request.query_params.get('visible_only', '').lower() == 'true'
         logger.info(f"[SUBJECT] Fetching all subjects, active filter: {active}")
         
-        queryset = _subject_queryset_for_user(request)
+        queryset = _subject_queryset_for_user(request, visible_only=visible_only)
         if active is not None:
             queryset = queryset.filter(is_active=(active.lower() == 'true'))
         
