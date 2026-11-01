@@ -92,6 +92,7 @@ Users ──┐
 | name | VARCHAR(255) | UNIQUE, NOT NULL | Subject name |
 | description | TEXT | NULL | Subject description |
 | is_active | BOOLEAN | DEFAULT true | Active status |
+| is_rollout_enabled | BOOLEAN | DEFAULT true | Visible to paper-generation users |
 | created_by | UUID | FK → users | Creator user ID |
 | created_at | TIMESTAMP | AUTO | Creation time |
 | updated_at | TIMESTAMP | AUTO | Last update time |
@@ -112,6 +113,7 @@ Users ──┐
 | subject | UUID | FK → subjects | Parent subject |
 | description | TEXT | NULL | Paper description |
 | is_active | BOOLEAN | DEFAULT true | Active status |
+| is_rollout_enabled | BOOLEAN | DEFAULT true | Visible to paper-generation users |
 | created_by | UUID | FK → users | Creator user ID |
 | created_at | TIMESTAMP | AUTO | Creation time |
 | updated_at | TIMESTAMP | AUTO | Last update time |
@@ -139,6 +141,7 @@ Users ──┐
 | paper | UUID | FK → papers | Parent paper |
 | description | TEXT | NULL | Topic description |
 | is_active | BOOLEAN | DEFAULT true | Active status |
+| is_rollout_enabled | BOOLEAN | DEFAULT true | Visible to paper-generation users |
 | created_by | UUID | FK → users | Creator user ID |
 | created_at | TIMESTAMP | AUTO | Creation time |
 | updated_at | TIMESTAMP | AUTO | Last update time |

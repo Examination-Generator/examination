@@ -173,6 +173,7 @@ GET /api/subjects
       "name": "Mathematics",
       "description": "Math subject",
       "is_active": true,
+      "is_rollout_enabled": true,
       "papers": [...],
       "created_at": "2025-01-01T00:00:00Z"
     }
@@ -206,6 +207,32 @@ POST /api/subjects
 ### Get Subject Details
 ```http
 GET /api/subjects/{subject_id}
+```
+
+### Update Paper-Generation Rollout
+```http
+PATCH /api/subjects/rollout
+```
+
+Admin and editor users can control visibility for a complete subject hierarchy.
+Disabling a subject hides all of its papers and topics. Disabling a paper hides
+all of its topics. Regular paper-generation users receive only rollout-enabled
+subjects, papers, and topics from `GET /api/subjects`.
+
+```json
+{
+  "subject_id": "subject-uuid",
+  "is_rollout_enabled": true,
+  "papers": [
+    {
+      "id": "paper-uuid",
+      "is_rollout_enabled": false,
+      "topics": [
+        {"id": "topic-uuid", "is_rollout_enabled": true}
+      ]
+    }
+  ]
+}
 ```
 
 ### Update Subject

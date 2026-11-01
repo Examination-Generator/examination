@@ -9,6 +9,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
 from django.db.models import Prefetch
+from django.core.exceptions import ValidationError
 
 from .models import Subject, Paper, Section, Topic
 from .serializers import (
@@ -42,6 +43,10 @@ def _subject_queryset_for_user(request):
         queryset = queryset.filter(is_active=True, is_rollout_enabled=True)
 
     return queryset.prefetch_related(Prefetch('papers', queryset=paper_queryset))
+
+
+def _is_staff_user(request):
+    return getattr(request.user, 'role', 'user') in ('admin', 'editor')
 
 
 @api_view(['PATCH'])
@@ -84,7 +89,7 @@ def subject_rollout(request):
                         )
     except Subject.DoesNotExist:
         return error_response('Subject not found', status=status.HTTP_404_NOT_FOUND)
-    except (Paper.DoesNotExist, Topic.DoesNotExist, TypeError, ValueError):
+    except (Paper.DoesNotExist, Topic.DoesNotExist, ValidationError, TypeError, ValueError, AttributeError):
         return error_response('Invalid rollout hierarchy', status=status.HTTP_400_BAD_REQUEST)
 
     updated_subject = _subject_queryset_for_user(request).get(id=subject.id)
@@ -464,6 +469,10 @@ def get_paper(request, subject_id, paper_id):
         )
     
     if request.method == 'GET':
+        if not _is_staff_user(request) and (
+            not paper.subject.is_rollout_enabled or not paper.is_rollout_enabled
+        ):
+            return error_response('Paper not found', status=status.HTTP_404_NOT_FOUND)
         serializer = PaperSerializer(paper)
         return success_response(
             'Paper retrieved successfully',
@@ -713,12 +722,26 @@ def get_topics(request, subject_id, paper_id):
     GET /api/subjects/:subjectId/papers/:paperId/topics
     """
     section_id = request.query_params.get('sectionId')
+    if not _is_staff_user(request):
+        if not Subject.objects.filter(
+            id=subject_id,
+            is_active=True,
+            is_rollout_enabled=True,
+        ).exists() or not Paper.objects.filter(
+            id=paper_id,
+            subject_id=subject_id,
+            is_active=True,
+            is_rollout_enabled=True,
+        ).exists():
+            return error_response('Paper not found', status=status.HTTP_404_NOT_FOUND)
     
     # Build query
     query = {
         'paper_id': paper_id,
         'is_active': True
     }
+    if not _is_staff_user(request):
+        query['is_rollout_enabled'] = True
     
     if section_id:
         query['section_id'] = section_id
