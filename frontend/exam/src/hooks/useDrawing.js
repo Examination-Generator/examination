@@ -37,7 +37,7 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
 
             if (mmX % MM_PER_CM === 0) {
                 // 1 cm border / major grid line — dark, bold
-                ctx.fillStyle = '#1a1a1a';
+                ctx.fillStyle = '#15803d';
                 const lw = 1.5;
                 ctx.fillRect(
                     Math.round(x - lw / 2), 0,
@@ -45,7 +45,7 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
                 );
             } else if (mmX % 5 === 0) {
                 // 5 mm (centre of each cm box) — medium green
-                ctx.fillStyle = '#4CAF50';
+                ctx.fillStyle = '#16a34a';
                 const lw = 0.8;
                 ctx.fillRect(
                     Math.round(x - lw / 2), 0,
@@ -53,7 +53,7 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
                 );
             } else {
                 // 1 mm — thin, light green
-                ctx.fillStyle = '#A5D6A7';
+                ctx.fillStyle = '#86efac';
                 const lw = 0.4;
                 ctx.fillRect(
                     Math.round(x - lw / 2), 0,
@@ -69,7 +69,7 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
 
             if (mmY % MM_PER_CM === 0) {
                 // 1 cm border / major grid line — dark, bold
-                ctx.fillStyle = '#1a1a1a';
+                ctx.fillStyle = '#15803d';
                 const lw = 1.5;
                 ctx.fillRect(
                     0, Math.round(y - lw / 2),
@@ -77,7 +77,7 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
                 );
             } else if (mmY % 5 === 0) {
                 // 5 mm (centre of each cm box) — medium green
-                ctx.fillStyle = '#4CAF50';
+                ctx.fillStyle = '#16a34a';
                 const lw = 0.8;
                 ctx.fillRect(
                     0, Math.round(y - lw / 2),
@@ -85,7 +85,7 @@ export function useDrawing(canvasRef, showGraphPaper, graphBoxesX, graphBoxesY) 
                 );
             } else {
                 // 1 mm — thin, light green
-                ctx.fillStyle = '#A5D6A7';
+                ctx.fillStyle = '#86efac';
                 const lw = 0.4;
                 ctx.fillRect(
                     0, Math.round(y - lw / 2),

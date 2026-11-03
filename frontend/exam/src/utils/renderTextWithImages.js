@@ -42,13 +42,13 @@ function GraphPaperCanvas({ widthCm, heightCm }) {
         for (let i = 0; i <= Math.ceil(widthPx / pxPerMm); i++) {
             const x = i * pxPerMm + 0.5;
             if (i % 10 === 0) {
-                ctx.strokeStyle = '#000000';
+                ctx.strokeStyle = '#15803d';
                 ctx.lineWidth = 2;
             } else if (i % 5 === 0) {
-                ctx.strokeStyle = 'rgba(17,24,39,0.9)';
+                ctx.strokeStyle = 'rgba(22,163,74,0.9)';
                 ctx.lineWidth = 1;
             } else {
-                ctx.strokeStyle = 'rgba(156,163,175,0.6)';
+                ctx.strokeStyle = 'rgba(134,239,172,0.85)';
                 ctx.lineWidth = 1;
             }
             ctx.beginPath();
@@ -60,13 +60,13 @@ function GraphPaperCanvas({ widthCm, heightCm }) {
         for (let j = 0; j <= Math.ceil(heightPx / pxPerMm); j++) {
             const y = j * pxPerMm + 0.5;
             if (j % 10 === 0) {
-                ctx.strokeStyle = '#000000';
+                ctx.strokeStyle = '#15803d';
                 ctx.lineWidth = 2;
             } else if (j % 5 === 0) {
-                ctx.strokeStyle = 'rgba(17,24,39,0.9)';
+                ctx.strokeStyle = 'rgba(22,163,74,0.9)';
                 ctx.lineWidth = 1;
             } else {
-                ctx.strokeStyle = 'rgba(156,163,175,0.6)';
+                ctx.strokeStyle = 'rgba(134,239,172,0.85)';
                 ctx.lineWidth = 1;
             }
             ctx.beginPath();
@@ -76,7 +76,7 @@ function GraphPaperCanvas({ widthCm, heightCm }) {
         }
 
         ctx.lineWidth = 2;
-        ctx.strokeStyle = '#000000';
+        ctx.strokeStyle = '#15803d';
         ctx.strokeRect(0, 0, widthPx, heightPx);
     }, [widthCm, heightCm, widthPx, heightPx]);
 
@@ -92,7 +92,7 @@ export function renderGraphBlock(graphId, widthCm, heightCm, key, onRemove) {
                         width: `${widthCm}cm`,
                         height: `${heightCm}cm`,
                         display: 'block',
-                        border: '2px solid #000',
+                        border: '2px solid #15803d',
                         borderRadius: 0,
                         boxSizing: 'border-box',
                         backgroundColor: 'white',

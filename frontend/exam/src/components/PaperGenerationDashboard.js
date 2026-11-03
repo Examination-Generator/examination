@@ -248,15 +248,15 @@ export default function PaperGenerationDashboard() {
                                         display: 'block',
                                         width: `${widthCm}cm`,
                                         height: `${heightCm}cm`,
-                                        border: '2px solid #0f766e',
+                                        border: '2px solid #15803d',
                                         borderRadius: '4px',
                                         boxSizing: 'border-box',
                                         backgroundColor: 'white',
                                         backgroundImage: [
-                                            'repeating-linear-gradient(to right, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm)',
-                                            'repeating-linear-gradient(to bottom, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm)',
-                                            'repeating-linear-gradient(to right, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm)',
-                                            'repeating-linear-gradient(to bottom, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm)'
+                                            'repeating-linear-gradient(to right, rgba(134, 239, 172, 0.85) 0, rgba(134, 239, 172, 0.85) 1px, transparent 1px, transparent 1mm)',
+                                            'repeating-linear-gradient(to bottom, rgba(134, 239, 172, 0.85) 0, rgba(134, 239, 172, 0.85) 1px, transparent 1px, transparent 1mm)',
+                                            'repeating-linear-gradient(to right, rgba(21, 128, 61, 0.9) 0, rgba(21, 128, 61, 0.9) 1px, transparent 1px, transparent 1cm)',
+                                            'repeating-linear-gradient(to bottom, rgba(21, 128, 61, 0.9) 0, rgba(21, 128, 61, 0.9) 1px, transparent 1px, transparent 1cm)'
                                         ].join(', ')
                                     }}
                                     title={`${widthCm}cm x ${heightCm}cm graph`}
