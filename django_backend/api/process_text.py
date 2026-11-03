@@ -70,13 +70,13 @@ def _process_question_text(text, images=None, answer_lines=None):
 
         for x in range(width_mm + 1):
             if x % 10 == 0:
-                stroke = '#000000'
+                stroke = '#15803d'
                 stroke_width = 0.45
             elif x % 5 == 0:
-                stroke = 'rgba(15, 23, 42, 0.9)'
+                stroke = '#16a34a'
                 stroke_width = 0.28
             else:
-                stroke = 'rgba(156, 163, 175, 0.65)'
+                stroke = '#86efac'
                 stroke_width = 0.18
             svg_lines.append(
                 f'<line x1="{x}" y1="0" x2="{x}" y2="{height_mm}" stroke="{stroke}" stroke-width="{stroke_width}" />'
@@ -84,13 +84,13 @@ def _process_question_text(text, images=None, answer_lines=None):
 
         for y in range(height_mm + 1):
             if y % 10 == 0:
-                stroke = '#000000'
+                stroke = '#15803d'
                 stroke_width = 0.45
             elif y % 5 == 0:
-                stroke = 'rgba(15, 23, 42, 0.9)'
+                stroke = '#16a34a'
                 stroke_width = 0.28
             else:
-                stroke = 'rgba(156, 163, 175, 0.65)'
+                stroke = '#86efac'
                 stroke_width = 0.18
             svg_lines.append(
                 f'<line x1="0" y1="{y}" x2="{width_mm}" y2="{y}" stroke="{stroke}" stroke-width="{stroke_width}" />'
@@ -101,10 +101,10 @@ def _process_question_text(text, images=None, answer_lines=None):
             '<span style="display:inline-block; margin:8px 4px; vertical-align:middle;">'
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{width_cm}cm" height="{height_cm}cm" '
             f'viewBox="0 0 {width_mm} {height_mm}" preserveAspectRatio="none" '
-            f'style="display:block; background:#fff; border:2px solid #0f766e; border-radius:4px; box-sizing:border-box;">'
+            f'style="display:block; background:#fff; border:2px solid #15803d; border-radius:4px; box-sizing:border-box; print-color-adjust:exact; -webkit-print-color-adjust:exact;">'
             f'<rect x="0" y="0" width="{width_mm}" height="{height_mm}" fill="#ffffff" />'
             f'{svg_content}'
-            f'<rect x="0" y="0" width="{width_mm}" height="{height_mm}" fill="none" stroke="#000000" stroke-width="0.5" />'
+            f'<rect x="0" y="0" width="{width_mm}" height="{height_mm}" fill="none" stroke="#15803d" stroke-width="0.5" />'
             '</svg>'
             '</span>'
         )

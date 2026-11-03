@@ -929,15 +929,17 @@ def _process_question_text(text, images=None, answer_lines=None):
     display: block;
     width: {width_cm}cm;
     height: {height_cm}cm;
-    border: 2px solid #0f766e;
+    border: 2px solid #15803d;
     border-radius: 4px;
     box-sizing: border-box;
     background-color: white;
     background-image: 
-        repeating-linear-gradient(to right, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm),
-        repeating-linear-gradient(to bottom, rgba(15, 118, 110, 0.18) 0, rgba(15, 118, 110, 0.18) 1px, transparent 1px, transparent 1mm),
-        repeating-linear-gradient(to right, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm),
-        repeating-linear-gradient(to bottom, rgba(15, 23, 42, 0.42) 0, rgba(15, 23, 42, 0.42) 1px, transparent 1px, transparent 1cm);
+        repeating-linear-gradient(to right, rgba(134, 239, 172, 0.85) 0, rgba(134, 239, 172, 0.85) 1px, transparent 1px, transparent 1mm),
+        repeating-linear-gradient(to bottom, rgba(134, 239, 172, 0.85) 0, rgba(134, 239, 172, 0.85) 1px, transparent 1px, transparent 1mm),
+        repeating-linear-gradient(to right, rgba(21, 128, 61, 0.9) 0, rgba(21, 128, 61, 0.9) 1px, transparent 1px, transparent 1cm),
+        repeating-linear-gradient(to bottom, rgba(21, 128, 61, 0.9) 0, rgba(21, 128, 61, 0.9) 1px, transparent 1px, transparent 1cm);
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
     title=\"Graph {int(graph_id)}: {width_cm}cm × {height_cm}cm\";
 ">&nbsp;</span>
 </span>'''
