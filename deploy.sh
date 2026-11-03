@@ -24,6 +24,12 @@ python manage.py collectstatic --noinput
 echo "==> Building frontend..."
 cd /var/www/examination/frontend/exam
 npm install
+# React Scripts recreates the existing build directory during its normal build.
+# Ensure previously deployed output is writable before that rebuild.
+if [ -d build ]; then
+    sudo chown -R "$(id -u):$(id -g)" build
+    chmod -R u+rwX build
+fi
 npm run build
 
 echo "==> Fixing permissions..."
