@@ -3,14 +3,16 @@ import React, { useEffect, useRef } from 'react';
 import { parseFormulaToken } from './formula';
 
 const PX_PER_CM = 96 / 2.54;
+const MAX_GRAPH_WIDTH_CM = 21;
+const MAX_GRAPH_HEIGHT_CM = 30;
 
 export function parseGraphToken(token) {
     const match = token.match(/^\[GRAPH:([\d.]+):([\d.]+)x([\d.]+)cm\]$/);
     if (!match) return null;
     return {
         id: parseFloat(match[1]),
-        widthCm: Math.max(1, parseFloat(match[2])),
-        heightCm: Math.max(1, parseFloat(match[3])),
+        widthCm: Math.min(MAX_GRAPH_WIDTH_CM, Math.max(1, parseFloat(match[2]))),
+        heightCm: Math.min(MAX_GRAPH_HEIGHT_CM, Math.max(1, parseFloat(match[3]))),
     };
 }
 
@@ -350,7 +352,14 @@ export function renderTextWithImages(
             while (idx < str.length && !startsPattern(str.slice(idx))) {
                 plain += str[idx++];
             }
-            if (plain) results.push(<span key={kc++}>{plain}</span>);
+            if (plain) {
+                results.push(<span key={kc++}>{plain}</span>);
+            } else {
+                // A malformed token must still consume input. Otherwise the
+                // parser stays at the same index and blocks the main thread.
+                results.push(<span key={kc++}>{str[idx]}</span>);
+                idx++;
+            }
         }
         return results;
     };
