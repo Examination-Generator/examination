@@ -59,6 +59,7 @@ const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
             { symbol: '∝', name: 'proportional to' },
             { symbol: '∈', name: 'element of' },
             { symbol: '∉', name: 'not element of' },
+            { symbol: '𝐸', name: 'custom symbol E' },
             { symbol: '∪', name: 'union' },
             { symbol: '∩', name: 'intersection' },
             { symbol: '⊂', name: 'subset' },
@@ -69,6 +70,12 @@ const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
             { symbol: '∅', name: 'empty set' },
             { symbol: '°', name: 'degree' },
             { symbol: '′', name: 'prime' },
+            { symbol: '𝑓', name: 'function f' },
+            { symbol: '𝑔', name: 'function g' },
+            { symbol: 'ℎ', name: 'function h' },
+            { symbol: 'K𝐸ₘₐₓ', name: 'custom K𝐸ₘₐₓ' },
+            { symbol: '𝑓₀', name: 'function f sub 0' },
+            { symbol: '𝑊₀', name: 'function W sub 0' },
             { symbol: '″', name: 'double prime' }
         ],
         'Arrows': [
@@ -79,7 +86,10 @@ const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
             { symbol: '↔', name: 'left-right arrow' },
             { symbol: '⇒', name: 'right double arrow' },
             { symbol: '⇐', name: 'left double arrow' },
-            { symbol: '⇔', name: 'left-right double arrow' }
+            { symbol: '⇔', name: 'left-right double arrow' },
+            { symbol: '⟶', name: 'long right arrow' },
+            { symbol: '⟵', name: 'long left arrow' },
+            { symbol: '⟷', name: 'long left-right arrow' },
         ],
         'Scientific Units': [
             { symbol: 'm', name: 'meter' },
@@ -134,6 +144,24 @@ const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
             { symbol: '₉', name: 'subscript 9' },
             { symbol: '₊', name: 'subscript plus' },
             { symbol: '₋', name: 'subscript minus' }
+        ],
+        'Physics Variables': [
+            { symbol: '𝑝', name: 'variable p' },
+            { symbol: '𝐸_f', name: 'energy E sub f' },
+            { symbol: '𝐹_c', name: 'force F sub c' },
+            { symbol: '𝑇', name: 'variable T' },
+            { symbol: '𝑟', name: 'variable r' },
+            { symbol: '𝑠', name: 'variable s' },
+            { symbol: '𝑑', name: 'variable d' },
+            { symbol: '𝑢', name: 'variable u' },
+            { symbol: '𝑣', name: 'variable v' },
+            { symbol: '𝑎', name: 'variable a' },
+            { symbol: '𝑡', name: 'variable t' },
+            { symbol: '𝑔', name: 'variable g' },
+            { symbol: 'λ₀', name: 'lambda sub 0' },
+            { symbol: 'εT', name: 'epsilon T' },
+            { symbol: '𝑚ₑ', name: 'mass m sub e' },
+            { symbol: '𝑒', name: 'variable e' }
         ]
     };
 
