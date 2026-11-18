@@ -213,6 +213,26 @@ export default function EditorDashboard({ onLogout }) {
     }, [bulkQuestions, currentBulkIndex, formState, showSuccess]);
 
     // ── Printable modal ────────────────────────────────────────────────
+    const handleOpenPrintableBySubject = useCallback(async (subjectData) => {
+        if (!subjectData.subjectId) {
+            showError('Missing subject ID');
+            return;
+        }
+        setIsLoadingPrintable(true);
+        setPrintableTitle(subjectData.subjectName);
+        setShowPrintable(true);
+        setPrintableHtml('');
+        try {
+            const html = await getPrintableDocument(subjectData.subjectId);
+            setPrintableHtml(html);
+        } catch (err) {
+            showError('Failed to generate document: ' + err.message);
+            setShowPrintable(false);
+        } finally {
+            setIsLoadingPrintable(false);
+        }
+    }, [showError]);
+
     const handleOpenPrintableByPaper = useCallback(async (paperData) => {
         if (!paperData.subjectId || !paperData.paperId) {
             showError('Missing subject or paper ID');
@@ -677,6 +697,7 @@ export default function EditorDashboard({ onLogout }) {
                 {activeTab === 'stats' && (
                     <StatsTab
                         existingSubjects={existingSubjects}
+                        onOpenPrintableBySubject={handleOpenPrintableBySubject}
                         onOpenPrintableByPaper={handleOpenPrintableByPaper}
                         onOpenPrintableByTopic={handleOpenPrintableByTopic}
                     />

@@ -332,6 +332,7 @@ const CreatorsModal = memo(function CreatorsModal({
 
 // ── Main StatsTab 
 const StatsTab = memo(function StatsTab({
+    onOpenPrintableBySubject,
     onOpenPrintableByPaper,
     onOpenPrintableByTopic,
 }) {
@@ -660,7 +661,8 @@ const StatsTab = memo(function StatsTab({
                             .map(subject => (
                             <div
                                 key={subject.subjectId || subject.subjectName}
-                                className="border-2 border-gray-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-white hover:border-blue-400 transition"
+                                onClick={() => subject.subjectId && onOpenPrintableBySubject?.(subject)}
+                                className="border-2 border-gray-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-white hover:border-blue-400 cursor-pointer transition"
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <h4 className="text-sm font-bold text-gray-700 truncate flex-1">

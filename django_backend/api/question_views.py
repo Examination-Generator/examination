@@ -758,7 +758,7 @@ def generate_topic_printable_document(request, topic_id):
         return error_response('Topic not found', status=status.HTTP_404_NOT_FOUND)
 
     # Load questions for the topic (only active ones by default)
-    questions_qs = Question.objects.filter(topic=topic, is_active=True).order_by('id')
+    questions_qs = Question.objects.filter(topic=topic, is_active=True).order_by('-created_at')
 
     processed = []
     for q in questions_qs:
@@ -1050,13 +1050,10 @@ def generate_topic_printable_document(request):
             {'error': 'subject_id is required'},
             status.HTTP_400_BAD_REQUEST
         )
-    
+
     if not topic_id and not paper_id:
-        return error_response(
-            'Missing required parameters',
-            {'error': 'Either topic_id or paper_id is required'},
-            status.HTTP_400_BAD_REQUEST
-        )
+        # Subject-level printable documents are valid: omit topic_id and paper_id.
+        pass
     
     try:
         # Fetch subject
@@ -1065,7 +1062,42 @@ def generate_topic_printable_document(request):
         # Determine if we're generating for a topic or entire paper
         is_paper_level = bool(paper_id and not topic_id)
         
-        if is_paper_level:
+        if not topic_id and not paper_id:
+            papers = Paper.objects.filter(subject_id=subject_id, is_active=True).order_by('name')
+            questions = Question.objects.filter(
+                subject_id=subject_id,
+                is_active=True
+            ).select_related(
+                'paper', 'section', 'subject', 'topic'
+            ).order_by('-created_at')
+
+            if not questions.exists():
+                return error_response(
+                    'No questions found',
+                    {'error': 'No active questions found for this subject'},
+                    status.HTTP_404_NOT_FOUND
+                )
+
+            from collections import defaultdict
+            questions_by_topic = defaultdict(list)
+            question_number = 1
+            for question in questions:
+                topic_name = question.topic.name if question.topic else 'Uncategorized'
+                questions_by_topic[f"{question.paper.name} - {topic_name}"].append({
+                    'number': question_number,
+                    'question': question,
+                    'paper_name': question.paper.name,
+                    'topic_name': topic_name,
+                    'section_name': question.section.name if question.section else None,
+                    'marks': question.marks,
+                })
+                question_number += 1
+
+            document_title = subject.name
+            total_questions = questions.count()
+            is_paper_level = True
+
+        elif is_paper_level:
             # Paper-level document generation
             paper = Paper.objects.get(id=paper_id)
             
@@ -1093,7 +1125,7 @@ def generate_topic_printable_document(request):
                 is_active=True
             ).select_related(
                 'paper', 'section', 'subject', 'topic'
-            ).order_by('topic__name', 'created_at')
+            ).order_by('-created_at')
             
             if not questions.exists():
                 return error_response(
@@ -1140,7 +1172,7 @@ def generate_topic_printable_document(request):
                 is_active=True
             ).select_related(
                 'paper', 'section', 'subject', 'topic'
-            ).order_by('created_at')
+            ).order_by('-created_at')
             
             if not questions.exists():
                 return error_response(
@@ -1259,6 +1291,7 @@ def generate_topic_printable_document(request):
         
         .question-container {{
             padding: 2px;
+            position: relative;
         }}
         
         .question-header {{
@@ -1433,7 +1466,8 @@ def generate_topic_printable_document(request):
                 processed_question_text = _process_question_text(
                     question.question_text,
                     images=question_images_list,
-                    answer_lines=question.question_answer_lines or []
+                    answer_lines=question.question_answer_lines or [],
+                    image_positions=question.question_image_positions or {}
                 )
                 
                 # Prepare images for answer text processing
@@ -1456,7 +1490,8 @@ def generate_topic_printable_document(request):
                 processed_answer_text = _process_question_text(
                     question.answer_text,
                     images=answer_images_list,
-                    answer_lines=question.answer_answer_lines or []
+                    answer_lines=question.answer_answer_lines or [],
+                    image_positions=question.answer_image_positions or {}
                 )
                 
                 html_content += f"""

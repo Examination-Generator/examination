@@ -807,8 +807,6 @@ export const getPrintableDocument = async (subjectId, options = {}) => {
             url += `&topic_id=${options.topicId}`;
         } else if (options.paperId) {
             url += `&paper_id=${options.paperId}`;
-        } else {
-            throw new Error('Either topicId or paperId must be provided');
         }
         
         const response = await fetch(url, {

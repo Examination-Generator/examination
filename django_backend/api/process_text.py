@@ -1,6 +1,8 @@
 import re
+from html import escape
+from urllib.parse import unquote
 
-def _process_question_text(text, images=None, answer_lines=None):
+def _process_question_text(text, images=None, answer_lines=None, image_positions=None):
     """
     Process question text to render images, answer lines, tables, matrices, fractions, 
     superscript, subscript, and other formatting with support for nested formatting
@@ -55,9 +57,11 @@ def _process_question_text(text, images=None, answer_lines=None):
     if answer_lines:
         for line in answer_lines:
             lines_dict[float(line.get('id', 0))] = line
+
+    positions_dict = image_positions or {}
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
     parts = re.split(pattern, text)
     
     result = []
@@ -331,6 +335,29 @@ def _process_question_text(text, images=None, answer_lines=None):
             content = part[5:-6]
             result.append(f'<sub style="font-size: 0.75em;">{content}</sub>')
             continue
+
+        # Formula: [FORMULA:supBefore|subBefore|main|supAfter|subAfter]
+        if part.startswith('[FORMULA:') and part.endswith(']'):
+            try:
+                inner = part[9:-1]
+                values = inner.split('|')
+                if len(values) == 5:
+                    sup_before, sub_before, main, sup_after, sub_after = [
+                        escape(unquote(value)) for value in values
+                    ]
+                    formula_html = (
+                        '<span style="display:inline-flex; align-items:center; vertical-align:middle;">'
+                        f'<span style="display:inline-flex; flex-direction:column; text-align:center; line-height:1; font-size:0.8em;">'
+                        f'<sup>{sup_before}</sup><sub style="font-size:0.75em;">{sub_before}</sub></span>'
+                        f'<span>{main}</span>'
+                        f'<span style="display:inline-flex; flex-direction:column; text-align:center; line-height:1; font-size:0.8em;">'
+                        f'<sup>{sup_after}</sup><sub style="font-size:0.75em;">{sub_after}</sub></span>'
+                        '</span>'
+                    )
+                    result.append(formula_html)
+                    continue
+            except Exception:
+                pass
             
         # Bold: **text**
         if part.startswith('**') and part.endswith('**') and len(part) > 4:
@@ -396,7 +423,7 @@ def _process_question_text(text, images=None, answer_lines=None):
                 # A4 printable width is approximately 170mm = ~640px at 96 DPI
                 max_width = 700
                 # Default height for working space (can be customized if space config is passed)
-                height_px = 100
+                height_px = 189
                 
                 space_html = f'<div style="margin: 8px 0; max-width: {max_width}px;"><div style="height: {height_px}px; width: 100%; background: white; border: none;"></div></div>'
                 result.append(space_html)
@@ -438,13 +465,31 @@ def _process_question_text(text, images=None, answer_lines=None):
                     style = f"width: {image_width}px;"
                     if image_height:
                         style += f" height: {image_height}px;"
-                    
-                    result.append(f'<img src="{img_url}" alt="{img_alt}" class="question-image" style="{style}" />')
+                    position = positions_dict.get(str(image_id)) or positions_dict.get(int(image_id))
+                    if position:
+                        try:
+                            x = max(0, float(position.get('x', 0)))
+                            y = max(0, float(position.get('y', 0)))
+                            result.append(
+                                f'<span style="position:absolute; left:{x}px; top:{y}px;">'
+                                f'<img src="{img_url}" alt="{escape(str(img_alt))}" class="question-image" style="{style}" />'
+                                '</span>'
+                            )
+                        except (TypeError, ValueError, AttributeError):
+                            result.append(
+                                f'<img src="{img_url}" alt="{escape(str(img_alt))}" class="question-image" '
+                                f'style="{style} display:block; max-width:100%; margin:8px 0;" />'
+                            )
+                    else:
+                        result.append(
+                            f'<img src="{img_url}" alt="{escape(str(img_alt))}" class="question-image" '
+                            f'style="{style} display:block; max-width:100%; margin:8px 0;" />'
+                        )
                 else:
                     result.append(f'<div style="margin: 10px 0; padding: 10px; background: #f8d7da; border: 1px solid #dc3545; border-radius: 4px; font-size: 11pt;">❌ Image Not Found (ID: {int(image_id)})</div>')
         
         # Regular text
         else:
-            result.append(part)
+            result.append(escape(part))
     
     return ''.join(result)

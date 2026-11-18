@@ -304,28 +304,29 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
 
     const handleDownload = async () => {
         if (!htmlContent || isGeneratingPdf) return;
-        
+
+        let tempContainer = null;
         try {
             setIsGeneratingPdf(true);
-            
+
             // Get content from the iframe that's already rendered
             const iframe = document.getElementById('printable-document-iframe');
             if (!iframe || !iframe.contentWindow || !iframe.contentDocument) {
                 throw new Error('Unable to access document content');
             }
-            
+
             // Get the body content from the iframe
             const iframeBody = iframe.contentDocument.body;
             if (!iframeBody) {
                 throw new Error('No content found in document');
             }
-            
+
             // Clone the content to avoid modifying the original
             const contentClone = iframeBody.cloneNode(true);
             preparePrintableContent(contentClone, iframe.contentDocument, images, imagePositions, answerLines);
-            
+
             // Create a temporary container with proper styling
-            const tempContainer = document.createElement('div');
+            tempContainer = document.createElement('div');
             tempContainer.style.position = 'absolute';
             tempContainer.style.left = '-9999px';
             tempContainer.style.top = '0';
@@ -336,10 +337,10 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             tempContainer.style.fontFamily = 'Arial, sans-serif';
             tempContainer.appendChild(contentClone);
             document.body.appendChild(tempContainer);
-            
+
             // Wait a bit for content to be fully ready
             await new Promise(resolve => setTimeout(resolve, 100));
-            
+
             // Configure PDF options
             const options = {
                 margin: [10, 10, 10, 10],
@@ -360,15 +361,15 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                 },
                 pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
-            
+
             // Generate and download PDF
             await html2pdf().set(options).from(tempContainer).save();
-            
-            // Cleanup
-            document.body.removeChild(tempContainer);
         } catch (error) {
             alert(`Failed to generate PDF: ${error.message}. Please try using the Print button instead.`);
         } finally {
+            if (tempContainer?.parentNode) {
+                tempContainer.parentNode.removeChild(tempContainer);
+            }
             setIsGeneratingPdf(false);
         }
     };
@@ -433,6 +434,17 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                                 </svg>
                                 Print
+                            </button>
+
+                            <button
+                                onClick={handleDownload}
+                                disabled={isGeneratingPdf}
+                                className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                            >
+                                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M6 20h12a2 2 0 002-2V7a2 2 0 00-2-2h-3l-2-2H9L7 5H6a2 2 0 00-2 2v11a2 2 0 002 2z" />
+                                </svg>
+                                {isGeneratingPdf ? 'Generating...' : 'Download PDF'}
                             </button>
                         </div>
                     </div>
