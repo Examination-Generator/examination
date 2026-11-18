@@ -109,10 +109,10 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
         setTimeout(() => { ta.focus(); ta.setSelectionRange(s + sym.length, s + sym.length); }, 0);
     }, [editQuestionTextareaRef, editAnswerTextareaRef, setEditQuestionText, setEditAnswerText]);
 
-    const handleFormulaInsert = useCallback(({ superscriptBefore, subscriptBefore, mainText, superscriptAfter, subscriptAfter }) => {
+    const handleFormulaInsert = useCallback(formula => {
         const ref = formulaTarget === 'question' ? editQuestionTextareaRef : editAnswerTextareaRef;
         const setText = formulaTarget === 'question' ? setEditQuestionText : setEditAnswerText;
-        const token = createFormulaToken({ superscriptBefore, subscriptBefore, mainText, superscriptAfter, subscriptAfter });
+        const token = createFormulaToken(formula);
         const textarea = ref.current;
         if (!textarea) setText(previous => previous + token);
         else {

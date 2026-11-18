@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { renderTextWithImages } from '../utils/renderTextWithImages';
+import { renderTextWithImages, Radical } from '../utils/renderTextWithImages';
 
 const EMPTY_FORM = {
     superscriptBefore: '',
@@ -11,41 +11,40 @@ const EMPTY_FORM = {
     rootDegree: '',
 };
 
+const EMPTY_DEGREES = { superscriptBefore: '', subscriptBefore: '', mainText: '', superscriptAfter: '', subscriptAfter: '' };
+
+const INPUT = 'min-w-0 px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none';
+
 export default function FormulaModal({ open, onClose, onInsert }) {
     const [form, setForm] = useState(EMPTY_FORM);
+    // Each field keeps its own root degree, so different roots can sit in different places.
+    const [degrees, setDegrees] = useState(EMPTY_DEGREES);
     const fieldRefs = useRef({});
 
-    // Wrap the selected text (or insert an empty root) in a [ROOT:degree|...] token inside one field.
+    useEffect(() => {
+        if (!open) {
+            setForm(EMPTY_FORM);
+            setDegrees(EMPTY_DEGREES);
+        }
+    }, [open]);
+
+    if (!open) return null;
+
+    const updateField = (field, value) => setForm(previous => ({ ...previous, [field]: value }));
+
+    // Wrap the selection (or insert an empty root) using this field's own degree.
     const insertRoot = field => {
         const element = fieldRefs.current[field];
         const value = form[field];
         const start = element?.selectionStart ?? value.length;
         const end = element?.selectionEnd ?? value.length;
-        const token = `[ROOT:${encodeURIComponent(form.rootDegree.trim())}|${value.slice(start, end)}]`;
-        setForm(previous => ({ ...previous, [field]: value.slice(0, start) + token + value.slice(end) }));
+        const token = `[ROOT:${encodeURIComponent(degrees[field].trim())}|${value.slice(start, end)}]`;
+        updateField(field, value.slice(0, start) + token + value.slice(end));
         setTimeout(() => {
             if (!element) return;
             element.focus();
             element.setSelectionRange(start + token.length - 1, start + token.length - 1);
         }, 0);
-    };
-
-    const rootButton = field => (
-        <button type="button" onClick={() => insertRoot(field)} title="Insert a root (uses the root degree above; blank = square root)" className="mt-1 text-xs px-2 py-1 bg-purple-100 hover:bg-purple-200 rounded border border-purple-300 font-normal">
-            <sup>{form.rootDegree}</sup>√
-        </button>
-    );
-
-    const preview = text => renderTextWithImages(text || '');
-
-    useEffect(() => {
-        if (!open) setForm(EMPTY_FORM);
-    }, [open]);
-
-    if (!open) return null;
-
-    const updateField = (field, value) => {
-        setForm(previous => ({ ...previous, [field]: value }));
     };
 
     const handleSubmit = event => {
@@ -54,95 +53,97 @@ export default function FormulaModal({ open, onClose, onInsert }) {
         onInsert(form);
     };
 
+    const preview = text => renderTextWithImages(text || '');
+
+    const field = (key, label, placeholder, extra = {}) => (
+        <div>
+            <div className="text-xs font-semibold text-gray-600 mb-1">{label}</div>
+            <div className="flex gap-1">
+                <input
+                    ref={el => { fieldRefs.current[key] = el; }}
+                    value={form[key]}
+                    onChange={event => updateField(key, event.target.value)}
+                    className={`${INPUT} flex-1 ${extra.className || ''}`}
+                    placeholder={placeholder}
+                    {...extra.inputProps}
+                />
+                <input
+                    value={degrees[key]}
+                    onChange={event => setDegrees(previous => ({ ...previous, [key]: event.target.value }))}
+                    className={`${INPUT} w-11 text-center px-1`}
+                    placeholder="n"
+                    title="Root degree for this field (blank = square root)"
+                />
+                <button type="button" onClick={() => insertRoot(key)} title="Insert root in this field"
+                    className="px-2 rounded border border-purple-300 bg-purple-100 hover:bg-purple-200 text-lg leading-none">√</button>
+            </div>
+        </div>
+    );
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <button
-                type="button"
-                aria-label="Close formula builder"
-                className="absolute inset-0 bg-black/50 cursor-default"
-                onClick={onClose}
-            />
-            <form onSubmit={handleSubmit} className="relative z-10 bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
-                <div className="flex items-start justify-between gap-4 mb-5">
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-800">Formula Builder</h3>
-                        <p className="text-sm text-gray-600 mt-1">Add text before and after the main expression.</p>
+            <button type="button" aria-label="Close" className="absolute inset-0 bg-black/50 cursor-default" onClick={onClose} />
+            <form onSubmit={handleSubmit} className="relative z-10 bg-white rounded-xl shadow-2xl w-full max-w-4xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-gray-800">Formula</h3>
+                    <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl leading-none" aria-label="Close">&times;</button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="space-y-3">
+                        {field('superscriptBefore', 'Sup before', 'xⁿ')}
+                        {field('subscriptBefore', 'Sub before', 'xₙ')}
                     </div>
-                    <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl leading-none" aria-label="Close">
-                        &times;
-                    </button>
+
+                    <div className="space-y-3">
+                        {field('mainText', 'Main *', 'Main text', { inputProps: { autoFocus: true, required: true } })}
+                        <div className="flex gap-1 items-center">
+                            <button type="button" aria-pressed={form.squareRoot}
+                                onClick={() => updateField('squareRoot', !form.squareRoot)}
+                                title="Wrap the whole formula in a root"
+                                className={`flex-1 px-2 py-1.5 rounded border text-sm font-semibold ${form.squareRoot ? 'bg-purple-600 border-purple-600 text-white' : 'bg-purple-100 border-purple-300 hover:bg-purple-200'}`}>
+                                √ Wrap all
+                            </button>
+                            <input
+                                value={form.rootDegree}
+                                onChange={event => updateField('rootDegree', event.target.value)}
+                                disabled={!form.squareRoot}
+                                className={`${INPUT} w-11 text-center px-1 disabled:bg-gray-100`}
+                                placeholder="n"
+                                title="Root degree for the wrap (blank = square root)"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        {field('superscriptAfter', 'Sup after', 'xⁿ')}
+                        {field('subscriptAfter', 'Sub after', 'xₙ')}
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <label className="text-sm font-semibold text-gray-700">
-                        Superscript before
-                        <input ref={el => { fieldRefs.current.superscriptBefore = el; }} value={form.superscriptBefore} onChange={event => updateField('superscriptBefore', event.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg font-normal focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. n" />
-                    {rootButton('superscriptBefore')}
-                    </label>
-                    <label className="text-sm font-semibold text-gray-700">
-                        Subscript before
-                        <input ref={el => { fieldRefs.current.subscriptBefore = el; }} value={form.subscriptBefore} onChange={event => updateField('subscriptBefore', event.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg font-normal focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. i" />
-                    {rootButton('subscriptBefore')}
-                    </label>
-                    <label className="sm:col-span-2 text-sm font-semibold text-gray-700">
-                        Main text *
-                        <input ref={el => { fieldRefs.current.mainText = el; }} autoFocus required value={form.mainText} onChange={event => updateField('mainText', event.target.value)} className="mt-1 w-full px-3 py-2 border border-blue-300 rounded-lg font-normal focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. H" />
-                    {rootButton('mainText')}
-                    </label>
-                    <label className="sm:col-span-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
-                        <input type="checkbox" checked={form.squareRoot} onChange={event => updateField('squareRoot', event.target.checked)} className="h-4 w-4" />
-                        Wrap the complete equation in a square-root symbol
-                    </label>
-                    <label className="sm:col-span-2 text-sm font-semibold text-gray-700">
-                        Root degree (optional)
-                        <input
-                            value={form.rootDegree}
-                            onChange={event => updateField('rootDegree', event.target.value)}
-                            className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg font-normal"
-                            placeholder="Leave blank for square root; enter 3, 5, n ... for 3rd, 5th, nth root"
-                        />
-                        <span className="block text-xs font-normal text-gray-500 mt-1">Used by the square-root checkbox above and by the √ buttons under each field.</span>
-                    </label>
-                    <label className="text-sm font-semibold text-gray-700">
-                        Superscript after
-                        <input ref={el => { fieldRefs.current.superscriptAfter = el; }} value={form.superscriptAfter} onChange={event => updateField('superscriptAfter', event.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg font-normal focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. 2" />
-                    {rootButton('superscriptAfter')}
-                    </label>
-                    <label className="text-sm font-semibold text-gray-700">
-                        Subscript after
-                        <input ref={el => { fieldRefs.current.subscriptAfter = el; }} value={form.subscriptAfter} onChange={event => updateField('subscriptAfter', event.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg font-normal focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. O" />
-                    {rootButton('subscriptAfter')}
-                    </label>
-                </div>
-
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-700">
-                    <span className="font-semibold">Preview: </span>
-                    <span className="inline-flex items-center align-middle">
-                        <span className="inline-flex flex-col justify-center text-center leading-none mr-1">
+                <div className="mt-4 px-4 py-3 bg-gray-50 rounded-lg flex items-center justify-center min-h-[3.5rem] overflow-x-auto">
+                    <span className="inline-flex items-center">
+                        <span className="inline-flex flex-col justify-center text-center leading-none mr-1 text-sm">
                             <sup>{preview(form.superscriptBefore)}</sup>
                             <sub>{preview(form.subscriptBefore)}</sub>
                         </span>
                         {form.squareRoot ? (
-                            <span className="inline-flex items-start">
-                                {form.rootDegree.trim() && (
-                                    <sup className="text-xs mr-0.5 mt-1">{preview(form.rootDegree)}</sup>
-                                )}
-                                <span className="text-2xl leading-none">√</span>
-                                <span className="border-t-2 border-black px-1 mt-2">{form.mainText ? preview(form.mainText) : 'Equation'}</span>
-                            </span>
+                            <Radical degree={form.rootDegree.trim() ? preview(form.rootDegree) : null}>
+                                {form.mainText ? preview(form.mainText) : 'Equation'}
+                            </Radical>
                         ) : (
                             <span>{form.mainText ? preview(form.mainText) : 'X'}</span>
                         )}
-                        <span className="inline-flex flex-col justify-center text-center leading-none ml-1">
+                        <span className="inline-flex flex-col justify-center text-center leading-none ml-1 text-sm">
                             <sup>{preview(form.superscriptAfter)}</sup>
                             <sub>{preview(form.subscriptAfter)}</sub>
                         </span>
                     </span>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-6">
+                <div className="flex justify-end gap-3 mt-4">
                     <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800">Cancel</button>
-                    <button type="submit" className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold">Insert Formula</button>
+                    <button type="submit" className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold">Insert</button>
                 </div>
             </form>
         </div>

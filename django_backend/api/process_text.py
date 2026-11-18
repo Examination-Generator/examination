@@ -4,14 +4,21 @@ from urllib.parse import unquote
 
 
 def _root_html(radicand_html, degree_html=''):
+    """Radical sign drawn as an inline SVG check-mark that stretches with the content and joins the top bar."""
     degree = (
-        f'<sup style="font-size:0.65em; margin-top:4px; margin-right:2px;">{degree_html}</sup>'
+        '<span style="align-self:flex-start; font-size:0.6em; line-height:1; margin-right:-0.3em; '
+        f'position:relative; top:0.2em;">{degree_html}</span>'
         if degree_html else ''
     )
     return (
-        '<span style="display:inline-flex; align-items:flex-start; vertical-align:middle; margin:0 2px;">'
-        f'{degree}<span style="font-size:1.35em; line-height:1;">&radic;</span>'
-        f'<span style="border-top:2px solid #111; padding:2px 4px 0; min-width:20px;">{radicand_html}</span></span>'
+        '<span style="display:inline-flex; align-items:stretch; vertical-align:middle; margin:0 2px;">'
+        f'{degree}'
+        '<span style="position:relative; flex:none; width:0.85em; margin-top:1px; min-height:1.1em;">'
+        '<svg viewBox="0 0 12 100" preserveAspectRatio="none" aria-hidden="true" '
+        'style="position:absolute; top:0; left:0; width:100%; height:100%; overflow:visible;">'
+        '<polyline points="0,66 2.5,62 5.5,97 12,0" fill="none" stroke="#111" stroke-width="1.6" '
+        'stroke-linejoin="miter" stroke-linecap="butt" vector-effect="non-scaling-stroke"/></svg></span>'
+        f'<span style="border-top:2px solid #111; padding:1px 3px 0; min-width:0.8em;">{radicand_html}</span></span>'
     )
 
 

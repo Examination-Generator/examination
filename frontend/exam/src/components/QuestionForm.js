@@ -167,10 +167,10 @@ export default function QuestionForm({
         setShowFractionModal(false);
     }, [fractionTarget]);
 
-    const handleFormulaInsert = useCallback(({ superscriptBefore, subscriptBefore, mainText, superscriptAfter, subscriptAfter }) => {
+    const handleFormulaInsert = useCallback(formula => {
         const ref = formulaTarget === 'question' ? questionTextareaRef : answerTextareaRef;
         const setText = formulaTarget === 'question' ? setQuestionText : setAnswerText;
-        const token = createFormulaToken({ superscriptBefore, subscriptBefore, mainText, superscriptAfter, subscriptAfter });
+        const token = createFormulaToken(formula);
         const textarea = ref.current;
         if (!textarea) setText(previous => previous + token);
         else {

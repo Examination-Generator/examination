@@ -123,6 +123,25 @@ export function renderGraphBlock(graphId, widthCm, heightCm, key, onRemove) {
     );
 }
 
+// Drawn radical sign: a real check-mark stroke that stretches with its content and joins the top bar.
+export function Radical({ degree = null, children }) {
+    return (
+        <span style={{ display: 'inline-flex', alignItems: 'stretch', verticalAlign: 'middle', margin: '0 2px' }}>
+            {degree ? (
+                <span style={{ alignSelf: 'flex-start', fontSize: '0.6em', lineHeight: 1, marginRight: '-0.3em', position: 'relative', top: '0.2em' }}>{degree}</span>
+            ) : null}
+            <span style={{ position: 'relative', flex: 'none', width: '0.85em', marginTop: 1, minHeight: '1.1em' }}>
+                <svg viewBox="0 0 12 100" preserveAspectRatio="none" aria-hidden="true"
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible' }}>
+                    <polyline points="0,66 2.5,62 5.5,97 12,0" fill="none" stroke="#111" strokeWidth="1.6"
+                        strokeLinejoin="miter" strokeLinecap="butt" vectorEffect="non-scaling-stroke" />
+                </svg>
+            </span>
+            <span style={{ borderTop: '2px solid #111', padding: '1px 3px 0', minWidth: '0.8em' }}>{children}</span>
+        </span>
+    );
+}
+
 export function renderTextWithImages(
     text,
     images = [],
@@ -188,11 +207,7 @@ export function renderTextWithImages(
                             <span key={kc++} style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}>
                                 {renderSide(formula.superscriptBefore, formula.subscriptBefore, kc * 10)}
                                 {formula.squareRoot ? (
-                                    <span style={{ display: 'inline-flex', alignItems: 'flex-start', verticalAlign: 'middle', margin: '0 2px' }}>
-                                        {formula.rootDegree && <sup style={{ fontSize: '0.65em', marginTop: 4, marginRight: 2 }}>{parseText(formula.rootDegree, kc * 100)}</sup>}
-                                        <span style={{ fontSize: '1.35em', lineHeight: 1 }}>√</span>
-                                        <span style={{ borderTop: '2px solid #111', padding: '2px 4px 0', minWidth: 20 }}>{parseText(formula.mainText, kc * 10 + 2)}</span>
-                                    </span>
+                                    <Radical degree={formula.rootDegree ? parseText(formula.rootDegree, kc * 100) : null}>{parseText(formula.mainText, kc * 10 + 2)}</Radical>
                                 ) : (
                                     <span>{parseText(formula.mainText, kc * 10 + 2)}</span>
                                 )}
@@ -218,11 +233,7 @@ export function renderTextWithImages(
                     try { degree = decodeURIComponent(degree); } catch {}
                     try { radicand = decodeURIComponent(radicand); } catch {}
                     results.push(
-                        <span key={kc++} style={{ display: 'inline-flex', alignItems: 'flex-start', verticalAlign: 'middle', margin: '0 2px' }}>
-                            {degree && <sup style={{ fontSize: '0.65em', marginTop: 4, marginRight: 2 }}>{parseText(degree, kc * 100)}</sup>}
-                            <span style={{ fontSize: '1.35em', lineHeight: 1 }}>√</span>
-                            <span style={{ borderTop: '2px solid #111', padding: '2px 4px 0', minWidth: 20 }}>{parseText(radicand, kc * 1000)}</span>
-                        </span>
+                        <Radical key={kc++} degree={degree ? parseText(degree, kc * 100) : null}>{parseText(radicand, kc * 1000)}</Radical>
                     );
                     idx += end + 1;
                     continue;
@@ -235,10 +246,7 @@ export function renderTextWithImages(
                     let equation = rem.slice(6, end);
                     try { equation = decodeURIComponent(equation); } catch {}
                     results.push(
-                        <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', verticalAlign: 'middle', margin: '0 2px' }}>
-                            <span style={{ width: 12, borderTop: '2px solid #111', borderLeft: '2px solid #111', transform: 'skew(-18deg)', marginRight: 2 }} />
-                            <span style={{ borderTop: '2px solid #111', padding: '0 4px' }}>{parseText(equation, kc * 1000)}</span>
-                        </span>
+                        <Radical key={kc++}>{parseText(equation, kc * 1000)}</Radical>
                     );
                     idx += end + 1;
                     continue;
