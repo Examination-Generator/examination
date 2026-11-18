@@ -78,7 +78,7 @@ export default function EditorToolbar({
                     title="Matrix">⎡⎤</button>
                 <button type="button" onClick={onBracket}
                     className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
-                    title="Opening or closing bracket"> { } </button>
+                    title="Opening or closing bracket">{'({['}</button>
             </div>
 
             {/* Extra tools */}
