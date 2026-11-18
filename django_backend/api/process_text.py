@@ -2,6 +2,37 @@ import re
 from html import escape
 from urllib.parse import unquote
 
+
+def render_bracket_token(part, render_inner=None):
+    """Render a [BRACKET:side|shape|height|encodedText] token as HTML.
+
+    Mirrors the frontend renderer (renderTextWithImages.js): a scaled
+    Times New Roman bracket glyph beside the text. ``render_inner`` formats the
+    decoded text so nested formatting (fractions, sup/sub, bold...) renders too.
+    Returns None when the token is malformed so callers can emit it unchanged.
+    """
+    try:
+        side, shape, height_text, encoded_text = part[9:-1].split('|', 3)
+        height = max(20, min(400, int(height_text)))
+    except (ValueError, TypeError):
+        return None
+    decoded = unquote(encoded_text)
+    inner = render_inner(decoded) if render_inner else escape(decoded)
+    opening = side != 'closing'
+    glyph = ('{' if opening else '}') if shape == 'curly' else ('(' if opening else ')')
+    glyph_html = (
+        f'<span style="font-family:\'Times New Roman\', serif; font-size:{height}px; '
+        f'line-height:{height}px; font-weight:400;">{glyph}</span>'
+    )
+    return (
+        f'<span style="display:inline-flex; align-items:stretch; min-height:{height}px; '
+        'line-height:1.2; vertical-align:middle; margin:2px;">'
+        f'{glyph_html if opening else ""}'
+        f'<span style="display:inline-flex; align-items:center; text-align:left; padding:0 6px; '
+        f'min-width:20px; white-space:pre-wrap; overflow-wrap:anywhere;">{inner}</span>'
+        f'{"" if opening else glyph_html}</span>'
+    )
+
 def _process_question_text(text, images=None, answer_lines=None, image_positions=None):
     """
     Process question text to render images, answer lines, tables, matrices, fractions, 
@@ -394,29 +425,12 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
             continue
 
         if part.startswith('[BRACKET:') and part.endswith(']'):
-            try:
-                side, shape, height_text, encoded_text = part[9:-1].split('|', 3)
-                height = max(20, min(400, int(height_text)))
-                bracket_text = escape(unquote(encoded_text))
-                opening = side != 'closing'
-                curly = shape == 'curly'
-                bracket_border = (
-                    'border-left:3px solid #111;' if opening else 'border-right:3px solid #111;'
-                )
-                top_bottom = 'border-top:3px solid transparent;border-bottom:3px solid transparent;' if curly else 'border-top:3px solid #111;border-bottom:3px solid #111;'
-                radius = ('border-radius:70% 0 0 70%;' if opening else 'border-radius:0 70% 70% 0;') if curly else ('border-radius:12px 0 0 12px;' if opening else 'border-radius:0 12px 12px 0;')
-                bracket = f'<span style="width:{18 if curly else 14}px; align-self:stretch; {bracket_border}{top_bottom}{radius}"></span>'
-                result.append(
-                    f'<span style="display:inline-flex; align-items:stretch; height:{height}px; line-height:1.2; vertical-align:middle; margin:2px;">'
-                    f'{bracket if opening else ""}'
-                    f'<span style="display:inline-flex; align-items:center; text-align:center; padding:0 6px;">{bracket_text}</span>'
-                    f'{"" if opening else bracket}</span>'
-                )
-                continue
-            except Exception:
-                result.append(part)
-                continue
-            
+            bracket_html = render_bracket_token(
+                part, lambda inner: _process_question_text(inner, images, answer_lines, image_positions)
+            )
+            result.append(bracket_html if bracket_html is not None else part)
+            continue
+
         # Bold: **text**
         if part.startswith('**') and part.endswith('**') and len(part) > 4:
             content = part[2:-2]

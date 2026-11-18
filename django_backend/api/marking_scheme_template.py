@@ -4,6 +4,7 @@ Generates professional marking schemes with coverpage and answers
 """
 
 import re
+from .process_text import render_bracket_token
 from .coverpage_templates import MarkingSchemeCoverpage
 
 
@@ -379,7 +380,7 @@ def _process_answer_text(text, images=None, answer_lines=None):
             lines_dict[float(line.get('id', 0))] = line
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
     parts = re.split(pattern, text)
     
     result = []
@@ -571,6 +572,14 @@ def _process_answer_text(text, images=None, answer_lines=None):
                 result.append(part)
                 continue
         
+        # Bracket: [BRACKET:side|shape|height|encodedText]
+        if part.startswith('[BRACKET:') and part.endswith(']'):
+            bracket_html = render_bracket_token(
+                part, lambda inner: _process_answer_text(inner, images, answer_lines)
+            )
+            result.append(bracket_html if bracket_html is not None else part)
+            continue
+
         # Superscript: [SUP]content[/SUP]
         if part.startswith('[SUP]') and part.endswith('[/SUP]'):
             content = part[5:-6]

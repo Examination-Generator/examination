@@ -203,67 +203,67 @@ export function renderTextWithImages(
                         continue;
                     }
                 }
+            }
 
-                // nth root or square root spanning an equation or selected fraction part.
-                if (rem.startsWith('[ROOT:')) {
-                    const end = rem.indexOf(']');
-                    if (end !== -1) {
-                        const inner = rem.slice(6, end);
-                        const separator = inner.indexOf('|');
-                        let degree = separator >= 0 ? inner.slice(0, separator) : '';
-                        let radicand = separator >= 0 ? inner.slice(separator + 1) : inner;
-                        try { degree = decodeURIComponent(degree); radicand = decodeURIComponent(radicand); } catch {}
-                        results.push(
-                            <span key={kc++} style={{ display: 'inline-flex', alignItems: 'flex-start', verticalAlign: 'middle', margin: '0 2px' }}>
-                                {degree && <sup style={{ fontSize: '0.65em', marginTop: 4, marginRight: 2 }}>{parseText(degree, kc * 100)}</sup>}
-                                <span style={{ fontSize: '1.35em', lineHeight: 1 }}>√</span>
-                                <span style={{ borderTop: '2px solid #111', padding: '2px 4px 0', minWidth: 20 }}>{parseText(radicand, kc * 1000)}</span>
-                            </span>
-                        );
-                        idx += end + 1;
-                        continue;
-                    }
+            // nth root or square root spanning an equation or selected fraction part.
+            if (rem.startsWith('[ROOT:')) {
+                const end = rem.indexOf(']');
+                if (end !== -1) {
+                    const inner = rem.slice(6, end);
+                    const separator = inner.indexOf('|');
+                    let degree = separator >= 0 ? inner.slice(0, separator) : '';
+                    let radicand = separator >= 0 ? inner.slice(separator + 1) : inner;
+                    try { degree = decodeURIComponent(degree); radicand = decodeURIComponent(radicand); } catch {}
+                    results.push(
+                        <span key={kc++} style={{ display: 'inline-flex', alignItems: 'flex-start', verticalAlign: 'middle', margin: '0 2px' }}>
+                            {degree && <sup style={{ fontSize: '0.65em', marginTop: 4, marginRight: 2 }}>{parseText(degree, kc * 100)}</sup>}
+                            <span style={{ fontSize: '1.35em', lineHeight: 1 }}>√</span>
+                            <span style={{ borderTop: '2px solid #111', padding: '2px 4px 0', minWidth: 20 }}>{parseText(radicand, kc * 1000)}</span>
+                        </span>
+                    );
+                    idx += end + 1;
+                    continue;
                 }
+            }
 
-                if (rem.startsWith('[SQRT:')) {
-                    const end = rem.indexOf(']');
-                    if (end !== -1) {
-                        let equation = rem.slice(6, end);
-                        try { equation = decodeURIComponent(equation); } catch {}
-                        results.push(
-                            <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', verticalAlign: 'middle', margin: '0 2px' }}>
-                                <span style={{ width: 12, borderTop: '2px solid #111', borderLeft: '2px solid #111', transform: 'skew(-18deg)', marginRight: 2 }} />
-                                <span style={{ borderTop: '2px solid #111', padding: '0 4px' }}>{parseText(equation, kc * 1000)}</span>
-                            </span>
-                        );
-                        idx += end + 1;
-                        continue;
-                    }
+            if (rem.startsWith('[SQRT:')) {
+                const end = rem.indexOf(']');
+                if (end !== -1) {
+                    let equation = rem.slice(6, end);
+                    try { equation = decodeURIComponent(equation); } catch {}
+                    results.push(
+                        <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', verticalAlign: 'middle', margin: '0 2px' }}>
+                            <span style={{ width: 12, borderTop: '2px solid #111', borderLeft: '2px solid #111', transform: 'skew(-18deg)', marginRight: 2 }} />
+                            <span style={{ borderTop: '2px solid #111', padding: '0 4px' }}>{parseText(equation, kc * 1000)}</span>
+                        </span>
+                    );
+                    idx += end + 1;
+                    continue;
                 }
+            }
 
-                // Adjustable opening or closing bracket.
-                if (rem.startsWith('[BRACKET:')) {
-                    const end = rem.indexOf(']');
-                    if (end !== -1) {
-                        const [side, shape, heightText, encodedText] = rem.slice(9, end).split('|');
-                        let bracketText = '';
-                        try { bracketText = decodeURIComponent(encodedText || ''); } catch { bracketText = encodedText || ''; }
-                        const height = Math.min(400, Math.max(20, parseInt(heightText, 10) || 60));
-                        const opening = side !== 'closing';
-                        const curly = shape === 'curly';
-                        const bracketCharacter = curly
-                            ? (opening ? '{' : '}')
-                            : (opening ? '(' : ')');
-                        results.push(
-                            <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', minHeight: height, lineHeight: 1.2, verticalAlign: 'middle', margin: '2px', whiteSpace: 'normal' }}>
-                                {opening && <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${height}px`, lineHeight: `${height}px`, fontWeight: 400 }}>{bracketCharacter}</span>}
-                                <span style={{ display: 'inline-flex', alignItems: 'center', textAlign: 'left', padding: '0 6px', minWidth: 20, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{parseText(bracketText, kc * 1000)}</span>
-                                {!opening && <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${height}px`, lineHeight: `${height}px`, fontWeight: 400 }}>{bracketCharacter}</span>}
-                            </span>
-                        );
-                        idx += end + 1;
-                        continue;
-                    }
+            // Adjustable opening or closing bracket.
+            if (rem.startsWith('[BRACKET:')) {
+                const end = rem.indexOf(']');
+                if (end !== -1) {
+                    const [side, shape, heightText, encodedText] = rem.slice(9, end).split('|');
+                    let bracketText = '';
+                    try { bracketText = decodeURIComponent(encodedText || ''); } catch { bracketText = encodedText || ''; }
+                    const height = Math.min(400, Math.max(20, parseInt(heightText, 10) || 60));
+                    const opening = side !== 'closing';
+                    const curly = shape === 'curly';
+                    const bracketCharacter = curly
+                        ? (opening ? '{' : '}')
+                        : (opening ? '(' : ')');
+                    results.push(
+                        <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', minHeight: height, lineHeight: 1.2, verticalAlign: 'middle', margin: '2px', whiteSpace: 'normal' }}>
+                            {opening && <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${height}px`, lineHeight: `${height}px`, fontWeight: 400 }}>{bracketCharacter}</span>}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', textAlign: 'left', padding: '0 6px', minWidth: 20, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{parseText(bracketText, kc * 1000)}</span>
+                            {!opening && <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${height}px`, lineHeight: `${height}px`, fontWeight: 400 }}>{bracketCharacter}</span>}
+                        </span>
+                    );
+                    idx += end + 1;
+                    continue;
                 }
             }
 
