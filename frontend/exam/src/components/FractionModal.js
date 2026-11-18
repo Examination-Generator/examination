@@ -123,6 +123,14 @@ export default function FractionModal({ open, onClose, onInsert }) {
                         </button>
                         <button
                             type="button"
+                            onClick={() => insertFormatting(numeratorRef, numerator, setNumerator, '[SQRT:', ']')}
+                            className="text-xs px-2 py-1 bg-purple-100 hover:bg-purple-200 rounded border border-purple-300"
+                            title="Wrap numerator in square root"
+                        >
+                            √
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => insertFormatting(numeratorRef, numerator, setNumerator, '*', '*')}
                             className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300"
                             title="Make italic"
@@ -166,6 +174,14 @@ export default function FractionModal({ open, onClose, onInsert }) {
                             title="Make bold"
                         >
                             <strong>B</strong>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => insertFormatting(denominatorRef, denominator, setDenominator, '[SQRT:', ']')}
+                            className="text-xs px-2 py-1 bg-purple-100 hover:bg-purple-200 rounded border border-purple-300"
+                            title="Wrap denominator in square root"
+                        >
+                            √
                         </button>
                         <button
                             type="button"

@@ -10,6 +10,7 @@ export default function EditorToolbar({
     onSuperscript, onSubscript,
     onFormula,
     onFraction, onTable, onMatrix,
+    onBracket,
     onSymbols, onLines, onSpace,
     onMic, isListening,
     section = 'question',
@@ -57,12 +58,12 @@ export default function EditorToolbar({
                 <button type="button" onClick={onUnderline}
                     className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs underline"
                     title="Underline">U</button>
-                <button type="button" onClick={onSuperscript}
+                {/* <button type="button" onClick={onSuperscript}
                     className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
                     title="Superscript">x<sup className="text-[8px]">2</sup></button>
                 <button type="button" onClick={onSubscript}
                     className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
-                    title="Subscript">H<sub className="text-[8px]">2</sub></button>
+                    title="Subscript">H<sub className="text-[8px]">2</sub></button> */}
                 <button type="button" onClick={onFormula}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1.5 rounded transition text-xs"
                     title="Formula builder">x<sup className="text-[8px]">a</sup><sub className="text-[8px]">b</sub></button>
@@ -75,6 +76,9 @@ export default function EditorToolbar({
                 <button type="button" onClick={onMatrix}
                     className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
                     title="Matrix">⎡⎤</button>
+                <button type="button" onClick={onBracket}
+                    className="bg-gray-600 hover:bg-gray-700 text-white px-2 py-1.5 rounded transition text-xs"
+                    title="Opening or closing bracket"> { } </button>
             </div>
 
             {/* Extra tools */}

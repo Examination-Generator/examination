@@ -9,6 +9,7 @@ import FormulaModal from './FormulaModal';
 import GraphModal from './GraphModal';
 import LinesModal from './LinesModal';
 import WorkingSpaceModal from './WorkingSpaceModal';
+import BracketModal from './BracketModal';
 import { renderTextWithImages } from '../utils/renderTextWithImages';
 import { createFormulaToken } from '../utils/formula';
 import { useError } from '../contexts/ErrorContext';
@@ -42,6 +43,8 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
     const [showWorkingSpaceModal, setShowWorkingSpaceModal] = useState(false);
     const [workingSpaceTarget, setWorkingSpaceTarget] = useState('question');
     const [workingSpaceHeightMm, setWorkingSpaceHeightMm] = useState(50);
+    const [showBracketModal, setShowBracketModal] = useState(false);
+    const [bracketTarget, setBracketTarget] = useState('question');
     const [showGraphModal, setShowGraphModal] = useState(false);
     const [graphTarget, setGraphTarget] = useState('question');
     const [graphBoxesX, setGraphBoxesX] = useState(MAX_GRAPH_BOXES_X);
@@ -161,6 +164,10 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
             onFraction: () => { setFractionTarget({ ref, setText }); setShowFractionModal(true); },
             onTable: () => { setTableTarget({ ref, setText }); setTableType('table'); setShowTableModal(true); },
             onMatrix: () => { setTableTarget({ ref, setText }); setTableType('matrix'); setShowTableModal(true); },
+            onBracket: () => {
+                setBracketTarget(target);
+                setShowBracketModal(true);
+            },
             onSymbols: () => { setSymbolTarget(target); setShowSymbolPicker(true); },
             onLines: () => {
                 setLinesTarget(target);
@@ -241,6 +248,26 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
         }
         setShowWorkingSpaceModal(false);
     }, [editQuestionTextareaRef, editAnswerTextareaRef, editQuestionText, editAnswerText, setEditQuestionText, setEditAnswerText, setEditQuestionAnswerLines, setEditAnswerAnswerLines]);
+
+    const handleBracketInsert = useCallback(({ side, shape, height, text }) => {
+        const target = bracketTarget;
+        const ref = target === 'question' ? editQuestionTextareaRef : editAnswerTextareaRef;
+        const setText = target === 'question' ? setEditQuestionText : setEditAnswerText;
+        const token = `[BRACKET:${side}|${shape}|${height}|${encodeURIComponent(text)}]`;
+        const textarea = ref.current;
+        if (textarea) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            setText(textarea.value.substring(0, start) + token + textarea.value.substring(end));
+            setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(start + token.length, start + token.length);
+            }, 0);
+        } else {
+            setText(previous => previous + token);
+        }
+        setShowBracketModal(false);
+    }, [bracketTarget, editQuestionTextareaRef, editAnswerTextareaRef, setEditQuestionText, setEditAnswerText]);
 
     const handleDrawSave = useCallback(({ type, imageUrl, width, height, graphBoxesX, graphBoxesY }, target) => {
         const setText = target === 'question' ? setEditQuestionText : setEditAnswerText;
@@ -384,6 +411,11 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
                 targetSection={workingSpaceTarget}
                 heightMm={workingSpaceHeightMm}
                 setHeightMm={setWorkingSpaceHeightMm}
+            />
+            <BracketModal
+                open={showBracketModal}
+                onClose={() => setShowBracketModal(false)}
+                onInsert={handleBracketInsert}
             />
 
             {showSymbolPicker && (

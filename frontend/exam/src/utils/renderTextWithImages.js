@@ -167,7 +167,7 @@ export function renderTextWithImages(
         let kc = base;
 
         const startsPattern = (s) =>
-            /^(\[FORMULA:|\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[GRAPH:|\[IMAGE:)/.test(s);
+            /^(\[FORMULA:|\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SQRT:|\[BRACKET:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[GRAPH:|\[IMAGE:)/.test(s);
 
         while (idx < str.length) {
             const rem = str.slice(idx);
@@ -187,8 +187,63 @@ export function renderTextWithImages(
                         results.push(
                             <span key={kc++} style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}>
                                 {renderSide(formula.superscriptBefore, formula.subscriptBefore, kc * 10)}
-                                <span>{parseText(formula.mainText, kc * 10 + 2)}</span>
+                                {formula.squareRoot ? (
+                                    <span style={{ display: 'inline-flex', alignItems: 'stretch', verticalAlign: 'middle', margin: '0 2px' }}>
+                                        <span style={{ width: 10, borderTop: '2px solid #111', borderLeft: '2px solid #111', transform: 'skew(-18deg)', marginRight: 2 }} />
+                                        <span style={{ borderTop: '2px solid #111', padding: '0 4px' }}>{parseText(formula.mainText, kc * 10 + 2)}</span>
+                                    </span>
+                                ) : (
+                                    <span>{parseText(formula.mainText, kc * 10 + 2)}</span>
+                                )}
                                 {renderSide(formula.superscriptAfter, formula.subscriptAfter, kc * 10 + 4)}
+                            </span>
+                        );
+                        idx += end + 1;
+                        continue;
+                    }
+                }
+
+                // Square root spanning an equation or selected fraction part.
+                if (rem.startsWith('[SQRT:')) {
+                    const end = rem.indexOf(']');
+                    if (end !== -1) {
+                        let equation = rem.slice(6, end);
+                        try { equation = decodeURIComponent(equation); } catch {}
+                        results.push(
+                            <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', verticalAlign: 'middle', margin: '0 2px' }}>
+                                <span style={{ width: 12, borderTop: '2px solid #111', borderLeft: '2px solid #111', transform: 'skew(-18deg)', marginRight: 2 }} />
+                                <span style={{ borderTop: '2px solid #111', padding: '0 4px' }}>{parseText(equation, kc * 1000)}</span>
+                            </span>
+                        );
+                        idx += end + 1;
+                        continue;
+                    }
+                }
+
+                // Adjustable opening or closing bracket.
+                if (rem.startsWith('[BRACKET:')) {
+                    const end = rem.indexOf(']');
+                    if (end !== -1) {
+                        const [side, shape, heightText, encodedText] = rem.slice(9, end).split('|');
+                        let bracketText = '';
+                        try { bracketText = decodeURIComponent(encodedText || ''); } catch { bracketText = encodedText || ''; }
+                        const height = Math.min(400, Math.max(20, parseInt(heightText, 10) || 60));
+                        const opening = side !== 'closing';
+                        const curly = shape === 'curly';
+                        const bracketStyle = {
+                            width: curly ? 18 : 14,
+                            alignSelf: 'stretch',
+                            borderTop: curly ? '3px solid transparent' : '3px solid #111',
+                            borderBottom: curly ? '3px solid transparent' : '3px solid #111',
+                            ...(opening
+                                ? { borderLeft: '3px solid #111', borderRadius: curly ? '70% 0 0 70%' : '12px 0 0 12px' }
+                                : { borderRight: '3px solid #111', borderRadius: curly ? '0 70% 70% 0' : '0 12px 12px 0' }),
+                        };
+                        results.push(
+                            <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', height, lineHeight: 1.2, verticalAlign: 'middle', margin: '2px' }}>
+                                {opening && <span style={bracketStyle} />}
+                                <span style={{ display: 'inline-flex', alignItems: 'center', textAlign: 'center', padding: '0 6px' }}>{parseText(bracketText, kc * 1000)}</span>
+                                {!opening && <span style={bracketStyle} />}
                             </span>
                         );
                         idx += end + 1;
@@ -467,14 +522,14 @@ export function renderTextWithImages(
                 if (cur) cells.push(cur);
             }
             return (
-                <span key={key} style={{ display: 'inline-flex', alignItems: 'center', margin: '8px 4px', fontSize: '1.2em' }}>
-                    <span style={{ fontSize: '2em', lineHeight: 1 }}>⎡</span>
-                    <table style={{ borderCollapse: 'collapse', margin: '0 4px' }}>
+                <span key={key} style={{ display: 'inline-flex', alignItems: 'stretch', margin: '8px 6px', fontSize: '1.2em', minHeight: 40 }}>
+                    <span style={{ width: 14, borderLeft: '3px solid #111', borderTop: '3px solid #111', borderBottom: '3px solid #111', borderRadius: '8px 0 0 8px', alignSelf: 'stretch' }} />
+                    <table style={{ borderCollapse: 'collapse', margin: '4px 6px', tableLayout: 'fixed' }}>
                         <tbody>
                             {[...Array(rows)].map((_, r) => (
                                 <tr key={r}>
                                     {[...Array(cols)].map((_, c) => (
-                                        <td key={c} style={{ padding: '4px 8px', textAlign: 'center', minWidth: 40 }}>
+                                        <td key={c} style={{ padding: '4px 8px', textAlign: 'center', minWidth: 40, height: 32, verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                                             {parseText(cells[r * cols + c] || '', key * 10000 + (r * cols + c) * 100)}
                                         </td>
                                     ))}
@@ -482,7 +537,7 @@ export function renderTextWithImages(
                             ))}
                         </tbody>
                     </table>
-                    <span style={{ fontSize: '2em', lineHeight: 1 }}>⎤</span>
+                    <span style={{ width: 14, borderRight: '3px solid #111', borderTop: '3px solid #111', borderBottom: '3px solid #111', borderRadius: '0 8px 8px 0', alignSelf: 'stretch' }} />
                 </span>
             );
         } catch { return <span key={key}>{`[MATRIX:${inner}]`}</span>; }

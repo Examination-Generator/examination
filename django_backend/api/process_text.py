@@ -46,6 +46,20 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
                 nested_result.append(p)
         
         return ''.join(nested_result)
+
+    def render_square_roots(content):
+        if not content:
+            return content
+        pattern = r'\[SQRT:(.*?)\]'
+        return re.sub(
+            pattern,
+            lambda match: (
+                '<span style="display:inline-flex; align-items:stretch; vertical-align:middle; margin:0 2px;">'
+                '<span style="width:12px; border-top:2px solid #111; border-left:2px solid #111; transform:skew(-18deg); margin-right:2px;"></span>'
+                f'<span style="border-top:2px solid #111; padding:0 4px;">{escape(unquote(match.group(1)))}</span></span>'
+            ),
+            content,
+        )
     
     # Create lookup dictionaries
     images_dict = {}
@@ -61,7 +75,7 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
     positions_dict = image_positions or {}
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
     parts = re.split(pattern, text)
     
     result = []
@@ -230,9 +244,9 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
                     cell_data = parts_list[1].split('|') if len(parts_list) > 1 else []
                     
                     # Build HTML matrix with brackets
-                    matrix_html = '<span style="display: inline-flex; align-items: center; margin: 8px 4px; font-size: 1.2em;">'
-                    matrix_html += '<span style="font-size: 2em; line-height: 1;">⎡</span>'
-                    matrix_html += '<table style="border-collapse: collapse; margin: 0 4px;"><tbody>'
+                    matrix_html = '<span style="display:inline-flex; align-items:stretch; margin:8px 6px; font-size:1.2em; min-height:40px;">'
+                    matrix_html += '<span style="width:14px; border-left:3px solid #111; border-top:3px solid #111; border-bottom:3px solid #111; border-radius:8px 0 0 8px; align-self:stretch;"></span>'
+                    matrix_html += '<table style="border-collapse:collapse; margin:4px 6px; table-layout:fixed;"><tbody>'
                     
                     for row_idx in range(rows):
                         matrix_html += '<tr>'
@@ -241,11 +255,11 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
                             cell_value = cell_data[cell_index] if cell_index < len(cell_data) else ''
                             # Process nested formatting in matrix cells
                             cell_html = render_nested_format(cell_value) if cell_value else '&nbsp;'
-                            matrix_html += f'<td style="padding: 4px 8px; text-align: center; min-width: 40px;">{cell_html}</td>'
+                            matrix_html += f'<td style="padding:4px 8px; text-align:center; min-width:40px; height:32px; vertical-align:middle; white-space:nowrap;">{cell_html}</td>'
                         matrix_html += '</tr>'
                     
                     matrix_html += '</tbody></table>'
-                    matrix_html += '<span style="font-size: 2em; line-height: 1;">⎤</span>'
+                    matrix_html += '<span style="width:14px; border-right:3px solid #111; border-top:3px solid #111; border-bottom:3px solid #111; border-radius:0 8px 8px 0; align-self:stretch;"></span>'
                     matrix_html += '</span>'
                     result.append(matrix_html)
                     continue
@@ -280,6 +294,8 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
                 # Process nested formatting in numerator and denominator
                 num_html = render_nested_format(num)
                 den_html = render_nested_format(den)
+                num_html = render_square_roots(num_html)
+                den_html = render_square_roots(den_html)
                 
                 frac_html = f'<span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num_html}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den_html}</span></span>'
                 result.append(frac_html)
@@ -316,6 +332,8 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
                 whole_html = render_nested_format(whole)
                 num_html = render_nested_format(num)
                 den_html = render_nested_format(den)
+                num_html = render_square_roots(num_html)
+                den_html = render_square_roots(den_html)
                 
                 mix_html = f'<span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 0.95em;">{whole_html}</span><span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num_html}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den_html}</span></span></span>'
                 result.append(mix_html)
@@ -341,15 +359,22 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
             try:
                 inner = part[9:-1]
                 values = inner.split('|')
-                if len(values) == 5:
+                if len(values) in (5, 6):
                     sup_before, sub_before, main, sup_after, sub_after = [
-                        escape(unquote(value)) for value in values
+                        escape(unquote(value)) for value in values[:5]
                     ]
+                    square_root = len(values) == 6 and unquote(values[5]) == 'true'
+                    main_html = (
+                        '<span style="display:inline-flex; align-items:stretch;">'
+                        '<span style="width:12px; border-top:2px solid #111; border-left:2px solid #111; transform:skew(-18deg); margin-right:2px;"></span>'
+                        f'<span style="border-top:2px solid #111; padding:0 4px;">{main}</span></span>'
+                        if square_root else f'<span>{main}</span>'
+                    )
                     formula_html = (
                         '<span style="display:inline-flex; align-items:center; vertical-align:middle;">'
                         f'<span style="display:inline-flex; flex-direction:column; text-align:center; line-height:1; font-size:0.8em;">'
                         f'<sup>{sup_before}</sup><sub style="font-size:0.75em;">{sub_before}</sub></span>'
-                        f'<span>{main}</span>'
+                        f'{main_html}'
                         f'<span style="display:inline-flex; flex-direction:column; text-align:center; line-height:1; font-size:0.8em;">'
                         f'<sup>{sup_after}</sup><sub style="font-size:0.75em;">{sub_after}</sub></span>'
                         '</span>'
@@ -358,6 +383,39 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
                     continue
             except Exception:
                 pass
+
+        if part.startswith('[SQRT:') and part.endswith(']'):
+            equation = unquote(part[6:-1])
+            result.append(
+                '<span style="display:inline-flex; align-items:stretch; vertical-align:middle; margin:0 2px;">'
+                '<span style="width:12px; border-top:2px solid #111; border-left:2px solid #111; transform:skew(-18deg); margin-right:2px;"></span>'
+                f'<span style="border-top:2px solid #111; padding:0 4px;">{escape(equation)}</span></span>'
+            )
+            continue
+
+        if part.startswith('[BRACKET:') and part.endswith(']'):
+            try:
+                side, shape, height_text, encoded_text = part[9:-1].split('|', 3)
+                height = max(20, min(400, int(height_text)))
+                bracket_text = escape(unquote(encoded_text))
+                opening = side != 'closing'
+                curly = shape == 'curly'
+                bracket_border = (
+                    'border-left:3px solid #111;' if opening else 'border-right:3px solid #111;'
+                )
+                top_bottom = 'border-top:3px solid transparent;border-bottom:3px solid transparent;' if curly else 'border-top:3px solid #111;border-bottom:3px solid #111;'
+                radius = ('border-radius:70% 0 0 70%;' if opening else 'border-radius:0 70% 70% 0;') if curly else ('border-radius:12px 0 0 12px;' if opening else 'border-radius:0 12px 12px 0;')
+                bracket = f'<span style="width:{18 if curly else 14}px; align-self:stretch; {bracket_border}{top_bottom}{radius}"></span>'
+                result.append(
+                    f'<span style="display:inline-flex; align-items:stretch; height:{height}px; line-height:1.2; vertical-align:middle; margin:2px;">'
+                    f'{bracket if opening else ""}'
+                    f'<span style="display:inline-flex; align-items:center; text-align:center; padding:0 6px;">{bracket_text}</span>'
+                    f'{"" if opening else bracket}</span>'
+                )
+                continue
+            except Exception:
+                result.append(part)
+                continue
             
         # Bold: **text**
         if part.startswith('**') and part.endswith('**') and len(part) > 4:

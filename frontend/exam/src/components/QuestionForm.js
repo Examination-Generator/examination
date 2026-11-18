@@ -8,6 +8,7 @@ import FormulaModal from './FormulaModal';
 import GraphModal from './GraphModal';
 import LinesModal from './LinesModal';
 import WorkingSpaceModal from './WorkingSpaceModal';
+import BracketModal from './BracketModal';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import { useError } from '../contexts/ErrorContext';
 import { renderTextWithImages } from '../utils/renderTextWithImages';
@@ -83,6 +84,8 @@ export default function QuestionForm({
     const [showWorkingSpaceModal, setShowWorkingSpaceModal] = useState(false);
     const [workingSpaceTarget, setWorkingSpaceTarget] = useState('question');
     const [workingSpaceHeightMm, setWorkingSpaceHeightMm] = useState(50);
+    const [showBracketModal, setShowBracketModal] = useState(false);
+    const [bracketTarget, setBracketTarget] = useState('question');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const questionVoiceInput = useVoiceInput(
@@ -309,6 +312,26 @@ export default function QuestionForm({
         setShowWorkingSpaceModal(false);
     }, [questionTextareaRef, answerTextareaRef, questionText, answerText, setQuestionText, setAnswerText, setQuestionWorkingSpaces, setAnswerWorkingSpaces]);
 
+    const handleBracketInsert = useCallback(({ side, shape, height, text }) => {
+        const target = bracketTarget;
+        const ref = target === 'question' ? questionTextareaRef : answerTextareaRef;
+        const setText = target === 'question' ? setQuestionText : setAnswerText;
+        const token = `[BRACKET:${side}|${shape}|${height}|${encodeURIComponent(text)}]`;
+        const textarea = ref.current;
+        if (textarea) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            setText(textarea.value.substring(0, start) + token + textarea.value.substring(end));
+            setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(start + token.length, start + token.length);
+            }, 0);
+        } else {
+            setText(previous => previous + token);
+        }
+        setShowBracketModal(false);
+    }, [bracketTarget, questionTextareaRef, answerTextareaRef, setQuestionText, setAnswerText]);
+
     // ── Build toolbar props 
     const buildToolbarProps = useCallback((target) => {
         const textareaRef = target === 'question' ? questionTextareaRef : answerTextareaRef;
@@ -336,6 +359,10 @@ export default function QuestionForm({
             onFraction: () => openFraction(target),
             onTable: () => openTable(target, 'table'),
             onMatrix: () => openTable(target, 'matrix'),
+            onBracket: () => {
+                setBracketTarget(target);
+                setShowBracketModal(true);
+            },
             onSymbols: () => { setSymbolTarget(target); setShowSymbolPicker(true); },
             onLines: () => {
                 setLinesTarget(target);
@@ -481,6 +508,11 @@ export default function QuestionForm({
                 targetSection={workingSpaceTarget}
                 heightMm={workingSpaceHeightMm}
                 setHeightMm={setWorkingSpaceHeightMm}
+            />
+            <BracketModal
+                open={showBracketModal}
+                onClose={() => setShowBracketModal(false)}
+                onInsert={handleBracketInsert}
             />
             {showSymbolPicker && (
                 <SymbolPicker

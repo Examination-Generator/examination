@@ -6,6 +6,7 @@ const EMPTY_FORM = {
     mainText: '',
     superscriptAfter: '',
     subscriptAfter: '',
+    squareRoot: false,
 };
 
 export default function FormulaModal({ open, onClose, onInsert }) {
@@ -59,6 +60,10 @@ export default function FormulaModal({ open, onClose, onInsert }) {
                         Main text *
                         <input autoFocus required value={form.mainText} onChange={event => updateField('mainText', event.target.value)} className="mt-1 w-full px-3 py-2 border border-blue-300 rounded-lg font-normal focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. H" />
                     </label>
+                    <label className="sm:col-span-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                        <input type="checkbox" checked={form.squareRoot} onChange={event => updateField('squareRoot', event.target.checked)} className="h-4 w-4" />
+                        Wrap the complete equation in a square-root symbol
+                    </label>
                     <label className="text-sm font-semibold text-gray-700">
                         Superscript after
                         <input value={form.superscriptAfter} onChange={event => updateField('superscriptAfter', event.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg font-normal focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. 2" />
@@ -76,7 +81,14 @@ export default function FormulaModal({ open, onClose, onInsert }) {
                             <sup>{form.superscriptBefore}</sup>
                             <sub>{form.subscriptBefore}</sub>
                         </span>
-                        <span>{form.mainText || 'X'}</span>
+                        {form.squareRoot ? (
+                            <span className="inline-flex items-stretch">
+                                <span style={{ width: 10, borderTop: '2px solid #111', borderLeft: '2px solid #111', transform: 'skew(-20deg)', marginRight: 2 }} />
+                                <span className="border-t-2 border-black px-1">{form.mainText || 'Equation'}</span>
+                            </span>
+                        ) : (
+                            <span>{form.mainText || 'X'}</span>
+                        )}
                         <span className="inline-flex flex-col justify-center text-center leading-none ml-1">
                             <sup>{form.superscriptAfter}</sup>
                             <sub>{form.subscriptAfter}</sub>
