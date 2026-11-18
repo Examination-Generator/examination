@@ -130,12 +130,72 @@ def render_with_columns(text, render):
     return ''.join(output)
 
 
+_BRACKET_PATHS = {
+    'square': 'M9,1 L2,1 L2,99 L9,99',
+    'rounded': 'M8,1 C1,28 1,72 8,99',
+    'curly': 'M9,1 C5,1 5,6 5,16 L5,40 C5,46 3,50 1,50 C3,50 5,54 5,60 L5,84 C5,94 5,99 9,99',
+}
+
+
+def bracket_glyph_html(opening, shape, height=None):
+    """Thin stroked bracket that stretches with its content (same drawing as the frontend)."""
+    if height:
+        ratio, low, high = (0.2, 10, 26) if shape == 'curly' else (0.1, 7, 14) if shape == 'square' else (0.14, 8, 20)
+        width = round(min(high, max(low, height * ratio)))
+    else:
+        width = 7
+    min_height = f' min-height:{height}px;' if height else ''
+    flip = '' if opening else ' transform:scaleX(-1);'
+    path = _BRACKET_PATHS.get(shape, _BRACKET_PATHS['rounded'])
+    return (
+        f'<span style="position:relative; flex:none; display:block; width:{width}px;{min_height}">'
+        '<svg viewBox="0 0 10 100" preserveAspectRatio="none" aria-hidden="true" '
+        f'style="position:absolute; top:0; left:0; width:100%; height:100%; overflow:visible;{flip}">'
+        f'<path d="{path}" fill="none" stroke="#111" stroke-width="1.3" stroke-linejoin="round" '
+        'stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></span>'
+    )
+
+
+def split_matrix_cells(data):
+    """Split matrix cell data on '|' outside nested [...] tokens (so fractions, brackets etc. stay whole)."""
+    cells, current, depth = [], '', 0
+    for char in data:
+        if char == '[':
+            depth += 1
+        elif char == ']':
+            depth -= 1
+        if char == '|' and depth == 0:
+            cells.append(current)
+            current = ''
+        else:
+            current += char
+    cells.append(current)
+    return cells
+
+
+def build_matrix_html(rows, cols, cell_html):
+    """Compact inline matrix, vertically centred on the text line. ``cell_html(index)`` returns a cell's HTML."""
+    body = ''.join(
+        '<tr>' + ''.join(
+            f'<td style="padding:0 5px; text-align:center; vertical-align:middle; white-space:nowrap;">{cell_html(r * cols + c)}</td>'
+            for c in range(cols)
+        ) + '</tr>'
+        for r in range(rows)
+    )
+    return (
+        '<span style="display:inline-flex; align-items:center; vertical-align:middle; margin:0 3px; line-height:1.25;">'
+        f'<span style="align-self:stretch; display:flex;">{bracket_glyph_html(True, "square")}</span>'
+        f'<table style="border-collapse:collapse; margin:2px 1px;"><tbody>{body}</tbody></table>'
+        f'<span style="align-self:stretch; display:flex;">{bracket_glyph_html(False, "square")}</span></span>'
+    )
+
+
 def render_bracket_token(part, render_inner=None):
     """Render a [BRACKET:side|shape|height|encodedText] token as HTML.
 
-    Mirrors the frontend renderer (renderTextWithImages.js): a scaled
-    Times New Roman bracket glyph beside the text. ``render_inner`` formats the
-    decoded text so nested formatting (fractions, sup/sub, bold...) renders too.
+    Mirrors the frontend renderer (renderTextWithImages.js): a thin stroked bracket
+    that stretches with the text. ``render_inner`` formats the decoded text so nested
+    formatting (fractions, sup/sub, bold...) renders too.
     Returns None when the token is malformed so callers can emit it unchanged.
     """
     try:
@@ -146,23 +206,15 @@ def render_bracket_token(part, render_inner=None):
     decoded = unquote(encoded_text)
     inner = render_inner(decoded) if render_inner else escape(decoded)
     opening = side != 'closing'
-    glyph = (
-        ('{' if opening else '}') if shape == 'curly'
-        else ('[' if opening else ']') if shape == 'square'
-        else ('(' if opening else ')')
-    )
-    glyph_html = (
-        f'<span style="font-family:\'Times New Roman\', serif; font-size:{height}px; '
-        f'line-height:{height}px; font-weight:400;">{glyph}</span>'
-    )
     return (
         f'<span style="display:inline-flex; align-items:stretch; min-height:{height}px; '
         'line-height:1.2; vertical-align:middle; margin:2px;">'
-        f'{glyph_html if opening else ""}'
-        f'<span style="display:inline-flex; align-items:center; text-align:left; padding:0 6px; '
+        f'{bracket_glyph_html(True, shape, height) if opening else ""}'
+        '<span style="display:inline-flex; align-items:center; text-align:left; padding:0 4px; '
         f'min-width:20px; white-space:pre-wrap; overflow-wrap:anywhere;">{inner}</span>'
-        f'{"" if opening else glyph_html}</span>'
+        f'{"" if opening else bracket_glyph_html(False, shape, height)}</span>'
     )
+
 
 def _process_question_text(text, images=None, answer_lines=None, image_positions=None):
     """
@@ -394,31 +446,15 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
         if part.startswith('[MATRIX:') and part.endswith(']'):
             try:
                 inner = part[8:-1]  # Remove [MATRIX: and ]
-                parts_list = inner.split(':')
+                parts_list = inner.split(':', 1)
                 dimension_match = re.match(r'(\d+)x(\d+)', parts_list[0])
                 if dimension_match:
                     rows = int(dimension_match.group(1))
                     cols = int(dimension_match.group(2))
-                    cell_data = parts_list[1].split('|') if len(parts_list) > 1 else []
+                    cell_data = split_matrix_cells(parts_list[1]) if len(parts_list) > 1 else []
                     
                     # Build HTML matrix with brackets
-                    matrix_html = '<span style="display:inline-flex; align-items:stretch; margin:8px 6px; font-size:1.2em; min-height:40px;">'
-                    matrix_html += '<span style="width:14px; border-left:3px solid #111; border-top:3px solid #111; border-bottom:3px solid #111; border-radius:8px 0 0 8px; align-self:stretch;"></span>'
-                    matrix_html += '<table style="border-collapse:collapse; margin:4px 6px; table-layout:fixed;"><tbody>'
-                    
-                    for row_idx in range(rows):
-                        matrix_html += '<tr>'
-                        for col_idx in range(cols):
-                            cell_index = row_idx * cols + col_idx
-                            cell_value = cell_data[cell_index] if cell_index < len(cell_data) else ''
-                            # Process nested formatting in matrix cells
-                            cell_html = render_nested_format(cell_value) if cell_value else '&nbsp;'
-                            matrix_html += f'<td style="padding:4px 8px; text-align:center; min-width:40px; height:32px; vertical-align:middle; white-space:nowrap;">{cell_html}</td>'
-                        matrix_html += '</tr>'
-                    
-                    matrix_html += '</tbody></table>'
-                    matrix_html += '<span style="width:14px; border-right:3px solid #111; border-top:3px solid #111; border-bottom:3px solid #111; border-radius:0 8px 8px 0; align-self:stretch;"></span>'
-                    matrix_html += '</span>'
+                    matrix_html = build_matrix_html(rows, cols, lambda i: (render_inner(cell_data[i]) if i < len(cell_data) and cell_data[i] else '&nbsp;'))
                     result.append(matrix_html)
                     continue
             except Exception:

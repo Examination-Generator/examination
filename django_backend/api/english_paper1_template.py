@@ -5,7 +5,9 @@ from .cover.eng.eng_coverpage import EnglishPaper1Coverpage
 from .cover.bio.bio_coverpage import BiologyPaper1Coverpage
 import re
 from .process_text import (
+    build_matrix_html,
     render_bracket_token,
+    split_matrix_cells,
     render_space_token,
     render_with_columns,
     render_formula_token,
@@ -777,25 +779,13 @@ def _process_question_text(text, images=None, answer_lines=None):
         if part.startswith('[MATRIX:') and part.endswith(']'):
             try:
                 inner = part[8:-1]
-                parts_list = inner.split(':')
+                parts_list = inner.split(':', 1)
                 dimension_match = re.match(r'(\d+)x(\d+)', parts_list[0])
                 if dimension_match:
                     rows = int(dimension_match.group(1))
                     cols = int(dimension_match.group(2))
-                    cell_data = parts_list[1].split('|') if len(parts_list) > 1 else []
-                    matrix_html = '<span style="display: inline-flex; align-items: center; margin: 8px 4px; font-size: 1.2em;">'
-                    matrix_html += '<span style="font-size: 2em; line-height: 1;">⎡</span>'
-                    matrix_html += '<table style="border-collapse: collapse; margin: 0 4px;"><tbody>'
-                    for row_idx in range(rows):
-                        matrix_html += '<tr>'
-                        for col_idx in range(cols):
-                            cell_index = row_idx * cols + col_idx
-                            cell_value = cell_data[cell_index] if cell_index < len(cell_data) else ''
-                            cell_html = render_nested_format(cell_value) if cell_value else '&nbsp;'
-                            matrix_html += f'<td style="padding: 4px 8px; text-align: center; min-width: 40px;">{cell_html}</td>'
-                        matrix_html += '</tr>'
-                    matrix_html += '</tbody></table>'
-                    matrix_html += '<span style="font-size: 2em; line-height: 1;">⎤</span></span>'
+                    cell_data = split_matrix_cells(parts_list[1]) if len(parts_list) > 1 else []
+                    matrix_html = build_matrix_html(rows, cols, lambda i: (render_inner(cell_data[i]) if i < len(cell_data) and cell_data[i] else '&nbsp;'))
                     result.append(matrix_html)
                     continue
             except Exception:

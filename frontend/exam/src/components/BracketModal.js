@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { BracketGlyph } from '../utils/renderTextWithImages';
 
 export default function BracketModal({ open, onClose, onInsert }) {
     const [side, setSide] = useState('opening');
@@ -64,13 +65,9 @@ export default function BracketModal({ open, onClose, onInsert }) {
 
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg overflow-x-auto">
                     <span className="inline-flex items-stretch justify-center" style={{ minHeight: `${Math.min(400, Math.max(20, parseInt(height, 10) || 60))}px`, lineHeight: 1.2 }}>
-                        {side === 'opening' && (
-                            <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${Math.min(400, Math.max(20, parseInt(height, 10) || 60))}px`, lineHeight: 1 }}>{shape === 'curly' ? '{' : shape === 'square' ? '[' : '('}</span>
-                        )}
+                        {side === 'opening' && <BracketGlyph opening shape={shape} height={Math.min(400, Math.max(20, parseInt(height, 10) || 60))} />}
                         <span className="px-2 flex items-center text-left whitespace-pre-wrap">{text || 'Equation'}</span>
-                        {side === 'closing' && (
-                            <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${Math.min(400, Math.max(20, parseInt(height, 10) || 60))}px`, lineHeight: 1 }}>{shape === 'curly' ? '}' : shape === 'square' ? ']' : ')'}</span>
-                        )}
+                        {side === 'closing' && <BracketGlyph opening={false} shape={shape} height={Math.min(400, Math.max(20, parseInt(height, 10) || 60))} />}
                     </span>
                 </div>
 

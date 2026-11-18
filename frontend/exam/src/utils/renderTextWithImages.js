@@ -143,6 +143,31 @@ export function Radical({ degree = null, children }) {
     );
 }
 
+// Thin stroked bracket that stretches with the content (so it never looks bold, whatever the height).
+const BRACKET_PATHS = {
+    square: 'M9,1 L2,1 L2,99 L9,99',
+    rounded: 'M8,1 C1,28 1,72 8,99',
+    curly: 'M9,1 C5,1 5,6 5,16 L5,40 C5,46 3,50 1,50 C3,50 5,54 5,60 L5,84 C5,94 5,99 9,99',
+};
+
+export function bracketWidthPx(shape, height) {
+    if (!height) return 7;
+    const [ratio, low, high] = shape === 'curly' ? [0.2, 10, 26] : shape === 'square' ? [0.1, 7, 14] : [0.14, 8, 20];
+    return Math.round(Math.min(high, Math.max(low, height * ratio)));
+}
+
+export function BracketGlyph({ opening = true, shape = 'curly', height = null }) {
+    return (
+        <span style={{ position: 'relative', flex: 'none', width: bracketWidthPx(shape, height), minHeight: height || 0 }}>
+            <svg viewBox="0 0 10 100" preserveAspectRatio="none" aria-hidden="true"
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'visible', transform: opening ? 'none' : 'scaleX(-1)' }}>
+                <path d={BRACKET_PATHS[shape] || BRACKET_PATHS.rounded} fill="none" stroke="#111" strokeWidth="1.3"
+                    strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+            </svg>
+        </span>
+    );
+}
+
 export function renderTextWithImages(
     text,
     images = [],
@@ -263,17 +288,11 @@ export function renderTextWithImages(
                     try { bracketText = decodeURIComponent(encodedText || ''); } catch { bracketText = encodedText || ''; }
                     const height = Math.min(400, Math.max(20, parseInt(heightText, 10) || 60));
                     const opening = side !== 'closing';
-                    const curly = shape === 'curly';
-                    const bracketCharacter = curly
-                        ? (opening ? '{' : '}')
-                        : shape === 'square'
-                            ? (opening ? '[' : ']')
-                            : (opening ? '(' : ')');
                     results.push(
                         <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', minHeight: height, lineHeight: 1.2, verticalAlign: 'middle', margin: '2px', whiteSpace: 'normal' }}>
-                            {opening && <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${height}px`, lineHeight: `${height}px`, fontWeight: 400 }}>{bracketCharacter}</span>}
-                            <span style={{ display: 'inline-flex', alignItems: 'center', textAlign: 'left', padding: '0 6px', minWidth: 20, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{parseText(bracketText, kc * 1000)}</span>
-                            {!opening && <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${height}px`, lineHeight: `${height}px`, fontWeight: 400 }}>{bracketCharacter}</span>}
+                            {opening && <BracketGlyph opening shape={shape} height={height} />}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', textAlign: 'left', padding: '0 4px', minWidth: 20, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{parseText(bracketText, kc * 1000)}</span>
+                            {!opening && <BracketGlyph opening={false} shape={shape} height={height} />}
                         </span>
                     );
                     idx += end + 1;
@@ -574,14 +593,14 @@ export function renderTextWithImages(
                 if (cur) cells.push(cur);
             }
             return (
-                <span key={key} style={{ display: 'inline-flex', alignItems: 'stretch', margin: '8px 6px', fontSize: '1.2em', minHeight: 40 }}>
-                    <span style={{ width: 14, borderLeft: '3px solid #111', borderTop: '3px solid #111', borderBottom: '3px solid #111', borderRadius: '8px 0 0 8px', alignSelf: 'stretch' }} />
-                    <table style={{ borderCollapse: 'collapse', margin: '4px 6px', tableLayout: 'fixed' }}>
+                <span key={key} style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', margin: '0 3px', lineHeight: 1.25 }}>
+                    <span style={{ alignSelf: 'stretch', display: 'flex' }}><BracketGlyph opening shape="square" /></span>
+                    <table style={{ borderCollapse: 'collapse', margin: '2px 1px' }}>
                         <tbody>
                             {[...Array(rows)].map((_, r) => (
                                 <tr key={r}>
                                     {[...Array(cols)].map((_, c) => (
-                                        <td key={c} style={{ padding: '4px 8px', textAlign: 'center', minWidth: 40, height: 32, verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                        <td key={c} style={{ padding: '0 5px', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                                             {parseText(cells[r * cols + c] || '', key * 10000 + (r * cols + c) * 100)}
                                         </td>
                                     ))}
@@ -589,7 +608,7 @@ export function renderTextWithImages(
                             ))}
                         </tbody>
                     </table>
-                    <span style={{ width: 14, borderRight: '3px solid #111', borderTop: '3px solid #111', borderBottom: '3px solid #111', borderRadius: '0 8px 8px 0', alignSelf: 'stretch' }} />
+                    <span style={{ alignSelf: 'stretch', display: 'flex' }}><BracketGlyph opening={false} shape="square" /></span>
                 </span>
             );
         } catch { return <span key={key}>{`[MATRIX:${inner}]`}</span>; }
