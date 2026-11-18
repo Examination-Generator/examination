@@ -67,6 +67,7 @@ export default function FormulaModal({ open, onClose, onInsert }) {
                     placeholder={placeholder}
                     {...extra.inputProps}
                 />
+                {!extra.noRoot && (<>
                 <input
                     value={degrees[key]}
                     onChange={event => setDegrees(previous => ({ ...previous, [key]: event.target.value }))}
@@ -76,6 +77,7 @@ export default function FormulaModal({ open, onClose, onInsert }) {
                 />
                 <button type="button" onClick={() => insertRoot(key)} title="Insert root in this field"
                     className="px-2 rounded border border-purple-300 bg-purple-100 hover:bg-purple-200 text-lg leading-none">√</button>
+                </>)}
             </div>
         </div>
     );
@@ -91,8 +93,8 @@ export default function FormulaModal({ open, onClose, onInsert }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="space-y-3">
-                        {field('superscriptBefore', 'Sup before', 'xⁿ')}
-                        {field('subscriptBefore', 'Sub before', 'xₙ')}
+                        {field('superscriptBefore', 'Sup before', 'xⁿ', { noRoot: true })}
+                        {field('subscriptBefore', 'Sub before', 'xₙ', { noRoot: true })}
                     </div>
 
                     <div className="space-y-3">
