@@ -562,8 +562,8 @@ export function renderTextWithImages(
                                     const mi2 = merged[r]?.[c] || { colspan: 1, rowspan: 1 };
                                     return (
                                         <td key={c} colSpan={mi2.colspan} rowSpan={mi2.rowspan}
-                                            style={{ border: '1px solid #000', padding: 8, width: colWidths[c], height: rowHeights[r], minWidth: 60, minHeight: 30 }}>
-                                            {parseText(cells[ci] || '', key * 10000 + ci * 100)}
+                                            style={{ border: '1px solid #000', padding: 8, width: colWidths[c], height: rowHeights[r], minWidth: 60, minHeight: 30, whiteSpace: 'pre-wrap' }}>
+                                            {parseText((cells[ci] || '').replace(/\\n/g, '\n'), key * 10000 + ci * 100)}
                                         </td>
                                     );
                                 })}

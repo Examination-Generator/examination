@@ -420,7 +420,7 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
                             cell_index = row_idx * cols + col_idx
                             cell_value = cell_data[cell_index] if cell_index < len(cell_data) else ''
                             # Process nested formatting in table cells
-                            cell_html = render_nested_format(cell_value) if cell_value else '&nbsp;'
+                            cell_html = render_nested_format(cell_value.replace('\\n', '\n')) if cell_value else '&nbsp;'
                             width = col_widths[col_idx] if col_idx < len(col_widths) else 60
                             height = row_heights[row_idx] if row_idx < len(row_heights) else 30
                             
@@ -432,7 +432,7 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
                             colspan_attr = f' colspan="{colspan}"' if colspan > 1 else ''
                             rowspan_attr = f' rowspan="{rowspan}"' if rowspan > 1 else ''
                             
-                            table_html += f'<td{colspan_attr}{rowspan_attr} style="border: 1px solid #000; padding: 8px; width: {width}px; height: {height}px; min-width: 60px; min-height: 30px;">{cell_html}</td>'
+                            table_html += f'<td{colspan_attr}{rowspan_attr} style="border: 1px solid #000; padding: 8px; width: {width}px; height: {height}px; min-width: 60px; min-height: 30px; white-space: pre-wrap;">{cell_html}</td>'
                         table_html += '</tr>'
                     
                     table_html += '</tbody></table>'

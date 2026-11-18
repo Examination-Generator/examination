@@ -478,7 +478,7 @@ def _process_answer_text(text, images=None, answer_lines=None):
                                 continue
                             cell_index = row_idx * cols + col_idx
                             cell_value = cell_data[cell_index] if cell_index < len(cell_data) else ''
-                            cell_html = render_nested_format(cell_value) if cell_value else '&nbsp;'
+                            cell_html = render_nested_format(cell_value.replace('\\n', '\n')) if cell_value else '&nbsp;'
                             width = col_widths[col_idx] if col_idx < len(col_widths) else 60
                             height = row_heights[row_idx] if row_idx < len(row_heights) else 30
                             merge_info = merged_cells.get(row_idx, {}).get(col_idx, {'colspan': 1, 'rowspan': 1})
@@ -486,7 +486,7 @@ def _process_answer_text(text, images=None, answer_lines=None):
                             rowspan = merge_info.get('rowspan', 1)
                             colspan_attr = f' colspan="{colspan}"' if colspan > 1 else ''
                             rowspan_attr = f' rowspan="{rowspan}"' if rowspan > 1 else ''
-                            table_html += f'<td{colspan_attr}{rowspan_attr} style="border: 1px solid #000; padding: 8px; width: {width}px; height: {height}px; min-width: 60px; min-height: 30px;">{cell_html}</td>'
+                            table_html += f'<td{colspan_attr}{rowspan_attr} style="border: 1px solid #000; padding: 8px; width: {width}px; height: {height}px; min-width: 60px; min-height: 30px; white-space: pre-wrap;">{cell_html}</td>'
                         table_html += '</tr>'
                     table_html += '</tbody></table>'
                     result.append(table_html)

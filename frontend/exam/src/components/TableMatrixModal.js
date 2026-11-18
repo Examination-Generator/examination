@@ -53,7 +53,8 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
         const normalizedData = Array.from({ length: parsedRows }, (_, rowIndex) =>
             Array.from({ length: parsedCols }, (_, colIndex) => {
                 const cellIndex = (rowIndex * parsedCols) + colIndex;
-                return dataList[cellIndex] || '';
+                // Line breaks are stored in the token as a literal backslash-n sequence.
+                return (dataList[cellIndex] || '').replace(/\\n/g, '\n');
             })
         );
 
@@ -147,6 +148,12 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
         const newData = [...cellData];
         newData[rowIndex][colIndex] = value;
         setCellData(newData);
+
+        // Tables: make the row tall enough for the lines typed in the cell.
+        if (type === 'table') {
+            const needed = value.split('\n').length * 22 + 16;
+            setRowHeights(previous => (previous[rowIndex] >= needed ? previous : previous.map((h, i) => (i === rowIndex ? needed : h))));
+        }
     };
 
     const handleAddRow = () => {
@@ -444,7 +451,8 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
         const colCount = parseInt(cols);
         
         // Flatten cell data and join with pipe separator
-        const cellValues = cellData.flat().map(cell => cell || '').join('|');
+        // Line breaks inside a cell are written as a literal backslash-n so the token stays on one line.
+        const cellValues = cellData.flat().map(cell => (cell || '').replace(/\r?\n/g, '\\n')).join('|');
         
         // Encode column widths and row heights
         const widthsStr = colWidths.join(',');
@@ -666,19 +674,20 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
                                                             />
                                                         )}
                                                         
-                                                        <input
-                                                            type="text"
-                                                            value={cell}
-                                                            onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                                                            className="w-full h-full p-2 text-center border-0 focus:outline-none focus:ring-2 focus:ring-green-500 bg-transparent relative z-10"
-                                                            placeholder={type === 'matrix' ? 'x' : ''}
-                                                            onFocus={(e) => {
-                                                                // Select this cell when focusing input
+                                                        {React.createElement(type === 'table' ? 'textarea' : 'input', {
+                                                            ...(type === 'table' ? { rows: 1, title: 'Enter adds a new line in the cell' } : { type: 'text' }),
+                                                            value: cell,
+                                                            onChange: (e) => handleCellChange(rowIndex, colIndex, e.target.value),
+                                                            className: 'w-full h-full p-2 text-center border-0 focus:outline-none focus:ring-2 focus:ring-green-500 bg-transparent relative z-10' + (type === 'table' ? ' resize-none overflow-hidden' : ''),
+                                                            style: type === 'table' ? { whiteSpace: 'pre-wrap', display: 'block' } : undefined,
+                                                            placeholder: type === 'matrix' ? 'x' : '',
+                                                            onFocus: () => {
+                                                                // Select this cell when focusing the field
                                                                 if (!isSelected) {
                                                                     setSelectedCells([{ row: rowIndex, col: colIndex }]);
                                                                 }
-                                                            }}
-                                                        />
+                                                            },
+                                                        })}
                                                         
                                                         {/* Right border resize handle with grip indicator */}
                                                         {type === 'table' && colIndex < cellData[0].length - 1 && (
