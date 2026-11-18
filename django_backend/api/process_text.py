@@ -3,6 +3,73 @@ from html import escape
 from urllib.parse import unquote
 
 
+def _root_html(radicand_html, degree_html=''):
+    degree = (
+        f'<sup style="font-size:0.65em; margin-top:4px; margin-right:2px;">{degree_html}</sup>'
+        if degree_html else ''
+    )
+    return (
+        '<span style="display:inline-flex; align-items:flex-start; vertical-align:middle; margin:0 2px;">'
+        f'{degree}<span style="font-size:1.35em; line-height:1;">&radic;</span>'
+        f'<span style="border-top:2px solid #111; padding:2px 4px 0; min-width:20px;">{radicand_html}</span></span>'
+    )
+
+
+def render_root_token(part, render_inner=None):
+    """Render [ROOT:encodedDegree|radicand] (blank degree = square root).
+
+    The radicand may contain nested tokens, so it is formatted with ``render_inner``.
+    """
+    inner = part[6:-1]
+    separator = inner.find('|')
+    degree = unquote(inner[:separator]) if separator >= 0 else ''
+    radicand = inner[separator + 1:] if separator >= 0 else inner
+    fmt = render_inner or escape
+    return _root_html(fmt(radicand), fmt(degree.strip()) if degree.strip() else '')
+
+
+def render_sqrt_token(part, render_inner=None):
+    """Render the older [SQRT:encodedEquation] token as a root with no degree."""
+    fmt = render_inner or escape
+    return _root_html(fmt(unquote(part[6:-1])))
+
+
+def render_roots_in_html(content):
+    """Render [ROOT:degree|..] and [SQRT:..] tokens left inside already-formatted fraction parts."""
+    if not content:
+        return content
+    content = re.sub(
+        r'\[ROOT:[^\]]*\]',
+        lambda match: render_root_token(match.group(0), lambda value: value),
+        content,
+    )
+    return re.sub(r'\[SQRT:(.*?)\]', lambda match: render_sqrt_token(match.group(0)), content)
+
+
+def render_formula_token(part, render_inner=None):
+    """Render [FORMULA:supBefore|subBefore|main|supAfter|subAfter|squareRoot|degree].
+
+    Every field is formatted with ``render_inner`` so roots, fractions and
+    sup/sub inside the scripts display. Returns None when malformed.
+    """
+    values = part[9:-1].split('|')
+    if len(values) not in (5, 6, 7):
+        return None
+    fmt = render_inner or escape
+    sup_before, sub_before, main, sup_after, sub_after = [fmt(unquote(v)) for v in values[:5]]
+    square_root = len(values) >= 6 and unquote(values[5]) == 'true'
+    degree = unquote(values[6]).strip() if len(values) == 7 else ''
+    main_html = _root_html(main, fmt(degree) if degree else '') if square_root else f'<span>{main}</span>'
+    side = (
+        '<span style="display:inline-flex; flex-direction:column; justify-content:center; text-align:center; '
+        'line-height:1; font-size:0.8em;"><sup>{}</sup><sub style="font-size:0.75em;">{}</sub></span>'
+    )
+    return (
+        '<span style="display:inline-flex; align-items:center; vertical-align:middle;">'
+        + side.format(sup_before, sub_before) + main_html + side.format(sup_after, sub_after) + '</span>'
+    )
+
+
 def render_bracket_token(part, render_inner=None):
     """Render a [BRACKET:side|shape|height|encodedText] token as HTML.
 
@@ -83,19 +150,8 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
         return ''.join(nested_result)
 
     def render_square_roots(content):
-        if not content:
-            return content
-        pattern = r'\[SQRT:(.*?)\]'
-        return re.sub(
-            pattern,
-            lambda match: (
-                '<span style="display:inline-flex; align-items:stretch; vertical-align:middle; margin:0 2px;">'
-                '<span style="width:12px; border-top:2px solid #111; border-left:2px solid #111; transform:skew(-18deg); margin-right:2px;"></span>'
-                f'<span style="border-top:2px solid #111; padding:0 4px;">{escape(unquote(match.group(1)))}</span></span>'
-            ),
-            content,
-        )
-    
+        return render_roots_in_html(content)
+
     # Create lookup dictionaries
     images_dict = {}
     if images:
@@ -110,10 +166,13 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
     positions_dict = image_positions or {}
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[ROOT:[^\]]+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[ROOT:(?:[^\[\]]|\[[^\]]+\])+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
     parts = re.split(pattern, text)
     
     result = []
+
+    def render_inner(inner_text):
+        return _process_question_text(inner_text, images, answer_lines, image_positions)
 
     def build_graph_html(graph_id, width_cm, height_cm):
         # Browser print often omits background graphics; SVG line art prints reliably.
@@ -389,48 +448,23 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
             result.append(f'<sub style="font-size: 0.75em;">{content}</sub>')
             continue
 
-        # Formula: [FORMULA:supBefore|subBefore|main|supAfter|subAfter]
+        # Formula, root and square-root tokens (nested tokens inside are rendered recursively)
         if part.startswith('[FORMULA:') and part.endswith(']'):
-            try:
-                inner = part[9:-1]
-                values = inner.split('|')
-                if len(values) in (5, 6, 7):
-                    sup_before, sub_before, main, sup_after, sub_after = [
-                        escape(unquote(value)) for value in values[:5]
-                    ]
-                    square_root = len(values) == 6 and unquote(values[5]) == 'true'
-                    main_html = (
-                        '<span style="display:inline-flex; align-items:stretch;">'
-                        '<span style="width:12px; border-top:2px solid #111; border-left:2px solid #111; transform:skew(-18deg); margin-right:2px;"></span>'
-                        f'<span style="border-top:2px solid #111; padding:0 4px;">{main}</span></span>'
-                        if square_root else f'<span>{main}</span>'
-                    )
-                    formula_html = (
-                        '<span style="display:inline-flex; align-items:center; vertical-align:middle;">'
-                        f'<span style="display:inline-flex; flex-direction:column; text-align:center; line-height:1; font-size:0.8em;">'
-                        f'<sup>{sup_before}</sup><sub style="font-size:0.75em;">{sub_before}</sub></span>'
-                        f'{main_html}'
-                        f'<span style="display:inline-flex; flex-direction:column; text-align:center; line-height:1; font-size:0.8em;">'
-                        f'<sup>{sup_after}</sup><sub style="font-size:0.75em;">{sub_after}</sub></span>'
-                        '</span>'
-                    )
-                    result.append(formula_html)
-                    continue
-            except Exception:
-                pass
+            formula_html = render_formula_token(part, render_inner)
+            result.append(formula_html if formula_html is not None else part)
+            continue
+
+        if part.startswith('[ROOT:') and part.endswith(']'):
+            result.append(render_root_token(part, render_inner))
+            continue
 
         if part.startswith('[SQRT:') and part.endswith(']'):
-            equation = unquote(part[6:-1])
-            result.append(
-                '<span style="display:inline-flex; align-items:stretch; vertical-align:middle; margin:0 2px;">'
-                '<span style="width:12px; border-top:2px solid #111; border-left:2px solid #111; transform:skew(-18deg); margin-right:2px;"></span>'
-                f'<span style="border-top:2px solid #111; padding:0 4px;">{escape(equation)}</span></span>'
-            )
+            result.append(render_sqrt_token(part, render_inner))
             continue
 
         if part.startswith('[BRACKET:') and part.endswith(']'):
             bracket_html = render_bracket_token(
-                part, lambda inner: _process_question_text(inner, images, answer_lines, image_positions)
+                part, render_inner
             )
             result.append(bracket_html if bracket_html is not None else part)
             continue

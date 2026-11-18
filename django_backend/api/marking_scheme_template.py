@@ -4,7 +4,13 @@ Generates professional marking schemes with coverpage and answers
 """
 
 import re
-from .process_text import render_bracket_token
+from .process_text import (
+    render_bracket_token,
+    render_formula_token,
+    render_roots_in_html,
+    render_root_token,
+    render_sqrt_token,
+)
 from .coverpage_templates import MarkingSchemeCoverpage
 
 
@@ -380,10 +386,13 @@ def _process_answer_text(text, images=None, answer_lines=None):
             lines_dict[float(line.get('id', 0))] = line
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[ROOT:(?:[^\[\]]|\[[^\]]+\])+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
     parts = re.split(pattern, text)
     
     result = []
+
+    def render_inner(inner_text):
+        return _process_answer_text(inner_text, images, answer_lines)
     
     for part in parts:
         if not part:
@@ -532,8 +541,8 @@ def _process_answer_text(text, images=None, answer_lines=None):
                 else:
                     num = inner
                     den = ''
-                num_html = render_nested_format(num)
-                den_html = render_nested_format(den)
+                num_html = render_roots_in_html(render_nested_format(num))
+                den_html = render_roots_in_html(render_nested_format(den))
                 frac_html = f'<span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num_html}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den_html}</span></span>'
                 result.append(frac_html)
                 continue
@@ -563,8 +572,8 @@ def _process_answer_text(text, images=None, answer_lines=None):
                     num = ''
                     den = ''
                 whole_html = render_nested_format(whole)
-                num_html = render_nested_format(num)
-                den_html = render_nested_format(den)
+                num_html = render_roots_in_html(render_nested_format(num))
+                den_html = render_roots_in_html(render_nested_format(den))
                 mix_html = f'<span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 0.95em;">{whole_html}</span><span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num_html}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den_html}</span></span></span>'
                 result.append(mix_html)
                 continue
@@ -572,10 +581,24 @@ def _process_answer_text(text, images=None, answer_lines=None):
                 result.append(part)
                 continue
         
+        # Formula / root / square-root tokens (nested tokens inside are rendered recursively)
+        if part.startswith('[FORMULA:') and part.endswith(']'):
+            formula_html = render_formula_token(part, render_inner)
+            result.append(formula_html if formula_html is not None else part)
+            continue
+
+        if part.startswith('[ROOT:') and part.endswith(']'):
+            result.append(render_root_token(part, render_inner))
+            continue
+
+        if part.startswith('[SQRT:') and part.endswith(']'):
+            result.append(render_sqrt_token(part, render_inner))
+            continue
+
         # Bracket: [BRACKET:side|shape|height|encodedText]
         if part.startswith('[BRACKET:') and part.endswith(']'):
             bracket_html = render_bracket_token(
-                part, lambda inner: _process_answer_text(inner, images, answer_lines)
+                part, render_inner
             )
             result.append(bracket_html if bracket_html is not None else part)
             continue

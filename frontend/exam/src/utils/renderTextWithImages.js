@@ -207,13 +207,16 @@ export function renderTextWithImages(
 
             // nth root or square root spanning an equation or selected fraction part.
             if (rem.startsWith('[ROOT:')) {
-                const end = rem.indexOf(']');
+                // findClosing keeps nested tokens such as [SUP]..[/SUP] or another [ROOT:..] inside the radicand.
+                const closing = findClosing(rem.slice(6));
+                const end = closing === -1 ? -1 : closing + 6;
                 if (end !== -1) {
                     const inner = rem.slice(6, end);
                     const separator = inner.indexOf('|');
                     let degree = separator >= 0 ? inner.slice(0, separator) : '';
                     let radicand = separator >= 0 ? inner.slice(separator + 1) : inner;
-                    try { degree = decodeURIComponent(degree); radicand = decodeURIComponent(radicand); } catch {}
+                    try { degree = decodeURIComponent(degree); } catch {}
+                    try { radicand = decodeURIComponent(radicand); } catch {}
                     results.push(
                         <span key={kc++} style={{ display: 'inline-flex', alignItems: 'flex-start', verticalAlign: 'middle', margin: '0 2px' }}>
                             {degree && <sup style={{ fontSize: '0.65em', marginTop: 4, marginRight: 2 }}>{parseText(degree, kc * 100)}</sup>}
