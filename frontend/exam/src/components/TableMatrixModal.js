@@ -309,7 +309,7 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
     // Handle cell selection for merging
     const handleCellMouseDown = (rowIndex, colIndex, e) => {
         // Don't interfere with input field interactions
-        if (e.target.tagName === 'INPUT') return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         
         if (e.button !== 0) return; // Only left click
         if (isCellMerged(rowIndex, colIndex)) return; // Don't select merged cells
@@ -348,7 +348,7 @@ export default function TableMatrixModal({ open, onClose, onInsert, type = 'tabl
     // Handle clicking directly on cell background (not input)
     const handleCellClick = (rowIndex, colIndex, e) => {
         // Only handle clicks on the cell itself, not the input
-        if (e.target.tagName === 'INPUT') return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
         
         if (isCellMerged(rowIndex, colIndex)) return;
         
