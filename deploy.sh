@@ -1,17 +1,21 @@
 #!/bin/bash
 set -e
 
+APP_DIR="/var/www/examination"
+BACKEND_DIR="$APP_DIR/django_backend"
+FRONTEND_DIR="$APP_DIR/frontend/exam"
+
 echo "==> Pulling latest code..."
-cd /var/www/examination
+cd "$APP_DIR"
 git pull origin main
 
 echo "==> Loading environment variables..."
 set -a
-source /var/www/examination/.env.deploy
+source "$APP_DIR/.env.deploy"
 set +a
 
 echo "==> Updating backend dependencies..."
-cd /var/www/examination/django_backend
+cd "$BACKEND_DIR"
 source venv/bin/activate
 pip install -r requirements.txt
 
@@ -22,19 +26,18 @@ echo "==> Collecting static files..."
 python manage.py collectstatic --noinput
 
 echo "==> Building frontend..."
-cd /var/www/examination/frontend/exam
+cd "$FRONTEND_DIR"
 npm install
-# React Scripts recreates the existing build directory during its normal build.
-# Ensure previously deployed output is writable before that rebuild.
 if [ -d build ]; then
-    sudo chown -R "$(id -u):$(id -g)" build
     chmod -R u+rwX build
 fi
 npm run build
 
 echo "==> Fixing permissions..."
-chmod -R o+rX /var/www/examination/frontend/exam/build
-chmod -R o+rX /var/www/examination/django_backend/staticfiles
+# Nginx (www-data) must be able to traverse the parent folders
+chmod o+x "$APP_DIR" "$APP_DIR/frontend" "$FRONTEND_DIR" "$BACKEND_DIR"
+chmod -R o+rX "$FRONTEND_DIR/build"
+chmod -R o+rX "$BACKEND_DIR/staticfiles"
 
 echo "==> Restarting services..."
 sudo systemctl restart gunicorn
