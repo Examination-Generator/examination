@@ -7,6 +7,7 @@ const EMPTY_FORM = {
     superscriptAfter: '',
     subscriptAfter: '',
     squareRoot: false,
+    rootDegree: '',
 };
 
 export default function FormulaModal({ open, onClose, onInsert }) {
@@ -64,6 +65,17 @@ export default function FormulaModal({ open, onClose, onInsert }) {
                         <input type="checkbox" checked={form.squareRoot} onChange={event => updateField('squareRoot', event.target.checked)} className="h-4 w-4" />
                         Wrap the complete equation in a square-root symbol
                     </label>
+                    {form.squareRoot && (
+                        <label className="sm:col-span-2 text-sm font-semibold text-gray-700">
+                            Root degree (optional)
+                            <input
+                                value={form.rootDegree}
+                                onChange={event => updateField('rootDegree', event.target.value)}
+                                className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg font-normal"
+                                placeholder="Leave blank for square root, or enter 3 for cube root"
+                            />
+                        </label>
+                    )}
                     <label className="text-sm font-semibold text-gray-700">
                         Superscript after
                         <input value={form.superscriptAfter} onChange={event => updateField('superscriptAfter', event.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg font-normal focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. 2" />
@@ -82,9 +94,12 @@ export default function FormulaModal({ open, onClose, onInsert }) {
                             <sub>{form.subscriptBefore}</sub>
                         </span>
                         {form.squareRoot ? (
-                            <span className="inline-flex items-stretch">
-                                <span style={{ width: 10, borderTop: '2px solid #111', borderLeft: '2px solid #111', transform: 'skew(-20deg)', marginRight: 2 }} />
-                                <span className="border-t-2 border-black px-1">{form.mainText || 'Equation'}</span>
+                            <span className="inline-flex items-start">
+                                {form.rootDegree.trim() && (
+                                    <sup className="text-xs mr-0.5 mt-1">{form.rootDegree}</sup>
+                                )}
+                                <span className="text-2xl leading-none">√</span>
+                                <span className="border-t-2 border-black px-1 mt-2">{form.mainText || 'Equation'}</span>
                             </span>
                         ) : (
                             <span>{form.mainText || 'X'}</span>

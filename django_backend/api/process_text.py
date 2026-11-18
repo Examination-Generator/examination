@@ -75,7 +75,7 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
     positions_dict = image_positions or {}
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[ROOT:[^\]]+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
     parts = re.split(pattern, text)
     
     result = []
@@ -359,7 +359,7 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
             try:
                 inner = part[9:-1]
                 values = inner.split('|')
-                if len(values) in (5, 6):
+                if len(values) in (5, 6, 7):
                     sup_before, sub_before, main, sup_after, sub_after = [
                         escape(unquote(value)) for value in values[:5]
                     ]

@@ -62,13 +62,13 @@ export default function BracketModal({ open, onClose, onInsert }) {
                 </label>
 
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg overflow-x-auto">
-                    <span className="inline-flex items-stretch justify-center" style={{ height: `${Math.min(400, Math.max(20, parseInt(height, 10) || 60))}px`, lineHeight: 1.2 }}>
+                    <span className="inline-flex items-stretch justify-center" style={{ minHeight: `${Math.min(400, Math.max(20, parseInt(height, 10) || 60))}px`, lineHeight: 1.2 }}>
                         {side === 'opening' && (
-                            <span style={{ width: shape === 'curly' ? 18 : 14, borderLeft: '3px solid black', borderTop: shape === 'curly' ? '3px solid transparent' : '3px solid black', borderBottom: shape === 'curly' ? '3px solid transparent' : '3px solid black', borderRadius: shape === 'curly' ? '70% 0 0 70%' : '12px 0 0 12px' }} />
+                            <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${Math.min(400, Math.max(20, parseInt(height, 10) || 60))}px`, lineHeight: 1 }}>{shape === 'curly' ? '{' : '('}</span>
                         )}
-                        <span className="px-2 flex items-center text-center">{text || 'Equation'}</span>
+                        <span className="px-2 flex items-center text-left whitespace-pre-wrap">{text || 'Equation'}</span>
                         {side === 'closing' && (
-                            <span style={{ width: shape === 'curly' ? 18 : 14, borderRight: '3px solid black', borderTop: shape === 'curly' ? '3px solid transparent' : '3px solid black', borderBottom: shape === 'curly' ? '3px solid transparent' : '3px solid black', borderRadius: shape === 'curly' ? '0 70% 70% 0' : '0 12px 12px 0' }} />
+                            <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${Math.min(400, Math.max(20, parseInt(height, 10) || 60))}px`, lineHeight: 1 }}>{shape === 'curly' ? '}' : ')'}</span>
                         )}
                     </span>
                 </div>

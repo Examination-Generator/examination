@@ -4,6 +4,7 @@ export default function FractionModal({ open, onClose, onInsert }) {
     const [whole, setWhole] = useState('');
     const [numerator, setNumerator] = useState('');
     const [denominator, setDenominator] = useState('');
+    const [rootDegree, setRootDegree] = useState('');
     
     const numeratorRef = useRef(null);
     const denominatorRef = useRef(null);
@@ -14,6 +15,7 @@ export default function FractionModal({ open, onClose, onInsert }) {
             setWhole('');
             setNumerator('');
             setDenominator('');
+            setRootDegree('');
         }
     }, [open]);
     
@@ -55,6 +57,15 @@ export default function FractionModal({ open, onClose, onInsert }) {
             <div className="absolute inset-0 bg-black opacity-50" onClick={onClose}></div>
             <div className="bg-white rounded-lg shadow-lg z-10 p-6 w-full max-w-md">
                 <h3 className="text-lg font-semibold mb-3">Insert Fraction</h3>
+
+                <label className="block text-sm text-gray-700">Root degree (optional)</label>
+                <input
+                    type="text"
+                    value={rootDegree}
+                    onChange={e => setRootDegree(e.target.value)}
+                    className="w-full mb-3 mt-1 p-2 border rounded"
+                    placeholder="Leave blank for square root, or enter 3 for cube root"
+                />
 
                 <label className="block text-sm text-gray-700">Whole number (optional)</label>
                 <div className="mb-3">
@@ -123,11 +134,11 @@ export default function FractionModal({ open, onClose, onInsert }) {
                         </button>
                         <button
                             type="button"
-                            onClick={() => insertFormatting(numeratorRef, numerator, setNumerator, '[SQRT:', ']')}
+                            onClick={() => insertFormatting(numeratorRef, numerator, setNumerator, `[ROOT:${encodeURIComponent(rootDegree.trim())}|`, ']')}
                             className="text-xs px-2 py-1 bg-purple-100 hover:bg-purple-200 rounded border border-purple-300"
-                            title="Wrap numerator in square root"
+                            title="Wrap numerator in a root symbol"
                         >
-                            √
+                            <sup>{rootDegree || ''}</sup>√
                         </button>
                         <button
                             type="button"
@@ -177,11 +188,11 @@ export default function FractionModal({ open, onClose, onInsert }) {
                         </button>
                         <button
                             type="button"
-                            onClick={() => insertFormatting(denominatorRef, denominator, setDenominator, '[SQRT:', ']')}
+                            onClick={() => insertFormatting(denominatorRef, denominator, setDenominator, `[ROOT:${encodeURIComponent(rootDegree.trim())}|`, ']')}
                             className="text-xs px-2 py-1 bg-purple-100 hover:bg-purple-200 rounded border border-purple-300"
-                            title="Wrap denominator in square root"
+                            title="Wrap denominator in a root symbol"
                         >
-                            √
+                            <sup>{rootDegree || ''}</sup>√
                         </button>
                         <button
                             type="button"

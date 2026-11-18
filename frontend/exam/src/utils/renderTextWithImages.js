@@ -167,7 +167,7 @@ export function renderTextWithImages(
         let kc = base;
 
         const startsPattern = (s) =>
-            /^(\[FORMULA:|\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SQRT:|\[BRACKET:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[GRAPH:|\[IMAGE:)/.test(s);
+            /^(\[FORMULA:|\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SQRT:|\[ROOT:|\[BRACKET:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[GRAPH:|\[IMAGE:)/.test(s);
 
         while (idx < str.length) {
             const rem = str.slice(idx);
@@ -188,9 +188,10 @@ export function renderTextWithImages(
                             <span key={kc++} style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle' }}>
                                 {renderSide(formula.superscriptBefore, formula.subscriptBefore, kc * 10)}
                                 {formula.squareRoot ? (
-                                    <span style={{ display: 'inline-flex', alignItems: 'stretch', verticalAlign: 'middle', margin: '0 2px' }}>
-                                        <span style={{ width: 10, borderTop: '2px solid #111', borderLeft: '2px solid #111', transform: 'skew(-18deg)', marginRight: 2 }} />
-                                        <span style={{ borderTop: '2px solid #111', padding: '0 4px' }}>{parseText(formula.mainText, kc * 10 + 2)}</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'flex-start', verticalAlign: 'middle', margin: '0 2px' }}>
+                                        {formula.rootDegree && <sup style={{ fontSize: '0.65em', marginTop: 4, marginRight: 2 }}>{parseText(formula.rootDegree, kc * 100)}</sup>}
+                                        <span style={{ fontSize: '1.35em', lineHeight: 1 }}>√</span>
+                                        <span style={{ borderTop: '2px solid #111', padding: '2px 4px 0', minWidth: 20 }}>{parseText(formula.mainText, kc * 10 + 2)}</span>
                                     </span>
                                 ) : (
                                     <span>{parseText(formula.mainText, kc * 10 + 2)}</span>
@@ -203,7 +204,27 @@ export function renderTextWithImages(
                     }
                 }
 
-                // Square root spanning an equation or selected fraction part.
+                // nth root or square root spanning an equation or selected fraction part.
+                if (rem.startsWith('[ROOT:')) {
+                    const end = rem.indexOf(']');
+                    if (end !== -1) {
+                        const inner = rem.slice(6, end);
+                        const separator = inner.indexOf('|');
+                        let degree = separator >= 0 ? inner.slice(0, separator) : '';
+                        let radicand = separator >= 0 ? inner.slice(separator + 1) : inner;
+                        try { degree = decodeURIComponent(degree); radicand = decodeURIComponent(radicand); } catch {}
+                        results.push(
+                            <span key={kc++} style={{ display: 'inline-flex', alignItems: 'flex-start', verticalAlign: 'middle', margin: '0 2px' }}>
+                                {degree && <sup style={{ fontSize: '0.65em', marginTop: 4, marginRight: 2 }}>{parseText(degree, kc * 100)}</sup>}
+                                <span style={{ fontSize: '1.35em', lineHeight: 1 }}>√</span>
+                                <span style={{ borderTop: '2px solid #111', padding: '2px 4px 0', minWidth: 20 }}>{parseText(radicand, kc * 1000)}</span>
+                            </span>
+                        );
+                        idx += end + 1;
+                        continue;
+                    }
+                }
+
                 if (rem.startsWith('[SQRT:')) {
                     const end = rem.indexOf(']');
                     if (end !== -1) {
@@ -230,20 +251,14 @@ export function renderTextWithImages(
                         const height = Math.min(400, Math.max(20, parseInt(heightText, 10) || 60));
                         const opening = side !== 'closing';
                         const curly = shape === 'curly';
-                        const bracketStyle = {
-                            width: curly ? 18 : 14,
-                            alignSelf: 'stretch',
-                            borderTop: curly ? '3px solid transparent' : '3px solid #111',
-                            borderBottom: curly ? '3px solid transparent' : '3px solid #111',
-                            ...(opening
-                                ? { borderLeft: '3px solid #111', borderRadius: curly ? '70% 0 0 70%' : '12px 0 0 12px' }
-                                : { borderRight: '3px solid #111', borderRadius: curly ? '0 70% 70% 0' : '0 12px 12px 0' }),
-                        };
+                        const bracketCharacter = curly
+                            ? (opening ? '{' : '}')
+                            : (opening ? '(' : ')');
                         results.push(
-                            <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', height, lineHeight: 1.2, verticalAlign: 'middle', margin: '2px' }}>
-                                {opening && <span style={bracketStyle} />}
-                                <span style={{ display: 'inline-flex', alignItems: 'center', textAlign: 'center', padding: '0 6px' }}>{parseText(bracketText, kc * 1000)}</span>
-                                {!opening && <span style={bracketStyle} />}
+                            <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', minHeight: height, lineHeight: 1.2, verticalAlign: 'middle', margin: '2px', whiteSpace: 'normal' }}>
+                                {opening && <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${height}px`, lineHeight: `${height}px`, fontWeight: 400 }}>{bracketCharacter}</span>}
+                                <span style={{ display: 'inline-flex', alignItems: 'center', textAlign: 'left', padding: '0 6px', minWidth: 20, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{parseText(bracketText, kc * 1000)}</span>
+                                {!opening && <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${height}px`, lineHeight: `${height}px`, fontWeight: 400 }}>{bracketCharacter}</span>}
                             </span>
                         );
                         idx += end + 1;
