@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import html2pdf from 'html2pdf.js';
+import React from 'react';
 import { parseGraphToken } from '../utils/renderTextWithImages';
 
 const PX_PER_CM = 96 / 2.54;
@@ -242,8 +241,6 @@ function preparePrintableContent(root, docParam, images = [], imagePositions = {
 }
 
 export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, topicName, paperName, images = [], imagePositions = {}, answerLines = [] }) {
-    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-    
     if (!isOpen) return null;
 
     const handlePrint = () => {
@@ -299,92 +296,6 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             setTimeout(() => {
                 printWindow.print();
             }, 250);
-        }
-    };
-
-    const handleDownload = async () => {
-        if (!htmlContent || isGeneratingPdf) return;
-
-        try {
-            setIsGeneratingPdf(true);
-
-            // Get content from the iframe that's already rendered
-            const iframe = document.getElementById('printable-document-iframe');
-            if (!iframe || !iframe.contentWindow || !iframe.contentDocument) {
-                throw new Error('Unable to access document content');
-            }
-
-            const iframeBody = iframe.contentDocument.body;
-            if (!iframeBody) {
-                throw new Error('No content found in document');
-            }
-
-            // Clone the content to avoid modifying the original
-            const contentClone = iframeBody.cloneNode(true);
-            preparePrintableContent(contentClone, iframe.contentDocument, images, imagePositions, answerLines);
-
-            // html2canvas drops SVGs that have no explicit pixel size (root signs and brackets are stretchy SVGs),
-            // so give each cloned SVG the pixel size it has on screen. The closing-bracket flip moves onto the path.
-            const liveSvgs = iframeBody.querySelectorAll('svg');
-            contentClone.querySelectorAll('svg').forEach((svg, index) => {
-                const live = liveSvgs[index];
-                if (!live) return;
-                const rect = live.getBoundingClientRect();
-                svg.setAttribute('width', String(Math.max(1, Math.round(rect.width))));
-                svg.setAttribute('height', String(Math.max(1, Math.round(rect.height))));
-                const flipped = /scaleX\(-1\)/.test(svg.getAttribute('style') || '');
-                svg.setAttribute('style', 'display:block; overflow:visible;');
-                if (flipped) {
-                    svg.querySelectorAll('path, polyline').forEach((shape) => shape.setAttribute('transform', 'translate(10,0) scale(-1,1)'));
-                }
-            });
-
-            // Plain, unpositioned element. html2pdf copies the element's own styles onto its render copy, so a
-            // positioned/off-screen container (position:absolute; left:-9999px) collapses to zero height and the PDF is empty.
-            const printRoot = document.createElement('div');
-            printRoot.className = 'pdf-print-root';
-            printRoot.style.width = '190mm'; // A4 width minus the 10mm margins
-            printRoot.style.boxSizing = 'border-box';
-            printRoot.style.margin = '0';
-            printRoot.style.padding = '0';
-            printRoot.style.background = 'white';
-            printRoot.style.fontFamily = 'Arial, sans-serif';
-
-            // Bring over the document's own <style> rules (they live in the iframe head), scoped to this element.
-            iframe.contentDocument.head.querySelectorAll('style').forEach((styleNode) => {
-                const scoped = document.createElement('style');
-                scoped.textContent = (styleNode.textContent || '').replace(/(^|[},\s])(?:html|body)(?=[\s,{])/g, '$1.pdf-print-root');
-                printRoot.appendChild(scoped);
-            });
-            printRoot.appendChild(contentClone);
-
-            // Configure PDF options
-            const options = {
-                margin: [10, 10, 10, 10],
-                filename: `${topicName || paperName || 'questions'}.pdf`,
-                image: { type: 'jpeg', quality: 0.95 },
-                html2canvas: { 
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
-                    logging: false,
-                    backgroundColor: '#ffffff'
-                },
-                jsPDF: { 
-                    unit: 'mm', 
-                    format: 'a4', 
-                    orientation: 'portrait',
-                    compress: true
-                },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            };
-
-            // Generate and download PDF
-            await html2pdf().set(options).from(printRoot).save();
-        } catch (error) {
-            alert(`Failed to generate PDF: ${error.message}. Please try using the Print button instead.`);
-        } finally {
-            setIsGeneratingPdf(false);
         }
     };
 
@@ -448,17 +359,6 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                                 </svg>
                                 Print
-                            </button>
-
-                            <button
-                                onClick={handleDownload}
-                                disabled={isGeneratingPdf}
-                                className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-                            >
-                                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M6 20h12a2 2 0 002-2V7a2 2 0 00-2-2h-3l-2-2H9L7 5H6a2 2 0 00-2 2v11a2 2 0 002 2z" />
-                                </svg>
-                                {isGeneratingPdf ? 'Generating...' : 'Download PDF'}
                             </button>
                         </div>
                     </div>
