@@ -305,7 +305,6 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
     const handleDownload = async () => {
         if (!htmlContent || isGeneratingPdf) return;
 
-        let tempContainer = null;
         try {
             setIsGeneratingPdf(true);
 
@@ -315,7 +314,6 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
                 throw new Error('Unable to access document content');
             }
 
-            // Get the body content from the iframe
             const iframeBody = iframe.contentDocument.body;
             if (!iframeBody) {
                 throw new Error('No content found in document');
@@ -325,21 +323,40 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             const contentClone = iframeBody.cloneNode(true);
             preparePrintableContent(contentClone, iframe.contentDocument, images, imagePositions, answerLines);
 
-            // Create a temporary container with proper styling
-            tempContainer = document.createElement('div');
-            tempContainer.style.position = 'absolute';
-            tempContainer.style.left = '-9999px';
-            tempContainer.style.top = '0';
-            tempContainer.style.width = '210mm'; // A4 width
-            tempContainer.style.padding = '5px';
-            tempContainer.style.background = 'white';
-            tempContainer.style.border = 'none';
-            tempContainer.style.fontFamily = 'Arial, sans-serif';
-            tempContainer.appendChild(contentClone);
-            document.body.appendChild(tempContainer);
+            // html2canvas drops SVGs that have no explicit pixel size (root signs and brackets are stretchy SVGs),
+            // so give each cloned SVG the pixel size it has on screen. The closing-bracket flip moves onto the path.
+            const liveSvgs = iframeBody.querySelectorAll('svg');
+            contentClone.querySelectorAll('svg').forEach((svg, index) => {
+                const live = liveSvgs[index];
+                if (!live) return;
+                const rect = live.getBoundingClientRect();
+                svg.setAttribute('width', String(Math.max(1, Math.round(rect.width))));
+                svg.setAttribute('height', String(Math.max(1, Math.round(rect.height))));
+                const flipped = /scaleX\(-1\)/.test(svg.getAttribute('style') || '');
+                svg.setAttribute('style', 'display:block; overflow:visible;');
+                if (flipped) {
+                    svg.querySelectorAll('path, polyline').forEach((shape) => shape.setAttribute('transform', 'translate(10,0) scale(-1,1)'));
+                }
+            });
 
-            // Wait a bit for content to be fully ready
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Plain, unpositioned element. html2pdf copies the element's own styles onto its render copy, so a
+            // positioned/off-screen container (position:absolute; left:-9999px) collapses to zero height and the PDF is empty.
+            const printRoot = document.createElement('div');
+            printRoot.className = 'pdf-print-root';
+            printRoot.style.width = '190mm'; // A4 width minus the 10mm margins
+            printRoot.style.boxSizing = 'border-box';
+            printRoot.style.margin = '0';
+            printRoot.style.padding = '0';
+            printRoot.style.background = 'white';
+            printRoot.style.fontFamily = 'Arial, sans-serif';
+
+            // Bring over the document's own <style> rules (they live in the iframe head), scoped to this element.
+            iframe.contentDocument.head.querySelectorAll('style').forEach((styleNode) => {
+                const scoped = document.createElement('style');
+                scoped.textContent = (styleNode.textContent || '').replace(/(^|[},\s])(?:html|body)(?=[\s,{])/g, '$1.pdf-print-root');
+                printRoot.appendChild(scoped);
+            });
+            printRoot.appendChild(contentClone);
 
             // Configure PDF options
             const options = {
@@ -363,13 +380,10 @@ export default function PrintableDocumentModal({ isOpen, onClose, htmlContent, t
             };
 
             // Generate and download PDF
-            await html2pdf().set(options).from(tempContainer).save();
+            await html2pdf().set(options).from(printRoot).save();
         } catch (error) {
             alert(`Failed to generate PDF: ${error.message}. Please try using the Print button instead.`);
         } finally {
-            if (tempContainer?.parentNode) {
-                tempContainer.parentNode.removeChild(tempContainer);
-            }
             setIsGeneratingPdf(false);
         }
     };

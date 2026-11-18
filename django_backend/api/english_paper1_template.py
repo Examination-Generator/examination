@@ -632,7 +632,7 @@ def _process_question_text(text, images=None, answer_lines=None):
             return content
         
         # Pattern to match nested formatting tags
-        nested_pattern = r'(\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\*\*.*?\*\*|\*(?!\*)[^*]+?\*|__.*?__|_(?!_)[^_]+?_)'
+        nested_pattern = r'(\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\*\*.*?\*\*|\*(?!\*)[^*]+?\*|__.*?__)'
         nested_parts = re.split(nested_pattern, content)
         
         nested_result = []
@@ -674,8 +674,8 @@ def _process_question_text(text, images=None, answer_lines=None):
             lines_dict[float(line.get('id', 0))] = line
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[ROOT:(?:[^\[\]]|\[[^\]]+\])+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+(?::[\d.]+mm)?\])'
-    parts = re.split(pattern, text)
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[ROOT:(?:[^\[\]]|\[[^\]]+\])+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+(?::[\d.]+mm)?\])'
+    parts = re.split(pattern, text, flags=re.DOTALL)
     
     result = []
 
@@ -877,37 +877,31 @@ def _process_question_text(text, images=None, answer_lines=None):
         # Superscript: [SUP]content[/SUP]
         if part.startswith('[SUP]') and part.endswith('[/SUP]'):
             content = part[5:-6]
-            result.append(f'<sup style="font-size: 0.75em;">{content}</sup>')
+            result.append(f'<sup style="font-size: 0.75em;">{render_inner(content)}</sup>')
             continue
             
         # Subscript: [SUB]content[/SUB]
         if part.startswith('[SUB]') and part.endswith('[/SUB]'):
             content = part[5:-6]
-            result.append(f'<sub style="font-size: 0.75em;">{content}</sub>')
+            result.append(f'<sub style="font-size: 0.75em;">{render_inner(content)}</sub>')
             continue
             
         # Bold: **text**
         if part.startswith('**') and part.endswith('**') and len(part) > 4:
             content = part[2:-2]
-            result.append(f'<strong>{content}</strong>')
+            result.append(f'<strong>{render_inner(content)}</strong>')
             continue
             
         # Italic: *text*
         if part.startswith('*') and part.endswith('*') and not part.startswith('**') and len(part) > 2:
             content = part[1:-1]
-            result.append(f'<em>{content}</em>')
+            result.append(f'<em>{render_inner(content)}</em>')
             continue
             
         # Underline: __text__
         if part.startswith('__') and part.endswith('__') and len(part) > 4:
             content = part[2:-2]
-            result.append(f'<u>{content}</u>')
-            continue
-            
-        # Single underscore italic: _text_
-        if part.startswith('_') and part.endswith('_') and not part.startswith('__') and len(part) > 2:
-            content = part[1:-1]
-            result.append(f'<em>{content}</em>')
+            result.append(f'<u>{render_inner(content)}</u>')
             continue
             
         # Answer lines: [LINES:id]
