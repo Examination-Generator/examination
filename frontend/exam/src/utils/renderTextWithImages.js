@@ -254,7 +254,9 @@ export function renderTextWithImages(
                     const curly = shape === 'curly';
                     const bracketCharacter = curly
                         ? (opening ? '{' : '}')
-                        : (opening ? '(' : ')');
+                        : shape === 'square'
+                            ? (opening ? '[' : ']')
+                            : (opening ? '(' : ')');
                     results.push(
                         <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', minHeight: height, lineHeight: 1.2, verticalAlign: 'middle', margin: '2px', whiteSpace: 'normal' }}>
                             {opening && <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${height}px`, lineHeight: `${height}px`, fontWeight: 400 }}>{bracketCharacter}</span>}

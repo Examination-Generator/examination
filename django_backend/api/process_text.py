@@ -19,7 +19,11 @@ def render_bracket_token(part, render_inner=None):
     decoded = unquote(encoded_text)
     inner = render_inner(decoded) if render_inner else escape(decoded)
     opening = side != 'closing'
-    glyph = ('{' if opening else '}') if shape == 'curly' else ('(' if opening else ')')
+    glyph = (
+        ('{' if opening else '}') if shape == 'curly'
+        else ('[' if opening else ']') if shape == 'square'
+        else ('(' if opening else ')')
+    )
     glyph_html = (
         f'<span style="font-family:\'Times New Roman\', serif; font-size:{height}px; '
         f'line-height:{height}px; font-weight:400;">{glyph}</span>'

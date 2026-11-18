@@ -48,6 +48,7 @@ export default function BracketModal({ open, onClose, onInsert }) {
                         <select value={shape} onChange={event => setShape(event.target.value)} className="mt-1 w-full px-3 py-2 border rounded-lg">
                             <option value="curly">Curly</option>
                             <option value="rounded">Rounded</option>
+                            <option value="square">Square</option>
                         </select>
                     </label>
                     <label className="text-sm font-semibold text-gray-700">
@@ -64,11 +65,11 @@ export default function BracketModal({ open, onClose, onInsert }) {
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg overflow-x-auto">
                     <span className="inline-flex items-stretch justify-center" style={{ minHeight: `${Math.min(400, Math.max(20, parseInt(height, 10) || 60))}px`, lineHeight: 1.2 }}>
                         {side === 'opening' && (
-                            <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${Math.min(400, Math.max(20, parseInt(height, 10) || 60))}px`, lineHeight: 1 }}>{shape === 'curly' ? '{' : '('}</span>
+                            <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${Math.min(400, Math.max(20, parseInt(height, 10) || 60))}px`, lineHeight: 1 }}>{shape === 'curly' ? '{' : shape === 'square' ? '[' : '('}</span>
                         )}
                         <span className="px-2 flex items-center text-left whitespace-pre-wrap">{text || 'Equation'}</span>
                         {side === 'closing' && (
-                            <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${Math.min(400, Math.max(20, parseInt(height, 10) || 60))}px`, lineHeight: 1 }}>{shape === 'curly' ? '}' : ')'}</span>
+                            <span style={{ fontFamily: 'Times New Roman, serif', fontSize: `${Math.min(400, Math.max(20, parseInt(height, 10) || 60))}px`, lineHeight: 1 }}>{shape === 'curly' ? '}' : shape === 'square' ? ']' : ')'}</span>
                         )}
                     </span>
                 </div>
