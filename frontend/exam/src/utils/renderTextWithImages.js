@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { parseFormulaToken } from './formula';
 
 const PX_PER_CM = 96 / 2.54;
+export const DEFAULT_SPACE_MM = 20;
 const MAX_GRAPH_WIDTH_CM = 21;
 const MAX_GRAPH_HEIGHT_CM = 30;
 
@@ -186,7 +187,7 @@ export function renderTextWithImages(
         let kc = base;
 
         const startsPattern = (s) =>
-            /^(\[FORMULA:|\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SQRT:|\[ROOT:|\[BRACKET:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[GRAPH:|\[IMAGE:)/.test(s);
+            /^(\[FORMULA:|\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SQRT:|\[ROOT:|\[BRACKET:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[COLS:|\[GRAPH:|\[IMAGE:)/.test(s);
 
         while (idx < str.length) {
             const rem = str.slice(idx);
@@ -276,6 +277,28 @@ export function renderTextWithImages(
                         </span>
                     );
                     idx += end + 1;
+                    continue;
+                }
+            }
+
+            // COLUMNS: [COLS:n|line] column 1 [COL] column 2 [/COLS] - every column supports all other tokens.
+            const colsM = rem.match(/^\[COLS:(\d+)(\|line)?\]/);
+            if (colsM) {
+                const closeAt = rem.indexOf('[/COLS]');
+                if (closeAt !== -1) {
+                    const columns = rem.slice(colsM[0].length, closeAt).split('[COL]').map(c => c.replace(/^\n/, '').replace(/\n$/, ''));
+                    while (columns.length < parseInt(colsM[1], 10)) columns.push('');
+                    const ruled = !!colsM[2];
+                    results.push(
+                        <span key={kc++} style={{ display: 'grid', gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`, columnGap: '6mm', width: '100%', alignItems: 'start', margin: '4px 0' }}>
+                            {columns.map((column, i) => (
+                                <span key={i} style={{ display: 'block', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', borderLeft: ruled && i > 0 ? '1px solid #111' : 'none', paddingLeft: ruled && i > 0 ? '3mm' : 0, marginLeft: ruled && i > 0 ? '-3mm' : 0 }}>
+                                    {parseText(column, kc * 1000 + i * 100)}
+                                </span>
+                            ))}
+                        </span>
+                    );
+                    idx += closeAt + '[/COLS]'.length;
                     continue;
                 }
             }
@@ -402,9 +425,10 @@ export function renderTextWithImages(
             }
 
             // SPACE
-            const spaceM = rem.match(/^\[SPACE:([\d.]+)\]/);
+            // [SPACE:id:50mm]; older [SPACE:id] tokens have no height and use the 20mm default.
+            const spaceM = rem.match(/^\[SPACE:([\d.]+)(?::([\d.]+)mm)?\]/);
             if (spaceM) {
-                results.push(renderSpace(parseFloat(spaceM[1]), kc++));
+                results.push(renderSpace(parseFloat(spaceM[1]), kc++, spaceM[2] ? parseFloat(spaceM[2]) : DEFAULT_SPACE_MM));
                 idx += spaceM[0].length;
                 continue;
             }
@@ -596,10 +620,9 @@ export function renderTextWithImages(
         );
     };
 
-    const renderSpace = (spaceId, key) => (
-        <div key={key} className="my-2" style={{ maxWidth: 700 }}>
-            <div style={{ height: 189, width: '100%', background: 'white' }} />
-        </div>
+    // Height is real millimetres, so the blank area keeps its size when printed on paper.
+    const renderSpace = (spaceId, key, heightMm = DEFAULT_SPACE_MM) => (
+        <div key={key} style={{ height: `${Math.min(300, Math.max(5, heightMm))}mm`, width: '100%', background: 'white' }} />
     );
 
     const renderImage = (match, key, imgs, positions, onRemove, ctx) => {

@@ -8,6 +8,7 @@ import FormulaModal from './FormulaModal';
 import GraphModal from './GraphModal';
 import LinesModal from './LinesModal';
 import WorkingSpaceModal from './WorkingSpaceModal';
+import ColumnsModal from './ColumnsModal';
 import BracketModal from './BracketModal';
 import { useVoiceInput } from '../hooks/useVoiceInput';
 import { useError } from '../contexts/ErrorContext';
@@ -84,6 +85,31 @@ export default function QuestionForm({
     const [showWorkingSpaceModal, setShowWorkingSpaceModal] = useState(false);
     const [workingSpaceTarget, setWorkingSpaceTarget] = useState('question');
     const [workingSpaceHeightMm, setWorkingSpaceHeightMm] = useState(50);
+    const [showColumnsModal, setShowColumnsModal] = useState(false);
+
+    // Insert text at the answer cursor; `caret` is the cursor offset inside the inserted text.
+    const insertIntoAnswer = (text, caret) => {
+        const textarea = answerTextareaRef.current;
+        if (!textarea) { setAnswerText(previous => previous + text); return; }
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        setAnswerText(textarea.value.substring(0, start) + text + textarea.value.substring(end));
+        setTimeout(() => {
+            textarea.focus();
+            const position = start + (caret ?? text.length);
+            textarea.setSelectionRange(position, position);
+        }, 0);
+    };
+
+    // Column block: any selected text goes into the first column; the other columns start empty.
+    const handleColumnsInsert = ({ count, line }) => {
+        const textarea = answerTextareaRef.current;
+        const selected = textarea ? textarea.value.substring(textarea.selectionStart, textarea.selectionEnd) : '';
+        const header = `[COLS:${count}${line ? '|line' : ''}]\n`;
+        const columns = [selected, ...Array(count - 1).fill('')];
+        insertIntoAnswer(header + columns.join('\n[COL]\n') + '\n[/COLS]', header.length + selected.length);
+        setShowColumnsModal(false);
+    };
     const [showBracketModal, setShowBracketModal] = useState(false);
     const [bracketTarget, setBracketTarget] = useState('question');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -299,7 +325,7 @@ export default function QuestionForm({
         const ref = target === 'question' ? questionTextareaRef : answerTextareaRef;
         setSpaces(prev => [...prev, spaceBlock]);
         const textarea = ref.current;
-        const token = `\n[SPACE:${spaceBlock.id}]\n`;
+        const token = `\n[SPACE:${spaceBlock.id}:${heightMm}mm]\n`;
         if (textarea) {
             const cursorPos = textarea.selectionStart;
             const currentText = target === 'question' ? questionText : answerText;
@@ -374,6 +400,8 @@ export default function QuestionForm({
                 });
                 setShowLinesModal(true);
             },
+            onColumns: () => setShowColumnsModal(true),
+            onColumnBreak: () => insertIntoAnswer('\n[COL]\n'),
             onSpace: () => {
                 setWorkingSpaceTarget(target);
                 setWorkingSpaceHeightMm(50);
@@ -500,6 +528,11 @@ export default function QuestionForm({
                 targetSection={linesTarget}
                 config={linesConfig}
                 setConfig={setLinesConfig}
+            />
+            <ColumnsModal
+                open={showColumnsModal}
+                onClose={() => setShowColumnsModal(false)}
+                onInsert={handleColumnsInsert}
             />
             <WorkingSpaceModal
                 open={showWorkingSpaceModal}

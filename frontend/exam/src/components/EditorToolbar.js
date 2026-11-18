@@ -12,6 +12,7 @@ export default function EditorToolbar({
     onFraction, onTable, onMatrix,
     onBracket,
     onSymbols, onLines, onSpace,
+    onColumns, onColumnBreak,
     onMic, isListening,
     section = 'question',
 }) {
@@ -97,6 +98,20 @@ export default function EditorToolbar({
                 title="Working Space">
                 □ Space
             </button>
+            {section === 'answer' && (
+                <>
+                    <button type="button" onClick={onColumns}
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1"
+                        title="Split the answer into columns">
+                        ▥ Columns
+                    </button>
+                    <button type="button" onClick={onColumnBreak}
+                        className="bg-orange-400 hover:bg-orange-500 text-white px-2.5 py-1.5 rounded-lg transition text-xs"
+                        title="Start the next column here (inside a column block)">
+                        + Col
+                    </button>
+                </>
+            )}
             <button type="button" onClick={onMic}
                 className={`${isListening ? 'bg-red-600 animate-pulse' : 'bg-orange-500'} hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg transition text-xs flex items-center gap-1`}
                 title={isListening ? 'Stop recording' : 'Voice input'}>

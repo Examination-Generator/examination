@@ -29,15 +29,10 @@ export default function WorkingSpaceModal({
                         <label className="block text-sm font-bold text-gray-700 mb-2">Height (millimeters) *</label>
                         <input
                             type="number"
-                            min="10"
-                            max="250"
+                            min="5"
+                            max="300"
                             value={heightMm}
-                            onChange={(e) => {
-                                const value = parseInt(e.target.value, 10);
-                                if (!Number.isNaN(value) && value >= 10 && value <= 250) {
-                                    setHeightMm(value);
-                                }
-                            }}
+                            onChange={(e) => setHeightMm(e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                             placeholder="e.g., 50"
                         />
@@ -47,7 +42,7 @@ export default function WorkingSpaceModal({
                         <p className="text-xs font-bold text-gray-700 mb-2">Preview:</p>
                         <div className="bg-white rounded border-2 border-dashed border-gray-300 overflow-hidden">
                             <div
-                                style={{ height: `${Math.min(heightMm * 0.8, 120)}px`, background: 'white' }}
+                                style={{ height: `${Math.min(Math.max(parseFloat(heightMm) || 0, 5), 300) * 0.5}mm`, maxHeight: '60mm', background: 'white' }}
                                 className="flex items-center justify-center text-gray-400 text-sm"
                             >
                                 Blank working space ({heightMm}mm)
@@ -59,7 +54,7 @@ export default function WorkingSpaceModal({
                 <div className="flex space-x-3 mt-6">
                     <button
                         type="button"
-                        onClick={() => onSave({ heightMm }, targetSection)}
+                        onClick={() => onSave({ heightMm: Math.min(300, Math.max(5, Math.round(parseFloat(heightMm) || 20))) }, targetSection)}
                         className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
                     >
                         Add Working Space

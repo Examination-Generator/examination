@@ -77,6 +77,59 @@ def render_formula_token(part, render_inner=None):
     )
 
 
+DEFAULT_SPACE_MM = 20
+_SPACE_RE = re.compile(r'\[SPACE:([\d.]+)(?::([\d.]+)mm)?\]')
+_COLUMNS_RE = re.compile(r'\[COLS:(\d+)(\|line)?\](.*?)\[/COLS\]', re.DOTALL)
+
+
+def render_space_token(part):
+    """Render [SPACE:id:50mm] as a blank block of exactly that many millimetres on paper.
+
+    Older [SPACE:id] tokens carry no height and use the 20mm default.
+    Returns None when the token is malformed.
+    """
+    match = _SPACE_RE.fullmatch(part)
+    if not match:
+        return None
+    height = float(match.group(2)) if match.group(2) else DEFAULT_SPACE_MM
+    height = max(5.0, min(300.0, height))
+    height_text = f'{height:g}'
+    return (
+        f'<div class="working-space" style="width:100%; height:{height_text}mm; min-height:{height_text}mm; '
+        'margin:0; background:white; border:none; break-inside:avoid; page-break-inside:avoid;"></div>'
+    )
+
+
+def render_with_columns(text, render):
+    """Split text on [COLS:n|line] ... [COL] ... [/COLS] blocks.
+
+    ``render`` formats a plain segment (and every individual column), so every
+    other token (formulas, fractions, brackets, tables, images...) still works in a column.
+    """
+    output = []
+    position = 0
+    for match in _COLUMNS_RE.finditer(text):
+        if match.start() > position:
+            output.append(render(text[position:match.start()]))
+        columns = [column.removeprefix('\n').removesuffix('\n') for column in match.group(3).split('[COL]')]
+        columns += [''] * (int(match.group(1)) - len(columns))
+        ruled = bool(match.group(2))
+        cells = ''.join(
+            '<div style="white-space:pre-wrap; overflow-wrap:anywhere; min-width:0;'
+            + (' border-left:1px solid #111; padding-left:3mm; margin-left:-3mm;' if ruled and index else '')
+            + f'">{render(column)}</div>'
+            for index, column in enumerate(columns)
+        )
+        output.append(
+            f'<div class="answer-columns" style="display:grid; grid-template-columns:repeat({len(columns)}, minmax(0, 1fr)); '
+            f'column-gap:6mm; width:100%; align-items:start; margin:4px 0;">{cells}</div>'
+        )
+        position = match.end()
+    if position < len(text):
+        output.append(render(text[position:]))
+    return ''.join(output)
+
+
 def render_bracket_token(part, render_inner=None):
     """Render a [BRACKET:side|shape|height|encodedText] token as HTML.
 
@@ -118,6 +171,10 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
     """
     if not text:
         return ""
+
+    # Answer columns: each segment/column is rendered by this same function, so all tokens work inside columns.
+    if '[COLS:' in text and '[/COLS]' in text:
+        return render_with_columns(text, lambda segment: _process_question_text(segment, images, answer_lines, image_positions))
     
     # Helper function to render nested formatting within fractions and other content
     def render_nested_format(content):
@@ -173,7 +230,7 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
     positions_dict = image_positions or {}
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[ROOT:(?:[^\[\]]|\[[^\]]+\])+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[ROOT:(?:[^\[\]]|\[[^\]]+\])+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+(?::[\d.]+mm)?\])'
     parts = re.split(pattern, text)
     
     result = []
@@ -532,19 +589,12 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
                 else:
                     result.append(f'<div style="margin: 10px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 11pt;"> Answer Lines (ID: {int(line_id)})</div>')
         
-        # Working space: [SPACE:id]
+        # Working space: [SPACE:id:HEIGHTmm] (old [SPACE:id] = 20mm)
         elif part.startswith('[SPACE:') and part.endswith(']'):
-            space_match = re.match(r'\[SPACE:([\d.]+)\]', part)
-            if space_match:
-                space_id = float(space_match.group(1))
-                # A4 printable width is approximately 170mm = ~640px at 96 DPI
-                max_width = 700
-                # Default height for working space (can be customized if space config is passed)
-                height_px = 189
-                
-                space_html = f'<div style="margin: 8px 0; max-width: {max_width}px;"><div style="height: {height_px}px; width: 100%; background: white; border: none;"></div></div>'
-                result.append(space_html)
-        
+            space_html = render_space_token(part)
+            result.append(space_html if space_html is not None else part)
+
+
         # Graphs: [GRAPH:id:WxHcm]
         elif part.startswith('[GRAPH:') and part.endswith(']'):
             graph_match = re.match(r'\[GRAPH:([\d.]+):([\d.]+)x([\d.]+)cm\]', part)

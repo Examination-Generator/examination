@@ -6,6 +6,8 @@ Generates professional marking schemes with coverpage and answers
 import re
 from .process_text import (
     render_bracket_token,
+    render_space_token,
+    render_with_columns,
     render_formula_token,
     render_roots_in_html,
     render_root_token,
@@ -336,6 +338,10 @@ def _process_answer_text(text, images=None, answer_lines=None):
     """
     if not text:
         return "No answer provided"
+
+    # Answer columns: each segment/column is rendered by this same function, so all tokens work inside columns.
+    if '[COLS:' in text and '[/COLS]' in text:
+        return render_with_columns(text, lambda segment: _process_answer_text(segment, images, answer_lines))
     
     # Helper function to render nested formatting within fractions and other content
     def render_nested_format(content):
@@ -386,7 +392,7 @@ def _process_answer_text(text, images=None, answer_lines=None):
             lines_dict[float(line.get('id', 0))] = line
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[ROOT:(?:[^\[\]]|\[[^\]]+\])+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|_.*?_|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[ROOT:(?:[^\[\]]|\[[^\]]+\])+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+(?::[\d.]+mm)?\])'
     parts = re.split(pattern, text)
     
     result = []
@@ -665,17 +671,11 @@ def _process_answer_text(text, images=None, answer_lines=None):
                     lines_html += '</div>'
                     result.append(lines_html)
         
-        # Working space: [SPACE:id]
+        # Working space: [SPACE:id:HEIGHTmm] (old [SPACE:id] = 20mm)
         elif part.startswith('[SPACE:') and part.endswith(']'):
-            space_match = re.match(r'\[SPACE:([\d.]+)\]', part)
-            if space_match:
-                space_id = float(space_match.group(1))
-                max_width = 700
-                height_px = 100
-                
-                space_html = f'<div style="margin: 8px 0; max-width: {max_width}px;"><div style="height: {height_px}px; width: 100%; background: white; border: none;"></div></div>'
-                result.append(space_html)
-        
+            space_html = render_space_token(part)
+            result.append(space_html if space_html is not None else part)
+
         # Graphs: [GRAPH:id:WxHcm]
         elif part.startswith('[GRAPH:') and part.endswith(']'):
             graph_match = re.match(r'\[GRAPH:([\d.]+):([\d.]+)x([\d.]+)cm\]', part)
