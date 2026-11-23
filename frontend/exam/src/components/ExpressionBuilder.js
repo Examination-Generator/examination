@@ -58,13 +58,17 @@ const SHAPE_LABEL = { rounded: '( )', square: '[ ]', curly: '{ }' };
 
 const miniInput = 'border border-gray-300 rounded px-1 py-0.5 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-500';
 
-function Chrome({ children, onLeft, onRight, onRemove, canLeft, canRight }) {
+function Chrome({ children, onLeft, onRight, onRemove, canLeft, canRight, onWrap, onUnwrap }) {
     return (
         <span className="relative inline-flex group align-middle">
             {children}
-            <span className="absolute -top-4 left-0 z-20 hidden group-hover:flex group-focus-within:flex items-center gap-px bg-white border border-gray-300 rounded shadow text-[10px] leading-none">
+            <span className="absolute -top-5 left-0 z-20 hidden group-hover:flex group-focus-within:flex items-center gap-px bg-white border border-gray-300 rounded shadow text-[10px] leading-none">
                 <button type="button" disabled={!canLeft} onClick={onLeft} className="px-1 py-0.5 disabled:opacity-30 hover:bg-gray-100" title="Move left">‹</button>
                 <button type="button" disabled={!canRight} onClick={onRight} className="px-1 py-0.5 disabled:opacity-30 hover:bg-gray-100" title="Move right">›</button>
+                {onWrap && SHAPES.map(shape => (
+                    <button key={shape} type="button" onClick={() => onWrap(shape)} className="px-1 py-0.5 hover:bg-green-50 font-semibold" title={`Wrap in ${SHAPE_LABEL[shape]} spanning the whole part`}>{SHAPE_LABEL[shape]}</button>
+                ))}
+                {onUnwrap && <button type="button" onClick={onUnwrap} className="px-1 py-0.5 hover:bg-gray-100" title="Remove the brackets but keep the content">⤢</button>}
                 <button type="button" onClick={onRemove} className="px-1 py-0.5 text-red-600 hover:bg-red-50" title="Remove">×</button>
             </span>
         </span>
@@ -103,13 +107,17 @@ export function Slot({ nodes, onChange, compact = false }) {
         copy.splice(index + delta, 0, item);
         onChange(copy);
     };
+    const wrap = (index, shape) => onChange(nodes.map((n, i) => (i === index ? { ...groupNode(shape), body: [n] } : n)));
+    const unwrap = index => onChange(nodes.flatMap((n, i) => (i === index ? n.body : [n])));
     const insertAtEnd = node => onChange([...nodes, node]);
 
     return (
         <span className={`inline-flex flex-wrap items-center ${compact ? 'gap-1' : 'gap-1.5'} min-w-[2rem]`}>
             {nodes.map((node, index) => (
                 <Chrome key={node.id} canLeft={index > 0} canRight={index < nodes.length - 1}
-                    onLeft={() => move(index, -1)} onRight={() => move(index, 1)} onRemove={() => remove(index)}>
+                    onLeft={() => move(index, -1)} onRight={() => move(index, 1)} onRemove={() => remove(index)}
+                    onWrap={node.type === 'text' ? null : shape => wrap(index, shape)}
+                    onUnwrap={node.type === 'group' ? () => unwrap(index) : null}>
                     <NodeEditor node={node} onChange={updated => update(index, updated)} />
                 </Chrome>
             ))}
