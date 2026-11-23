@@ -338,11 +338,11 @@ export default function QuestionForm({
         setShowWorkingSpaceModal(false);
     }, [questionTextareaRef, answerTextareaRef, questionText, answerText, setQuestionText, setAnswerText, setQuestionWorkingSpaces, setAnswerWorkingSpaces]);
 
-    const handleBracketInsert = useCallback(({ side, shape, height, text }) => {
+    const handleBracketInsert = useCallback(({ side, shape, height, text, token: customToken }) => {
         const target = bracketTarget;
         const ref = target === 'question' ? questionTextareaRef : answerTextareaRef;
         const setText = target === 'question' ? setQuestionText : setAnswerText;
-        const token = `[BRACKET:${side}|${shape}|${height}|${encodeURIComponent(text)}]`;
+        const token = customToken || `[BRACKET:${side}|${shape}|${height}|${encodeURIComponent(text)}]`;
         const textarea = ref.current;
         if (textarea) {
             const start = textarea.selectionStart;

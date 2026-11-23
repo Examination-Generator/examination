@@ -212,7 +212,7 @@ export function renderTextWithImages(
         let kc = base;
 
         const startsPattern = (s) =>
-            /^(\[FORMULA:|\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SQRT:|\[ROOT:|\[BRACKET:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[COLS:|\[GRAPH:|\[IMAGE:)/.test(s);
+            /^(\[FORMULA:|\[TABLE:|\[MATRIX:|\[FRAC:|\[MIX:|\[SQRT:|\[ROOT:|\[SUM:|\[BRACKET:|\[SUP\]|\[SUB\]|\*\*|__|\*|_|\[LINES:|\[SPACE:|\[COLS:|\[GRAPH:|\[IMAGE:)/.test(s);
 
         while (idx < str.length) {
             const rem = str.slice(idx);
@@ -263,6 +263,37 @@ export function renderTextWithImages(
                     );
                     idx += end + 1;
                     continue;
+                }
+            }
+
+            // Summation: [SUM:upper|lower|body] draws a large sigma with limits and the summed expression.
+            if (rem.startsWith('[SUM:')) {
+                const closing = findClosing(rem.slice(5));
+                const end = closing === -1 ? -1 : closing + 5;
+                if (end !== -1) {
+                    const inner = rem.slice(5, end);
+                    const first = inner.indexOf('|');
+                    const second = first >= 0 ? inner.indexOf('|', first + 1) : -1;
+                    if (second >= 0) {
+                        let upper = inner.slice(0, first);
+                        let lower = inner.slice(first + 1, second);
+                        const body = inner.slice(second + 1);
+                        try { upper = decodeURIComponent(upper).trim(); } catch {}
+                        try { lower = decodeURIComponent(lower).trim(); } catch {}
+                        const limitStyle = { fontSize: '0.7em', lineHeight: 1.1, minHeight: '1.1em', whiteSpace: 'nowrap' };
+                        results.push(
+                            <span key={kc++} style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', gap: 3, margin: '0 2px' }}>
+                                <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                                    <span style={limitStyle}>{upper ? parseText(upper, kc * 100) : '\u00a0'}</span>
+                                    <span style={{ fontSize: '1.9em', lineHeight: 1, fontFamily: "'Times New Roman', serif" }}>{'\u2211'}</span>
+                                    <span style={limitStyle}>{lower ? parseText(lower, kc * 200) : '\u00a0'}</span>
+                                </span>
+                                <span>{parseText(body, kc * 1000)}</span>
+                            </span>
+                        );
+                        idx += end + 1;
+                        continue;
+                    }
                 }
             }
 

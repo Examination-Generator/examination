@@ -9,6 +9,7 @@ export const scriptsNode = () => ({ id: nextId(), type: 'scripts', base: '', sup
 export const fracNode = () => ({ id: nextId(), type: 'frac', num: [textNode('', true)], den: [textNode('')] });
 export const rootNode = () => ({ id: nextId(), type: 'root', degree: '', body: [textNode('', true)] });
 export const groupNode = shape => ({ id: nextId(), type: 'group', shape, body: [textNode('', true)] });
+export const sumNode = () => ({ id: nextId(), type: 'sum', upper: '', lower: '', body: [textNode('', true)] });
 export const scriptBlockNode = type => ({ id: nextId(), type, body: [textNode('', true)] });
 
 export const defaultExpression = () => [{ id: nextId(), type: 'frac', num: [textNode('', true)], den: [textNode('')] }];
@@ -31,6 +32,8 @@ export function serialize(nodes, inFrac = false) {
                 return `[FRAC:${serialize(node.num, true).trim()}:${serialize(node.den, true).trim()}]`;
             case 'root':
                 return `[ROOT:${encodeURIComponent(node.degree.trim())}|${serialize(node.body, inFrac)}]`;
+            case 'sum':
+                return `[SUM:${encodeURIComponent(node.upper.trim())}|${encodeURIComponent(node.lower.trim())}|${serialize(node.body, inFrac)}]`;
             case 'group':
                 return `[BRACKET:both|${node.shape}|0|${encodeURIComponent(serialize(node.body, false))}]`;
             case 'sup':
@@ -47,7 +50,7 @@ export function serialize(nodes, inFrac = false) {
 export function isComplete(nodes) {
     return nodes.every(node => {
         if (node.type === 'frac') return serialize(node.num).trim() !== '' && serialize(node.den).trim() !== '' && isComplete(node.num) && isComplete(node.den);
-        if (['root', 'group', 'sup', 'sub'].includes(node.type)) return serialize(node.body).trim() !== '' && isComplete(node.body);
+        if (['root', 'group', 'sum', 'sup', 'sub'].includes(node.type)) return serialize(node.body).trim() !== '' && isComplete(node.body);
         return true;
     });
 }
@@ -88,6 +91,7 @@ function Palette({ onAdd }) {
             <button type="button" className={btn} onClick={() => add(scriptsNode())} title="Letter with superscript / subscript stacked">a<sup>n</sup><sub>m</sub></button>
             <button type="button" className={btn} onClick={() => add(fracNode())} title="Fraction">a⁄b</button>
             <button type="button" className={btn} onClick={() => add(rootNode())} title="Root">√</button>
+            <button type="button" className={btn} onClick={() => add(sumNode())} title="Summation (Σ) with upper and lower limits">Σ</button>
             {SHAPES.map(shape => (
                 <button key={shape} type="button" className={btn} onClick={() => add(groupNode(shape))} title="Brackets that stretch around their content">{SHAPE_LABEL[shape]}</button>
             ))}
@@ -160,6 +164,17 @@ function NodeEditor({ node, onChange }) {
                     <input value={node.degree} onChange={event => set({ degree: event.target.value })} className={`${miniInput} text-xs`} style={{ width: '3ch' }} placeholder="n" title="Root degree (blank = square root)" />
                     <span className="text-xl leading-none">√</span>
                     <span className="border-t-2 border-gray-700 pt-0.5"><Slot nodes={node.body} onChange={body => set({ body })} compact /></span>
+                </span>
+            );
+        case 'sum':
+            return (
+                <span className="inline-flex items-center gap-1 border border-pink-200 rounded bg-pink-50/40 px-1 py-1 align-middle">
+                    <span className="inline-flex flex-col items-center gap-0.5">
+                        <input value={node.upper} onChange={event => set({ upper: event.target.value })} className={`${miniInput} text-xs`} style={{ width: '4ch' }} placeholder="n" title="Upper limit" />
+                        <span className="text-2xl leading-none">Σ</span>
+                        <input value={node.lower} onChange={event => set({ lower: event.target.value })} className={`${miniInput} text-xs`} style={{ width: '4ch' }} placeholder="i=1" title="Lower limit" />
+                    </span>
+                    <Slot nodes={node.body} onChange={body => set({ body })} compact />
                 </span>
             );
         case 'group':

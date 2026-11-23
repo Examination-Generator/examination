@@ -277,11 +277,11 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
         setShowWorkingSpaceModal(false);
     }, [editQuestionTextareaRef, editAnswerTextareaRef, editQuestionText, editAnswerText, setEditQuestionText, setEditAnswerText, setEditQuestionAnswerLines, setEditAnswerAnswerLines]);
 
-    const handleBracketInsert = useCallback(({ side, shape, height, text }) => {
+    const handleBracketInsert = useCallback(({ side, shape, height, text, token: customToken }) => {
         const target = bracketTarget;
         const ref = target === 'question' ? editQuestionTextareaRef : editAnswerTextareaRef;
         const setText = target === 'question' ? setEditQuestionText : setEditAnswerText;
-        const token = `[BRACKET:${side}|${shape}|${height}|${encodeURIComponent(text)}]`;
+        const token = customToken || `[BRACKET:${side}|${shape}|${height}|${encodeURIComponent(text)}]`;
         const textarea = ref.current;
         if (textarea) {
             const start = textarea.selectionStart;

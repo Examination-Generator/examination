@@ -15,6 +15,7 @@ _BALANCED = _balanced_body()
 FRAC_TOKEN_PATTERN = r'\[FRAC:' + _BALANCED + r'+\]'
 MIX_TOKEN_PATTERN = r'\[MIX:' + _BALANCED + r'+\]'
 ROOT_TOKEN_PATTERN = r'\[ROOT:' + _BALANCED + r'+\]'
+SUM_TOKEN_PATTERN = r'\[SUM:' + _BALANCED + r'+\]'
 
 
 def split_top_level(text, separator=':'):
@@ -97,6 +98,28 @@ def render_root_token(part, render_inner=None):
     radicand = inner[separator + 1:] if separator >= 0 else inner
     fmt = render_inner or escape
     return _root_html(fmt(radicand), fmt(degree.strip()) if degree.strip() else '')
+
+
+def render_sum_token(part, render_inner=None):
+    """Render [SUM:encUpper|encLower|body]: a large sigma with limits above/below, followed by the summed expression."""
+    inner = part[5:-1]
+    first = inner.find('|')
+    second = inner.find('|', first + 1) if first >= 0 else -1
+    if first < 0 or second < 0:
+        return escape(part)
+    upper = unquote(inner[:first]).strip()
+    lower = unquote(inner[first + 1:second]).strip()
+    body = inner[second + 1:]
+    fmt = render_inner or escape
+    limit = 'font-size:0.7em; line-height:1.1; min-height:1.1em; white-space:nowrap;'
+    return (
+        '<span style="display:inline-flex; align-items:center; vertical-align:middle; gap:3px; margin:0 2px;">'
+        '<span style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">'
+        f'<span style="{limit}">{fmt(upper) if upper else "&nbsp;"}</span>'
+        '<span style="font-size:1.9em; line-height:1; font-family:\'Times New Roman\', serif;">&#8721;</span>'
+        f'<span style="{limit}">{fmt(lower) if lower else "&nbsp;"}</span></span>'
+        f'<span>{fmt(body)}</span></span>'
+    )
 
 
 def render_sqrt_token(part, render_inner=None):
@@ -350,7 +373,7 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
     positions_dict = image_positions or {}
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|' + ROOT_TOKEN_PATTERN + r'|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|' + FRAC_TOKEN_PATTERN + r'|' + MIX_TOKEN_PATTERN + r'|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+(?::[\d.]+mm)?\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|' + ROOT_TOKEN_PATTERN + r'|' + SUM_TOKEN_PATTERN + r'|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|' + FRAC_TOKEN_PATTERN + r'|' + MIX_TOKEN_PATTERN + r'|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+(?::[\d.]+mm)?\])'
     parts = re.split(pattern, text, flags=re.DOTALL)
     
     result = []
@@ -561,6 +584,10 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
 
         if part.startswith('[ROOT:') and part.endswith(']'):
             result.append(render_root_token(part, render_inner))
+            continue
+
+        if part.startswith('[SUM:') and part.endswith(']'):
+            result.append(render_sum_token(part, render_inner))
             continue
 
         if part.startswith('[SQRT:') and part.endswith(']'):

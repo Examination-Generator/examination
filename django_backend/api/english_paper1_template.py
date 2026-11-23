@@ -9,6 +9,7 @@ from .process_text import (
     FRAC_TOKEN_PATTERN,
     MIX_TOKEN_PATTERN,
     ROOT_TOKEN_PATTERN,
+    SUM_TOKEN_PATTERN,
     render_bracket_token,
     render_frac_token,
     render_mix_token,
@@ -18,6 +19,7 @@ from .process_text import (
     render_formula_token,
     render_roots_in_html,
     render_root_token,
+    render_sum_token,
     render_sqrt_token,
 )
 
@@ -679,7 +681,7 @@ def _process_question_text(text, images=None, answer_lines=None):
             lines_dict[float(line.get('id', 0))] = line
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|' + ROOT_TOKEN_PATTERN + r'|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|' + FRAC_TOKEN_PATTERN + r'|' + MIX_TOKEN_PATTERN + r'|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+(?::[\d.]+mm)?\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|' + ROOT_TOKEN_PATTERN + r'|' + SUM_TOKEN_PATTERN + r'|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|' + FRAC_TOKEN_PATTERN + r'|' + MIX_TOKEN_PATTERN + r'|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+(?::[\d.]+mm)?\])'
     parts = re.split(pattern, text, flags=re.DOTALL)
     
     result = []
@@ -817,6 +819,10 @@ def _process_question_text(text, images=None, answer_lines=None):
 
         if part.startswith('[ROOT:') and part.endswith(']'):
             result.append(render_root_token(part, render_inner))
+            continue
+
+        if part.startswith('[SUM:') and part.endswith(']'):
+            result.append(render_sum_token(part, render_inner))
             continue
 
         if part.startswith('[SQRT:') and part.endswith(']'):
