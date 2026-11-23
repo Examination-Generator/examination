@@ -173,10 +173,10 @@ export default function QuestionForm({
         setShowFractionModal(true);
     }, [questionTextareaRef, answerTextareaRef, setQuestionText, setAnswerText]);
 
-    const handleFractionInsert = useCallback(({ whole, numerator, denominator }) => {
+    const handleFractionInsert = useCallback(({ whole, numerator, denominator, expression }) => {
         if (!fractionTarget) return;
         const { ref, setText } = fractionTarget;
-        const token = whole?.trim()
+        const token = expression ? expression : whole?.trim()
             ? `[MIX:${whole.trim()}:${numerator.trim()}:${denominator.trim()}]`
             : `[FRAC:${numerator.trim()}:${denominator.trim()}]`;
         const textarea = ref?.current;

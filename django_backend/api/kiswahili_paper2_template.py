@@ -11,7 +11,12 @@ from .cover.kis.kis_coverpage import KiswahiliPaper2Coverpage
 import re
 from .process_text import (
     build_matrix_html,
+    FRAC_TOKEN_PATTERN,
+    MIX_TOKEN_PATTERN,
+    ROOT_TOKEN_PATTERN,
     render_bracket_token,
+    render_frac_token,
+    render_mix_token,
     split_matrix_cells,
     render_space_token,
     render_with_columns,
@@ -701,7 +706,7 @@ def _process_question_text(text, images=None, answer_lines=None):
             lines_dict[float(line.get('id', 0))] = line
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[ROOT:(?:[^\[\]]|\[[^\]]+\])+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+(?::[\d.]+mm)?\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|' + ROOT_TOKEN_PATTERN + r'|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|' + FRAC_TOKEN_PATTERN + r'|' + MIX_TOKEN_PATTERN + r'|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+(?::[\d.]+mm)?\])'
     parts = re.split(pattern, text, flags=re.DOTALL)
     
     result = []
@@ -799,62 +804,18 @@ def _process_question_text(text, images=None, answer_lines=None):
                 result.append(part)
                 continue
         
-        # Fraction: [FRAC:num:den]
+        # Fraction: [FRAC:num:den] - numerator/denominator are fully rendered (nested fractions, roots, brackets...)
         if part.startswith('[FRAC:') and part.endswith(']'):
-            try:
-                inner = part[6:-1]
-                colon_idx = -1
-                bracket_depth = 0
-                for i, char in enumerate(inner):
-                    if char == '[':
-                        bracket_depth += 1
-                    elif char == ']':
-                        bracket_depth -= 1
-                    elif char == ':' and bracket_depth == 0:
-                        colon_idx = i
-                        break
-                num = inner[:colon_idx] if colon_idx != -1 else inner
-                den = inner[colon_idx + 1:] if colon_idx != -1 else ''
-                num_html = render_roots_in_html(render_nested_format(num))
-                den_html = render_roots_in_html(render_nested_format(den))
-                frac_html = f'<span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num_html}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den_html}</span></span>'
-                result.append(frac_html)
-                continue
-            except Exception:
-                result.append(part)
-                continue
-        
+            frac_html = render_frac_token(part, render_inner)
+            result.append(frac_html if frac_html is not None else part)
+            continue
+
         # Mixed fraction: [MIX:whole:num:den]
         if part.startswith('[MIX:') and part.endswith(']'):
-            try:
-                inner = part[5:-1]
-                colon_positions = []
-                bracket_depth = 0
-                for i, char in enumerate(inner):
-                    if char == '[':
-                        bracket_depth += 1
-                    elif char == ']':
-                        bracket_depth -= 1
-                    elif char == ':' and bracket_depth == 0:
-                        colon_positions.append(i)
-                if len(colon_positions) >= 2:
-                    whole = inner[:colon_positions[0]]
-                    num = inner[colon_positions[0] + 1:colon_positions[1]]
-                    den = inner[colon_positions[1] + 1:]
-                else:
-                    whole = inner
-                    num = ''
-                    den = ''
-                whole_html = render_nested_format(whole)
-                num_html = render_roots_in_html(render_nested_format(num))
-                den_html = render_roots_in_html(render_nested_format(den))
-                mix_html = f'<span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 0.95em;">{whole_html}</span><span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num_html}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den_html}</span></span></span>'
-                result.append(mix_html)
-                continue
-            except Exception:
-                result.append(part)
-                continue
-        
+            mix_html = render_mix_token(part, render_inner)
+            result.append(mix_html if mix_html is not None else part)
+            continue
+
         # Formula / root / square-root tokens (nested tokens inside are rendered recursively)
         if part.startswith('[FORMULA:') and part.endswith(']'):
             formula_html = render_formula_token(part, render_inner)

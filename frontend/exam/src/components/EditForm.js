@@ -379,9 +379,9 @@ export default function EditForm({ editState, onSaved, onDeleted, onCancel }) {
                 onInsert={handleFormulaInsert}
             />
             <FractionModal open={showFractionModal} onClose={() => setShowFractionModal(false)}
-                onInsert={({ whole, numerator, denominator }) => {
+                onInsert={({ whole, numerator, denominator, expression }) => {
                     if (!fractionTarget) return;
-                    const token = whole?.trim()
+                    const token = expression ? expression : whole?.trim()
                         ? `[MIX:${whole.trim()}:${numerator.trim()}:${denominator.trim()}]`
                         : `[FRAC:${numerator.trim()}:${denominator.trim()}]`;
                     const ta = fractionTarget.ref?.current;

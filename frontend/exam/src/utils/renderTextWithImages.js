@@ -151,7 +151,7 @@ const BRACKET_PATHS = {
 };
 
 export function bracketWidthPx(shape, height) {
-    if (!height) return 7;
+    if (!height) return shape === 'curly' ? 11 : shape === 'square' ? 7 : 9; // stretches to its content
     const [ratio, low, high] = shape === 'curly' ? [0.2, 10, 26] : shape === 'square' ? [0.1, 7, 14] : [0.14, 8, 20];
     return Math.round(Math.min(high, Math.max(low, height * ratio)));
 }
@@ -286,13 +286,16 @@ export function renderTextWithImages(
                     const [side, shape, heightText, encodedText] = rem.slice(9, end).split('|');
                     let bracketText = '';
                     try { bracketText = decodeURIComponent(encodedText || ''); } catch { bracketText = encodedText || ''; }
-                    const height = Math.min(400, Math.max(20, parseInt(heightText, 10) || 60));
-                    const opening = side !== 'closing';
+                    // Height 0 / auto stretches to the content; side "both" draws an enclosing pair.
+                    const auto = heightText === 'auto' || parseInt(heightText, 10) === 0;
+                    const height = auto ? null : Math.min(400, Math.max(20, parseInt(heightText, 10) || 60));
+                    const showLeft = side === 'opening' || side === 'both';
+                    const showRight = side === 'closing' || side === 'both';
                     results.push(
-                        <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', minHeight: height, lineHeight: 1.2, verticalAlign: 'middle', margin: '2px', whiteSpace: 'normal' }}>
-                            {opening && <BracketGlyph opening shape={shape} height={height} />}
-                            <span style={{ display: 'inline-flex', alignItems: 'center', textAlign: 'left', padding: '0 4px', minWidth: 20, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{parseText(bracketText, kc * 1000)}</span>
-                            {!opening && <BracketGlyph opening={false} shape={shape} height={height} />}
+                        <span key={kc++} style={{ display: 'inline-flex', alignItems: 'stretch', minHeight: height || undefined, lineHeight: 1.2, verticalAlign: 'middle', margin: '2px', padding: '1px 0', whiteSpace: 'normal' }}>
+                            {showLeft && <BracketGlyph opening shape={shape} height={height} />}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', textAlign: 'left', padding: '0 3px', minWidth: 12, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{parseText(bracketText, kc * 1000)}</span>
+                            {showRight && <BracketGlyph opening={false} shape={shape} height={height} />}
                         </span>
                     );
                     idx += end + 1;
@@ -352,9 +355,9 @@ export function renderTextWithImages(
                     const parts = splitByDelim(rem.slice(cs, cs + ci));
                     if (parts.length === 2) {
                         results.push(
-                            <span key={kc++} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1 }}>
-                                <span style={{ display: 'block', fontSize: '0.85em' }}>{parseText(parts[0], kc * 1000)}</span>
-                                <span style={{ display: 'block', borderTop: '1px solid', fontSize: '0.85em' }}>{parseText(parts[1], kc * 1000)}</span>
+                            <span key={kc++} style={{ display: 'inline-block', verticalAlign: 'middle', textAlign: 'center', lineHeight: 1, padding: '0 2px' }}>
+                                <span style={{ display: 'block', fontSize: '0.85em', padding: '0 2px 1px' }}>{parseText(parts[0], kc * 1000)}</span>
+                                <span style={{ display: 'block', borderTop: '1px solid', padding: '1px 2px 0', fontSize: '0.85em' }}>{parseText(parts[1], kc * 1000)}</span>
                             </span>
                         );
                         idx += cs + ci + 1;

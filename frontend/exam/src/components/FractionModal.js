@@ -1,221 +1,48 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
+import { renderTextWithImages } from '../utils/renderTextWithImages';
+import { Slot, defaultExpression, serialize, isComplete } from './ExpressionBuilder';
 
+// Fraction / expression builder: nested fractions, roots, stretchy brackets and stacked scripts,
+// serialised to the same tokens the rest of the app already renders.
 export default function FractionModal({ open, onClose, onInsert }) {
-    const [whole, setWhole] = useState('');
-    const [numerator, setNumerator] = useState('');
-    const [denominator, setDenominator] = useState('');
-    const [rootDegree, setRootDegree] = useState('');
-    
-    const numeratorRef = useRef(null);
-    const denominatorRef = useRef(null);
-    const wholeRef = useRef(null);
+    const [nodes, setNodes] = useState(defaultExpression);
 
     useEffect(() => {
-        if (!open) {
-            setWhole('');
-            setNumerator('');
-            setDenominator('');
-            setRootDegree('');
-        }
+        if (!open) setNodes(defaultExpression());
     }, [open]);
-    
-    // Helper function to wrap selected text or insert at cursor position
-    const insertFormatting = (inputRef, value, setValue, openTag, closeTag) => {
-        const input = inputRef.current;
-        if (!input) return;
-        
-        const start = input.selectionStart;
-        const end = input.selectionEnd;
-        const selectedText = value.substring(start, end);
-        
-        let newValue;
-        let newCursorPos;
-        
-        if (selectedText) {
-            // Wrap selected text
-            newValue = value.substring(0, start) + openTag + selectedText + closeTag + value.substring(end);
-            newCursorPos = start + openTag.length + selectedText.length + closeTag.length;
-        } else {
-            // Insert at cursor position
-            newValue = value.substring(0, start) + openTag + closeTag + value.substring(end);
-            newCursorPos = start + openTag.length;
-        }
-        
-        setValue(newValue);
-        
-        // Set cursor position after state update
-        setTimeout(() => {
-            input.focus();
-            input.setSelectionRange(newCursorPos, newCursorPos);
-        }, 0);
-    };
 
     if (!open) return null;
 
+    const token = serialize(nodes).trim();
+
+    const handleInsert = () => {
+        if (!token || !isComplete(nodes)) {
+            alert('Please fill in every box (numerators, denominators, roots and brackets).');
+            return;
+        }
+        onInsert({ whole: '', numerator: '', denominator: '', expression: token });
+    };
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black opacity-50" onClick={onClose}></div>
-            <div className="bg-white rounded-lg shadow-lg z-10 p-6 w-full max-w-md">
-                <h3 className="text-lg font-semibold mb-3">Insert Fraction</h3>
-
-                <label className="block text-sm text-gray-700">Root degree (optional)</label>
-                <input
-                    type="text"
-                    value={rootDegree}
-                    onChange={e => setRootDegree(e.target.value)}
-                    className="w-full mb-3 mt-1 p-2 border rounded"
-                    placeholder="Leave blank for square root, or enter 3 for cube root"
-                />
-
-                <label className="block text-sm text-gray-700">Whole number (optional)</label>
-                <div className="mb-3">
-                    <input 
-                        ref={wholeRef}
-                        type="text" 
-                        value={whole} 
-                        onChange={e => setWhole(e.target.value)} 
-                        className="w-full mt-1 p-2 border rounded" 
-                        placeholder="e.g., 1 for 1 1/2" 
-                    />
-                    <div className="flex gap-2 mt-1">
-                        <button
-                            type="button"
-                            onClick={() => insertFormatting(wholeRef, whole, setWhole, '[SUP]', '[/SUP]')}
-                            className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300"
-                            title="Add superscript"
-                        >
-                            x<sup>n</sup>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => insertFormatting(wholeRef, whole, setWhole, '[SUB]', '[/SUB]')}
-                            className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300"
-                            title="Add subscript"
-                        >
-                            x<sub>n</sub>
-                        </button>
-                    </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <button type="button" aria-label="Close" className="absolute inset-0 bg-black/50 cursor-default" onClick={onClose} />
+            <div className="relative z-10 bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[92vh] flex flex-col p-5">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-gray-800">Fraction / Expression</h3>
+                    <button type="button" onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl leading-none" aria-label="Close">&times;</button>
                 </div>
 
-                <label className="block text-sm text-gray-700">Numerator</label>
-                <div className="mb-3">
-                    <input 
-                        ref={numeratorRef}
-                        type="text" 
-                        value={numerator} 
-                        onChange={e => setNumerator(e.target.value)} 
-                        className="w-full mt-1 p-2 border rounded" 
-                        placeholder="e.g., 3" 
-                    />
-                    <div className="flex gap-2 mt-1">
-                        <button
-                            type="button"
-                            onClick={() => insertFormatting(numeratorRef, numerator, setNumerator, '[SUP]', '[/SUP]')}
-                            className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300"
-                            title="Add superscript to numerator"
-                        >
-                            x<sup>n</sup>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => insertFormatting(numeratorRef, numerator, setNumerator, '[SUB]', '[/SUB]')}
-                            className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300"
-                            title="Add subscript to numerator"
-                        >
-                            x<sub>n</sub>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => insertFormatting(numeratorRef, numerator, setNumerator, '**', '**')}
-                            className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300"
-                            title="Make bold"
-                        >
-                            <strong>B</strong>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => insertFormatting(numeratorRef, numerator, setNumerator, `[ROOT:${encodeURIComponent(rootDegree.trim())}|`, ']')}
-                            className="text-xs px-2 py-1 bg-purple-100 hover:bg-purple-200 rounded border border-purple-300"
-                            title="Wrap numerator in a root symbol"
-                        >
-                            <sup>{rootDegree || ''}</sup>√
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => insertFormatting(numeratorRef, numerator, setNumerator, '*', '*')}
-                            className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300"
-                            title="Make italic"
-                        >
-                            <em>I</em>
-                        </button>
-                    </div>
+                <div className="border border-gray-300 rounded-lg p-4 pt-6 overflow-auto min-h-[8rem] bg-white">
+                    <Slot nodes={nodes} onChange={setNodes} />
                 </div>
 
-                <label className="block text-sm text-gray-700">Denominator</label>
-                <div className="mb-4">
-                    <input 
-                        ref={denominatorRef}
-                        type="text" 
-                        value={denominator} 
-                        onChange={e => setDenominator(e.target.value)} 
-                        className="w-full mt-1 p-2 border rounded" 
-                        placeholder="e.g., 4" 
-                    />
-                    <div className="flex gap-2 mt-1">
-                        <button
-                            type="button"
-                            onClick={() => insertFormatting(denominatorRef, denominator, setDenominator, '[SUP]', '[/SUP]')}
-                            className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300"
-                            title="Add superscript to denominator"
-                        >
-                            x<sup>n</sup>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => insertFormatting(denominatorRef, denominator, setDenominator, '[SUB]', '[/SUB]')}
-                            className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300"
-                            title="Add subscript to denominator"
-                        >
-                            x<sub>n</sub>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => insertFormatting(denominatorRef, denominator, setDenominator, '**', '**')}
-                            className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300"
-                            title="Make bold"
-                        >
-                            <strong>B</strong>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => insertFormatting(denominatorRef, denominator, setDenominator, `[ROOT:${encodeURIComponent(rootDegree.trim())}|`, ']')}
-                            className="text-xs px-2 py-1 bg-purple-100 hover:bg-purple-200 rounded border border-purple-300"
-                            title="Wrap denominator in a root symbol"
-                        >
-                            <sup>{rootDegree || ''}</sup>√
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => insertFormatting(denominatorRef, denominator, setDenominator, '*', '*')}
-                            className="text-xs px-2 py-1 bg-blue-100 hover:bg-blue-200 rounded border border-blue-300"
-                            title="Make italic"
-                        >
-                            <em>I</em>
-                        </button>
-                    </div>
+                <div className="mt-3 px-4 py-3 bg-gray-50 rounded-lg overflow-x-auto flex items-center justify-center min-h-[5rem]" style={{ fontSize: '1.6rem' }}>
+                    {token ? <div>{renderTextWithImages(token)}</div> : <span className="text-gray-400 text-base">Preview</span>}
                 </div>
 
-                <div className="flex justify-end gap-2">
-                    <button onClick={onClose} className="px-4 py-2 rounded bg-gray-200">Cancel</button>
-                    <button
-                        onClick={() => {
-                            if (!numerator || !denominator) return alert('Please enter numerator and denominator');
-                            onInsert({ whole: whole?.trim(), numerator: numerator.trim(), denominator: denominator.trim() });
-                        }}
-                        className="px-4 py-2 rounded bg-green-600 text-white"
-                    >
-                        Insert
-                    </button>
+                <div className="flex justify-end gap-3 mt-4">
+                    <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800">Cancel</button>
+                    <button type="button" onClick={handleInsert} className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold">Insert</button>
                 </div>
             </div>
         </div>

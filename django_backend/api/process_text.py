@@ -3,6 +3,70 @@ from html import escape
 from urllib.parse import unquote
 
 
+def _balanced_body(depth=8):
+    """Regex for text whose [ ] pairs are balanced, nested up to ``depth`` levels (Python's re has no recursion)."""
+    body = r'[^\[\]]'
+    for _ in range(depth):
+        body = r'(?:[^\[\]]|\[' + body + r'*\])'
+    return body
+
+
+_BALANCED = _balanced_body()
+FRAC_TOKEN_PATTERN = r'\[FRAC:' + _BALANCED + r'+\]'
+MIX_TOKEN_PATTERN = r'\[MIX:' + _BALANCED + r'+\]'
+ROOT_TOKEN_PATTERN = r'\[ROOT:' + _BALANCED + r'+\]'
+
+
+def split_top_level(text, separator=':'):
+    """Split on ``separator`` only outside nested [...] tokens."""
+    pieces, current, depth = [], '', 0
+    for char in text:
+        if char == '[':
+            depth += 1
+        elif char == ']':
+            depth -= 1
+        if char == separator and depth == 0:
+            pieces.append(current)
+            current = ''
+        else:
+            current += char
+    pieces.append(current)
+    return pieces
+
+
+_FRACTION_STYLE = 'display:inline-block; vertical-align:middle; text-align:center; line-height:1; padding:0 2px;'
+
+
+def _fraction_html(numerator_html, denominator_html):
+    return (
+        f'<span style="{_FRACTION_STYLE}">'
+        f'<span style="display:block; font-size:0.85em; padding:0 2px 1px;">{numerator_html}</span>'
+        f'<span style="display:block; border-top:1px solid; padding:1px 2px 0; font-size:0.85em;">{denominator_html}</span></span>'
+    )
+
+
+def render_frac_token(part, render_inner=None):
+    """Render [FRAC:num:den]. Numerator and denominator go through ``render_inner``, so nested fractions,
+    roots, brackets and scripts all display. Returns None when malformed."""
+    pieces = split_top_level(part[6:-1])
+    if len(pieces) != 2:
+        return None
+    fmt = render_inner or escape
+    return _fraction_html(fmt(pieces[0]), fmt(pieces[1]))
+
+
+def render_mix_token(part, render_inner=None):
+    """Render [MIX:whole:num:den] (a mixed number). Returns None when malformed."""
+    pieces = split_top_level(part[5:-1])
+    if len(pieces) != 3:
+        return None
+    fmt = render_inner or escape
+    return (
+        '<span style="display:inline-flex; align-items:center; vertical-align:middle; gap:4px;">'
+        f'<span style="font-size:0.95em;">{fmt(pieces[0])}</span>{_fraction_html(fmt(pieces[1]), fmt(pieces[2]))}</span>'
+    )
+
+
 def _root_html(radicand_html, degree_html=''):
     """Radical sign drawn as an inline SVG check-mark that stretches with the content and joins the top bar."""
     degree = (
@@ -69,7 +133,7 @@ def render_formula_token(part, render_inner=None):
     main_html = _root_html(main, fmt(degree) if degree else '') if square_root else f'<span>{main}</span>'
     side = (
         '<span style="display:inline-flex; flex-direction:column; justify-content:center; text-align:center; '
-        'line-height:1; font-size:0.8em;"><sup>{}</sup><sub style="font-size:0.75em;">{}</sub></span>'
+        'line-height:1; row-gap:0.15em; font-size:0.8em; vertical-align:middle;"><sup>{}</sup><sub style="transform:translateY(0.1em);">{}</sub></span>'
     )
     return (
         '<span style="display:inline-flex; align-items:center; vertical-align:middle;">'
@@ -138,12 +202,14 @@ _BRACKET_PATHS = {
 
 
 def bracket_glyph_html(opening, shape, height=None):
-    """Thin stroked bracket that stretches with its content (same drawing as the frontend)."""
+    """Thin stroked bracket that stretches with its content (same drawing as the frontend).
+
+    ``height`` None means "stretch to the content" (matrix, enclosing brackets)."""
     if height:
         ratio, low, high = (0.2, 10, 26) if shape == 'curly' else (0.1, 7, 14) if shape == 'square' else (0.14, 8, 20)
         width = round(min(high, max(low, height * ratio)))
     else:
-        width = 7
+        width = 11 if shape == 'curly' else 7 if shape == 'square' else 9
     min_height = f' min-height:{height}px;' if height else ''
     flip = '' if opening else ' transform:scaleX(-1);'
     path = _BRACKET_PATHS.get(shape, _BRACKET_PATHS['rounded'])
@@ -193,26 +259,28 @@ def build_matrix_html(rows, cols, cell_html):
 def render_bracket_token(part, render_inner=None):
     """Render a [BRACKET:side|shape|height|encodedText] token as HTML.
 
-    Mirrors the frontend renderer (renderTextWithImages.js): a thin stroked bracket
-    that stretches with the text. ``render_inner`` formats the decoded text so nested
-    formatting (fractions, sup/sub, bold...) renders too.
+    side is opening, closing or both (an enclosing pair); height is a pixel size, or 0/auto to stretch
+    to the content. Mirrors the frontend renderer (renderTextWithImages.js). ``render_inner`` formats the
+    decoded text so nested formatting (fractions, roots, sup/sub...) renders too.
     Returns None when the token is malformed so callers can emit it unchanged.
     """
     try:
         side, shape, height_text, encoded_text = part[9:-1].split('|', 3)
-        height = max(20, min(400, int(height_text)))
+        height = None if height_text in ('0', 'auto') else max(20, min(400, int(height_text)))
     except (ValueError, TypeError):
         return None
     decoded = unquote(encoded_text)
     inner = render_inner(decoded) if render_inner else escape(decoded)
-    opening = side != 'closing'
+    show_left = side in ('opening', 'both')
+    show_right = side in ('closing', 'both')
+    min_height = f' min-height:{height}px;' if height else ''
     return (
-        f'<span style="display:inline-flex; align-items:stretch; min-height:{height}px; '
-        'line-height:1.2; vertical-align:middle; margin:2px;">'
-        f'{bracket_glyph_html(True, shape, height) if opening else ""}'
-        '<span style="display:inline-flex; align-items:center; text-align:left; padding:0 4px; '
-        f'min-width:20px; white-space:pre-wrap; overflow-wrap:anywhere;">{inner}</span>'
-        f'{"" if opening else bracket_glyph_html(False, shape, height)}</span>'
+        f'<span style="display:inline-flex; align-items:stretch;{min_height} '
+        'line-height:1.2; vertical-align:middle; margin:2px; padding:1px 0;">'
+        f'{bracket_glyph_html(True, shape, height) if show_left else ""}'
+        '<span style="display:inline-flex; align-items:center; text-align:left; padding:0 3px; '
+        f'min-width:12px; white-space:pre-wrap; overflow-wrap:anywhere;">{inner}</span>'
+        f'{bracket_glyph_html(False, shape, height) if show_right else ""}</span>'
     )
 
 
@@ -282,7 +350,7 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
     positions_dict = image_positions or {}
     
     # Enhanced pattern to include all formatting tags - using more specific patterns for fractions
-    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|\[ROOT:(?:[^\[\]]|\[[^\]]+\])+\]|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|\[FRAC:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[MIX:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+:(?:[^:\[\]]|\[[^\]]+\])+\]|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+(?::[\d.]+mm)?\])'
+    pattern = r'(\*\*.*?\*\*|\*.*?\*|__.*?__|\[SUP\].*?\[/SUP\]|\[SUB\].*?\[/SUB\]|\[FORMULA:[^\]]+\]|' + ROOT_TOKEN_PATTERN + r'|\[SQRT:[^\]]+\]|\[BRACKET:[^\]]+\]|' + FRAC_TOKEN_PATTERN + r'|' + MIX_TOKEN_PATTERN + r'|\[TABLE:(?:[^\[\]]|\[[^\]]+\])+\]|\[MATRIX:(?:[^\[\]]|\[[^\]]+\])+\]|\[GRAPH:[\d.]+:[\d.]+x[\d.]+cm\]|\[IMAGE:[\d.]+:(?:\d+x\d+|\d+)px\]|\[LINES:[\d.]+\]|\[SPACE:[\d.]+(?::[\d.]+mm)?\])'
     parts = re.split(pattern, text, flags=re.DOTALL)
     
     result = []
@@ -461,81 +529,18 @@ def _process_question_text(text, images=None, answer_lines=None, image_positions
                 result.append(part)
                 continue
         
-        # Fraction: [FRAC:num:den] - with support for nested formatting
+        # Fraction: [FRAC:num:den] - numerator/denominator are fully rendered (nested fractions, roots, brackets...)
         if part.startswith('[FRAC:') and part.endswith(']'):
-            try:
-                inner = part[6:-1]
-                # Find the colon that separates numerator and denominator
-                # Handle nested brackets within numerator/denominator
-                colon_idx = -1
-                bracket_depth = 0
-                for i, char in enumerate(inner):
-                    if char == '[':
-                        bracket_depth += 1
-                    elif char == ']':
-                        bracket_depth -= 1
-                    elif char == ':' and bracket_depth == 0:
-                        colon_idx = i
-                        break
-                
-                if colon_idx != -1:
-                    num = inner[:colon_idx]
-                    den = inner[colon_idx + 1:]
-                else:
-                    num = inner
-                    den = ''
-                
-                # Process nested formatting in numerator and denominator
-                num_html = render_nested_format(num)
-                den_html = render_nested_format(den)
-                num_html = render_square_roots(num_html)
-                den_html = render_square_roots(den_html)
-                
-                frac_html = f'<span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num_html}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den_html}</span></span>'
-                result.append(frac_html)
-                continue
-            except Exception:
-                result.append(part)
-                continue
-        
-        # Mixed fraction: [MIX:whole:num:den] - with support for nested formatting
+            frac_html = render_frac_token(part, render_inner)
+            result.append(frac_html if frac_html is not None else part)
+            continue
+
+        # Mixed fraction: [MIX:whole:num:den]
         if part.startswith('[MIX:') and part.endswith(']'):
-            try:
-                inner = part[5:-1]
-                # Parse with support for nested brackets
-                colon_positions = []
-                bracket_depth = 0
-                for i, char in enumerate(inner):
-                    if char == '[':
-                        bracket_depth += 1
-                    elif char == ']':
-                        bracket_depth -= 1
-                    elif char == ':' and bracket_depth == 0:
-                        colon_positions.append(i)
-                
-                if len(colon_positions) >= 2:
-                    whole = inner[:colon_positions[0]]
-                    num = inner[colon_positions[0] + 1:colon_positions[1]]
-                    den = inner[colon_positions[1] + 1:]
-                else:
-                    whole = inner
-                    num = ''
-                    den = ''
-                
-                # Process nested formatting
-                whole_html = render_nested_format(whole)
-                num_html = render_nested_format(num)
-                den_html = render_nested_format(den)
-                num_html = render_square_roots(num_html)
-                den_html = render_square_roots(den_html)
-                
-                mix_html = f'<span style="display: inline-flex; align-items: center; gap: 4px;"><span style="font-size: 0.95em;">{whole_html}</span><span style="display: inline-block; vertical-align: middle; text-align: center; line-height: 1;"><span style="display: block; font-size: 0.85em;">{num_html}</span><span style="display: block; border-top: 1px solid; padding-top: 1px; font-size: 0.85em;">{den_html}</span></span></span>'
-                result.append(mix_html)
-                continue
-            except Exception:
-                result.append(part)
-                continue
-        
+            mix_html = render_mix_token(part, render_inner)
+            result.append(mix_html if mix_html is not None else part)
+            continue
+
         # Superscript: [SUP]content[/SUP]
         if part.startswith('[SUP]') and part.endswith('[/SUP]'):
             content = part[5:-6]
