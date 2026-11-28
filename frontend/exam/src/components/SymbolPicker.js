@@ -45,8 +45,8 @@ const list = (pairs) => pairs.map(([symbol, name]) => ({ symbol, name }));
 
 const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
     const symbols = {
-        'Greek Letters': null, // built from GREEK, honours the upper/lower case toggle
-        'Letters (a-z)': null, // slanted textbook letters, honours the upper/lower case toggle
+        'Greek Letters': null,
+        'Letters (a-z)': null, 
         'SI Prefixes': SI_PREFIXES.map(([symbol, name, power]) => ({ symbol, name: `${name} (${symbol}, 10${sup(power)})` })),
         'Mathematical Operators': list([
             ['+', 'plus / addition'], ['\u2212', 'minus / subtraction'], ['\u00D7', 'multiplication (times)'], ['\u00F7', 'division'],
