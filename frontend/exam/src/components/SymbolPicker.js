@@ -1,185 +1,117 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+
+// Textbook-style (math italic) letters: variables such as x, y, h, u, v print slanted in books, not as plain typing.
+const italic = ch => {
+    if (ch === 'h') return '\u210E';
+    const code = ch.charCodeAt(0);
+    if (code >= 97 && code <= 122) return String.fromCodePoint(0x1D44E + code - 97);
+    if (code >= 65 && code <= 90) return String.fromCodePoint(0x1D434 + code - 65);
+    return ch;
+};
+const LOWER = 'abcdefghijklmnopqrstuvwxyz'.split('');
+const MATH_FONT = "'Cambria Math','STIX Two Math','Latin Modern Math','Times New Roman',serif";
+
+// [lower, upper, name]; some letters (final sigma, variants) only exist in one case.
+const GREEK = [
+    ['α', 'Α', 'alpha'], ['β', 'Β', 'beta'], ['γ', 'Γ', 'gamma'], ['δ', 'Δ', 'delta'], ['ε', 'Ε', 'epsilon'],
+    ['ζ', 'Ζ', 'zeta'], ['η', 'Η', 'eta'], ['θ', 'Θ', 'theta'], ['ι', 'Ι', 'iota'], ['κ', 'Κ', 'kappa'],
+    ['λ', 'Λ', 'lambda'], ['μ', 'Μ', 'mu'], ['ν', 'Ν', 'nu'], ['ξ', 'Ξ', 'xi'], ['ο', 'Ο', 'omicron'],
+    ['π', 'Π', 'pi'], ['ρ', 'Ρ', 'rho'], ['σ', 'Σ', 'sigma'], ['τ', 'Τ', 'tau'], ['υ', 'Υ', 'upsilon'],
+    ['φ', 'Φ', 'phi'], ['χ', 'Χ', 'chi'], ['ψ', 'Ψ', 'psi'], ['ω', 'Ω', 'omega'],
+    ['ς', null, 'final sigma'], ['ϵ', null, 'epsilon (lunate)'], ['ϑ', 'ϴ', 'theta (script)'], ['ϰ', null, 'kappa (variant)'],
+    ['ϕ', null, 'phi (variant)'], ['ϖ', null, 'pi (variant)'], ['ϱ', null, 'rho (variant)'], ['ϝ', 'Ϝ', 'digamma'],
+];
+
+const SI_PREFIXES = [
+    ['Q', 'quetta', 30], ['R', 'ronna', 27], ['Y', 'yotta', 24], ['Z', 'zetta', 21], ['E', 'exa', 18], ['P', 'peta', 15],
+    ['T', 'tera', 12], ['G', 'giga', 9], ['M', 'mega', 6], ['k', 'kilo', 3], ['h', 'hecto', 2], ['da', 'deca', 1],
+    ['d', 'deci', -1], ['c', 'centi', -2], ['m', 'milli', -3], ['μ', 'micro', -6], ['n', 'nano', -9], ['p', 'pico', -12],
+    ['f', 'femto', -15], ['a', 'atto', -18], ['z', 'zepto', -21], ['y', 'yocto', -24], ['r', 'ronto', -27], ['q', 'quecto', -30],
+];
+const SUP = { '-': '\u207B', 0: '\u2070', 1: '\u00B9', 2: '\u00B2', 3: '\u00B3', 4: '\u2074', 5: '\u2075', 6: '\u2076', 7: '\u2077', 8: '\u2078', 9: '\u2079' };
+const sup = n => String(n).split('').map(c => SUP[c] || c).join('');
+
+const list = (pairs) => pairs.map(([symbol, name]) => ({ symbol, name }));
+
 const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
     const symbols = {
-        'Greek Letters': [
-            { symbol: 'α', name: 'alpha' },
-            { symbol: 'β', name: 'beta' },
-            { symbol: 'γ', name: 'gamma' },
-            { symbol: 'δ', name: 'delta' },
-            { symbol: 'ε', name: 'epsilon' },
-            { symbol: 'ζ', name: 'zeta' },
-            { symbol: 'η', name: 'eta' },
-            { symbol: 'θ', name: 'theta' },
-            { symbol: 'ι', name: 'iota' },
-            { symbol: 'κ', name: 'kappa' },
-            { symbol: 'λ', name: 'lambda' },
-            { symbol: 'μ', name: 'mu' },
-            { symbol: 'ν', name: 'nu' },
-            { symbol: 'ξ', name: 'xi' },
-            { symbol: 'π', name: 'pi' },
-            { symbol: 'ρ', name: 'rho' },
-            { symbol: 'σ', name: 'sigma' },
-            { symbol: 'τ', name: 'tau' },
-            { symbol: 'φ', name: 'phi' },
-            { symbol: 'χ', name: 'chi' },
-            { symbol: 'ψ', name: 'psi' },
-            { symbol: 'ω', name: 'omega' },
-            { symbol: 'Α', name: 'Alpha' },
-            { symbol: 'Β', name: 'Beta' },
-            { symbol: 'Γ', name: 'Gamma' },
-            { symbol: 'Δ', name: 'Delta' },
-            { symbol: 'Θ', name: 'Theta' },
-            { symbol: 'Λ', name: 'Lambda' },
-            { symbol: 'Ξ', name: 'Xi' },
-            { symbol: 'Π', name: 'Pi' },
-            { symbol: 'Σ', name: 'Sigma' },
-            { symbol: 'Φ', name: 'Phi' },
-            { symbol: 'Ψ', name: 'Psi' },
-            { symbol: 'Ω', name: 'Omega' }
-        ],
-        'Mathematical Operators': [
-            { symbol: '÷', name: 'division' },
-            { symbol: '×', name: 'multiplication' },
-            { symbol: '✓︎', name: 'tick/check mark' },
-            { symbol: '±', name: 'plus-minus' },
-            { symbol: '∓', name: 'minus-plus' },
-            { symbol: '≠', name: 'not equal' },
-            { symbol: '≈', name: 'approximately' },
-            { symbol: '≡', name: 'identical' },
-            { symbol: '≤', name: 'less than or equal' },
-            { symbol: '≥', name: 'greater than or equal' },
-            { symbol: '∞', name: 'infinity' },
-            { symbol: '∑', name: 'summation' },
-            { symbol: '∫', name: 'integral' },
-            { symbol: '∂', name: 'partial derivative' },
-            { symbol: '∇', name: 'nabla/del' },
-            { symbol: '√', name: 'square root' },
-            { symbol: '∛', name: 'cube root' },
-            { symbol: '∜', name: 'fourth root' },
-            { symbol: '∝', name: 'proportional to' },
-            { symbol: '∈', name: 'element of' },
-            { symbol: '∉', name: 'not element of' },
-            { symbol: '𝐸', name: 'custom symbol E' },
-            { symbol: '∪', name: 'union' },
-            { symbol: '∩', name: 'intersection' },
-            { symbol: '⊂', name: 'subset' },
-            { symbol: '⊃', name: 'superset' },
-            { symbol: '∀', name: 'for all' },
-            { symbol: '∃', name: 'there exists' },
-            { symbol: '∄', name: 'there does not exist' },
-            { symbol: '∅', name: 'empty set' },
-            { symbol: '°', name: 'degree' },
-            { symbol: '′', name: 'prime' },
-            { symbol: '𝑓', name: 'function f' },
-            { symbol: '𝑔', name: 'function g' },
-            { symbol: 'ℎ', name: 'function h' },
-            { symbol: 'K𝐸ₘₐₓ', name: 'custom K𝐸ₘₐₓ' },
-            { symbol: '𝑓₀', name: 'function f sub 0' },
-            { symbol: '𝑊₀', name: 'function W sub 0' },
-            { symbol: '″', name: 'double prime' }
-        ],
-        'Arrows': [
-            { symbol: '→', name: 'right arrow' },
-            { symbol: '←', name: 'left arrow' },
-            { symbol: '↑', name: 'up arrow' },
-            { symbol: '↓', name: 'down arrow' },
-            { symbol: '↔', name: 'left-right arrow' },
-            { symbol: '⇒', name: 'right double arrow' },
-            { symbol: '⇐', name: 'left double arrow' },
-            { symbol: '⇔', name: 'left-right double arrow' },
-            { symbol: '⟶', name: 'long right arrow' },
-            { symbol: '⟵', name: 'long left arrow' },
-            { symbol: '⟷', name: 'long left-right arrow' },
-        ],
-        'Scientific Units': [
-            { symbol: 'm', name: 'meter' },
-            { symbol: 'kg', name: 'kilogram' },
-            { symbol: 's', name: 'second' },
-            { symbol: 'A', name: 'ampere' },
-            { symbol: 'K', name: 'kelvin' },
-            { symbol: 'mol', name: 'mole' },
-            { symbol: 'cd', name: 'candela' },
-            { symbol: 'Hz', name: 'hertz' },
-            { symbol: 'N', name: 'newton' },
-            { symbol: 'Pa', name: 'pascal' },
-            { symbol: 'J', name: 'joule' },
-            { symbol: 'W', name: 'watt' },
-            { symbol: 'C', name: 'coulomb' },
-            { symbol: 'V', name: 'volt' },
-            { symbol: 'Ω', name: 'ohm' },
-            { symbol: 'F', name: 'farad' },
-            { symbol: 'T', name: 'tesla' },
-            { symbol: 'Wb', name: 'weber' },
-            { symbol: 'H', name: 'henry' },
-            { symbol: '℃', name: 'celsius' },
-            { symbol: 'm²', name: 'square meter' },
-            { symbol: 'm³', name: 'cubic meter' },
-            { symbol: 'm/s', name: 'meter per second' },
-            { symbol: 'm/s²', name: 'meter per second squared' }
-        ],
-        'Common Superscripts': [
-            { symbol: '⁰', name: 'superscript 0' },
-            { symbol: '¹', name: 'superscript 1' },
-            { symbol: '²', name: 'superscript 2' },
-            { symbol: '³', name: 'superscript 3' },
-            { symbol: '⁴', name: 'superscript 4' },
-            { symbol: '⁵', name: 'superscript 5' },
-            { symbol: '⁶', name: 'superscript 6' },
-            { symbol: '⁷', name: 'superscript 7' },
-            { symbol: '⁸', name: 'superscript 8' },
-            { symbol: '⁹', name: 'superscript 9' },
-            { symbol: '⁺', name: 'superscript plus' },
-            { symbol: '⁻', name: 'superscript minus' }
-        ],
-        'Common Subscripts': [
-            { symbol: '₀', name: 'subscript 0' },
-            { symbol: '₁', name: 'subscript 1' },
-            { symbol: '₂', name: 'subscript 2' },
-            { symbol: '₃', name: 'subscript 3' },
-            { symbol: '₄', name: 'subscript 4' },
-            { symbol: '₅', name: 'subscript 5' },
-            { symbol: '₆', name: 'subscript 6' },
-            { symbol: '₇', name: 'subscript 7' },
-            { symbol: '₈', name: 'subscript 8' },
-            { symbol: '₉', name: 'subscript 9' },
-            { symbol: '₊', name: 'subscript plus' },
-            { symbol: '₋', name: 'subscript minus' }
-        ],
+        'Greek Letters': null, // built from GREEK, honours the upper/lower case toggle
+        'SI Prefixes': SI_PREFIXES.map(([symbol, name, power]) => ({ symbol, name: `${name} (${symbol}, 10${sup(power)})` })),
+        'Mathematical Operators': list([
+            ['+', 'plus / addition'], ['\u2212', 'minus / subtraction'], ['\u00D7', 'multiplication (times)'], ['\u00F7', 'division'],
+            ['\u22C5', 'dot multiplication'], ['\u00B7', 'middle dot'], ['\u2217', 'asterisk operator'], ['*', 'asterisk'],
+            ['/', 'slash division'], ['\u2215', 'division slash'], ['%', 'percent'], [' mod ', 'modulus (mod)'],
+            ['|', 'vertical bar / modulus (absolute value)'], ['\u2223', 'divides / vertical bar'], ['\u2224', 'does not divide'], ['\u2016', 'norm / parallel bars'],
+            ['\u00B1', 'plus-minus'], ['\u2213', 'minus-plus'], ['\u2218', 'composition / ring operator'], ['\u2219', 'bullet operator'],
+            ['=', 'equals'], ['\u2260', 'not equal'], ['\u2248', 'approximately equal'], ['\u2249', 'not approximately equal'], ['\u2245', 'congruent'],
+            ['\u2243', 'asymptotically equal'], ['\u223C', 'similar / tilde'], ['\u2261', 'identical'], ['\u2262', 'not identical'], ['\u225C', 'delta equals'],
+            ['\u2254', 'colon equals'], ['<', 'less than'], ['>', 'greater than'], ['\u2264', 'less than or equal'], ['\u2265', 'greater than or equal'],
+            ['\u226A', 'much less than'], ['\u226B', 'much greater than'], ['\u226E', 'not less than'], ['\u226F', 'not greater than'],
+            ['\u221D', 'proportional to'], ['\u221E', 'infinity'], ['\u221A', 'square root'], ['\u221B', 'cube root'], ['\u221C', 'fourth root'],
+            ['\u2211', 'summation'], ['\u220F', 'product'], ['\u2210', 'coproduct'], ['\u222B', 'integral'], ['\u222C', 'double integral'],
+            ['\u222D', 'triple integral'], ['\u222E', 'contour integral'], ['\u2202', 'partial derivative'], ['\u2207', 'nabla / del'], ['\u2206', 'increment / delta'],
+            ['\u2295', 'circled plus'], ['\u2297', 'circled times'], ['\u2296', 'circled minus'], ['\u2299', 'circled dot'],
+            ['\u230A', 'floor left'], ['\u230B', 'floor right'], ['\u2308', 'ceiling left'], ['\u2309', 'ceiling right'], ['\u27E8', 'angle bracket left'], ['\u27E9', 'angle bracket right'],
+            ['!', 'factorial'], ['\u2032', 'prime'], ['\u2033', 'double prime'], ['\u2034', 'triple prime'], ['\u00B0', 'degree'], ['\u2030', 'per mille'],
+            ['\u2234', 'therefore'], ['\u2235', 'because'], ['\u2713', 'tick / check mark'], ['\u2717', 'cross'],
+        ]),
+        'Geometry & Angles': list([
+            ['\u2220', 'angle'], ['\u2221', 'measured angle'], ['\u2222', 'spherical angle'], ['\u22BE', 'right angle with arc'], ['\u221F', 'right angle'],
+            ['\u22A5', 'perpendicular'], ['\u27C2', 'perpendicular (long)'], ['\u2225', 'parallel'], ['\u2226', 'not parallel'],
+            ['\u25B3', 'triangle'], ['\u25B1', 'parallelogram'], ['\u25A1', 'square'], ['\u25CB', 'circle'], ['\u2312', 'arc'], ['\u2245', 'congruent to'],
+            ['\u223C', 'similar to'], ['\u2299', 'circle dot'], ['\u00B0', 'degree'], ['\u2032', 'minutes / prime'], ['\u2033', 'seconds / double prime'],
+            ['\u22BF', 'right triangle'], ['\u2316', 'position indicator'], ['\u2194', 'line through points'], ['\u21C4', 'reflection arrows'],
+        ]),
+        'Set Theory & Logic': list([
+            ['\u2208', 'element of'], ['\u2209', 'not element of'], ['\u220B', 'contains as member'], ['\u222A', 'union'], ['\u2229', 'intersection'],
+            ['\u2282', 'subset'], ['\u2283', 'superset'], ['\u2286', 'subset or equal'], ['\u2287', 'superset or equal'], ['\u2284', 'not subset'],
+            ['\u2205', 'empty set'], ['\u2216', 'set minus'], ['\u2200', 'for all'], ['\u2203', 'there exists'], ['\u2204', 'there does not exist'],
+            ['\u2227', 'and'], ['\u2228', 'or'], ['\u00AC', 'not'], ['\u22BB', 'xor'], ['\u22A2', 'proves'], ['\u22A8', 'models'],
+            ['\u2115', 'natural numbers'], ['\u2124', 'integers'], ['\u211A', 'rationals'], ['\u211D', 'real numbers'], ['\u2102', 'complex numbers'], ['\u2119', 'primes / power set'],
+        ]),
+        'Arrows': list([
+            ['\u2192', 'right arrow'], ['\u2190', 'left arrow'], ['\u2191', 'up arrow'], ['\u2193', 'down arrow'], ['\u2194', 'left-right arrow'], ['\u2195', 'up-down arrow'],
+            ['\u21D2', 'right double arrow'], ['\u21D0', 'left double arrow'], ['\u21D4', 'left-right double arrow'], ['\u27F6', 'long right arrow'],
+            ['\u27F5', 'long left arrow'], ['\u27F7', 'long left-right arrow'], ['\u21CC', 'equilibrium arrows'], ['\u21C0', 'harpoon right'], ['\u21BC', 'harpoon left'],
+            ['\u21A6', 'maps to'], ['\u2197', 'north-east arrow'], ['\u2198', 'south-east arrow'],
+        ]),
+        'Scientific Units': list([
+            ['m', 'meter'], ['kg', 'kilogram'], ['g', 'gram'], ['s', 'second'], ['A', 'ampere'], ['K', 'kelvin'], ['mol', 'mole'], ['cd', 'candela'], ['Hz', 'hertz'],
+            ['N', 'newton'], ['Pa', 'pascal'], ['J', 'joule'], ['W', 'watt'], ['C', 'coulomb'], ['V', 'volt'], ['\u03A9', 'ohm'], ['F', 'farad'], ['T', 'tesla'], ['Wb', 'weber'],
+            ['H', 'henry'], ['S', 'siemens'], ['Bq', 'becquerel'], ['Gy', 'gray'], ['Sv', 'sievert'], ['L', 'litre'], ['eV', 'electron-volt'], ['\u2103', 'celsius'],
+            ['m\u00B2', 'square meter'], ['m\u00B3', 'cubic meter'], ['m/s', 'meter per second'], ['m/s\u00B2', 'meter per second squared'], ['\u00C5', 'angstrom'],
+        ]),
+        'Common Superscripts': list('\u2070\u00B9\u00B2\u00B3\u2074\u2075\u2076\u2077\u2078\u2079\u207A\u207B\u207F'.split('').map((c, i) => [c, `superscript ${['0','1','2','3','4','5','6','7','8','9','plus','minus','n'][i]}`])),
+        'Common Subscripts': list('\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089\u208A\u208B\u2099'.split('').map((c, i) => [c, `subscript ${['0','1','2','3','4','5','6','7','8','9','plus','minus','n'][i]}`])),
         'Physics Variables': [
-            { symbol: '𝑝', name: 'variable p' },
-            { symbol: '𝐸_f', name: 'energy E sub f' },
-            { symbol: '𝐹_c', name: 'force F sub c' },
-            { symbol: '𝑇', name: 'variable T' },
-            { symbol: '𝑟', name: 'variable r' },
-            { symbol: '𝑠', name: 'variable s' },
-            { symbol: '𝑑', name: 'variable d' },
-            { symbol: '𝑢', name: 'variable u' },
-            { symbol: '𝑣', name: 'variable v' },
-            { symbol: '𝑎', name: 'variable a' },
-            { symbol: '𝑡', name: 'variable t' },
-            { symbol: '𝑔', name: 'variable g' },
-            { symbol: 'λ₀', name: 'lambda sub 0' },
-            { symbol: 'εT', name: 'epsilon T' },
-            { symbol: '𝑚ₑ', name: 'mass m sub e' },
-            { symbol: '𝑒', name: 'variable e' }
-        ]
+            ...['h', 'u', 'v', 'x', 'y', 'a', 'd', 'e', 'f', 'g', 'm', 'p', 'r', 's', 't', 'F', 'E', 'T', 'P', 'V', 'W', 'I', 'R', 'Q', 'B', 'L', 'k', 'c', 'n', 'z'].map(ch => ({ symbol: italic(ch), name: `variable ${ch}` })),
+            ...[['\u2113', 'litre / length l'], ['\u210F', 'h-bar'], ['\u210E', 'Planck h'], ['\u03BB\u2080', 'lambda sub 0'],
+                [italic('E') + '_f', 'energy E sub f'], [italic('F') + '_c', 'force F sub c'], [italic('m') + '\u2091', 'mass m sub e'], [italic('f') + '\u2080', 'f sub 0'], [italic('W') + '\u2080', 'W sub 0']]
+                .map(([symbol, name]) => ({ symbol, name })),
+        ],
+        'Italic Letters a-z': LOWER.map(ch => ({ symbol: italic(ch), name: `italic ${ch}` })),
+        'Italic Letters A-Z': LOWER.map(ch => ch.toUpperCase()).map(ch => ({ symbol: italic(ch), name: `italic capital ${ch}` })),
     };
 
     const [activeCategory, setActiveCategory] = useState('Greek Letters');
     const [searchTerm, setSearchTerm] = useState('');
+    const [upperCase, setUpperCase] = useState(false);
 
-    const filteredSymbols = searchTerm 
-        ? Object.entries(symbols).reduce((acc, [category, items]) => {
-            const filtered = items.filter(item => 
-                item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.symbol.includes(searchTerm)
-            );
-            if (filtered.length > 0) {
-                acc[category] = filtered;
-            }
+    // Greek honours the case toggle; in search both cases are searched.
+    const greekItems = useMemo(() => GREEK
+        .map(([lower, upper, name]) => (upperCase ? (upper && { symbol: upper, name: `${name.charAt(0).toUpperCase()}${name.slice(1)} (capital)` }) : { symbol: lower, name }))
+        .filter(Boolean), [upperCase]);
+    const greekAll = useMemo(() => GREEK.flatMap(([lower, upper, name]) => [{ symbol: lower, name }, upper && { symbol: upper, name: `${name} capital` }].filter(Boolean)), []);
+    const resolved = { ...symbols, 'Greek Letters': searchTerm ? greekAll : greekItems };
+
+    const filteredSymbols = searchTerm
+        ? Object.entries(resolved).reduce((acc, [category, items]) => {
+            const term = searchTerm.toLowerCase();
+            const filtered = items.filter(item => item.name.toLowerCase().includes(term) || item.symbol.includes(searchTerm));
+            if (filtered.length > 0) acc[category] = filtered;
             return acc;
         }, {})
-        : { [activeCategory]: symbols[activeCategory] };
+        : { [activeCategory]: resolved[activeCategory] };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -213,7 +145,7 @@ const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
                     {/* Category Sidebar */}
                     {!searchTerm && (
                         <div className="w-48 bg-gray-50 border-r border-gray-200 overflow-y-auto">
-                            {Object.keys(symbols).map(category => (
+                            {Object.keys(resolved).map(category => (
                                 <button
                                     key={category}
                                     onClick={() => setActiveCategory(category)}
@@ -231,6 +163,12 @@ const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
 
                     {/* Symbols Grid */}
                     <div className="flex-1 p-6 overflow-y-auto">
+                        {!searchTerm && activeCategory === 'Greek Letters' && (
+                            <div className="mb-4 inline-flex rounded-lg border border-gray-300 overflow-hidden text-sm font-semibold">
+                                <button type="button" onClick={() => setUpperCase(false)} className={`px-4 py-1.5 ${!upperCase ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'}`}>lower case αβγ</button>
+                                <button type="button" onClick={() => setUpperCase(true)} className={`px-4 py-1.5 ${upperCase ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'}`}>UPPER CASE ΑΒΓ</button>
+                            </div>
+                        )}
                         {Object.entries(filteredSymbols).map(([category, items]) => (
                             <div key={category} className="mb-6">
                                 {searchTerm && (
@@ -239,7 +177,7 @@ const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
                                 <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
                                     {items.map(({ symbol, name }) => (
                                         <button
-                                            key={name}
+                                            key={`${name}-${symbol}`}
                                             onClick={() => {
                                                 onInsert(symbol);
                                                 onClose();
@@ -247,9 +185,9 @@ const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
                                             className="aspect-square bg-white border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition flex flex-col items-center justify-center p-2 group"
                                             title={name}
                                         >
-                                            <span className="text-2xl">{symbol}</span>
-                                            <span className="text-xs text-gray-500 mt-1 opacity-0 group-hover:opacity-100 transition truncate w-full text-center">
-                                                {name}
+                                            <span className="text-2xl" style={{ fontFamily: MATH_FONT }}>{symbol}</span>
+                                            <span className={`text-[10px] text-gray-500 mt-1 transition truncate w-full text-center ${category === 'SI Prefixes' ? '' : 'opacity-0 group-hover:opacity-100'}`}>
+                                                {category === 'SI Prefixes' ? name.split(' ')[0] : name}
                                             </span>
                                         </button>
                                     ))}
