@@ -31,11 +31,22 @@ const SI_PREFIXES = [
 const SUP = { '-': '\u207B', 0: '\u2070', 1: '\u00B9', 2: '\u00B2', 3: '\u00B3', 4: '\u2074', 5: '\u2075', 6: '\u2076', 7: '\u2077', 8: '\u2078', 9: '\u2079' };
 const sup = n => String(n).split('').map(c => SUP[c] || c).join('');
 
+const LATIN_HINTS = {
+    a: 'acceleration / area', b: 'constant b', c: 'speed of light', d: 'distance', e: 'energy / Euler number', f: 'function / frequency', g: 'gravity',
+    h: 'height / Planck constant', i: 'current / index', j: 'index j', k: 'constant k', l: 'length', m: 'mass', n: 'number n', o: 'origin', p: 'momentum / pressure',
+    q: 'charge', r: 'radius', s: 'displacement', t: 'time', u: 'initial velocity', v: 'velocity', w: 'weight / work', x: 'variable x', y: 'variable y', z: 'variable z',
+};
+const latinItems = upper => LOWER.map(ch => {
+    const letter = upper ? ch.toUpperCase() : ch;
+    return { symbol: italic(letter), name: `${letter} \u2013 ${LATIN_HINTS[ch]}` };
+});
+
 const list = (pairs) => pairs.map(([symbol, name]) => ({ symbol, name }));
 
 const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
     const symbols = {
         'Greek Letters': null, // built from GREEK, honours the upper/lower case toggle
+        'Letters (a-z)': null, // slanted textbook letters, honours the upper/lower case toggle
         'SI Prefixes': SI_PREFIXES.map(([symbol, name, power]) => ({ symbol, name: `${name} (${symbol}, 10${sup(power)})` })),
         'Mathematical Operators': list([
             ['+', 'plus / addition'], ['\u2212', 'minus / subtraction'], ['\u00D7', 'multiplication (times)'], ['\u00F7', 'division'],
@@ -83,14 +94,12 @@ const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
         ]),
         'Common Superscripts': list('\u2070\u00B9\u00B2\u00B3\u2074\u2075\u2076\u2077\u2078\u2079\u207A\u207B\u207F'.split('').map((c, i) => [c, `superscript ${['0','1','2','3','4','5','6','7','8','9','plus','minus','n'][i]}`])),
         'Common Subscripts': list('\u2080\u2081\u2082\u2083\u2084\u2085\u2086\u2087\u2088\u2089\u208A\u208B\u2099'.split('').map((c, i) => [c, `subscript ${['0','1','2','3','4','5','6','7','8','9','plus','minus','n'][i]}`])),
-        'Physics Variables': [
-            ...['h', 'u', 'v', 'x', 'y', 'a', 'd', 'e', 'f', 'g', 'm', 'p', 'r', 's', 't', 'F', 'E', 'T', 'P', 'V', 'W', 'I', 'R', 'Q', 'B', 'L', 'k', 'c', 'n', 'z'].map(ch => ({ symbol: italic(ch), name: `variable ${ch}` })),
-            ...[['\u2113', 'litre / length l'], ['\u210F', 'h-bar'], ['\u210E', 'Planck h'], ['\u03BB\u2080', 'lambda sub 0'],
-                [italic('E') + '_f', 'energy E sub f'], [italic('F') + '_c', 'force F sub c'], [italic('m') + '\u2091', 'mass m sub e'], [italic('f') + '\u2080', 'f sub 0'], [italic('W') + '\u2080', 'W sub 0']]
-                .map(([symbol, name]) => ({ symbol, name })),
-        ],
-        'Italic Letters a-z': LOWER.map(ch => ({ symbol: italic(ch), name: `italic ${ch}` })),
-        'Italic Letters A-Z': LOWER.map(ch => ch.toUpperCase()).map(ch => ({ symbol: italic(ch), name: `italic capital ${ch}` })),
+        'Physics Variables': list([
+            ['\u2113', 'length (script l)'], ['\u210F', 'h-bar (reduced Planck constant)'], ['\u03BB\u2080', 'lambda sub 0'],
+            [italic('E') + '_f', 'energy E sub f'], [italic('F') + '_c', 'force F sub c'], [italic('m') + '\u2091', 'mass m sub e'],
+            [italic('f') + '\u2080', 'f sub 0'], [italic('W') + '\u2080', 'W sub 0'], [italic('K') + italic('E') + '\u2098\u2090\u2093', 'max kinetic energy'],
+            [italic('v') + '\u2080', 'initial velocity v sub 0'], [italic('x') + '\u2080', 'x sub 0'], [italic('h') + '\u03BD', 'photon energy hf'],
+        ]),
     };
 
     const [activeCategory, setActiveCategory] = useState('Greek Letters');
@@ -102,7 +111,11 @@ const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
         .map(([lower, upper, name]) => (upperCase ? (upper && { symbol: upper, name: `${name.charAt(0).toUpperCase()}${name.slice(1)} (capital)` }) : { symbol: lower, name }))
         .filter(Boolean), [upperCase]);
     const greekAll = useMemo(() => GREEK.flatMap(([lower, upper, name]) => [{ symbol: lower, name }, upper && { symbol: upper, name: `${name} capital` }].filter(Boolean)), []);
-    const resolved = { ...symbols, 'Greek Letters': searchTerm ? greekAll : greekItems };
+    const resolved = {
+        ...symbols,
+        'Greek Letters': searchTerm ? greekAll : greekItems,
+        'Letters (a-z)': searchTerm ? [...latinItems(false), ...latinItems(true)] : latinItems(upperCase),
+    };
 
     const filteredSymbols = searchTerm
         ? Object.entries(resolved).reduce((acc, [category, items]) => {
@@ -163,10 +176,10 @@ const SymbolPicker = ({ onInsert, onClose, targetType = 'question' }) => {
 
                     {/* Symbols Grid */}
                     <div className="flex-1 p-6 overflow-y-auto">
-                        {!searchTerm && activeCategory === 'Greek Letters' && (
+                        {!searchTerm && ['Greek Letters', 'Letters (a-z)'].includes(activeCategory) && (
                             <div className="mb-4 inline-flex rounded-lg border border-gray-300 overflow-hidden text-sm font-semibold">
-                                <button type="button" onClick={() => setUpperCase(false)} className={`px-4 py-1.5 ${!upperCase ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'}`}>lower case αβγ</button>
-                                <button type="button" onClick={() => setUpperCase(true)} className={`px-4 py-1.5 ${upperCase ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'}`}>UPPER CASE ΑΒΓ</button>
+                                <button type="button" onClick={() => setUpperCase(false)} className={`px-4 py-1.5 ${!upperCase ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'}`}>lower case</button>
+                                <button type="button" onClick={() => setUpperCase(true)} className={`px-4 py-1.5 ${upperCase ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'}`}>UPPER CASE</button>
                             </div>
                         )}
                         {Object.entries(filteredSymbols).map(([category, items]) => (
